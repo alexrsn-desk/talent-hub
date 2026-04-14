@@ -130,6 +130,9 @@ export default function DashboardPage() {
         </p>
       </div>
 
+      {/* AI Daily Focus */}
+      <DailyFocus />
+
       {/* Open Jobs Pipeline Overview */}
       <div className="rounded-lg border border-border bg-card p-4">
         <h2 className="text-sm font-medium text-muted-foreground mb-3">Open Jobs ({jobPipelineStats.length})</h2>
