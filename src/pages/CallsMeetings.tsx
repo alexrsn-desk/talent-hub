@@ -37,6 +37,16 @@ export default function CallsMeetings() {
   const [dateFrom, setDateFrom] = useState<Date | undefined>();
   const [dateTo, setDateTo] = useState<Date | undefined>();
   const [selectedNote, setSelectedNote] = useState<any>(null);
+  const { data: signalCounts = {} } = useSignalCounts();
+  const { data: noteSignals = [], isLoading: signalsLoading } = useSignalsForNote(selectedNote?.id);
+  const detectSignals = useDetectSignals();
+
+  // Auto-detect signals when viewing a note with content but no signals yet
+  useEffect(() => {
+    if (selectedNote && !signalsLoading && noteSignals.length === 0 && (selectedNote.transcript || selectedNote.content?.length > 50)) {
+      detectSignals.mutate(selectedNote.id);
+    }
+  }, [selectedNote?.id]);
 
   const { data: notes = [], isLoading } = useQuery({
     queryKey: ["calls-meetings"],
