@@ -348,59 +348,14 @@ export function DataImport() {
               </div>
             </div>
 
-            {result.errors.length > 0 && (
-              <div className="space-y-2">
-                <p className="text-sm font-medium text-destructive flex items-center gap-1">
-                  <AlertTriangle className="h-4 w-4" /> {result.errors.length} issue(s)
-                </p>
-                <div className="max-h-40 overflow-y-auto space-y-1">
-                  {result.errors.slice(0, 10).map((e, i) => (
-                    <div key={i} className="text-xs bg-destructive/5 rounded px-2 py-1">
-                      <span className="font-medium">Row {e.row}:</span> {e.reason}
-                    </div>
-                  ))}
-                </div>
-                <Button variant="outline" size="sm" onClick={() => dlErrors(result.errors, recordType)}>
-                  <Download className="h-3.5 w-3.5 mr-1" /> Download error report
-                </Button>
-              </div>
-            )}
+            <PostImportChecklist
+              unmatchedJobs={unmatchedJobs}
+              errors={result.errors}
+              compact
+            />
 
             <div className="flex gap-2 pt-2">
-              {unmatchedJobs.length > 0 && (
-                <Button size="sm" onClick={() => setStep("link-jobs")}>
-                  <Link2 className="h-4 w-4 mr-1" /> Link {unmatchedJobs.length} jobs
-                </Button>
-              )}
               <Button variant="outline" size="sm" onClick={reset}>Import more</Button>
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {step === "link-jobs" && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">Link Jobs to Clients</CardTitle>
-            <CardDescription>These jobs couldn't be matched. Link them manually:</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            <div className="max-h-60 overflow-y-auto space-y-2">
-              {unmatchedJobs.map(job => (
-                <div key={job.id} className="flex items-center gap-3">
-                  <span className="text-sm flex-1 truncate">{job.title}</span>
-                  <Select value={jobClientLinks[job.id] || ""} onValueChange={val => setJobClientLinks(prev => ({ ...prev, [job.id]: val }))}>
-                    <SelectTrigger className="w-48"><SelectValue placeholder="Select client…" /></SelectTrigger>
-                    <SelectContent>
-                      {clients.map(c => <SelectItem key={c.id} value={c.id}>{c.company_name}</SelectItem>)}
-                    </SelectContent>
-                  </Select>
-                </div>
-              ))}
-            </div>
-            <div className="flex gap-2 pt-2">
-              <Button size="sm" onClick={linkJobsToClients}><Check className="h-4 w-4 mr-1" /> Save links</Button>
-              <Button variant="outline" size="sm" onClick={() => setStep("results")}>Skip</Button>
             </div>
           </CardContent>
         </Card>
