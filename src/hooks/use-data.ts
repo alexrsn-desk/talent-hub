@@ -78,6 +78,8 @@ export type Note = {
   activity_type: string;
   outcome: string | null;
   follow_up_date: string | null;
+  duration: number | null;
+  transcript: string | null;
   created_at: string;
 };
 
