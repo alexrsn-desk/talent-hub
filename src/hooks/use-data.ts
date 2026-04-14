@@ -13,6 +13,8 @@ export type Candidate = {
   linkedin_url: string | null;
   status: string;
   source: string | null;
+  salary_current: number | null;
+  availability: string | null;
   created_at: string;
   updated_at: string;
 };
