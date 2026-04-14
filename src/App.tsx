@@ -16,6 +16,7 @@ import Jobs from "./pages/Jobs";
 import BDPipeline from "./pages/BDPipeline";
 import Coach from "./pages/Coach";
 import Settings from "./pages/Settings";
+import WeeklyIntel from "./pages/WeeklyIntel";
 import Auth from "./pages/Auth";
 import Portal from "./pages/Portal";
 import NotFound from "./pages/NotFound";
@@ -75,6 +76,7 @@ function AppRoutes() {
         <Route path="/jobs" element={<Jobs />} />
         <Route path="/bd-pipeline" element={<BDPipeline />} />
         <Route path="/coach" element={<Coach />} />
+        <Route path="/weekly" element={<WeeklyIntel />} />
         <Route path="/settings" element={<Settings />} />
         <Route path="*" element={<NotFound />} />
       </Routes>
