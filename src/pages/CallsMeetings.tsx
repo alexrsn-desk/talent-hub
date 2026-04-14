@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -11,9 +11,11 @@ import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import {
   Phone, Users as UsersIcon, Video, CalendarIcon, Clock, ExternalLink,
-  ChevronDown, Brain, FileText, Loader2, ArrowLeft,
+  ChevronDown, Brain, FileText, Loader2, ArrowLeft, Lightbulb,
 } from "lucide-react";
 import { Link } from "react-router-dom";
+import { SignalBox, SignalBadge } from "@/components/SignalBox";
+import { useSignalsForNote, useSignalCounts, useDetectSignals } from "@/hooks/use-signals";
 
 type ActivityType = "Call" | "Meeting" | "Video Call";
 
