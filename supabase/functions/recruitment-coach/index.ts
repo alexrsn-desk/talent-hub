@@ -224,6 +224,15 @@ serve(async (req) => {
         callContact: s.notes?.candidates?.name || s.notes?.clients?.company_name || "Unknown",
         callDate: s.notes?.created_at?.split("T")[0],
       })),
+      priorityCandidates: (priorityCandidates || []).map((c: any) => ({
+        name: c.name,
+        jobTitle: c.job_title,
+        employer: c.current_employer,
+        reason: c.priority_reason,
+        flaggedAt: c.priority_flagged_at?.split("T")[0],
+        followUpDate: c.priority_followup_date,
+        daysSinceFlagged: c.priority_flagged_at ? Math.floor((Date.now() - new Date(c.priority_flagged_at).getTime()) / (1000 * 60 * 60 * 24)) : null,
+      })),
     };
 
     const recruiterContext = profile ? `
