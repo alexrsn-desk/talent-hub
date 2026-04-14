@@ -536,9 +536,23 @@ export function OnboardingImport({ onComplete }: { onComplete: () => void }) {
                 ...(results.clients?.errors || []),
                 ...(results.jobs?.errors || []),
               ]}
-              onDismiss={onComplete}
+              onDismiss={() => setStep("migration")}
             />
           </div>
+        )}
+
+        {/* ── Migration Assistant ─────────────────────────────────── */}
+        {step === "migration" && (
+          <MigrationAssistant
+            initialUnmatchedJobs={unmatchedJobs.map(j => ({
+              ...j,
+              salary_min: null,
+              salary_max: null,
+              date_opened: new Date().toISOString(),
+            }))}
+            onComplete={onComplete}
+            showLaterOption
+          />
         )}
 
 
