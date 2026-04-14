@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
-import { Plus, Search, ExternalLink, Trash2, PhoneCall } from "lucide-react";
+import { Plus, Search, ExternalLink, Trash2, PhoneCall, Phone } from "lucide-react";
 import { useClients, useCreateClient, useUpdateClient, useDeleteClient, type Client } from "@/hooks/use-data";
 import { NotesSection } from "@/components/NotesSection";
 import { LogTouchpointModal } from "@/components/LogTouchpointModal";
@@ -186,7 +186,14 @@ function ClientDetail({ client, onUpdate, onDelete }: {
           <h2 className="text-xl font-semibold">{client.company_name}</h2>
           <p className="text-muted-foreground">{client.contact_name || ""} {client.job_title ? `· ${client.job_title}` : ""}</p>
         </div>
-        <div className="flex gap-2 items-start">
+        <div className="flex gap-2 items-start flex-wrap">
+          {client.phone && (
+            <a href={`tel:${client.phone}`}>
+              <Button size="sm" variant="default" className="gap-1.5">
+                <Phone className="h-3.5 w-3.5" /> Call Now
+              </Button>
+            </a>
+          )}
           <CallPrepButton entityType="client" entityId={client.id} entityName={client.company_name} />
           <Button size="sm" variant="outline" className="gap-1.5" onClick={() => setTouchpointOpen(true)}>
             <PhoneCall className="h-3.5 w-3.5" /> Log Touchpoint
