@@ -68,6 +68,8 @@ export type Note = {
   job_id: string | null;
   content: string;
   activity_type: string;
+  outcome: string | null;
+  follow_up_date: string | null;
   created_at: string;
 };
 
@@ -292,7 +294,7 @@ export function useNotes(entityType: "candidate" | "client" | "job", entityId: s
 export function useCreateNote() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (note: { content: string; activity_type?: string; candidate_id?: string; client_id?: string; job_id?: string }) => {
+    mutationFn: async (note: { content: string; activity_type?: string; outcome?: string; follow_up_date?: string; candidate_id?: string; client_id?: string; job_id?: string }) => {
       const { data, error } = await supabase.from("notes").insert(note).select().single();
       if (error) throw error;
       return data;
