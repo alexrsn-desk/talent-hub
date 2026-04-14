@@ -9,13 +9,15 @@ import { Plus, Search, ExternalLink, Trash2 } from "lucide-react";
 import { useClients, useCreateClient, useUpdateClient, useDeleteClient, type Client } from "@/hooks/use-data";
 import { NotesSection } from "@/components/NotesSection";
 
-const STATUSES = ["Active", "Warm", "Cold", "Target"] as const;
+const STATUSES = ["Target", "Contacted", "Conversation Started", "Meeting Booked", "Terms Sent", "Active Client"] as const;
 
 const statusColor: Record<string, string> = {
-  Active: "bg-success/20 text-green-400",
-  Warm: "bg-orange-500/20 text-orange-400",
-  Cold: "bg-blue-500/20 text-blue-400",
   Target: "bg-purple-500/20 text-purple-400",
+  Contacted: "bg-blue-500/20 text-blue-400",
+  "Conversation Started": "bg-orange-500/20 text-orange-400",
+  "Meeting Booked": "bg-yellow-500/20 text-yellow-400",
+  "Terms Sent": "bg-cyan-500/20 text-cyan-400",
+  "Active Client": "bg-success/20 text-green-400",
 };
 
 export default function ClientsPage() {
