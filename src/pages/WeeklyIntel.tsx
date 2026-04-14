@@ -170,7 +170,7 @@ export default function WeeklyIntel() {
         .select("*")
         .eq("week_start", wsDate)
         .maybeSingle();
-      return data as { summary: WeeklySummary; week_start: string; week_end: string } | null;
+      return (data as unknown as { summary: WeeklySummary; week_start: string; week_end: string }) || null;
     },
   });
 
