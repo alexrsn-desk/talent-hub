@@ -1,5 +1,6 @@
 import { useJobs, useTodayFollowUps, useOverdueFollowUps, useTodayInterviews, useCandidateJobs } from "@/hooks/use-data";
 import { AlertTriangle, Phone, Mail, Globe, FileText, Smartphone, MessageCircle, MessageSquare, Sun, Clock, CalendarCheck, Star, Users } from "lucide-react";
+import { DailyFocus } from "@/components/DailyFocus";
 
 const activityIcon: Record<string, typeof FileText> = {
   Note: FileText,
