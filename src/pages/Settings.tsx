@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Slider } from "@/components/ui/slider";
 import { toast } from "sonner";
 import { Save, Loader2, Upload, Palette } from "lucide-react";
+import { DataImport } from "@/components/DataImport";
 
 const NICHES = [
   "Tech/Digital", "Sales/Commercial", "Finance", "Legal",

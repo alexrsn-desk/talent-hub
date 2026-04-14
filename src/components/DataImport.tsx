@@ -676,16 +676,16 @@ export function DataImport() {
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="grid grid-cols-3 gap-3">
-              <div className="rounded-lg bg-green-500/10 border border-green-500/20 p-3 text-center">
-                <div className="text-2xl font-bold text-green-500">{result.imported}</div>
+              <div className="rounded-lg bg-primary/10 border border-primary/20 p-3 text-center">
+                <div className="text-2xl font-bold text-primary">{result.imported}</div>
                 <div className="text-xs text-muted-foreground">Imported</div>
               </div>
-              <div className="rounded-lg bg-blue-500/10 border border-blue-500/20 p-3 text-center">
-                <div className="text-2xl font-bold text-blue-500">{result.updated}</div>
+              <div className="rounded-lg bg-accent/50 border border-accent p-3 text-center">
+                <div className="text-2xl font-bold text-accent-foreground">{result.updated}</div>
                 <div className="text-xs text-muted-foreground">Updated</div>
               </div>
-              <div className="rounded-lg bg-amber-500/10 border border-amber-500/20 p-3 text-center">
-                <div className="text-2xl font-bold text-amber-500">{result.skipped}</div>
+              <div className="rounded-lg bg-destructive/10 border border-destructive/20 p-3 text-center">
+                <div className="text-2xl font-bold text-destructive">{result.skipped}</div>
                 <div className="text-xs text-muted-foreground">Skipped</div>
               </div>
             </div>
