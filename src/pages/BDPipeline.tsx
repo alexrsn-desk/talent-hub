@@ -332,6 +332,62 @@ function ClientDetailView({ client, onUpdate, onDelete }: {
         </div>
       </div>
 
+      {/* Contacts */}
+      <div className="rounded-lg border border-border p-4 space-y-3">
+        <div className="flex items-center justify-between">
+          <h3 className="text-sm font-medium flex items-center gap-1.5">
+            <Users className="h-4 w-4" /> Contacts ({contacts.length})
+          </h3>
+          <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={() => setAddingContact(!addingContact)}>
+            <Plus className="h-3 w-3 mr-1" /> Add
+          </Button>
+        </div>
+
+        {addingContact && (
+          <form
+            className="flex gap-2"
+            onSubmit={async (e) => {
+              e.preventDefault();
+              if (!newContactName.trim()) return;
+              await createContact.mutateAsync({
+                client_id: client.id,
+                name: newContactName.trim(),
+                job_title: newContactTitle.trim() || null,
+                email: null,
+                phone: null,
+                linkedin_url: null,
+              });
+              setNewContactName("");
+              setNewContactTitle("");
+              setAddingContact(false);
+            }}
+          >
+            <Input placeholder="Name" value={newContactName} onChange={(e) => setNewContactName(e.target.value)} className="h-8 text-xs" required autoFocus />
+            <Input placeholder="Job title" value={newContactTitle} onChange={(e) => setNewContactTitle(e.target.value)} className="h-8 text-xs" />
+            <Button type="submit" size="sm" className="h-8 text-xs">Add</Button>
+          </form>
+        )}
+
+        {contacts.length > 0 ? (
+          <div className="space-y-1">
+            {contacts.map((contact) => (
+              <div key={contact.id} className="flex items-center justify-between text-sm py-1.5 px-2 rounded bg-muted/30">
+                <div>
+                  <span className="font-medium">{contact.name}</span>
+                  {contact.job_title && <span className="text-muted-foreground ml-1.5">· {contact.job_title}</span>}
+                  {contact.email && <span className="text-muted-foreground ml-1.5 text-xs">· {contact.email}</span>}
+                </div>
+                <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => deleteContact.mutate(contact.id)}>
+                  <Trash2 className="h-3 w-3 text-destructive" />
+                </Button>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <p className="text-xs text-muted-foreground">No contacts yet</p>
+        )}
+      </div>
+
       <NotesSection entityType="client" entityId={client.id} />
     </div>
   );
