@@ -67,6 +67,10 @@ export default function CandidatesPage() {
       source: (fd.get("source") as string) || "LinkedIn",
       salary_current: null,
       availability: null,
+      priority_flag: false,
+      priority_reason: null,
+      priority_flagged_at: null,
+      priority_followup_date: null,
     });
     setDialogOpen(false);
   };
