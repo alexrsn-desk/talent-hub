@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Slider } from "@/components/ui/slider";
 import { toast } from "sonner";
 import { Save, Loader2, Upload, Palette } from "lucide-react";
+import { DataImport } from "@/components/DataImport";
 
 const NICHES = [
   "Tech/Digital", "Sales/Commercial", "Finance", "Legal",
@@ -145,7 +146,7 @@ export default function SettingsPage() {
   );
 
   return (
-    <div className="max-w-lg space-y-8">
+    <div className="max-w-2xl space-y-8">
       <div>
         <h1 className="text-lg font-semibold">My Profile</h1>
         <p className="text-sm text-muted-foreground">Update your preferences — changes immediately affect your AI coach.</p>
@@ -286,6 +287,10 @@ export default function SettingsPage() {
         <Button variant="ghost" size="sm" onClick={signOut} className="text-muted-foreground">
           Sign out
         </Button>
+      </div>
+      {/* Data Import */}
+      <div className="pt-6 border-t border-border">
+        <DataImport />
       </div>
     </div>
   );
