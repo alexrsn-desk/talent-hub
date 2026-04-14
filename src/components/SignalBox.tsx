@@ -94,8 +94,7 @@ function SignalCard({
               size="sm"
               className="h-7 text-[11px] gap-1"
               onClick={() => {
-                updateStatus.mutate({ id: signal.id, status: "actioned" });
-                toast.success(`Follow-up set${signal.suggested_date ? ` for ${signal.suggested_date}` : ""}`);
+                toast("Set a follow-up date on the record to resolve this signal", { duration: 3000 });
               }}
             >
               <CalendarPlus className="h-3 w-3" /> Set follow-up{signal.suggested_date ? ` for ${signal.suggested_date}` : ""}
@@ -107,8 +106,7 @@ function SignalCard({
               size="sm"
               className="h-7 text-[11px] gap-1"
               onClick={() => {
-                updateStatus.mutate({ id: signal.id, status: "actioned" });
-                toast.success("Added to next actions");
+                toast("Add a next action on the record to resolve this signal", { duration: 3000 });
               }}
             >
               <ListPlus className="h-3 w-3" /> Add to next actions
@@ -120,8 +118,7 @@ function SignalCard({
               size="sm"
               className="h-7 text-[11px] gap-1"
               onClick={() => {
-                updateStatus.mutate({ id: signal.id, status: "actioned" });
-                toast.success("Interview date logged");
+                toast("Log an interview date on the candidate pipeline to resolve this signal", { duration: 3000 });
               }}
             >
               <Clock className="h-3 w-3" /> Log interview date
@@ -135,40 +132,35 @@ function SignalCard({
               size="sm"
               className="h-7 text-[11px] gap-1"
               onClick={() => {
-                updateStatus.mutate({ id: signal.id, status: "actioned" });
-                toast.success("Added to BD Pipeline");
+                toast("Add this lead to your BD Pipeline to action this signal", { duration: 3000 });
               }}
             >
               <ArrowRight className="h-3 w-3" /> Add to BD Pipeline
             </Button>
           )}
-          {!isMissingAction && (
-            <Button
-              variant="outline"
-              size="sm"
-              className="h-7 text-[11px] gap-1"
-              onClick={() => {
-                updateStatus.mutate({ id: signal.id, status: "actioned" });
-                toast.success("Added to Actions");
-              }}
-            >
-              <ArrowRight className="h-3 w-3" /> Add to Actions
-            </Button>
-          )}
-          {/* Flag as priority candidate — for Candidate Signals */}
           {!isMissingAction && signal.signal_type === "Candidate Signal" && (
             <Button
               variant="outline"
               size="sm"
               className="h-7 text-[11px] gap-1 border-yellow-400/30 text-yellow-400 hover:bg-yellow-400/10"
               onClick={() => {
-                updateStatus.mutate({ id: signal.id, status: "actioned" });
-                toast.success("Flag the candidate as priority from their profile");
+                toast("Flag the candidate as priority from their profile", { duration: 3000 });
               }}
             >
               <Star className="h-3 w-3" /> Flag as Priority
             </Button>
           )}
+          <Button
+            variant="outline"
+            size="sm"
+            className="h-7 text-[11px] gap-1 text-emerald-400 border-emerald-400/30 hover:bg-emerald-400/10"
+            onClick={() => {
+              updateStatus.mutate({ id: signal.id, status: "actioned" });
+              toast.success("Marked as actioned");
+            }}
+          >
+            <ThumbsUp className="h-3 w-3" /> Mark Actioned
+          </Button>
           <Button
             variant="ghost"
             size="sm"
