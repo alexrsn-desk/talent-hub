@@ -15,7 +15,7 @@ import {
 } from "@/lib/csv-import";
 import { PostImportChecklist } from "@/components/PostImportChecklist";
 
-type Step = "select" | "upload" | "mapping" | "preview" | "importing" | "results" | "link-jobs";
+type Step = "select" | "upload" | "mapping" | "preview" | "importing" | "results";
 
 export function DataImport() {
   const [step, setStep] = useState<Step>("select");
