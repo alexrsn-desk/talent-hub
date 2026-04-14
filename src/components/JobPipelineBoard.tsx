@@ -12,6 +12,7 @@ import { NotesSection } from "@/components/NotesSection";
 import { CandidateJobLinks } from "@/components/CandidateJobLinks";
 import { LogTouchpointModal } from "@/components/LogTouchpointModal";
 import { toast } from "sonner";
+import { InterviewSlotPicker } from "@/components/InterviewSlotPicker";
 
 const PIPELINE_STAGES = [
   "Longlist",
