@@ -218,8 +218,15 @@ function CandidateDetail({ candidate, onUpdate, onDelete }: {
           <h2 className="text-xl font-semibold">{candidate.name}</h2>
           <p className="text-muted-foreground">{candidate.job_title || "No title"} {candidate.current_employer ? `at ${candidate.current_employer}` : ""}</p>
         </div>
-        <div className="flex gap-2 items-start">
+        <div className="flex gap-2 items-start flex-wrap">
           <PriorityFlagButton candidate={candidate} size="sm" />
+          {candidate.phone && (
+            <a href={`tel:${candidate.phone}`}>
+              <Button size="sm" variant="default" className="gap-1.5">
+                <Phone className="h-3.5 w-3.5" /> Call Now
+              </Button>
+            </a>
+          )}
           <CallPrepButton entityType="candidate" entityId={candidate.id} entityName={candidate.name} />
           <Button size="sm" variant="outline" className="gap-1.5" onClick={() => setTouchpointOpen(true)}>
             <PhoneCall className="h-3.5 w-3.5" /> Log Touchpoint
