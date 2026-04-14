@@ -47,8 +47,6 @@ export function OnboardingImport({ onComplete }: { onComplete: () => void }) {
   const [progressPct, setProgressPct] = useState(0);
   const [unmatchedJobs, setUnmatchedJobs] = useState<{ id: string; title: string }[]>([]);
   const fileRefs = useRef<Record<string, HTMLInputElement | null>>({});
-  const [checklist, setChecklist] = useState<Record<string, boolean>>({});
-  const fileRefs = useRef<Record<string, HTMLInputElement | null>>({});
 
   const enabledList = (Object.keys(enabledTypes) as RecordType[]).filter(t => enabledTypes[t]);
 
