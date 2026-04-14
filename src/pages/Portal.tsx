@@ -13,6 +13,7 @@ type PortalData = {
   candidateJobs: any[];
   feedback: any[];
   recentActivity: any[];
+  interviewSlots: any[];
 };
 
 type ClientInfo = { id: string; company_name: string; contact_name: string | null };
