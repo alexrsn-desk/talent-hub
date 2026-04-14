@@ -9,6 +9,8 @@ export type CallSignal = {
   explanation: string;
   suggested_action: string;
   status: string;
+  feedback_rating: string | null;
+  feedback_at: string | null;
   created_at: string;
 };
 
@@ -64,6 +66,35 @@ export function useSignalCounts() {
   });
 }
 
+export function useSignalPerformance() {
+  return useQuery({
+    queryKey: ["signal-performance"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("call_signals" as any)
+        .select("signal_type, feedback_rating");
+      if (error) throw error;
+      const stats: Record<string, { total: number; up: number; down: number }> = {};
+      for (const s of (data || []) as any[]) {
+        if (!stats[s.signal_type]) stats[s.signal_type] = { total: 0, up: 0, down: 0 };
+        stats[s.signal_type].total++;
+        if (s.feedback_rating === "thumbs_up") stats[s.signal_type].up++;
+        if (s.feedback_rating === "thumbs_down") stats[s.signal_type].down++;
+      }
+      return Object.entries(stats)
+        .map(([type, s]) => ({
+          type,
+          total: s.total,
+          up: s.up,
+          upPct: s.total > 0 ? Math.round((s.up / s.total) * 100) : 0,
+          down: s.down,
+          downPct: s.total > 0 ? Math.round((s.down / s.total) * 100) : 0,
+        }))
+        .sort((a, b) => b.downPct - a.downPct);
+    },
+  });
+}
+
 export function useUpdateSignalStatus() {
   const qc = useQueryClient();
   return useMutation({
@@ -78,6 +109,33 @@ export function useUpdateSignalStatus() {
       qc.invalidateQueries({ queryKey: ["call-signals"] });
       qc.invalidateQueries({ queryKey: ["call-signals-unactioned"] });
       qc.invalidateQueries({ queryKey: ["call-signal-counts"] });
+    },
+  });
+}
+
+export function useFeedbackSignal() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, rating }: { id: string; rating: "thumbs_up" | "thumbs_down" }) => {
+      const updates: any = {
+        feedback_rating: rating,
+        feedback_at: new Date().toISOString(),
+      };
+      // Thumbs down also dismisses
+      if (rating === "thumbs_down") {
+        updates.status = "dismissed";
+      }
+      const { error } = await supabase
+        .from("call_signals" as any)
+        .update(updates)
+        .eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["call-signals"] });
+      qc.invalidateQueries({ queryKey: ["call-signals-unactioned"] });
+      qc.invalidateQueries({ queryKey: ["call-signal-counts"] });
+      qc.invalidateQueries({ queryKey: ["signal-performance"] });
     },
   });
 }
