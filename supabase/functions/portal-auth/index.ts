@@ -44,7 +44,21 @@ serve(async (req) => {
       // Update last accessed
       await supabase.from("client_portal_access").update({ last_accessed_at: new Date().toISOString() }).eq("id", access.id);
 
-      return new Response(JSON.stringify({ client: access.clients, access_id: access.id, client_id: access.client_id }), {
+      // Fetch recruiter branding (the recruiter who owns this client record)
+      // We get the first recruiter_profile since this is a solo-user CRM
+      const { data: profile } = await supabase
+        .from("recruiter_profiles")
+        .select("agency_name, agency_logo_url, brand_color")
+        .limit(1)
+        .single();
+
+      const branding = {
+        agency_name: profile?.agency_name || null,
+        agency_logo_url: profile?.agency_logo_url || null,
+        brand_color: profile?.brand_color || "#3B82F6",
+      };
+
+      return new Response(JSON.stringify({ client: access.clients, access_id: access.id, client_id: access.client_id, branding }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }

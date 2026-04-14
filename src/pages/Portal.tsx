@@ -16,6 +16,7 @@ type PortalData = {
 };
 
 type ClientInfo = { id: string; company_name: string; contact_name: string | null };
+type Branding = { agency_name: string | null; agency_logo_url: string | null; brand_color: string };
 
 const stageColor: Record<string, string> = {
   Applied: "bg-blue-500/20 text-blue-400",
@@ -35,6 +36,7 @@ export default function Portal() {
   const [client, setClient] = useState<ClientInfo | null>(null);
   const [clientId, setClientId] = useState<string | null>(null);
   const [portalData, setPortalData] = useState<PortalData | null>(null);
+  const [branding, setBranding] = useState<Branding>({ agency_name: null, agency_logo_url: null, brand_color: "#3B82F6" });
   const [selectedJob, setSelectedJob] = useState<string | null>(null);
   const [tab, setTab] = useState<"jobs" | "activity">("jobs");
 
@@ -48,6 +50,7 @@ export default function Portal() {
       if (err || data?.error) { setError(data?.error || "Invalid link"); setLoading(false); return; }
       setClient(data.client);
       setClientId(data.client_id);
+      if (data.branding) setBranding(data.branding);
     })();
   }, [token]);
 
@@ -85,16 +88,23 @@ export default function Portal() {
     );
   }
 
+  const bc = branding.brand_color;
+
   return (
     <div className="min-h-screen bg-background">
-      {/* Header */}
-      <header className="border-b border-border bg-card">
+      {/* Branded Header */}
+      <header className="border-b border-border" style={{ backgroundColor: bc + "10" }}>
         <div className="max-w-5xl mx-auto px-4 py-4 flex items-center justify-between">
-          <div>
-            <h1 className="text-lg font-semibold">Client Portal</h1>
-            <p className="text-sm text-muted-foreground">{client?.company_name}</p>
+          <div className="flex items-center gap-3">
+            {branding.agency_logo_url && (
+              <img src={branding.agency_logo_url} alt="Logo" className="h-8 w-auto rounded bg-white p-0.5" />
+            )}
+            <div>
+              <h1 className="text-lg font-semibold">{branding.agency_name || "Client Portal"}</h1>
+              <p className="text-sm text-muted-foreground">{client?.company_name}</p>
+            </div>
           </div>
-          <Badge variant="secondary" className="bg-primary/20 text-primary">
+          <Badge variant="secondary" style={{ backgroundColor: bc + "20", color: bc }}>
             {client?.contact_name || "Client"}
           </Badge>
         </div>
@@ -103,10 +113,20 @@ export default function Portal() {
       <div className="max-w-5xl mx-auto px-4 py-6 space-y-6">
         {/* Tab nav */}
         <div className="flex gap-2">
-          <Button variant={tab === "jobs" ? "default" : "outline"} size="sm" onClick={() => setTab("jobs")}>
+          <Button
+            variant={tab === "jobs" ? "default" : "outline"}
+            size="sm"
+            onClick={() => setTab("jobs")}
+            style={tab === "jobs" ? { backgroundColor: bc } : {}}
+          >
             <Briefcase className="h-4 w-4 mr-1.5" /> Jobs & Candidates
           </Button>
-          <Button variant={tab === "activity" ? "default" : "outline"} size="sm" onClick={() => setTab("activity")}>
+          <Button
+            variant={tab === "activity" ? "default" : "outline"}
+            size="sm"
+            onClick={() => setTab("activity")}
+            style={tab === "activity" ? { backgroundColor: bc } : {}}
+          >
             <Clock className="h-4 w-4 mr-1.5" /> Activity Feed
           </Button>
         </div>
