@@ -315,6 +315,7 @@ export default function CallsMeetings() {
                             {contactType}
                           </span>
                           <span className={`text-xs font-medium ${color}`}>{note.activity_type}</span>
+                          {signalCounts[note.id] > 0 && <SignalBadge count={signalCounts[note.id]} />}
                         </div>
                         <ChevronDown className="h-4 w-4 text-muted-foreground -rotate-90 shrink-0" />
                       </div>
