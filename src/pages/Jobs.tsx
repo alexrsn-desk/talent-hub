@@ -5,9 +5,10 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
-import { Plus, Search, Trash2 } from "lucide-react";
+import { Plus, Search, Trash2, ArrowLeft } from "lucide-react";
 import { useJobs, useCreateJob, useUpdateJob, useDeleteJob, useClients, useCandidateJobs, useUpdateCandidateJob, type Job } from "@/hooks/use-data";
 import { NotesSection } from "@/components/NotesSection";
+import { JobPipelineBoard } from "@/components/JobPipelineBoard";
 
 const JOB_STATUSES = ["Open", "On Hold", "Filled", "Cancelled"] as const;
 const JOB_TYPES = ["Perm", "Contract"] as const;
@@ -29,7 +30,6 @@ export default function JobsPage() {
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [dialogOpen, setDialogOpen] = useState(false);
   const [selectedJob, setSelectedJob] = useState<Job | null>(null);
-  const [detailOpen, setDetailOpen] = useState(false);
 
   const filtered = jobs.filter((j) => {
     const matchesSearch = j.title.toLowerCase().includes(search.toLowerCase()) ||
@@ -62,6 +62,18 @@ export default function JobsPage() {
     if (min && max) return `${fmt(min)} – ${fmt(max)}`;
     return min ? fmt(min) : fmt(max!);
   };
+
+  // Full-page job detail view with pipeline
+  if (selectedJob) {
+    return (
+      <JobFullView
+        job={selectedJob}
+        onBack={() => setSelectedJob(null)}
+        onUpdate={async (updates) => { await updateJob.mutateAsync({ id: selectedJob.id, ...updates }); setSelectedJob({ ...selectedJob, ...updates }); }}
+        onDelete={async () => { await deleteJob.mutateAsync(selectedJob.id); setSelectedJob(null); }}
+      />
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -145,7 +157,7 @@ export default function JobsPage() {
               {filtered.length === 0 ? (
                 <tr><td colSpan={7} className="px-4 py-8 text-center text-muted-foreground">No jobs found</td></tr>
               ) : filtered.map(j => (
-                <tr key={j.id} className="border-b border-border hover:bg-muted/20 cursor-pointer transition-colors" onClick={() => { setSelectedJob(j); setDetailOpen(true); }}>
+                <tr key={j.id} className="border-b border-border hover:bg-muted/20 cursor-pointer transition-colors" onClick={() => setSelectedJob(j)}>
                   <td className="px-4 py-3 font-medium">{j.title}</td>
                   <td className="px-4 py-3 text-muted-foreground">{(j.clients as any)?.company_name || "—"}</td>
                   <td className="px-4 py-3 text-muted-foreground">{j.location || "—"}</td>
@@ -161,70 +173,50 @@ export default function JobsPage() {
           </table>
         </div>
       )}
-
-      <Dialog open={detailOpen} onOpenChange={setDetailOpen}>
-        <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
-          {selectedJob && (
-            <JobDetail
-              job={selectedJob}
-              onUpdate={async (updates) => { await updateJob.mutateAsync({ id: selectedJob.id, ...updates }); setSelectedJob({ ...selectedJob, ...updates }); }}
-              onDelete={async () => { await deleteJob.mutateAsync(selectedJob.id); setDetailOpen(false); }}
-            />
-          )}
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }
 
-function JobDetail({ job, onUpdate, onDelete }: { job: Job; onUpdate: (u: Partial<Job>) => Promise<void>; onDelete: () => Promise<void> }) {
-  const { data: candidateJobs = [] } = useCandidateJobs(undefined, job.id);
-  const updateCandidateJob = useUpdateCandidateJob();
-  const STAGES = ["Applied", "Screening", "Submitted", "Interviewing", "Offered", "Placed", "Rejected"];
-
+function JobFullView({ job, onBack, onUpdate, onDelete }: {
+  job: Job;
+  onBack: () => void;
+  onUpdate: (u: Partial<Job>) => Promise<void>;
+  onDelete: () => Promise<void>;
+}) {
   return (
     <div className="space-y-6">
-      <div className="flex items-start justify-between">
-        <div>
-          <h2 className="text-xl font-semibold">{job.title}</h2>
-          <p className="text-muted-foreground">{(job.clients as any)?.company_name || "No client"} · {job.location || "Remote"}</p>
+      <div className="flex items-center gap-3">
+        <Button variant="ghost" size="icon" onClick={onBack}>
+          <ArrowLeft className="h-4 w-4" />
+        </Button>
+        <div className="flex-1">
+          <h1 className="text-xl font-semibold">{job.title}</h1>
+          <p className="text-sm text-muted-foreground">
+            {(job.clients as any)?.company_name || "No client"} · {job.location || "Remote"} · {job.job_type}
+          </p>
         </div>
-        <div className="flex gap-2">
-          <Select defaultValue={job.status} onValueChange={(v) => onUpdate({ status: v })}>
-            <SelectTrigger className="w-32"><SelectValue /></SelectTrigger>
-            <SelectContent>
-              {JOB_STATUSES.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
-            </SelectContent>
-          </Select>
-          <Button variant="ghost" size="icon" onClick={onDelete}><Trash2 className="h-4 w-4 text-destructive" /></Button>
-        </div>
+        <Select defaultValue={job.status} onValueChange={(v) => onUpdate({ status: v })}>
+          <SelectTrigger className="w-32"><SelectValue /></SelectTrigger>
+          <SelectContent>
+            {JOB_STATUSES.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+          </SelectContent>
+        </Select>
+        <Button variant="ghost" size="icon" onClick={onDelete}>
+          <Trash2 className="h-4 w-4 text-destructive" />
+        </Button>
       </div>
 
-      <div className="grid grid-cols-2 gap-4 text-sm">
-        <div><span className="text-muted-foreground">Type:</span> {job.job_type}</div>
-        <div><span className="text-muted-foreground">Salary:</span> {job.salary_min || job.salary_max ? `£${job.salary_min?.toLocaleString() || "?"} – £${job.salary_max?.toLocaleString() || "?"}` : "—"}</div>
-        <div><span className="text-muted-foreground">Fee:</span> {job.fee_value ? (job.fee_type === "Percentage" ? `${job.fee_value}%` : `£${job.fee_value.toLocaleString()}`) : "—"}</div>
-        <div><span className="text-muted-foreground">Opened:</span> {new Date(job.date_opened).toLocaleDateString()}</div>
+      <div className="grid grid-cols-4 gap-4 text-sm rounded-lg border border-border p-4">
+        <div><span className="text-muted-foreground block text-xs">Salary</span>{job.salary_min || job.salary_max ? `£${job.salary_min?.toLocaleString() || "?"} – £${job.salary_max?.toLocaleString() || "?"}` : "—"}</div>
+        <div><span className="text-muted-foreground block text-xs">Fee</span>{job.fee_value ? (job.fee_type === "Percentage" ? `${job.fee_value}%` : `£${job.fee_value.toLocaleString()}`) : "—"}</div>
+        <div><span className="text-muted-foreground block text-xs">Opened</span>{new Date(job.date_opened).toLocaleDateString()}</div>
+        <div><span className="text-muted-foreground block text-xs">Type</span>{job.job_type}</div>
       </div>
 
-      {candidateJobs.length > 0 && (
-        <div>
-          <h3 className="text-sm font-medium mb-2">Linked Candidates</h3>
-          <div className="space-y-2">
-            {candidateJobs.map(cj => (
-              <div key={cj.id} className="flex items-center justify-between rounded-md border border-border px-3 py-2 text-sm">
-                <span>{cj.candidates?.name || "Unknown"}</span>
-                <Select defaultValue={cj.stage} onValueChange={(v) => updateCandidateJob.mutate({ id: cj.id, stage: v })}>
-                  <SelectTrigger className="w-32 h-8"><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    {STAGES.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
-                  </SelectContent>
-                </Select>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
+      <div>
+        <h2 className="text-sm font-medium mb-3">Candidate Pipeline</h2>
+        <JobPipelineBoard job={job} />
+      </div>
 
       <NotesSection entityType="job" entityId={job.id} />
     </div>
