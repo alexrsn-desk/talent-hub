@@ -59,9 +59,11 @@ export type Database = {
           feedback_user_id: string | null
           id: string
           note_id: string
+          signal_category: string
           signal_type: string
           status: string
           suggested_action: string
+          suggested_date: string | null
           trigger_phrase: string
         }
         Insert: {
@@ -72,9 +74,11 @@ export type Database = {
           feedback_user_id?: string | null
           id?: string
           note_id: string
+          signal_category?: string
           signal_type: string
           status?: string
           suggested_action: string
+          suggested_date?: string | null
           trigger_phrase: string
         }
         Update: {
@@ -85,9 +89,11 @@ export type Database = {
           feedback_user_id?: string | null
           id?: string
           note_id?: string
+          signal_category?: string
           signal_type?: string
           status?: string
           suggested_action?: string
+          suggested_date?: string | null
           trigger_phrase?: string
         }
         Relationships: []

@@ -7,34 +7,44 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-const SIGNAL_PROMPT = `You are an expert recruitment consultant reviewing a call transcript. Identify any of the following signals that appear in this conversation:
+const SIGNAL_PROMPT = `You are an expert recruitment consultant reviewing new information just added to a recruitment CRM. Identify two types of signals:
 
-HIRING SIGNALS: Any mention of company growth, funding rounds, new leadership, team expansion, new offices, new products, technology changes, or dissatisfaction with current recruitment partners.
+TYPE 1 — OPPORTUNITIES:
+Hidden signals the recruiter may have missed.
 
-CANDIDATE SIGNALS: Any mention of company instability, acquisition, restructuring, colleagues also looking, lack of pay reviews, unhappy team, or manager changes.
+HIRING SIGNALS: Company growth, funding rounds, new leadership, team expansion, technology changes, dissatisfaction with current recruitment partners.
+CANDIDATE SIGNALS: Company instability, acquisition, restructuring, colleagues also looking, lack of pay reviews, unhappy team, manager changes.
+REFERRAL OPPORTUNITIES: Colleagues or contacts mentioned who might be candidates or clients.
+BD LEADS: Company names mentioned that could be a new business target.
 
-REFERRAL OPPORTUNITIES: Any mention of colleagues, contacts or people by name who might be candidates or clients.
-
-BD LEADS: Any company names mentioned that could be a new business target.
+TYPE 2 — MISSING ACTIONS:
+Things the recruiter should have done but hasn't. Check for:
+- A specific day, date or timeframe mentioned (Monday, next week, end of month, after the weekend) with no follow up date set on the record
+- A commitment made by either party with no next action logged
+- A candidate or client expressing clear intent (I will call you, I want to progress, let me think about it) with no follow up captured
+- An interview or meeting referenced with no date logged in the system
+- A salary figure or requirement mentioned that differs from what is on the record
 
 For each signal found:
-- State the signal type (exactly one of: "Hiring Signal", "Candidate Signal", "Referral Opportunity", "BD Lead")
-- Quote the exact phrase that triggered it (under 10 words)
-- Explain why it matters in one sentence
-- Suggest one specific action
+- State the signal_category: exactly "opportunity" or "missing_action"
+- State the signal_type: for opportunities use exactly one of "Hiring Signal", "Candidate Signal", "Referral Opportunity", "BD Lead". For missing actions use exactly one of "Missing Follow-up", "Missing Next Action", "Missing Interview Date", "Salary Mismatch", "Missing Commitment"
+- Quote the exact phrase that triggered it (under 10 words) as trigger_phrase
+- Explain why it matters in one sentence as explanation
+- Suggest one specific action as suggested_action
+- For missing actions, if a date/day was mentioned, include it as suggested_date (ISO format or day name). Otherwise omit.
 
-If no signals are found, return an empty array — do not invent signals that are not there.
+If no signals found, return an empty array — do not invent signals that are not there.
 
 Return ONLY valid JSON in this format:
-{"signals": [{"signal_type": "...", "trigger_phrase": "...", "explanation": "...", "suggested_action": "..."}]}`;
+{"signals": [{"signal_category": "...", "signal_type": "...", "trigger_phrase": "...", "explanation": "...", "suggested_action": "...", "suggested_date": "..."}]}`;
 
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
-    const { note_id } = await req.json();
-    if (!note_id) {
-      return new Response(JSON.stringify({ error: "note_id required" }), {
+    const { note_id, context } = await req.json();
+    if (!note_id && !context) {
+      return new Response(JSON.stringify({ error: "note_id or context required" }), {
         status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
@@ -44,27 +54,44 @@ serve(async (req) => {
 
     const sb = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
 
-    // Fetch the note
-    const { data: note, error: noteErr } = await sb
-      .from("notes")
-      .select("*, candidates(name), clients(company_name)")
-      .eq("id", note_id)
-      .single();
+    let transcript = "";
+    let contactName = "Unknown";
+    let recordContext = "";
+    let resolvedNoteId = note_id;
 
-    if (noteErr || !note) {
-      return new Response(JSON.stringify({ error: "Note not found" }), {
-        status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+    if (note_id) {
+      const { data: note, error: noteErr } = await sb
+        .from("notes")
+        .select("*, candidates(name), clients(company_name)")
+        .eq("id", note_id)
+        .single();
+
+      if (noteErr || !note) {
+        return new Response(JSON.stringify({ error: "Note not found" }), {
+          status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      transcript = note.transcript || note.content || "";
+      contactName = note.candidates?.name || note.clients?.company_name || "Unknown";
+
+      // Add record context (follow-up date, etc.)
+      const parts: string[] = [];
+      if (note.follow_up_date) parts.push(`Follow-up date already set: ${note.follow_up_date}`);
+      if (note.outcome) parts.push(`Outcome: ${note.outcome}`);
+      recordContext = parts.length > 0 ? `\n\nRecord metadata: ${parts.join(". ")}` : "";
+    } else if (context) {
+      transcript = context.content || "";
+      contactName = context.contact_name || "Unknown";
+      recordContext = context.record_metadata || "";
+      resolvedNoteId = context.note_id || null;
     }
 
-    const transcript = note.transcript || note.content || "";
     if (transcript.length < 20) {
-      return new Response(JSON.stringify({ signals: [], message: "Content too short for analysis" }), {
+      return new Response(JSON.stringify({ signals: 0, detected: [] }), {
         status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
-
-    const contactName = note.candidates?.name || note.clients?.company_name || "Unknown";
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
@@ -76,7 +103,7 @@ serve(async (req) => {
         model: "google/gemini-3-flash-preview",
         messages: [
           { role: "system", content: SIGNAL_PROMPT },
-          { role: "user", content: `Call with: ${contactName}\n\nTranscript/Notes:\n${transcript}` },
+          { role: "user", content: `Contact: ${contactName}\n\nContent:\n${transcript}${recordContext}` },
         ],
       }),
     });
@@ -100,7 +127,6 @@ serve(async (req) => {
     const aiResult = await response.json();
     const rawContent = aiResult.choices?.[0]?.message?.content || "{}";
 
-    // Parse JSON from response (handle markdown code blocks)
     let parsed: { signals?: any[] } = { signals: [] };
     try {
       const jsonMatch = rawContent.match(/\{[\s\S]*\}/);
@@ -111,16 +137,17 @@ serve(async (req) => {
 
     const signals = parsed.signals || [];
 
-    if (signals.length > 0) {
-      // Delete existing signals for this note and insert fresh
-      await sb.from("call_signals").delete().eq("note_id", note_id);
+    if (signals.length > 0 && resolvedNoteId) {
+      await sb.from("call_signals").delete().eq("note_id", resolvedNoteId);
 
       const rows = signals.map((s: any) => ({
-        note_id,
+        note_id: resolvedNoteId,
         signal_type: s.signal_type,
+        signal_category: s.signal_category || "opportunity",
         trigger_phrase: s.trigger_phrase,
         explanation: s.explanation,
         suggested_action: s.suggested_action,
+        suggested_date: s.suggested_date || null,
         status: "unactioned",
       }));
 
