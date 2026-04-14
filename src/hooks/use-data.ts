@@ -299,3 +299,61 @@ export function useCreateNote() {
     onSuccess: () => qc.invalidateQueries({ queryKey: ["notes"] }),
   });
 }
+
+// Contacts
+export type Contact = {
+  id: string;
+  client_id: string;
+  name: string;
+  job_title: string | null;
+  email: string | null;
+  phone: string | null;
+  linkedin_url: string | null;
+  created_at: string;
+};
+
+export function useContacts(clientId?: string) {
+  return useQuery({
+    queryKey: ["contacts", clientId],
+    queryFn: async () => {
+      let query = supabase.from("contacts").select("*").order("created_at", { ascending: true });
+      if (clientId) query = query.eq("client_id", clientId);
+      const { data, error } = await query;
+      if (error) throw error;
+      return data as Contact[];
+    },
+  });
+}
+
+export function useCreateContact() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (contact: Omit<Contact, "id" | "created_at">) => {
+      const { data, error } = await supabase.from("contacts").insert(contact).select().single();
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["contacts"] }),
+  });
+}
+
+export function useDeleteContact() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from("contacts").delete().eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["contacts"] }),
+  });
+}
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (note: { content: string; candidate_id?: string; client_id?: string; job_id?: string }) => {
+      const { data, error } = await supabase.from("notes").insert(note).select().single();
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["notes"] }),
+  });
+}
