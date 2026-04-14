@@ -16,9 +16,10 @@ type FocusData = {
 
 export function DailyFocus() {
   const [data, setData] = useState<FocusData | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [open, setOpen] = useState(true);
+  const [open, setOpen] = useState(false);
+  const [fetched, setFetched] = useState(false);
 
   const fetchFocus = async () => {
     setLoading(true);
