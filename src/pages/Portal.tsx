@@ -16,6 +16,7 @@ type PortalData = {
 };
 
 type ClientInfo = { id: string; company_name: string; contact_name: string | null };
+type Branding = { agency_name: string | null; agency_logo_url: string | null; brand_color: string };
 
 const stageColor: Record<string, string> = {
   Applied: "bg-blue-500/20 text-blue-400",
@@ -35,6 +36,7 @@ export default function Portal() {
   const [client, setClient] = useState<ClientInfo | null>(null);
   const [clientId, setClientId] = useState<string | null>(null);
   const [portalData, setPortalData] = useState<PortalData | null>(null);
+  const [branding, setBranding] = useState<Branding>({ agency_name: null, agency_logo_url: null, brand_color: "#3B82F6" });
   const [selectedJob, setSelectedJob] = useState<string | null>(null);
   const [tab, setTab] = useState<"jobs" | "activity">("jobs");
 
@@ -48,6 +50,7 @@ export default function Portal() {
       if (err || data?.error) { setError(data?.error || "Invalid link"); setLoading(false); return; }
       setClient(data.client);
       setClientId(data.client_id);
+      if (data.branding) setBranding(data.branding);
     })();
   }, [token]);
 
