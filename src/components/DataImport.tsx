@@ -334,7 +334,7 @@ export function DataImport() {
             // Update existing
             const id = existingEmails[email];
             const { email: _, ...updateData } = record;
-            const { error } = await supabase.from(recordType).update(updateData).eq("id", id);
+            const { error } = await supabase.from(recordType as any).update(updateData as any).eq("id", id);
             if (error) {
               res.errors.push({ row: i + 2, reason: error.message, data: record });
               res.skipped++;
@@ -357,7 +357,7 @@ export function DataImport() {
           }
         }
 
-        const { data: inserted, error } = await supabase.from(recordType).insert(record).select("id").single();
+        const { data: inserted, error } = await supabase.from(recordType as any).insert(record as any).select("id").single();
         if (error) {
           res.errors.push({ row: i + 2, reason: error.message, data: record });
           res.skipped++;
