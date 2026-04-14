@@ -78,6 +78,8 @@ export type Note = {
   activity_type: string;
   outcome: string | null;
   follow_up_date: string | null;
+  duration: number | null;
+  transcript: string | null;
   created_at: string;
 };
 
@@ -364,6 +366,34 @@ export function useCreateNote() {
         qc.invalidateQueries({ queryKey: ["call-signal-counts"] });
         qc.invalidateQueries({ queryKey: ["call-signals-unactioned"] });
       }, 5000);
+    },
+  });
+}
+
+export function useUpdateNote() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, content }: { id: string; content: string }) => {
+      const { error } = await supabase.from("notes").update({ content }).eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["notes"] });
+    },
+  });
+}
+
+export function useDeleteNote() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from("notes").delete().eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["notes"] });
+      qc.invalidateQueries({ queryKey: ["call-signals"] });
+      qc.invalidateQueries({ queryKey: ["call-signal-counts"] });
     },
   });
 }
