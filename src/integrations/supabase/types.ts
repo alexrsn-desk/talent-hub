@@ -472,10 +472,12 @@ export type Database = {
           client_id: string | null
           content: string
           created_at: string
+          duration: number | null
           follow_up_date: string | null
           id: string
           job_id: string | null
           outcome: string | null
+          transcript: string | null
         }
         Insert: {
           activity_type?: string
@@ -483,10 +485,12 @@ export type Database = {
           client_id?: string | null
           content: string
           created_at?: string
+          duration?: number | null
           follow_up_date?: string | null
           id?: string
           job_id?: string | null
           outcome?: string | null
+          transcript?: string | null
         }
         Update: {
           activity_type?: string
@@ -494,10 +498,12 @@ export type Database = {
           client_id?: string | null
           content?: string
           created_at?: string
+          duration?: number | null
           follow_up_date?: string | null
           id?: string
           job_id?: string | null
           outcome?: string | null
+          transcript?: string | null
         }
         Relationships: [
           {

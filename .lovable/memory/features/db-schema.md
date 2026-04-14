@@ -9,7 +9,8 @@ type: feature
 - **candidates** — name, job_title, current_employer, location, email, phone, linkedin_url, status, source, salary_current, availability
 - **candidate_jobs** — candidate_id (FK→candidates), job_id (FK→jobs), stage, interview_date
 - **contacts** — client_id (FK→clients), name, job_title, email, phone, linkedin_url
-- **notes** — candidate_id, client_id, job_id, content, activity_type, outcome, follow_up_date
+- **notes** — candidate_id, client_id, job_id, content, activity_type, outcome, follow_up_date, duration, transcript
+- **weekly_summaries** — user_id, week_start, week_end, summary (JSONB)
 - **interview_slots** — candidate_job_id, start_time, end_time, status (available/confirmed), selected_by_client
 - **activity_log** — user_id, action_type, candidate_id, client_id, job_id, candidate_job_id, metadata (JSONB), created_at. Append-only (no update/delete policies).
 - **notifications** — user_id, type, title, message, read, data (JSONB)
