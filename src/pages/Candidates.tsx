@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
-import { Plus, Search, ExternalLink, Trash2, PhoneCall, Star } from "lucide-react";
+import { Plus, Search, ExternalLink, Trash2, PhoneCall, Star, Phone } from "lucide-react";
 import { useCandidates, useCreateCandidate, useUpdateCandidate, useDeleteCandidate, type Candidate } from "@/hooks/use-data";
 import { PriorityFlagButton, PriorityStarIcon } from "@/components/PriorityFlag";
 import { NotesSection } from "@/components/NotesSection";
