@@ -319,6 +319,37 @@ export function useTodayFollowUps() {
   });
 }
 
+export function useOverdueFollowUps() {
+  const today = new Date().toISOString().split("T")[0];
+  return useQuery({
+    queryKey: ["notes", "overdue", today],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("notes")
+        .select("*, candidates(*), clients(*)")
+        .not("follow_up_date", "is", null)
+        .lt("follow_up_date", today)
+        .order("follow_up_date", { ascending: true });
+      if (error) throw error;
+      return data as (Note & { candidates: any; clients: any })[];
+    },
+  });
+}
+
+export function useTodayInterviews() {
+  return useQuery({
+    queryKey: ["candidate_jobs", "interviews_today"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("candidate_jobs")
+        .select("*, candidates(*), jobs(*, clients(*))")
+        .eq("stage", "Interview");
+      if (error) throw error;
+      return data as CandidateJob[];
+    },
+  });
+}
+
 // Contacts
 export type Contact = {
   id: string;
