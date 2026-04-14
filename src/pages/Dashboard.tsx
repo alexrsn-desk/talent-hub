@@ -131,16 +131,36 @@ export default function DashboardPage() {
         </p>
       </div>
 
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        {stats.map(s => (
-          <div key={s.label} className="rounded-lg border border-border bg-card p-4">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-sm text-muted-foreground">{s.label}</span>
-              <s.icon className={`h-4 w-4 ${s.accent}`} />
+      {/* Open Jobs Pipeline Overview */}
+      <div className="rounded-lg border border-border bg-card p-4">
+        <h2 className="text-sm font-medium text-muted-foreground mb-3">Open Jobs ({jobPipelineStats.length})</h2>
+        {jobPipelineStats.length === 0 ? (
+          <p className="text-sm text-muted-foreground">No open jobs</p>
+        ) : (
+          <div className="space-y-2">
+            <div className="grid grid-cols-[1fr_60px_60px_60px_60px] gap-2 text-[11px] text-muted-foreground font-medium px-2">
+              <span>Job</span>
+              <span className="text-center">Shortlist</span>
+              <span className="text-center">CV Sent</span>
+              <span className="text-center">Interview</span>
+              <span className="text-center">Final</span>
             </div>
-            <p className="text-2xl font-semibold">{s.value}</p>
+            {jobPipelineStats.map(j => (
+              <div key={j.id} className="grid grid-cols-[1fr_60px_60px_60px_60px] gap-2 items-center rounded-md border border-border px-2 py-2 text-sm">
+                <div className="min-w-0">
+                  <p className="font-medium truncate">{j.title}</p>
+                  {j.clients?.company_name && (
+                    <p className="text-xs text-muted-foreground truncate">{j.clients.company_name}</p>
+                  )}
+                </div>
+                <span className="text-center font-medium text-primary">{j.shortlist}</span>
+                <span className="text-center font-medium">{j.submitted}</span>
+                <span className="text-center font-medium">{j.interview}</span>
+                <span className="text-center font-medium">{j.finalStage}</span>
+              </div>
+            ))}
           </div>
-        ))}
+        )}
       </div>
 
       {/* Today's Actions */}
@@ -176,34 +196,6 @@ export default function DashboardPage() {
           </div>
         </div>
       )}
-
-      <div className="grid lg:grid-cols-2 gap-6">
-        <div className="rounded-lg border border-border bg-card p-4">
-          <h2 className="text-sm font-medium text-muted-foreground mb-3">Recent Candidates</h2>
-          <div className="space-y-2">
-            {recentCandidates.map(c => (
-              <div key={c.id} className="flex items-center justify-between text-sm py-1">
-                <span>{c.name}</span>
-                <span className="text-muted-foreground">{c.status}</span>
-              </div>
-            ))}
-            {recentCandidates.length === 0 && <p className="text-sm text-muted-foreground">No candidates yet</p>}
-          </div>
-        </div>
-
-        <div className="rounded-lg border border-border bg-card p-4">
-          <h2 className="text-sm font-medium text-muted-foreground mb-3">Recent Jobs</h2>
-          <div className="space-y-2">
-            {recentJobs.map(j => (
-              <div key={j.id} className="flex items-center justify-between text-sm py-1">
-                <span>{j.title}</span>
-                <span className="text-muted-foreground">{j.status}</span>
-              </div>
-            ))}
-            {recentJobs.length === 0 && <p className="text-sm text-muted-foreground">No jobs yet</p>}
-          </div>
-        </div>
-      </div>
     </div>
   );
 }
