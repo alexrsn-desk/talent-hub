@@ -17,6 +17,7 @@ import BDPipeline from "./pages/BDPipeline";
 import Coach from "./pages/Coach";
 import Settings from "./pages/Settings";
 import Auth from "./pages/Auth";
+import Portal from "./pages/Portal";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -47,6 +48,15 @@ function AppRoutes() {
       <div className="min-h-screen flex items-center justify-center bg-background">
         <Loader2 className="h-6 w-6 animate-spin text-primary" />
       </div>
+    );
+  }
+
+  // Portal route is public (token-based auth)
+  if (window.location.pathname.startsWith("/portal")) {
+    return (
+      <Routes>
+        <Route path="/portal" element={<Portal />} />
+      </Routes>
     );
   }
 

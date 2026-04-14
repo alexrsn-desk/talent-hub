@@ -19,6 +19,7 @@ export type Database = {
           candidate_id: string
           created_at: string
           id: string
+          interview_date: string | null
           job_id: string
           stage: string
         }
@@ -26,6 +27,7 @@ export type Database = {
           candidate_id: string
           created_at?: string
           id?: string
+          interview_date?: string | null
           job_id: string
           stage?: string
         }
@@ -33,6 +35,7 @@ export type Database = {
           candidate_id?: string
           created_at?: string
           id?: string
+          interview_date?: string | null
           job_id?: string
           stage?: string
         }
@@ -49,6 +52,41 @@ export type Database = {
             columns: ["job_id"]
             isOneToOne: false
             referencedRelation: "jobs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      candidate_summaries: {
+        Row: {
+          ai_summary: string | null
+          candidate_job_id: string
+          created_at: string
+          id: string
+          manual_summary: string | null
+          updated_at: string
+        }
+        Insert: {
+          ai_summary?: string | null
+          candidate_job_id: string
+          created_at?: string
+          id?: string
+          manual_summary?: string | null
+          updated_at?: string
+        }
+        Update: {
+          ai_summary?: string | null
+          candidate_job_id?: string
+          created_at?: string
+          id?: string
+          manual_summary?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "candidate_summaries_candidate_job_id_fkey"
+            columns: ["candidate_job_id"]
+            isOneToOne: true
+            referencedRelation: "candidate_jobs"
             referencedColumns: ["id"]
           },
         ]
@@ -103,6 +141,107 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      client_feedback: {
+        Row: {
+          candidate_job_id: string
+          client_id: string
+          concerns: string | null
+          created_at: string
+          decision: string | null
+          feedback_type: string
+          id: string
+          rating: number | null
+          reason: string | null
+          status: string
+          strengths: string | null
+          updated_at: string
+        }
+        Insert: {
+          candidate_job_id: string
+          client_id: string
+          concerns?: string | null
+          created_at?: string
+          decision?: string | null
+          feedback_type?: string
+          id?: string
+          rating?: number | null
+          reason?: string | null
+          status?: string
+          strengths?: string | null
+          updated_at?: string
+        }
+        Update: {
+          candidate_job_id?: string
+          client_id?: string
+          concerns?: string | null
+          created_at?: string
+          decision?: string | null
+          feedback_type?: string
+          id?: string
+          rating?: number | null
+          reason?: string | null
+          status?: string
+          strengths?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "client_feedback_candidate_job_id_fkey"
+            columns: ["candidate_job_id"]
+            isOneToOne: false
+            referencedRelation: "candidate_jobs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "client_feedback_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      client_portal_access: {
+        Row: {
+          client_id: string
+          created_at: string
+          enabled: boolean
+          id: string
+          last_accessed_at: string | null
+          magic_link_token: string | null
+          token_expires_at: string | null
+          updated_at: string
+        }
+        Insert: {
+          client_id: string
+          created_at?: string
+          enabled?: boolean
+          id?: string
+          last_accessed_at?: string | null
+          magic_link_token?: string | null
+          token_expires_at?: string | null
+          updated_at?: string
+        }
+        Update: {
+          client_id?: string
+          created_at?: string
+          enabled?: boolean
+          id?: string
+          last_accessed_at?: string | null
+          magic_link_token?: string | null
+          token_expires_at?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "client_portal_access_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: true
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       clients: {
         Row: {
@@ -309,6 +448,39 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      notifications: {
+        Row: {
+          created_at: string
+          data: Json | null
+          id: string
+          message: string
+          read: boolean
+          title: string
+          type: string
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          data?: Json | null
+          id?: string
+          message: string
+          read?: boolean
+          title: string
+          type?: string
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          data?: Json | null
+          id?: string
+          message?: string
+          read?: boolean
+          title?: string
+          type?: string
+          user_id?: string | null
+        }
+        Relationships: []
       }
       recruiter_profiles: {
         Row: {
