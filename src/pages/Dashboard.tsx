@@ -47,24 +47,25 @@ export default function DashboardPage() {
   const { data: interviewCandidates = [] } = useTodayInterviews();
   const { data: allCandidateJobs = [] } = useCandidateJobs();
 
-  const openJobs = jobs.filter(j => j.status === "Open").length;
-  const activeClients = clients.filter(c => c.status === "Active Client").length;
-  const placedCandidates = candidates.filter(c => c.status === "Placed").length;
+  const openJobsList = jobs.filter(j => j.status === "Open");
 
   // Today's Brief data
   const callsDue = todayActions.filter(a => a.activity_type === "Call").length;
   const offerStage = allCandidateJobs.filter(cj => cj.stage === "Offer" || cj.stage === "Awaiting Feedback");
   const interviewsToday = interviewCandidates.length;
 
-  const stats = [
-    { label: "Total Candidates", value: candidates.length, icon: Users, accent: "text-primary" },
-    { label: "Active Clients", value: activeClients, icon: Building2, accent: "text-green-400" },
-    { label: "Open Jobs", value: openJobs, icon: Briefcase, accent: "text-yellow-400" },
-    { label: "Placed", value: placedCandidates, icon: TrendingUp, accent: "text-purple-400" },
-  ];
-
-  const recentCandidates = candidates.slice(0, 5);
-  const recentJobs = jobs.slice(0, 5);
+  // Per-job pipeline stats
+  const jobPipelineStats = openJobsList.map(job => {
+    const cjs = allCandidateJobs.filter(cj => cj.job_id === job.id);
+    return {
+      ...job,
+      shortlist: cjs.filter(cj => cj.stage === "Shortlist").length,
+      submitted: cjs.filter(cj => cj.stage === "Submitted").length,
+      interview: cjs.filter(cj => ["First Interview", "Second Interview", "Client Review"].includes(cj.stage)).length,
+      finalStage: cjs.filter(cj => ["Offer", "Placed"].includes(cj.stage)).length,
+      total: cjs.length,
+    };
+  });
 
   return (
     <div className="space-y-6">
