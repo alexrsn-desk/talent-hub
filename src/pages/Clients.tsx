@@ -10,6 +10,7 @@ import { useClients, useCreateClient, useUpdateClient, useDeleteClient, type Cli
 import { NotesSection } from "@/components/NotesSection";
 import { LogTouchpointModal } from "@/components/LogTouchpointModal";
 import { ClientPortalInvite } from "@/components/ClientPortalInvite";
+import { CallPrepButton } from "@/components/CallPrep";
 
 const STATUSES = ["Target", "Contacted", "Conversation Started", "Meeting Booked", "Terms Sent", "Active Client"] as const;
 
@@ -186,6 +187,7 @@ function ClientDetail({ client, onUpdate, onDelete }: {
           <p className="text-muted-foreground">{client.contact_name || ""} {client.job_title ? `· ${client.job_title}` : ""}</p>
         </div>
         <div className="flex gap-2 items-start">
+          <CallPrepButton entityType="client" entityId={client.id} entityName={client.company_name} />
           <Button size="sm" variant="outline" className="gap-1.5" onClick={() => setTouchpointOpen(true)}>
             <PhoneCall className="h-3.5 w-3.5" /> Log Touchpoint
           </Button>
