@@ -3,6 +3,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useNotes, useCreateNote } from "@/hooks/use-data";
+import { useSignalCounts } from "@/hooks/use-signals";
+import { SignalBadge } from "@/components/SignalBox";
 import { Send, Phone, Mail, Users, MessageSquare, Globe, FileText, Smartphone, MessageCircle } from "lucide-react";
 
 const ACTIVITY_TYPES = [
@@ -41,6 +43,7 @@ const activityColor: Record<string, string> = {
 export function NotesSection({ entityType, entityId }: { entityType: "candidate" | "client" | "job"; entityId: string }) {
   const { data: notes = [] } = useNotes(entityType, entityId);
   const createNote = useCreateNote();
+  const { data: signalCounts = {} } = useSignalCounts();
   const [content, setContent] = useState("");
   const [activityType, setActivityType] = useState("Note");
 
@@ -87,6 +90,7 @@ export function NotesSection({ entityType, entityId }: { entityType: "candidate"
         {notes.map((n) => {
           const Icon = activityIcon[n.activity_type] || FileText;
           const color = activityColor[n.activity_type] || "text-muted-foreground";
+          const unactionedCount = signalCounts[n.id] || 0;
           return (
             <div key={n.id} className="flex gap-2.5 items-start rounded-md bg-muted/30 px-3 py-2">
               <div className={`mt-0.5 ${color}`}>
@@ -99,6 +103,7 @@ export function NotesSection({ entityType, entityId }: { entityType: "candidate"
                     <span className="text-xs bg-muted px-1.5 py-0.5 rounded">{n.outcome}</span>
                   )}
                   <span className="text-xs text-muted-foreground">{new Date(n.created_at).toLocaleString()}</span>
+                  {unactionedCount > 0 && <SignalBadge count={unactionedCount} />}
                 </div>
                 <p className="text-sm mt-0.5">{n.content}</p>
                 {n.follow_up_date && (
