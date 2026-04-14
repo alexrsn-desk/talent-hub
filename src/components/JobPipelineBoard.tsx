@@ -2,13 +2,16 @@ import { useState } from "react";
 import { DragDropContext, Droppable, Draggable, type DropResult } from "@hello-pangea/dnd";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
-import { Plus, User, Building2, Clock } from "lucide-react";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Plus, User, Building2, Clock, Calendar } from "lucide-react";
 import { useCandidateJobs, useCandidates, useCreateCandidateJob, useUpdateCandidateJob, useNotes, type CandidateJob, type Candidate, type Job } from "@/hooks/use-data";
 import { NotesSection } from "@/components/NotesSection";
 import { CandidateJobLinks } from "@/components/CandidateJobLinks";
 import { LogTouchpointModal } from "@/components/LogTouchpointModal";
+import { toast } from "sonner";
 
 const PIPELINE_STAGES = [
   "Longlist",
@@ -160,6 +163,8 @@ export function JobPipelineBoard({ job }: { job: Job }) {
                                 <span className="truncate">{cj.candidates.availability}</span>
                               </div>
                             )}
+                            {/* Interview date */}
+                            <InterviewDatePicker candidateJob={cj} />
                           </div>
                         )}
                       </Draggable>
