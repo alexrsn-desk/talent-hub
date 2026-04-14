@@ -3,12 +3,14 @@ import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useNotes, useCreateNote } from "@/hooks/use-data";
-import { Send, Phone, Mail, Users, MessageSquare, Globe, FileText } from "lucide-react";
+import { Send, Phone, Mail, Users, MessageSquare, Globe, FileText, Smartphone, MessageCircle } from "lucide-react";
 
 const ACTIVITY_TYPES = [
   { value: "Note", label: "Note", icon: FileText },
   { value: "Call", label: "Call", icon: Phone },
   { value: "Email", label: "Email", icon: Mail },
+  { value: "Text Message", label: "Text", icon: Smartphone },
+  { value: "WhatsApp", label: "WhatsApp", icon: MessageCircle },
   { value: "Meeting", label: "Meeting", icon: Users },
   { value: "LinkedIn Message", label: "LinkedIn", icon: Globe },
   { value: "Follow-up", label: "Follow-up", icon: MessageSquare },
@@ -18,6 +20,8 @@ const activityIcon: Record<string, typeof FileText> = {
   Note: FileText,
   Call: Phone,
   Email: Mail,
+  "Text Message": Smartphone,
+  WhatsApp: MessageCircle,
   Meeting: Users,
   "LinkedIn Message": Globe,
   "Follow-up": MessageSquare,
@@ -27,6 +31,8 @@ const activityColor: Record<string, string> = {
   Note: "text-muted-foreground",
   Call: "text-green-400",
   Email: "text-blue-400",
+  "Text Message": "text-violet-400",
+  WhatsApp: "text-emerald-400",
   Meeting: "text-yellow-400",
   "LinkedIn Message": "text-sky-400",
   "Follow-up": "text-orange-400",
