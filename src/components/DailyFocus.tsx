@@ -18,6 +18,7 @@ export function DailyFocus() {
   const [data, setData] = useState<FocusData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [open, setOpen] = useState(true);
 
   const fetchFocus = async () => {
     setLoading(true);
