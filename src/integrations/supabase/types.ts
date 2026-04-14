@@ -14,6 +14,42 @@ export type Database = {
   }
   public: {
     Tables: {
+      activity_log: {
+        Row: {
+          action_type: string
+          candidate_id: string | null
+          candidate_job_id: string | null
+          client_id: string | null
+          created_at: string
+          id: string
+          job_id: string | null
+          metadata: Json | null
+          user_id: string | null
+        }
+        Insert: {
+          action_type: string
+          candidate_id?: string | null
+          candidate_job_id?: string | null
+          client_id?: string | null
+          created_at?: string
+          id?: string
+          job_id?: string | null
+          metadata?: Json | null
+          user_id?: string | null
+        }
+        Update: {
+          action_type?: string
+          candidate_id?: string | null
+          candidate_job_id?: string | null
+          client_id?: string | null
+          created_at?: string
+          id?: string
+          job_id?: string | null
+          metadata?: Json | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       candidate_jobs: {
         Row: {
           candidate_id: string
