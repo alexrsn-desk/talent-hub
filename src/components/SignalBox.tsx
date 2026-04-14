@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Lightbulb, AlertTriangle, ArrowRight, X, Loader2, ThumbsUp, ThumbsDown, CalendarPlus, ListPlus, Clock } from "lucide-react";
+import { Lightbulb, AlertTriangle, ArrowRight, X, Loader2, ThumbsUp, ThumbsDown, CalendarPlus, ListPlus, Clock, Star } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { CallSignal, useUpdateSignalStatus, useFeedbackSignal } from "@/hooks/use-signals";
@@ -153,6 +153,20 @@ function SignalCard({
               }}
             >
               <ArrowRight className="h-3 w-3" /> Add to Actions
+            </Button>
+          )}
+          {/* Flag as priority candidate — for Candidate Signals */}
+          {!isMissingAction && signal.signal_type === "Candidate Signal" && (
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-7 text-[11px] gap-1 border-yellow-400/30 text-yellow-400 hover:bg-yellow-400/10"
+              onClick={() => {
+                updateStatus.mutate({ id: signal.id, status: "actioned" });
+                toast.success("Flag the candidate as priority from their profile");
+              }}
+            >
+              <Star className="h-3 w-3" /> Flag as Priority
             </Button>
           )}
           <Button
