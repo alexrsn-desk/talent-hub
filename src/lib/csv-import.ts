@@ -324,3 +324,42 @@ export function downloadErrorReport(errors: ImportError[], recordType: string) {
   a.href = url; a.download = `import-errors-${recordType}.csv`; a.click();
   URL.revokeObjectURL(url);
 }
+
+// ── Duplicate detection ───────────────────────────────────────────
+export interface DuplicateCandidate {
+  id1: string;
+  id2: string;
+  name: string;
+  email1: string | null;
+  email2: string | null;
+}
+
+export async function detectDuplicateCandidates(): Promise<DuplicateCandidate[]> {
+  const { data } = await supabase.from("candidates").select("id, name, email");
+  if (!data || data.length < 2) return [];
+
+  const dupes: DuplicateCandidate[] = [];
+  const seen = new Set<string>();
+
+  const normalize = (s: string) => s.toLowerCase().replace(/\s+/g, " ").trim();
+  const emailPrefix = (e: string | null) => e?.split("@")[0]?.toLowerCase() || "";
+
+  for (let i = 0; i < data.length; i++) {
+    for (let j = i + 1; j < data.length; j++) {
+      const a = data[i], b = data[j];
+      const nameMatch = normalize(a.name) === normalize(b.name);
+      const emailSimilar = a.email && b.email && (
+        a.email.toLowerCase() === b.email.toLowerCase() ||
+        emailPrefix(a.email) === emailPrefix(b.email)
+      );
+      if (nameMatch || emailSimilar) {
+        const key = [a.id, b.id].sort().join("-");
+        if (!seen.has(key)) {
+          seen.add(key);
+          dupes.push({ id1: a.id, id2: b.id, name: a.name, email1: a.email, email2: b.email });
+        }
+      }
+    }
+  }
+  return dupes;
+}
