@@ -328,6 +328,18 @@ function ClientDetailView({ client, onUpdate, onDelete }: {
               className="flex-1"
             />
             <Button size="sm" onClick={saveNextAction}>Save</Button>
+            {nextAction && dueDate && (
+              <a
+                href={buildCalendarUrl(nextAction, dueDate, client.company_name)}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <Button type="button" size="sm" variant="outline" className="gap-1">
+                  <CalendarPlus className="h-3.5 w-3.5" /> Calendar
+                </Button>
+              </a>
+            )}
           </div>
           {isOverdue(client.next_action_due_date) && client.next_action && (
             <div className="flex items-center gap-1 text-warning text-xs">
