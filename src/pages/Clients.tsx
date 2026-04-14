@@ -209,19 +209,21 @@ function ClientDetail({ client, onUpdate, onDelete }: {
           </Button>
         </div>
       </div>
-      <div className="grid grid-cols-2 gap-4 text-sm">
-        <div><span className="text-muted-foreground">Email:</span> {client.email || "—"}</div>
-        <div><span className="text-muted-foreground">Phone:</span> {client.phone || "—"}</div>
-        <div><span className="text-muted-foreground">Sector:</span> {client.sector || "—"}</div>
-        {client.linkedin_url && (
-          <div>
-            <a href={client.linkedin_url} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline flex items-center gap-1">
-              <ExternalLink className="h-3 w-3" /> LinkedIn
-            </a>
-          </div>
-        )}
+      <div className="flex items-start justify-between gap-4">
+        <div className="grid grid-cols-2 gap-4 text-sm flex-1">
+          <div><span className="text-muted-foreground">Email:</span> {client.email || "—"}</div>
+          <div><span className="text-muted-foreground">Phone:</span> {client.phone || "—"}</div>
+          <div><span className="text-muted-foreground">Sector:</span> {client.sector || "—"}</div>
+          {client.linkedin_url && (
+            <div>
+              <a href={client.linkedin_url} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline flex items-center gap-1">
+                <ExternalLink className="h-3 w-3" /> LinkedIn
+              </a>
+            </div>
+          )}
+        </div>
+        <ClientPortalInvite clientId={client.id} />
       </div>
-      <ClientPortalInvite clientId={client.id} />
       <NotesSection entityType="client" entityId={client.id} />
       <LogTouchpointModal
         open={touchpointOpen}
