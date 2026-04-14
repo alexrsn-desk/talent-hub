@@ -46,8 +46,7 @@ export function OnboardingImport({ onComplete }: { onComplete: () => void }) {
   const [progressLabel, setProgressLabel] = useState("");
   const [progressPct, setProgressPct] = useState(0);
   const [unmatchedJobs, setUnmatchedJobs] = useState<{ id: string; title: string }[]>([]);
-  const [jobClientLinks, setJobClientLinks] = useState<Record<string, string>>({});
-  const [allClients, setAllClients] = useState<{ id: string; company_name: string }[]>([]);
+  const fileRefs = useRef<Record<string, HTMLInputElement | null>>({});
   const [checklist, setChecklist] = useState<Record<string, boolean>>({});
   const fileRefs = useRef<Record<string, HTMLInputElement | null>>({});
 
@@ -131,24 +130,8 @@ export function OnboardingImport({ onComplete }: { onComplete: () => void }) {
     setResults(newResults);
     setUnmatchedJobs(allUnmatched);
 
-    if (allUnmatched.length > 0) {
-      const { data } = await supabase.from("clients").select("id, company_name").order("company_name");
-      setAllClients(data || []);
-    }
 
     setProgressPct(100);
-    setStep("complete");
-  };
-
-  const linkJobs = async () => {
-    let linked = 0;
-    for (const [jobId, clientId] of Object.entries(jobClientLinks)) {
-      if (!clientId) continue;
-      const { error } = await supabase.from("jobs").update({ client_id: clientId }).eq("id", jobId);
-      if (!error) linked++;
-    }
-    toast.success(`${linked} job(s) linked`);
-    setUnmatchedJobs([]);
     setStep("complete");
   };
 
