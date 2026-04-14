@@ -213,3 +213,55 @@ function CandidateQuickProfile({ candidate }: { candidate: Candidate }) {
     </div>
   );
 }
+
+function InterviewDatePicker({ candidateJob }: { candidateJob: CandidateJob }) {
+  const updateCandidateJob = useUpdateCandidateJob();
+  const [open, setOpen] = useState(false);
+
+  const handleSetDate = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const val = e.target.value;
+    updateCandidateJob.mutate(
+      { id: candidateJob.id, interview_date: val ? new Date(val).toISOString() : null },
+      { onSuccess: () => { toast.success("Interview scheduled"); setOpen(false); } }
+    );
+  };
+
+  const handleClear = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    updateCandidateJob.mutate(
+      { id: candidateJob.id, interview_date: null },
+      { onSuccess: () => toast.success("Interview date removed") }
+    );
+  };
+
+  const interviewDate = candidateJob.interview_date;
+  const isPast = interviewDate && new Date(interviewDate) < new Date();
+
+  return (
+    <div onClick={(e) => e.stopPropagation()}>
+      {interviewDate ? (
+        <div className={`flex items-center gap-1 text-[10px] rounded px-1.5 py-0.5 ${isPast ? "bg-yellow-500/20 text-yellow-400" : "bg-primary/20 text-primary"}`}>
+          <Calendar className="h-2.5 w-2.5" />
+          <span>{new Date(interviewDate).toLocaleDateString("en-GB", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}</span>
+          <button onClick={handleClear} className="ml-auto hover:text-destructive">×</button>
+        </div>
+      ) : (
+        <Popover open={open} onOpenChange={setOpen}>
+          <PopoverTrigger asChild>
+            <button className="flex items-center gap-1 text-[10px] text-muted-foreground hover:text-primary transition-colors">
+              <Calendar className="h-2.5 w-2.5" /> Schedule
+            </button>
+          </PopoverTrigger>
+          <PopoverContent className="w-auto p-2" align="start">
+            <Input
+              type="datetime-local"
+              className="text-xs h-8"
+              onChange={handleSetDate}
+              min={new Date().toISOString().slice(0, 16)}
+            />
+          </PopoverContent>
+        </Popover>
+      )}
+    </div>
+  );
+}
