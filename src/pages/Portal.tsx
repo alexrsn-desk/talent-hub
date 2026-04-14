@@ -211,12 +211,14 @@ function CandidateCard({
   clientId,
   token,
   existingFeedback,
+  availableSlots,
   onFeedbackSubmitted,
 }: {
   candidateJob: any;
   clientId: string;
   token: string;
   existingFeedback: any[];
+  availableSlots: any[];
   onFeedbackSubmitted: () => void;
 }) {
   const candidate = candidateJob.candidates;
@@ -224,6 +226,8 @@ function CandidateCard({
   const [showFeedback, setShowFeedback] = useState(false);
   const [showInterviewFeedback, setShowInterviewFeedback] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [confirmingSlot, setConfirmingSlot] = useState<string | null>(null);
+  const [slotConfirmed, setSlotConfirmed] = useState(false);
 
   const hasReview = existingFeedback.some((f: any) => f.feedback_type === "review");
   const hasInterviewFeedback = existingFeedback.some((f: any) => f.feedback_type === "interview");
