@@ -346,9 +346,21 @@ export function useCreateNote() {
         job_id: note.job_id,
         metadata: { activity_type: note.activity_type, outcome: note.outcome, follow_up_date: note.follow_up_date },
       });
+      // Auto-trigger signal detection on any new note/touchpoint
+      if (data?.content && data.content.length >= 20) {
+        supabase.functions.invoke("detect-signals", { body: { note_id: data.id } }).catch(console.error);
+      }
       return data;
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["notes"] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["notes"] });
+      // Signals will be populated async, invalidate after a delay
+      setTimeout(() => {
+        qc.invalidateQueries({ queryKey: ["call-signals"] });
+        qc.invalidateQueries({ queryKey: ["call-signal-counts"] });
+        qc.invalidateQueries({ queryKey: ["call-signals-unactioned"] });
+      }, 5000);
+    },
   });
 }
 
