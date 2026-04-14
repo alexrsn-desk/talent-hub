@@ -4,6 +4,7 @@ import { DailyFocus } from "@/components/DailyFocus";
 import { useAllUnactionedSignals } from "@/hooks/use-signals";
 import { SignalBox } from "@/components/SignalBox";
 import { PriorityCandidatesSection } from "@/components/PriorityFlag";
+import { TodoList } from "@/components/TodoList";
 
 const activityIcon: Record<string, typeof FileText> = {
   Note: FileText,
@@ -73,7 +74,9 @@ export default function DashboardPage() {
 
   return (
     <div className="space-y-6">
-      {/* Today's Brief */}
+      {/* To Do List — primary section */}
+      <TodoList />
+
       <div className="rounded-lg border border-primary/20 bg-primary/5 p-5">
         <div className="flex items-center gap-3 mb-3">
           <Sun className="h-5 w-5 text-primary" />
