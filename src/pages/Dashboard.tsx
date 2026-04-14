@@ -40,7 +40,6 @@ function formatDate() {
 
 export default function DashboardPage() {
   const { data: jobs = [] } = useJobs();
-  const { data: jobs = [] } = useJobs();
   const { data: todayActions = [] } = useTodayFollowUps();
   const { data: overdueActions = [] } = useOverdueFollowUps();
   const { data: interviewCandidates = [] } = useTodayInterviews();
