@@ -7,6 +7,7 @@ import { Slider } from "@/components/ui/slider";
 import { toast } from "sonner";
 import { Save, Loader2, Upload, Palette } from "lucide-react";
 import { DataImport } from "@/components/DataImport";
+import { MigrationAssistant } from "@/components/MigrationAssistant";
 
 const NICHES = [
   "Tech/Digital", "Sales/Commercial", "Finance", "Legal",
@@ -291,6 +292,13 @@ export default function SettingsPage() {
       {/* Data Import */}
       <div className="pt-6 border-t border-border">
         <DataImport />
+      </div>
+
+      {/* Migration Assistant */}
+      <div className="pt-6 border-t border-border space-y-3">
+        <h2 className="text-sm font-medium">Migration Assistant</h2>
+        <p className="text-xs text-muted-foreground">Review and tidy imported data — unmatched jobs, notes, job assignments, and duplicates.</p>
+        <MigrationAssistantSection />
       </div>
     </div>
   );
