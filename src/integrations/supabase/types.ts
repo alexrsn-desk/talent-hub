@@ -310,6 +310,63 @@ export type Database = {
           },
         ]
       }
+      recruiter_profiles: {
+        Row: {
+          bd_approach: string | null
+          biggest_challenge: string | null
+          created_at: string
+          display_name: string | null
+          id: string
+          ideal_candidate: string | null
+          location_regional_detail: string | null
+          locations: string[] | null
+          niche_other: string | null
+          niches: string[] | null
+          onboarding_completed: boolean
+          placement_type: string | null
+          salary_max: number | null
+          salary_min: number | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          bd_approach?: string | null
+          biggest_challenge?: string | null
+          created_at?: string
+          display_name?: string | null
+          id?: string
+          ideal_candidate?: string | null
+          location_regional_detail?: string | null
+          locations?: string[] | null
+          niche_other?: string | null
+          niches?: string[] | null
+          onboarding_completed?: boolean
+          placement_type?: string | null
+          salary_max?: number | null
+          salary_min?: number | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          bd_approach?: string | null
+          biggest_challenge?: string | null
+          created_at?: string
+          display_name?: string | null
+          id?: string
+          ideal_candidate?: string | null
+          location_regional_detail?: string | null
+          locations?: string[] | null
+          niche_other?: string | null
+          niches?: string[] | null
+          onboarding_completed?: boolean
+          placement_type?: string | null
+          salary_max?: number | null
+          salary_min?: number | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
