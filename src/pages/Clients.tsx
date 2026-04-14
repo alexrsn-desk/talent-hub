@@ -48,6 +48,9 @@ export default function ClientsPage() {
       linkedin_url: (fd.get("linkedin_url") as string) || null,
       sector: (fd.get("sector") as string) || "Tech",
       status: (fd.get("status") as string) || "Target",
+      last_activity_date: new Date().toISOString().split("T")[0],
+      next_action: null,
+      next_action_due_date: null,
     });
     setDialogOpen(false);
   };
