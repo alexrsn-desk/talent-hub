@@ -1,8 +1,9 @@
-import { useJobs, useTodayFollowUps, useOverdueFollowUps, useTodayInterviews, useCandidateJobs } from "@/hooks/use-data";
+import { useJobs, useTodayFollowUps, useOverdueFollowUps, useTodayInterviews, useCandidateJobs, useCandidates } from "@/hooks/use-data";
 import { AlertTriangle, Phone, Mail, Globe, FileText, Smartphone, MessageCircle, MessageSquare, Sun, Clock, CalendarCheck, Star, Users, Lightbulb } from "lucide-react";
 import { DailyFocus } from "@/components/DailyFocus";
 import { useAllUnactionedSignals } from "@/hooks/use-signals";
 import { SignalBox } from "@/components/SignalBox";
+import { PriorityCandidatesSection } from "@/components/PriorityFlag";
 
 const activityIcon: Record<string, typeof FileText> = {
   Note: FileText,
@@ -48,6 +49,7 @@ export default function DashboardPage() {
   const { data: interviewCandidates = [] } = useTodayInterviews();
   const { data: allCandidateJobs = [] } = useCandidateJobs();
   const { data: unactionedSignals = [] } = useAllUnactionedSignals();
+  const { data: allCandidates = [] } = useCandidates();
 
   const openJobsList = jobs.filter(j => j.status === "Open");
 
@@ -135,6 +137,9 @@ export default function DashboardPage() {
 
       {/* AI Daily Focus */}
       <DailyFocus />
+
+      {/* Priority Candidates */}
+      <PriorityCandidatesSection candidates={allCandidates} />
 
       {/* Missing Actions — shown first, more urgent */}
       {unactionedSignals.filter(s => (s as any).signal_category === "missing_action").length > 0 && (
