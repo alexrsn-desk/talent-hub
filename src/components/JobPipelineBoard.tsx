@@ -45,7 +45,9 @@ export function JobPipelineBoard({ job }: { job: Job }) {
   const [addingToStage, setAddingToStage] = useState<string | null>(null);
   const [selectedCandidateId, setSelectedCandidateId] = useState("");
   const [selectedCandidate, setSelectedCandidate] = useState<Candidate | null>(null);
+  const [selectedCandidateJobForScheduling, setSelectedCandidateJobForScheduling] = useState<CandidateJob | null>(null);
   const [profileOpen, setProfileOpen] = useState(false);
+  const [scheduleOpen, setScheduleOpen] = useState(false);
 
   const linkedCandidateIds = candidateJobs.map(cj => cj.candidate_id);
   const availableCandidates = allCandidates.filter(c => !linkedCandidateIds.includes(c.id));
@@ -183,6 +185,19 @@ export function JobPipelineBoard({ job }: { job: Job }) {
         <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto">
           {selectedCandidate && (
             <CandidateQuickProfile candidate={selectedCandidate} />
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Interview scheduling dialog */}
+      <Dialog open={scheduleOpen} onOpenChange={setScheduleOpen}>
+        <DialogContent className="max-w-md">
+          {selectedCandidateJobForScheduling && (
+            <InterviewSlotPicker
+              candidateJobId={selectedCandidateJobForScheduling.id}
+              candidateName={selectedCandidateJobForScheduling.candidates?.name || "Candidate"}
+              onClose={() => setScheduleOpen(false)}
+            />
           )}
         </DialogContent>
       </Dialog>
