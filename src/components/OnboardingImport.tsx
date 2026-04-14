@@ -18,7 +18,7 @@ import {
 } from "@/lib/csv-import";
 import { PostImportChecklist } from "@/components/PostImportChecklist";
 
-type Step = "choice" | "select-types" | "upload" | "mapping" | "preview" | "importing" | "complete" | "post-import" | "link-jobs";
+type Step = "choice" | "select-types" | "upload" | "mapping" | "preview" | "importing" | "complete";
 
 interface FileData {
   headers: string[];
