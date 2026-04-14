@@ -4,10 +4,12 @@ import { supabase } from "@/integrations/supabase/client";
 export type CallSignal = {
   id: string;
   note_id: string;
+  signal_category: string;
   signal_type: string;
   trigger_phrase: string;
   explanation: string;
   suggested_action: string;
+  suggested_date: string | null;
   status: string;
   feedback_rating: string | null;
   feedback_at: string | null;
@@ -121,7 +123,6 @@ export function useFeedbackSignal() {
         feedback_rating: rating,
         feedback_at: new Date().toISOString(),
       };
-      // Thumbs down also dismisses
       if (rating === "thumbs_down") {
         updates.status = "dismissed";
       }
