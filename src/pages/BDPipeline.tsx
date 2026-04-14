@@ -7,9 +7,9 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { useClients, useUpdateClient, useDeleteClient, useCreateClient, type Client } from "@/hooks/use-data";
+import { useClients, useUpdateClient, useDeleteClient, useCreateClient, useContacts, useCreateContact, useDeleteContact, type Client, type Contact } from "@/hooks/use-data";
 import { NotesSection } from "@/components/NotesSection";
-import { Calendar, AlertTriangle, Plus, Trash2, ExternalLink } from "lucide-react";
+import { Calendar, AlertTriangle, Plus, Trash2, ExternalLink, Users } from "lucide-react";
 
 const BD_STAGES = [
   "Target",
@@ -50,12 +50,18 @@ function formatDate(date: string | null): string {
 
 export default function BDPipelinePage() {
   const { data: clients = [], isLoading } = useClients();
+  const { data: allContacts = [] } = useContacts();
   const updateClient = useUpdateClient();
   const deleteClient = useDeleteClient();
   const createClient = useCreateClient();
   const [selectedClient, setSelectedClient] = useState<Client | null>(null);
   const [detailOpen, setDetailOpen] = useState(false);
   const [addingToStage, setAddingToStage] = useState<string | null>(null);
+
+  const contactsByClient = allContacts.reduce<Record<string, Contact[]>>((acc, c) => {
+    (acc[c.client_id] ||= []).push(c);
+    return acc;
+  }, {});
 
   const handleDragEnd = (result: DropResult) => {
     if (!result.destination) return;
@@ -158,8 +164,19 @@ export default function BDPipelinePage() {
                                 }}
                               >
                                 <p className="text-sm font-medium leading-tight">{client.company_name}</p>
-                                {client.contact_name && (
-                                  <p className="text-xs text-muted-foreground mt-0.5">{client.contact_name}</p>
+                                {(contactsByClient[client.id]?.length > 0 || client.contact_name) && (
+                                  <div className="mt-0.5 space-y-0">
+                                    {contactsByClient[client.id]?.length > 0 ? (
+                                      contactsByClient[client.id].map((contact) => (
+                                        <p key={contact.id} className="text-xs text-muted-foreground flex items-center gap-1">
+                                          <Users className="h-2.5 w-2.5 flex-shrink-0" />
+                                          {contact.name}{contact.job_title ? ` · ${contact.job_title}` : ""}
+                                        </p>
+                                      ))
+                                    ) : client.contact_name ? (
+                                      <p className="text-xs text-muted-foreground">{client.contact_name}</p>
+                                    ) : null}
+                                  </div>
                                 )}
 
                                 <div className="mt-2 space-y-1">
@@ -232,6 +249,12 @@ function ClientDetailView({ client, onUpdate, onDelete }: {
 }) {
   const [nextAction, setNextAction] = useState(client.next_action || "");
   const [dueDate, setDueDate] = useState(client.next_action_due_date || "");
+  const { data: contacts = [] } = useContacts(client.id);
+  const createContact = useCreateContact();
+  const deleteContact = useDeleteContact();
+  const [addingContact, setAddingContact] = useState(false);
+  const [newContactName, setNewContactName] = useState("");
+  const [newContactTitle, setNewContactTitle] = useState("");
 
   const saveNextAction = async () => {
     await onUpdate({
@@ -307,6 +330,62 @@ function ClientDetailView({ client, onUpdate, onDelete }: {
             </div>
           )}
         </div>
+      </div>
+
+      {/* Contacts */}
+      <div className="rounded-lg border border-border p-4 space-y-3">
+        <div className="flex items-center justify-between">
+          <h3 className="text-sm font-medium flex items-center gap-1.5">
+            <Users className="h-4 w-4" /> Contacts ({contacts.length})
+          </h3>
+          <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={() => setAddingContact(!addingContact)}>
+            <Plus className="h-3 w-3 mr-1" /> Add
+          </Button>
+        </div>
+
+        {addingContact && (
+          <form
+            className="flex gap-2"
+            onSubmit={async (e) => {
+              e.preventDefault();
+              if (!newContactName.trim()) return;
+              await createContact.mutateAsync({
+                client_id: client.id,
+                name: newContactName.trim(),
+                job_title: newContactTitle.trim() || null,
+                email: null,
+                phone: null,
+                linkedin_url: null,
+              });
+              setNewContactName("");
+              setNewContactTitle("");
+              setAddingContact(false);
+            }}
+          >
+            <Input placeholder="Name" value={newContactName} onChange={(e) => setNewContactName(e.target.value)} className="h-8 text-xs" required autoFocus />
+            <Input placeholder="Job title" value={newContactTitle} onChange={(e) => setNewContactTitle(e.target.value)} className="h-8 text-xs" />
+            <Button type="submit" size="sm" className="h-8 text-xs">Add</Button>
+          </form>
+        )}
+
+        {contacts.length > 0 ? (
+          <div className="space-y-1">
+            {contacts.map((contact) => (
+              <div key={contact.id} className="flex items-center justify-between text-sm py-1.5 px-2 rounded bg-muted/30">
+                <div>
+                  <span className="font-medium">{contact.name}</span>
+                  {contact.job_title && <span className="text-muted-foreground ml-1.5">· {contact.job_title}</span>}
+                  {contact.email && <span className="text-muted-foreground ml-1.5 text-xs">· {contact.email}</span>}
+                </div>
+                <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => deleteContact.mutate(contact.id)}>
+                  <Trash2 className="h-3 w-3 text-destructive" />
+                </Button>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <p className="text-xs text-muted-foreground">No contacts yet</p>
+        )}
       </div>
 
       <NotesSection entityType="client" entityId={client.id} />
