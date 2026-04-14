@@ -118,6 +118,7 @@ serve(async (req) => {
       { data: overdueFollowUps },
       { data: todayFollowUps },
       { data: profiles },
+      { data: unactionedSignals },
     ] = await Promise.all([
       sb.from("candidate_jobs").select("*, candidates(*), jobs(*, clients(*))"),
       sb.from("jobs").select("*, clients(*)"),
@@ -127,6 +128,7 @@ serve(async (req) => {
       sb.from("notes").select("*, candidates(*), clients(*)").not("follow_up_date", "is", null).lt("follow_up_date", today),
       sb.from("notes").select("*, candidates(*), clients(*)").eq("follow_up_date", today),
       sb.from("recruiter_profiles").select("*").limit(1),
+      sb.from("call_signals").select("*, notes:note_id(*, candidates(*), clients(*))").eq("status", "unactioned").order("created_at", { ascending: false }).limit(50),
     ]);
 
     const cjs = candidateJobs || [];
