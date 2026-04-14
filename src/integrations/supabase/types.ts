@@ -484,8 +484,11 @@ export type Database = {
       }
       recruiter_profiles: {
         Row: {
+          agency_logo_url: string | null
+          agency_name: string | null
           bd_approach: string | null
           biggest_challenge: string | null
+          brand_color: string | null
           created_at: string
           display_name: string | null
           id: string
@@ -502,8 +505,11 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          agency_logo_url?: string | null
+          agency_name?: string | null
           bd_approach?: string | null
           biggest_challenge?: string | null
+          brand_color?: string | null
           created_at?: string
           display_name?: string | null
           id?: string
@@ -520,8 +526,11 @@ export type Database = {
           user_id: string
         }
         Update: {
+          agency_logo_url?: string | null
+          agency_name?: string | null
           bd_approach?: string | null
           biggest_challenge?: string | null
+          brand_color?: string | null
           created_at?: string
           display_name?: string | null
           id?: string
