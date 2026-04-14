@@ -1,5 +1,5 @@
 import { useJobs, useTodayFollowUps, useOverdueFollowUps, useTodayInterviews, useCandidateJobs } from "@/hooks/use-data";
-import { AlertTriangle, Phone, Mail, Globe, FileText, Smartphone, MessageCircle, Sun, Clock, CalendarCheck, Star, Users, Briefcase } from "lucide-react";
+import { AlertTriangle, Phone, Mail, Globe, FileText, Smartphone, MessageCircle, MessageSquare, Sun, Clock, CalendarCheck, Star, Users } from "lucide-react";
 
 const activityIcon: Record<string, typeof FileText> = {
   Note: FileText,
@@ -39,8 +39,7 @@ function formatDate() {
 }
 
 export default function DashboardPage() {
-  const { data: candidates = [] } = useCandidates();
-  const { data: clients = [] } = useClients();
+  const { data: jobs = [] } = useJobs();
   const { data: jobs = [] } = useJobs();
   const { data: todayActions = [] } = useTodayFollowUps();
   const { data: overdueActions = [] } = useOverdueFollowUps();
