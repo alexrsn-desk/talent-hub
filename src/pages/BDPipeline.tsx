@@ -50,12 +50,18 @@ function formatDate(date: string | null): string {
 
 export default function BDPipelinePage() {
   const { data: clients = [], isLoading } = useClients();
+  const { data: allContacts = [] } = useContacts();
   const updateClient = useUpdateClient();
   const deleteClient = useDeleteClient();
   const createClient = useCreateClient();
   const [selectedClient, setSelectedClient] = useState<Client | null>(null);
   const [detailOpen, setDetailOpen] = useState(false);
   const [addingToStage, setAddingToStage] = useState<string | null>(null);
+
+  const contactsByClient = allContacts.reduce<Record<string, Contact[]>>((acc, c) => {
+    (acc[c.client_id] ||= []).push(c);
+    return acc;
+  }, {});
 
   const handleDragEnd = (result: DropResult) => {
     if (!result.destination) return;
