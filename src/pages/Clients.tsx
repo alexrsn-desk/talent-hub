@@ -9,6 +9,7 @@ import { Plus, Search, ExternalLink, Trash2, PhoneCall } from "lucide-react";
 import { useClients, useCreateClient, useUpdateClient, useDeleteClient, type Client } from "@/hooks/use-data";
 import { NotesSection } from "@/components/NotesSection";
 import { LogTouchpointModal } from "@/components/LogTouchpointModal";
+import { ClientPortalInvite } from "@/components/ClientPortalInvite";
 
 const STATUSES = ["Target", "Contacted", "Conversation Started", "Meeting Booked", "Terms Sent", "Active Client"] as const;
 
@@ -211,6 +212,7 @@ function ClientDetail({ client, onUpdate, onDelete }: {
           </div>
         )}
       </div>
+      <ClientPortalInvite clientId={client.id} />
       <NotesSection entityType="client" entityId={client.id} />
       <LogTouchpointModal
         open={touchpointOpen}
