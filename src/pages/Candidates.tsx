@@ -57,6 +57,8 @@ export default function CandidatesPage() {
       linkedin_url: (fd.get("linkedin_url") as string) || null,
       status: (fd.get("status") as string) || "New",
       source: (fd.get("source") as string) || "LinkedIn",
+      salary_current: null,
+      availability: null,
     });
     setDialogOpen(false);
   };
