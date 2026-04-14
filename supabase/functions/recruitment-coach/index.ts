@@ -108,7 +108,7 @@ serve(async (req) => {
     const hour = now.getHours();
     const timeOfDay = hour < 12 ? "morning" : hour < 17 ? "afternoon" : "evening";
 
-    // Fetch desk data in parallel
+    // Fetch desk data + recruiter profile in parallel
     const [
       { data: candidateJobs },
       { data: jobs },
@@ -117,6 +117,7 @@ serve(async (req) => {
       { data: recentNotes },
       { data: overdueFollowUps },
       { data: todayFollowUps },
+      { data: profiles },
     ] = await Promise.all([
       sb.from("candidate_jobs").select("*, candidates(*), jobs(*, clients(*))"),
       sb.from("jobs").select("*, clients(*)"),
@@ -125,6 +126,7 @@ serve(async (req) => {
       sb.from("notes").select("*, candidates(*), clients(*)").order("created_at", { ascending: false }).limit(500),
       sb.from("notes").select("*, candidates(*), clients(*)").not("follow_up_date", "is", null).lt("follow_up_date", today),
       sb.from("notes").select("*, candidates(*), clients(*)").eq("follow_up_date", today),
+      sb.from("recruiter_profiles").select("*").limit(1),
     ]);
 
     const cjs = candidateJobs || [];
