@@ -202,12 +202,24 @@ export default function BDPipelinePage() {
                                       {isOverdue(client.next_action_due_date) && (
                                         <AlertTriangle className="h-3 w-3 flex-shrink-0 mt-0.5" />
                                       )}
-                                      <span className="line-clamp-2">
+                                      <span className="line-clamp-2 flex-1">
                                         {client.next_action}
                                         {client.next_action_due_date && (
                                           <span className="ml-1 opacity-70">· {formatDate(client.next_action_due_date)}</span>
                                         )}
                                       </span>
+                                      {client.next_action_due_date && (
+                                        <a
+                                          href={buildCalendarUrl(client.next_action, client.next_action_due_date, client.company_name)}
+                                          target="_blank"
+                                          rel="noopener noreferrer"
+                                          onClick={(e) => e.stopPropagation()}
+                                          className="flex-shrink-0 hover:text-primary transition-colors"
+                                          title="Add to Google Calendar"
+                                        >
+                                          <CalendarPlus className="h-3 w-3" />
+                                        </a>
+                                      )}
                                     </div>
                                   )}
                                 </div>
