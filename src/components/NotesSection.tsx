@@ -3,14 +3,14 @@ import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useNotes, useCreateNote } from "@/hooks/use-data";
-import { Send, Phone, Mail, Users, MessageSquare, LinkedinIcon, FileText } from "lucide-react";
+import { Send, Phone, Mail, Users, MessageSquare, Globe, FileText } from "lucide-react";
 
 const ACTIVITY_TYPES = [
   { value: "Note", label: "Note", icon: FileText },
   { value: "Call", label: "Call", icon: Phone },
   { value: "Email", label: "Email", icon: Mail },
   { value: "Meeting", label: "Meeting", icon: Users },
-  { value: "LinkedIn Message", label: "LinkedIn", icon: LinkedinIcon },
+  { value: "LinkedIn Message", label: "LinkedIn", icon: Globe },
   { value: "Follow-up", label: "Follow-up", icon: MessageSquare },
 ] as const;
 
@@ -19,7 +19,7 @@ const activityIcon: Record<string, typeof FileText> = {
   Call: Phone,
   Email: Mail,
   Meeting: Users,
-  "LinkedIn Message": LinkedinIcon,
+  "LinkedIn Message": Globe,
   "Follow-up": MessageSquare,
 };
 
