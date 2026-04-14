@@ -136,6 +136,18 @@ export default function DashboardPage() {
       {/* AI Daily Focus */}
       <DailyFocus />
 
+      {/* Unactioned Signals */}
+      {unactionedSignals.length > 0 && (
+        <div className="rounded-lg border border-yellow-400/30 bg-yellow-400/5 p-4 space-y-3">
+          <div className="flex items-center gap-2">
+            <Lightbulb className="h-4 w-4 text-yellow-400" />
+            <h2 className="text-sm font-medium text-yellow-400">Signals ({unactionedSignals.length})</h2>
+            <span className="text-xs text-muted-foreground ml-auto">Last 7 days</span>
+          </div>
+          <SignalBox signals={unactionedSignals} />
+        </div>
+      )}
+
       {/* Open Jobs Pipeline Overview */}
       <div className="rounded-lg border border-border bg-card p-4">
         <h2 className="text-sm font-medium text-muted-foreground mb-3">Open Jobs ({jobPipelineStats.length})</h2>
