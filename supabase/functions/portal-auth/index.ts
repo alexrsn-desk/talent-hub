@@ -117,12 +117,25 @@ serve(async (req) => {
       const jobIds = (jobs || []).map((j: any) => j.id);
 
       let candidateJobs: any[] = [];
+      let interviewSlots: any[] = [];
       if (jobIds.length > 0) {
         const { data } = await supabase
           .from("candidate_jobs")
           .select("*, candidates(*), candidate_summaries(*)")
           .in("job_id", jobIds);
         candidateJobs = data || [];
+
+        // Get available interview slots for these candidate_jobs
+        const cjIds = (candidateJobs || []).map((cj: any) => cj.id);
+        if (cjIds.length > 0) {
+          const { data: slots } = await supabase
+            .from("interview_slots")
+            .select("*")
+            .in("candidate_job_id", cjIds)
+            .eq("status", "available")
+            .order("start_time", { ascending: true });
+          interviewSlots = slots || [];
+        }
       }
 
       // Get feedback already submitted
@@ -143,7 +156,7 @@ serve(async (req) => {
         recentActivity = data || [];
       }
 
-      return new Response(JSON.stringify({ jobs, candidateJobs, feedback, recentActivity }), {
+      return new Response(JSON.stringify({ jobs, candidateJobs, feedback, recentActivity, interviewSlots }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }

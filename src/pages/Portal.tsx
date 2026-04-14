@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
-import { Loader2, Star, CheckCircle2, XCircle, HelpCircle, Briefcase, Clock, MessageSquare } from "lucide-react";
+import { Loader2, Star, CheckCircle2, XCircle, HelpCircle, Briefcase, Clock, MessageSquare, Calendar } from "lucide-react";
 import { toast } from "sonner";
 
 type PortalData = {
@@ -13,6 +13,7 @@ type PortalData = {
   candidateJobs: any[];
   feedback: any[];
   recentActivity: any[];
+  interviewSlots: any[];
 };
 
 type ClientInfo = { id: string; company_name: string; contact_name: string | null };
@@ -157,8 +158,8 @@ export default function Portal() {
                           clientId={clientId!}
                           token={token!}
                           existingFeedback={portalData.feedback.filter((f: any) => f.candidate_job_id === cj.id)}
+                          availableSlots={portalData.interviewSlots?.filter((s: any) => s.candidate_job_id === cj.id) || []}
                           onFeedbackSubmitted={() => {
-                            // Refresh data
                             supabase.functions.invoke("portal-auth", {
                               body: { action: "get_portal_data", client_id: clientId, token },
                             }).then(({ data }) => data && setPortalData(data));
@@ -210,12 +211,14 @@ function CandidateCard({
   clientId,
   token,
   existingFeedback,
+  availableSlots,
   onFeedbackSubmitted,
 }: {
   candidateJob: any;
   clientId: string;
   token: string;
   existingFeedback: any[];
+  availableSlots: any[];
   onFeedbackSubmitted: () => void;
 }) {
   const candidate = candidateJob.candidates;
@@ -223,6 +226,8 @@ function CandidateCard({
   const [showFeedback, setShowFeedback] = useState(false);
   const [showInterviewFeedback, setShowInterviewFeedback] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [confirmingSlot, setConfirmingSlot] = useState<string | null>(null);
+  const [slotConfirmed, setSlotConfirmed] = useState(false);
 
   const hasReview = existingFeedback.some((f: any) => f.feedback_type === "review");
   const hasInterviewFeedback = existingFeedback.some((f: any) => f.feedback_type === "interview");
@@ -286,6 +291,71 @@ function CandidateCard({
         <p className="text-sm text-muted-foreground">
           📅 Interview: {new Date(candidateJob.interview_date).toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}
         </p>
+      )}
+
+      {/* Available interview slots for client to pick */}
+      {!candidateJob.interview_date && availableSlots.length > 0 && !slotConfirmed && (
+        <div className="border border-primary/30 rounded-md p-3 space-y-2">
+          <p className="text-xs font-medium flex items-center gap-1">
+            <Calendar className="h-3.5 w-3.5 text-primary" />
+            Select an interview time
+          </p>
+          <div className="space-y-1.5">
+            {availableSlots.map((slot: any) => (
+              <button
+                key={slot.id}
+                onClick={() => setConfirmingSlot(slot.id)}
+                className={`w-full text-left text-sm rounded-md border px-3 py-2 transition-colors ${
+                  confirmingSlot === slot.id
+                    ? "border-primary bg-primary/10"
+                    : "border-border hover:border-primary/50"
+                }`}
+              >
+                <span className="font-medium">
+                  {new Date(slot.start_time).toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short" })}
+                </span>
+                <span className="text-muted-foreground ml-2">
+                  {new Date(slot.start_time).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })}
+                  {" — "}
+                  {new Date(slot.end_time).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })}
+                </span>
+              </button>
+            ))}
+          </div>
+          {confirmingSlot && (
+            <Button
+              size="sm"
+              className="w-full"
+              disabled={submitting}
+              onClick={async () => {
+                setSubmitting(true);
+                const { data } = await supabase.functions.invoke("schedule-interview", {
+                  body: { slot_id: confirmingSlot, client_id: clientId },
+                });
+                setSubmitting(false);
+                if (data?.success) {
+                  setSlotConfirmed(true);
+                  toast.success("Interview confirmed! Calendar invites sent.");
+                  if (data.google_calendar_url) {
+                    window.open(data.google_calendar_url, "_blank");
+                  }
+                  onFeedbackSubmitted();
+                } else {
+                  toast.error("Failed to confirm slot");
+                }
+              }}
+            >
+              {submitting ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-1" /> : <Calendar className="h-3.5 w-3.5 mr-1" />}
+              Confirm This Time
+            </Button>
+          )}
+        </div>
+      )}
+
+      {slotConfirmed && (
+        <div className="text-sm text-center py-2">
+          <Badge className="bg-success/20 text-green-400">✓ Interview confirmed — calendar invite sent</Badge>
+        </div>
       )}
 
       {/* AI Summary */}

@@ -335,6 +335,44 @@ export type Database = {
           },
         ]
       }
+      interview_slots: {
+        Row: {
+          candidate_job_id: string
+          created_at: string
+          end_time: string
+          id: string
+          selected_by_client: boolean
+          start_time: string
+          status: string
+        }
+        Insert: {
+          candidate_job_id: string
+          created_at?: string
+          end_time: string
+          id?: string
+          selected_by_client?: boolean
+          start_time: string
+          status?: string
+        }
+        Update: {
+          candidate_job_id?: string
+          created_at?: string
+          end_time?: string
+          id?: string
+          selected_by_client?: boolean
+          start_time?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "interview_slots_candidate_job_id_fkey"
+            columns: ["candidate_job_id"]
+            isOneToOne: false
+            referencedRelation: "candidate_jobs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       jobs: {
         Row: {
           client_id: string | null
