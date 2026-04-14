@@ -7,9 +7,9 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { useClients, useUpdateClient, useDeleteClient, useCreateClient, type Client } from "@/hooks/use-data";
+import { useClients, useUpdateClient, useDeleteClient, useCreateClient, useContacts, useCreateContact, useDeleteContact, type Client, type Contact } from "@/hooks/use-data";
 import { NotesSection } from "@/components/NotesSection";
-import { Calendar, AlertTriangle, Plus, Trash2, ExternalLink } from "lucide-react";
+import { Calendar, AlertTriangle, Plus, Trash2, ExternalLink, Users } from "lucide-react";
 
 const BD_STAGES = [
   "Target",
