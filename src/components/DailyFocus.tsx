@@ -93,7 +93,7 @@ export function DailyFocus() {
   const hasGreen = data.green_flags.length > 0;
 
   return (
-    <Collapsible open={open} onOpenChange={setOpen}>
+    <Collapsible open={open} onOpenChange={handleOpenChange}>
       <div className="rounded-lg border border-border bg-card overflow-hidden">
         {/* Header */}
         <div className="flex items-center justify-between px-4 py-3 border-b border-border">
