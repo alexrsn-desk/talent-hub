@@ -298,7 +298,7 @@ export default function SettingsPage() {
       <div className="pt-6 border-t border-border space-y-3">
         <h2 className="text-sm font-medium">Migration Assistant</h2>
         <p className="text-xs text-muted-foreground">Review and tidy imported data — unmatched jobs, notes, job assignments, and duplicates.</p>
-        <MigrationAssistantSection />
+        <MigrationAssistant onComplete={() => toast.success("All items reviewed!")} showLaterOption={false} />
       </div>
     </div>
   );
