@@ -11,6 +11,7 @@ import { PriorityFlagButton, PriorityStarIcon } from "@/components/PriorityFlag"
 import { NotesSection } from "@/components/NotesSection";
 import { CandidateJobLinks } from "@/components/CandidateJobLinks";
 import { LogTouchpointModal } from "@/components/LogTouchpointModal";
+import { CallPrepButton } from "@/components/CallPrep";
 
 const STATUSES = ["New", "Contacted", "Screening", "Submitted", "Interviewing", "Placed", "On Hold", "Not Suitable"] as const;
 const SOURCES = ["LinkedIn", "Referral", "Job Board", "Inbound"] as const;
@@ -219,6 +220,7 @@ function CandidateDetail({ candidate, onUpdate, onDelete }: {
         </div>
         <div className="flex gap-2 items-start">
           <PriorityFlagButton candidate={candidate} size="sm" />
+          <CallPrepButton entityType="candidate" entityId={candidate.id} entityName={candidate.name} />
           <Button size="sm" variant="outline" className="gap-1.5" onClick={() => setTouchpointOpen(true)}>
             <PhoneCall className="h-3.5 w-3.5" /> Log Touchpoint
           </Button>
