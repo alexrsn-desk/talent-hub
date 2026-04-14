@@ -293,6 +293,71 @@ function CandidateCard({
         </p>
       )}
 
+      {/* Available interview slots for client to pick */}
+      {!candidateJob.interview_date && availableSlots.length > 0 && !slotConfirmed && (
+        <div className="border border-primary/30 rounded-md p-3 space-y-2">
+          <p className="text-xs font-medium flex items-center gap-1">
+            <Calendar className="h-3.5 w-3.5 text-primary" />
+            Select an interview time
+          </p>
+          <div className="space-y-1.5">
+            {availableSlots.map((slot: any) => (
+              <button
+                key={slot.id}
+                onClick={() => setConfirmingSlot(slot.id)}
+                className={`w-full text-left text-sm rounded-md border px-3 py-2 transition-colors ${
+                  confirmingSlot === slot.id
+                    ? "border-primary bg-primary/10"
+                    : "border-border hover:border-primary/50"
+                }`}
+              >
+                <span className="font-medium">
+                  {new Date(slot.start_time).toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short" })}
+                </span>
+                <span className="text-muted-foreground ml-2">
+                  {new Date(slot.start_time).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })}
+                  {" — "}
+                  {new Date(slot.end_time).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })}
+                </span>
+              </button>
+            ))}
+          </div>
+          {confirmingSlot && (
+            <Button
+              size="sm"
+              className="w-full"
+              disabled={submitting}
+              onClick={async () => {
+                setSubmitting(true);
+                const { data } = await supabase.functions.invoke("schedule-interview", {
+                  body: { slot_id: confirmingSlot, client_id: clientId },
+                });
+                setSubmitting(false);
+                if (data?.success) {
+                  setSlotConfirmed(true);
+                  toast.success("Interview confirmed! Calendar invites sent.");
+                  if (data.google_calendar_url) {
+                    window.open(data.google_calendar_url, "_blank");
+                  }
+                  onFeedbackSubmitted();
+                } else {
+                  toast.error("Failed to confirm slot");
+                }
+              }}
+            >
+              {submitting ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-1" /> : <Calendar className="h-3.5 w-3.5 mr-1" />}
+              Confirm This Time
+            </Button>
+          )}
+        </div>
+      )}
+
+      {slotConfirmed && (
+        <div className="text-sm text-center py-2">
+          <Badge className="bg-success/20 text-green-400">✓ Interview confirmed — calendar invite sent</Badge>
+        </div>
+      )}
+
       {/* AI Summary */}
       {(summary?.manual_summary || summary?.ai_summary) && (
         <div className="bg-muted/30 rounded-md p-3 text-sm whitespace-pre-wrap">
