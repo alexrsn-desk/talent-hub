@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useClients, useUpdateClient, useDeleteClient, useCreateClient, useContacts, useCreateContact, useDeleteContact, type Client, type Contact } from "@/hooks/use-data";
 import { NotesSection } from "@/components/NotesSection";
-import { Calendar, AlertTriangle, Plus, Trash2, ExternalLink, Users } from "lucide-react";
+import { Calendar as CalendarIcon, AlertTriangle, Plus, Trash2, ExternalLink, Users, CalendarPlus } from "lucide-react";
 
 const BD_STAGES = [
   "Target",
@@ -46,6 +46,12 @@ function isOverdue(dueDate: string | null): boolean {
 function formatDate(date: string | null): string {
   if (!date) return "—";
   return new Date(date).toLocaleDateString("en-GB", { day: "numeric", month: "short" });
+}
+
+function buildCalendarUrl(title: string, date: string, companyName: string): string {
+  const d = date.replace(/-/g, "");
+  const text = encodeURIComponent(`${title} – ${companyName}`);
+  return `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${text}&dates=${d}/${d}&details=${encodeURIComponent(`BD action for ${companyName}`)}`;
 }
 
 export default function BDPipelinePage() {
@@ -182,7 +188,7 @@ export default function BDPipelinePage() {
                                 <div className="mt-2 space-y-1">
                                   {client.last_activity_date && (
                                     <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                                      <Calendar className="h-3 w-3" />
+                                      <CalendarIcon className="h-3 w-3" />
                                       <span>Last: {formatDate(client.last_activity_date)}</span>
                                     </div>
                                   )}
@@ -196,12 +202,24 @@ export default function BDPipelinePage() {
                                       {isOverdue(client.next_action_due_date) && (
                                         <AlertTriangle className="h-3 w-3 flex-shrink-0 mt-0.5" />
                                       )}
-                                      <span className="line-clamp-2">
+                                      <span className="line-clamp-2 flex-1">
                                         {client.next_action}
                                         {client.next_action_due_date && (
                                           <span className="ml-1 opacity-70">· {formatDate(client.next_action_due_date)}</span>
                                         )}
                                       </span>
+                                      {client.next_action_due_date && (
+                                        <a
+                                          href={buildCalendarUrl(client.next_action, client.next_action_due_date, client.company_name)}
+                                          target="_blank"
+                                          rel="noopener noreferrer"
+                                          onClick={(e) => e.stopPropagation()}
+                                          className="flex-shrink-0 hover:text-primary transition-colors"
+                                          title="Add to Google Calendar"
+                                        >
+                                          <CalendarPlus className="h-3 w-3" />
+                                        </a>
+                                      )}
                                     </div>
                                   )}
                                 </div>
@@ -322,6 +340,18 @@ function ClientDetailView({ client, onUpdate, onDelete }: {
               className="flex-1"
             />
             <Button size="sm" onClick={saveNextAction}>Save</Button>
+            {nextAction && dueDate && (
+              <a
+                href={buildCalendarUrl(nextAction, dueDate, client.company_name)}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <Button type="button" size="sm" variant="outline" className="gap-1">
+                  <CalendarPlus className="h-3.5 w-3.5" /> Calendar
+                </Button>
+              </a>
+            )}
           </div>
           {isOverdue(client.next_action_due_date) && client.next_action && (
             <div className="flex items-center gap-1 text-warning text-xs">
