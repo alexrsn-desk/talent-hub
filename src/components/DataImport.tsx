@@ -13,6 +13,7 @@ import {
   parseCSV, autoMapHeaders, buildRecord, runImportForType,
   downloadErrorReport as dlErrors, ImportResult,
 } from "@/lib/csv-import";
+import { PostImportChecklist } from "@/components/PostImportChecklist";
 
 type Step = "select" | "upload" | "mapping" | "preview" | "importing" | "results" | "link-jobs";
 
