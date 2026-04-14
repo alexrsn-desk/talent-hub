@@ -108,7 +108,7 @@ serve(async (req) => {
     const hour = now.getHours();
     const timeOfDay = hour < 12 ? "morning" : hour < 17 ? "afternoon" : "evening";
 
-    // Fetch desk data in parallel
+    // Fetch desk data + recruiter profile in parallel
     const [
       { data: candidateJobs },
       { data: jobs },
@@ -117,6 +117,7 @@ serve(async (req) => {
       { data: recentNotes },
       { data: overdueFollowUps },
       { data: todayFollowUps },
+      { data: profiles },
     ] = await Promise.all([
       sb.from("candidate_jobs").select("*, candidates(*), jobs(*, clients(*))"),
       sb.from("jobs").select("*, clients(*)"),
@@ -125,6 +126,7 @@ serve(async (req) => {
       sb.from("notes").select("*, candidates(*), clients(*)").order("created_at", { ascending: false }).limit(500),
       sb.from("notes").select("*, candidates(*), clients(*)").not("follow_up_date", "is", null).lt("follow_up_date", today),
       sb.from("notes").select("*, candidates(*), clients(*)").eq("follow_up_date", today),
+      sb.from("recruiter_profiles").select("*").limit(1),
     ]);
 
     const cjs = candidateJobs || [];
@@ -134,6 +136,7 @@ serve(async (req) => {
     const notes = recentNotes || [];
     const openJobs = allJobs.filter((j: any) => j.status === "Open");
     const bdProspects = allClients.filter((c: any) => ["Target", "Approached", "In Dialogue"].includes(c.status));
+    const profile = profiles?.[0] || null;
 
     // Build a concise desk snapshot
     const deskData = {
@@ -202,7 +205,20 @@ serve(async (req) => {
       },
     };
 
-    const deskContext = `[LIVE DESK DATA]
+    const recruiterContext = profile ? `
+[RECRUITER PROFILE]
+Name: ${profile.display_name || "Unknown"}
+Specialisms: ${(profile.niches || []).join(", ")}${profile.niche_other ? ` (${profile.niche_other})` : ""}
+Salary range: £${(profile.salary_min || 0) / 1000}k - £${(profile.salary_max || 0) / 1000}k
+Placement type: ${profile.placement_type || "Both"}
+Client locations: ${(profile.locations || []).join(", ")}${profile.location_regional_detail ? ` (${profile.location_regional_detail})` : ""}
+Typical candidate: ${profile.ideal_candidate || "Not specified"}
+BD approach: ${profile.bd_approach || "Not specified"}
+Biggest challenge: ${profile.biggest_challenge || "Not specified"}
+` : "";
+
+    const deskContext = `${recruiterContext}
+[LIVE DESK DATA]
 ${JSON.stringify(deskData, null, 2)}
 
 Current date and time: ${dayOfWeek}, ${today} at ${timeStr}
