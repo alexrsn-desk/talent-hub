@@ -48,6 +48,12 @@ function formatDate(date: string | null): string {
   return new Date(date).toLocaleDateString("en-GB", { day: "numeric", month: "short" });
 }
 
+function buildCalendarUrl(title: string, date: string, companyName: string): string {
+  const d = date.replace(/-/g, "");
+  const text = encodeURIComponent(`${title} – ${companyName}`);
+  return `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${text}&dates=${d}/${d}&details=${encodeURIComponent(`BD action for ${companyName}`)}`;
+}
+
 export default function BDPipelinePage() {
   const { data: clients = [], isLoading } = useClients();
   const { data: allContacts = [] } = useContacts();
