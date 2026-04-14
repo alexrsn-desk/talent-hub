@@ -68,6 +68,8 @@ export type Note = {
   job_id: string | null;
   content: string;
   activity_type: string;
+  outcome: string | null;
+  follow_up_date: string | null;
   created_at: string;
 };
 
@@ -292,12 +294,28 @@ export function useNotes(entityType: "candidate" | "client" | "job", entityId: s
 export function useCreateNote() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (note: { content: string; activity_type?: string; candidate_id?: string; client_id?: string; job_id?: string }) => {
+    mutationFn: async (note: { content: string; activity_type?: string; outcome?: string; follow_up_date?: string; candidate_id?: string; client_id?: string; job_id?: string }) => {
       const { data, error } = await supabase.from("notes").insert(note).select().single();
       if (error) throw error;
       return data;
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ["notes"] }),
+  });
+}
+
+export function useTodayFollowUps() {
+  const today = new Date().toISOString().split("T")[0];
+  return useQuery({
+    queryKey: ["notes", "follow_ups", today],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("notes")
+        .select("*, candidates(*), clients(*)")
+        .eq("follow_up_date", today)
+        .order("created_at", { ascending: false });
+      if (error) throw error;
+      return data as (Note & { candidates: any; clients: any })[];
+    },
   });
 }
 

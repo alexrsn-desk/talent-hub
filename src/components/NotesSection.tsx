@@ -85,19 +85,25 @@ export function NotesSection({ entityType, entityId }: { entityType: "candidate"
       </div>
       <div className="space-y-1 max-h-72 overflow-y-auto">
         {notes.map((n) => {
-          const Icon = activityIcon[(n as any).activity_type] || FileText;
-          const color = activityColor[(n as any).activity_type] || "text-muted-foreground";
+          const Icon = activityIcon[n.activity_type] || FileText;
+          const color = activityColor[n.activity_type] || "text-muted-foreground";
           return (
             <div key={n.id} className="flex gap-2.5 items-start rounded-md bg-muted/30 px-3 py-2">
               <div className={`mt-0.5 ${color}`}>
                 <Icon className="h-3.5 w-3.5" />
               </div>
               <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2">
-                  <span className={`text-xs font-medium ${color}`}>{(n as any).activity_type || "Note"}</span>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className={`text-xs font-medium ${color}`}>{n.activity_type || "Note"}</span>
+                  {n.outcome && (
+                    <span className="text-xs bg-muted px-1.5 py-0.5 rounded">{n.outcome}</span>
+                  )}
                   <span className="text-xs text-muted-foreground">{new Date(n.created_at).toLocaleString()}</span>
                 </div>
                 <p className="text-sm mt-0.5">{n.content}</p>
+                {n.follow_up_date && (
+                  <p className="text-xs text-warning mt-1">Follow-up: {new Date(n.follow_up_date).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}</p>
+                )}
               </div>
             </div>
           );

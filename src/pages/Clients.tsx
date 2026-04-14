@@ -5,9 +5,10 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
-import { Plus, Search, ExternalLink, Trash2 } from "lucide-react";
+import { Plus, Search, ExternalLink, Trash2, PhoneCall } from "lucide-react";
 import { useClients, useCreateClient, useUpdateClient, useDeleteClient, type Client } from "@/hooks/use-data";
 import { NotesSection } from "@/components/NotesSection";
+import { LogTouchpointModal } from "@/components/LogTouchpointModal";
 
 const STATUSES = ["Target", "Contacted", "Conversation Started", "Meeting Booked", "Terms Sent", "Active Client"] as const;
 
@@ -156,41 +157,68 @@ export default function ClientsPage() {
       <Dialog open={detailOpen} onOpenChange={setDetailOpen}>
         <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
           {selectedClient && (
-            <div className="space-y-6">
-              <div className="flex items-start justify-between">
-                <div>
-                  <h2 className="text-xl font-semibold">{selectedClient.company_name}</h2>
-                  <p className="text-muted-foreground">{selectedClient.contact_name || ""} {selectedClient.job_title ? `· ${selectedClient.job_title}` : ""}</p>
-                </div>
-                <div className="flex gap-2">
-                  <Select defaultValue={selectedClient.status} onValueChange={(v) => { updateClient.mutate({ id: selectedClient.id, status: v }); setSelectedClient({ ...selectedClient, status: v }); }}>
-                    <SelectTrigger className="w-32"><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      {STATUSES.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
-                    </SelectContent>
-                  </Select>
-                  <Button variant="ghost" size="icon" onClick={async () => { await deleteClient.mutateAsync(selectedClient.id); setDetailOpen(false); }}>
-                    <Trash2 className="h-4 w-4 text-destructive" />
-                  </Button>
-                </div>
-              </div>
-              <div className="grid grid-cols-2 gap-4 text-sm">
-                <div><span className="text-muted-foreground">Email:</span> {selectedClient.email || "—"}</div>
-                <div><span className="text-muted-foreground">Phone:</span> {selectedClient.phone || "—"}</div>
-                <div><span className="text-muted-foreground">Sector:</span> {selectedClient.sector || "—"}</div>
-                {selectedClient.linkedin_url && (
-                  <div>
-                    <a href={selectedClient.linkedin_url} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline flex items-center gap-1">
-                      <ExternalLink className="h-3 w-3" /> LinkedIn
-                    </a>
-                  </div>
-                )}
-              </div>
-              <NotesSection entityType="client" entityId={selectedClient.id} />
-            </div>
+            <ClientDetail
+              client={selectedClient}
+              onUpdate={(updates) => { updateClient.mutate({ id: selectedClient.id, ...updates }); setSelectedClient({ ...selectedClient, ...updates }); }}
+              onDelete={async () => { await deleteClient.mutateAsync(selectedClient.id); setDetailOpen(false); }}
+            />
           )}
         </DialogContent>
       </Dialog>
+    </div>
+  );
+}
+
+function ClientDetail({ client, onUpdate, onDelete }: {
+  client: Client;
+  onUpdate: (updates: Partial<Client>) => void;
+  onDelete: () => Promise<void>;
+}) {
+  const [touchpointOpen, setTouchpointOpen] = useState(false);
+  const STATUSES = ["Target", "Contacted", "Conversation Started", "Meeting Booked", "Terms Sent", "Active Client"] as const;
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-start justify-between">
+        <div>
+          <h2 className="text-xl font-semibold">{client.company_name}</h2>
+          <p className="text-muted-foreground">{client.contact_name || ""} {client.job_title ? `· ${client.job_title}` : ""}</p>
+        </div>
+        <div className="flex gap-2 items-start">
+          <Button size="sm" variant="outline" className="gap-1.5" onClick={() => setTouchpointOpen(true)}>
+            <PhoneCall className="h-3.5 w-3.5" /> Log Touchpoint
+          </Button>
+          <Select defaultValue={client.status} onValueChange={(v) => onUpdate({ status: v })}>
+            <SelectTrigger className="w-32"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              {STATUSES.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+            </SelectContent>
+          </Select>
+          <Button variant="ghost" size="icon" onClick={onDelete}>
+            <Trash2 className="h-4 w-4 text-destructive" />
+          </Button>
+        </div>
+      </div>
+      <div className="grid grid-cols-2 gap-4 text-sm">
+        <div><span className="text-muted-foreground">Email:</span> {client.email || "—"}</div>
+        <div><span className="text-muted-foreground">Phone:</span> {client.phone || "—"}</div>
+        <div><span className="text-muted-foreground">Sector:</span> {client.sector || "—"}</div>
+        {client.linkedin_url && (
+          <div>
+            <a href={client.linkedin_url} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline flex items-center gap-1">
+              <ExternalLink className="h-3 w-3" /> LinkedIn
+            </a>
+          </div>
+        )}
+      </div>
+      <NotesSection entityType="client" entityId={client.id} />
+      <LogTouchpointModal
+        open={touchpointOpen}
+        onOpenChange={setTouchpointOpen}
+        entityType="client"
+        entityId={client.id}
+        entityName={client.company_name}
+      />
     </div>
   );
 }

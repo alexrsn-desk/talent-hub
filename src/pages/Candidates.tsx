@@ -5,10 +5,11 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
-import { Plus, Search, ExternalLink, Trash2 } from "lucide-react";
+import { Plus, Search, ExternalLink, Trash2, PhoneCall } from "lucide-react";
 import { useCandidates, useCreateCandidate, useUpdateCandidate, useDeleteCandidate, type Candidate } from "@/hooks/use-data";
 import { NotesSection } from "@/components/NotesSection";
 import { CandidateJobLinks } from "@/components/CandidateJobLinks";
+import { LogTouchpointModal } from "@/components/LogTouchpointModal";
 
 const STATUSES = ["New", "Contacted", "Screening", "Submitted", "Interviewing", "Placed", "On Hold", "Not Suitable"] as const;
 const SOURCES = ["LinkedIn", "Referral", "Job Board", "Inbound"] as const;
@@ -188,7 +189,7 @@ function CandidateDetail({ candidate, onUpdate, onDelete }: {
   onUpdate: (updates: Partial<Candidate>) => Promise<void>;
   onDelete: () => Promise<void>;
 }) {
-  const [editing, setEditing] = useState(false);
+  const [touchpointOpen, setTouchpointOpen] = useState(false);
 
   return (
     <div className="space-y-6">
@@ -197,7 +198,10 @@ function CandidateDetail({ candidate, onUpdate, onDelete }: {
           <h2 className="text-xl font-semibold">{candidate.name}</h2>
           <p className="text-muted-foreground">{candidate.job_title || "No title"} {candidate.current_employer ? `at ${candidate.current_employer}` : ""}</p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-2 items-start">
+          <Button size="sm" variant="outline" className="gap-1.5" onClick={() => setTouchpointOpen(true)}>
+            <PhoneCall className="h-3.5 w-3.5" /> Log Touchpoint
+          </Button>
           <Select defaultValue={candidate.status} onValueChange={(v) => onUpdate({ status: v })}>
             <SelectTrigger className="w-36"><SelectValue /></SelectTrigger>
             <SelectContent>
@@ -224,6 +228,13 @@ function CandidateDetail({ candidate, onUpdate, onDelete }: {
 
       <CandidateJobLinks candidateId={candidate.id} />
       <NotesSection entityType="candidate" entityId={candidate.id} />
+      <LogTouchpointModal
+        open={touchpointOpen}
+        onOpenChange={setTouchpointOpen}
+        entityType="candidate"
+        entityId={candidate.id}
+        entityName={candidate.name}
+      />
     </div>
   );
 }
