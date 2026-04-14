@@ -136,15 +136,27 @@ export default function DashboardPage() {
       {/* AI Daily Focus */}
       <DailyFocus />
 
-      {/* Unactioned Signals */}
-      {unactionedSignals.length > 0 && (
+      {/* Missing Actions — shown first, more urgent */}
+      {unactionedSignals.filter(s => (s as any).signal_category === "missing_action").length > 0 && (
+        <div className="rounded-lg border border-amber-400/30 bg-amber-400/5 p-4 space-y-3">
+          <div className="flex items-center gap-2">
+            <AlertTriangle className="h-4 w-4 text-amber-400" />
+            <h2 className="text-sm font-medium text-amber-400">Actions You May Have Missed</h2>
+            <span className="text-xs text-muted-foreground ml-auto">Last 7 days</span>
+          </div>
+          <SignalBox signals={unactionedSignals.filter(s => (s as any).signal_category === "missing_action")} />
+        </div>
+      )}
+
+      {/* Opportunity Signals */}
+      {unactionedSignals.filter(s => (s as any).signal_category !== "missing_action").length > 0 && (
         <div className="rounded-lg border border-yellow-400/30 bg-yellow-400/5 p-4 space-y-3">
           <div className="flex items-center gap-2">
             <Lightbulb className="h-4 w-4 text-yellow-400" />
-            <h2 className="text-sm font-medium text-yellow-400">Signals ({unactionedSignals.length})</h2>
+            <h2 className="text-sm font-medium text-yellow-400">Signals ({unactionedSignals.filter(s => (s as any).signal_category !== "missing_action").length})</h2>
             <span className="text-xs text-muted-foreground ml-auto">Last 7 days</span>
           </div>
-          <SignalBox signals={unactionedSignals} />
+          <SignalBox signals={unactionedSignals.filter(s => (s as any).signal_category !== "missing_action")} />
         </div>
       )}
 
