@@ -559,45 +559,8 @@ export function OnboardingImport({ onComplete }: { onComplete: () => void }) {
           </div>
         )}
 
-        {/* ── Link jobs ───────────────────────────────────────────── */}
-        {step === "link-jobs" && (
-          <div className="space-y-6">
-            <div>
-              <h2 className="text-lg font-semibold">Link jobs to clients</h2>
-              <p className="text-sm text-muted-foreground mt-1">These jobs couldn't be automatically matched. Link them manually or skip for now.</p>
-            </div>
 
-            <div className="max-h-60 overflow-y-auto space-y-2">
-              {unmatchedJobs.map(job => (
-                <div key={job.id} className="flex items-center gap-3">
-                  <span className="text-sm flex-1 truncate">{job.title}</span>
-                  <Select
-                    value={jobClientLinks[job.id] || ""}
-                    onValueChange={val => setJobClientLinks(prev => ({ ...prev, [job.id]: val }))}
-                  >
-                    <SelectTrigger className="w-48">
-                      <SelectValue placeholder="Select client…" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {allClients.map(c => (
-                        <SelectItem key={c.id} value={c.id}>{c.company_name}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              ))}
-            </div>
 
-            <div className="flex justify-between">
-              <Button variant="ghost" size="sm" onClick={() => setStep("complete")}>
-                I'll do this later
-              </Button>
-              <Button onClick={linkJobs}>
-                <Check className="h-4 w-4 mr-1" /> Save links
-              </Button>
-            </div>
-          </div>
-        )}
       </div>
     </div>
   );
