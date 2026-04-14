@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { logActivity } from "@/lib/activity-log";
 
 // Types
 export type Candidate = {
@@ -106,6 +107,7 @@ export function useCreateCandidate() {
     mutationFn: async (candidate: Omit<Candidate, "id" | "created_at" | "updated_at">) => {
       const { data, error } = await supabase.from("candidates").insert(candidate).select().single();
       if (error) throw error;
+      await logActivity({ action_type: "candidate_created", candidate_id: data.id, metadata: { name: data.name } });
       return data;
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ["candidates"] }),
@@ -118,6 +120,7 @@ export function useUpdateCandidate() {
     mutationFn: async ({ id, ...updates }: Partial<Candidate> & { id: string }) => {
       const { data, error } = await supabase.from("candidates").update(updates).eq("id", id).select().single();
       if (error) throw error;
+      await logActivity({ action_type: "candidate_updated", candidate_id: id, metadata: { fields_updated: Object.keys(updates) } });
       return data;
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ["candidates"] }),
@@ -128,6 +131,7 @@ export function useDeleteCandidate() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (id: string) => {
+      await logActivity({ action_type: "candidate_deleted", candidate_id: id });
       const { error } = await supabase.from("candidates").delete().eq("id", id);
       if (error) throw error;
     },
@@ -153,6 +157,7 @@ export function useCreateClient() {
     mutationFn: async (client: Omit<Client, "id" | "created_at" | "updated_at">) => {
       const { data, error } = await supabase.from("clients").insert(client).select().single();
       if (error) throw error;
+      await logActivity({ action_type: "client_created", client_id: data.id, metadata: { company_name: data.company_name } });
       return data;
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ["clients"] }),
@@ -163,8 +168,16 @@ export function useUpdateClient() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async ({ id, ...updates }: Partial<Client> & { id: string }) => {
+      // Capture old status for BD stage changes
+      const { data: old } = await supabase.from("clients").select("status").eq("id", id).single();
       const { data, error } = await supabase.from("clients").update(updates).eq("id", id).select().single();
       if (error) throw error;
+      const meta: Record<string, any> = { fields_updated: Object.keys(updates) };
+      if (updates.status && old && old.status !== updates.status) {
+        meta.stage_from = old.status;
+        meta.stage_to = updates.status;
+      }
+      await logActivity({ action_type: "client_updated", client_id: id, metadata: meta });
       return data;
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ["clients"] }),
@@ -175,6 +188,7 @@ export function useDeleteClient() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (id: string) => {
+      await logActivity({ action_type: "client_deleted", client_id: id });
       const { error } = await supabase.from("clients").delete().eq("id", id);
       if (error) throw error;
     },
@@ -200,6 +214,7 @@ export function useCreateJob() {
     mutationFn: async (job: Omit<Job, "id" | "created_at" | "updated_at" | "clients">) => {
       const { data, error } = await supabase.from("jobs").insert(job).select().single();
       if (error) throw error;
+      await logActivity({ action_type: "job_created", job_id: data.id, client_id: data.client_id, metadata: { title: data.title } });
       return data;
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ["jobs"] }),
@@ -213,6 +228,7 @@ export function useUpdateJob() {
       const { clients, ...cleanUpdates } = updates as any;
       const { data, error } = await supabase.from("jobs").update(cleanUpdates).eq("id", id).select().single();
       if (error) throw error;
+      await logActivity({ action_type: "job_updated", job_id: id, metadata: { fields_updated: Object.keys(cleanUpdates) } });
       return data;
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ["jobs"] }),
@@ -223,6 +239,7 @@ export function useDeleteJob() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (id: string) => {
+      await logActivity({ action_type: "job_deleted", job_id: id });
       const { error } = await supabase.from("jobs").delete().eq("id", id);
       if (error) throw error;
     },
@@ -251,6 +268,13 @@ export function useCreateCandidateJob() {
     mutationFn: async (link: { candidate_id: string; job_id: string; stage?: string }) => {
       const { data, error } = await supabase.from("candidate_jobs").insert(link).select().single();
       if (error) throw error;
+      await logActivity({
+        action_type: "candidate_job_linked",
+        candidate_id: link.candidate_id,
+        job_id: link.job_id,
+        candidate_job_id: data.id,
+        metadata: { stage: data.stage },
+      });
       return data;
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ["candidate_jobs"] }),
@@ -261,8 +285,21 @@ export function useUpdateCandidateJob() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async ({ id, ...updates }: { id: string; stage?: string; interview_date?: string | null }) => {
+      // Capture old stage for stage_change logging
+      const { data: old } = await supabase.from("candidate_jobs").select("stage, candidate_id, job_id").eq("id", id).single();
       const { data, error } = await supabase.from("candidate_jobs").update(updates).eq("id", id).select().single();
       if (error) throw error;
+      const actionType = updates.stage && old && old.stage !== updates.stage ? "stage_change" : "candidate_job_linked";
+      await logActivity({
+        action_type: actionType,
+        candidate_id: old?.candidate_id,
+        job_id: old?.job_id,
+        candidate_job_id: id,
+        metadata: {
+          ...(updates.stage && old ? { stage_from: old.stage, stage_to: updates.stage } : {}),
+          ...(updates.interview_date ? { interview_date: updates.interview_date } : {}),
+        },
+      });
       return data;
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ["candidate_jobs"] }),
@@ -273,6 +310,8 @@ export function useDeleteCandidateJob() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (id: string) => {
+      const { data: old } = await supabase.from("candidate_jobs").select("candidate_id, job_id").eq("id", id).single();
+      await logActivity({ action_type: "candidate_job_unlinked", candidate_id: old?.candidate_id, job_id: old?.job_id, candidate_job_id: id });
       const { error } = await supabase.from("candidate_jobs").delete().eq("id", id);
       if (error) throw error;
     },
@@ -300,6 +339,13 @@ export function useCreateNote() {
     mutationFn: async (note: { content: string; activity_type?: string; outcome?: string; follow_up_date?: string; candidate_id?: string; client_id?: string; job_id?: string }) => {
       const { data, error } = await supabase.from("notes").insert(note).select().single();
       if (error) throw error;
+      await logActivity({
+        action_type: note.activity_type && note.activity_type !== "Note" ? "touchpoint_logged" : "note_created",
+        candidate_id: note.candidate_id,
+        client_id: note.client_id,
+        job_id: note.job_id,
+        metadata: { activity_type: note.activity_type, outcome: note.outcome, follow_up_date: note.follow_up_date },
+      });
       return data;
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ["notes"] }),
@@ -384,6 +430,7 @@ export function useCreateContact() {
     mutationFn: async (contact: Omit<Contact, "id" | "created_at">) => {
       const { data, error } = await supabase.from("contacts").insert(contact).select().single();
       if (error) throw error;
+      await logActivity({ action_type: "contact_created", client_id: contact.client_id, metadata: { name: contact.name } });
       return data;
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ["contacts"] }),
@@ -394,6 +441,8 @@ export function useDeleteContact() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (id: string) => {
+      const { data: old } = await supabase.from("contacts").select("client_id, name").eq("id", id).single();
+      await logActivity({ action_type: "contact_deleted", client_id: old?.client_id, metadata: { name: old?.name } });
       const { error } = await supabase.from("contacts").delete().eq("id", id);
       if (error) throw error;
     },
