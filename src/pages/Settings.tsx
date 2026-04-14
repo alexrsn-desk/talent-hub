@@ -5,9 +5,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Slider } from "@/components/ui/slider";
 import { toast } from "sonner";
-import { Save, Loader2, Upload, Palette } from "lucide-react";
+import { Save, Loader2, Upload, Palette, Lightbulb } from "lucide-react";
 import { DataImport } from "@/components/DataImport";
 import { MigrationAssistant } from "@/components/MigrationAssistant";
+import { useSignalPerformance } from "@/hooks/use-signals";
 
 const NICHES = [
   "Tech/Digital", "Sales/Commercial", "Finance", "Legal",
