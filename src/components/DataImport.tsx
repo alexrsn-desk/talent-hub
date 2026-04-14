@@ -357,7 +357,7 @@ export function DataImport() {
           }
         }
 
-        const { data: inserted, error } = await supabase.from(recordType as any).insert(record as any).select("id").single();
+        const { data: inserted, error } = await (supabase.from(recordType as any).insert(record as any).select("id").single() as any);
         if (error) {
           res.errors.push({ row: i + 2, reason: error.message, data: record });
           res.skipped++;
