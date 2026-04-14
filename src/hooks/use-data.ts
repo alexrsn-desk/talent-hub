@@ -16,6 +16,10 @@ export type Candidate = {
   source: string | null;
   salary_current: number | null;
   availability: string | null;
+  priority_flag: boolean;
+  priority_reason: string | null;
+  priority_flagged_at: string | null;
+  priority_followup_date: string | null;
   created_at: string;
   updated_at: string;
 };

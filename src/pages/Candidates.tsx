@@ -5,8 +5,9 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
-import { Plus, Search, ExternalLink, Trash2, PhoneCall } from "lucide-react";
+import { Plus, Search, ExternalLink, Trash2, PhoneCall, Star } from "lucide-react";
 import { useCandidates, useCreateCandidate, useUpdateCandidate, useDeleteCandidate, type Candidate } from "@/hooks/use-data";
+import { PriorityFlagButton, PriorityStarIcon } from "@/components/PriorityFlag";
 import { NotesSection } from "@/components/NotesSection";
 import { CandidateJobLinks } from "@/components/CandidateJobLinks";
 import { LogTouchpointModal } from "@/components/LogTouchpointModal";
@@ -36,13 +37,20 @@ export default function CandidatesPage() {
   const [selectedCandidate, setSelectedCandidate] = useState<Candidate | null>(null);
   const [detailOpen, setDetailOpen] = useState(false);
 
-  const filtered = candidates.filter((c) => {
-    const matchesSearch = c.name.toLowerCase().includes(search.toLowerCase()) ||
-      (c.job_title || "").toLowerCase().includes(search.toLowerCase()) ||
-      (c.current_employer || "").toLowerCase().includes(search.toLowerCase());
-    const matchesStatus = statusFilter === "all" || c.status === statusFilter;
-    return matchesSearch && matchesStatus;
-  });
+  const filtered = candidates
+    .filter((c) => {
+      const matchesSearch = c.name.toLowerCase().includes(search.toLowerCase()) ||
+        (c.job_title || "").toLowerCase().includes(search.toLowerCase()) ||
+        (c.current_employer || "").toLowerCase().includes(search.toLowerCase());
+      const matchesStatus = statusFilter === "all" || c.status === statusFilter;
+      return matchesSearch && matchesStatus;
+    })
+    .sort((a, b) => {
+      // Priority candidates float to top
+      if (a.priority_flag && !b.priority_flag) return -1;
+      if (!a.priority_flag && b.priority_flag) return 1;
+      return 0;
+    });
 
   const handleCreate = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -59,6 +67,10 @@ export default function CandidatesPage() {
       source: (fd.get("source") as string) || "LinkedIn",
       salary_current: null,
       availability: null,
+      priority_flag: false,
+      priority_reason: null,
+      priority_flagged_at: null,
+      priority_followup_date: null,
     });
     setDialogOpen(false);
   };
@@ -144,7 +156,12 @@ export default function CandidatesPage() {
                 <tr><td colSpan={7} className="px-4 py-8 text-center text-muted-foreground">No candidates found</td></tr>
               ) : filtered.map(c => (
                 <tr key={c.id} className="border-b border-border hover:bg-muted/20 cursor-pointer transition-colors" onClick={() => { setSelectedCandidate(c); setDetailOpen(true); }}>
-                  <td className="px-4 py-3 font-medium">{c.name}</td>
+                  <td className="px-4 py-3 font-medium">
+                    <span className="flex items-center gap-1.5">
+                      {c.priority_flag && <PriorityStarIcon />}
+                      {c.name}
+                    </span>
+                  </td>
                   <td className="px-4 py-3 text-muted-foreground">{c.job_title || "—"}</td>
                   <td className="px-4 py-3 text-muted-foreground">{c.current_employer || "—"}</td>
                   <td className="px-4 py-3 text-muted-foreground">{c.location || "—"}</td>
@@ -201,6 +218,7 @@ function CandidateDetail({ candidate, onUpdate, onDelete }: {
           <p className="text-muted-foreground">{candidate.job_title || "No title"} {candidate.current_employer ? `at ${candidate.current_employer}` : ""}</p>
         </div>
         <div className="flex gap-2 items-start">
+          <PriorityFlagButton candidate={candidate} size="sm" />
           <Button size="sm" variant="outline" className="gap-1.5" onClick={() => setTouchpointOpen(true)}>
             <PhoneCall className="h-3.5 w-3.5" /> Log Touchpoint
           </Button>

@@ -187,6 +187,10 @@ export type Database = {
           location: string | null
           name: string
           phone: string | null
+          priority_flag: boolean
+          priority_flagged_at: string | null
+          priority_followup_date: string | null
+          priority_reason: string | null
           salary_current: number | null
           source: string | null
           status: string
@@ -203,6 +207,10 @@ export type Database = {
           location?: string | null
           name: string
           phone?: string | null
+          priority_flag?: boolean
+          priority_flagged_at?: string | null
+          priority_followup_date?: string | null
+          priority_reason?: string | null
           salary_current?: number | null
           source?: string | null
           status?: string
@@ -219,6 +227,10 @@ export type Database = {
           location?: string | null
           name?: string
           phone?: string | null
+          priority_flag?: boolean
+          priority_flagged_at?: string | null
+          priority_followup_date?: string | null
+          priority_reason?: string | null
           salary_current?: number | null
           source?: string | null
           status?: string

@@ -119,6 +119,7 @@ serve(async (req) => {
       { data: todayFollowUps },
       { data: profiles },
       { data: unactionedSignals },
+      { data: priorityCandidates },
     ] = await Promise.all([
       sb.from("candidate_jobs").select("*, candidates(*), jobs(*, clients(*))"),
       sb.from("jobs").select("*, clients(*)"),
@@ -129,6 +130,7 @@ serve(async (req) => {
       sb.from("notes").select("*, candidates(*), clients(*)").eq("follow_up_date", today),
       sb.from("recruiter_profiles").select("*").limit(1),
       sb.from("call_signals").select("*, notes:note_id(*, candidates(*), clients(*))").eq("status", "unactioned").order("created_at", { ascending: false }).limit(50),
+      sb.from("candidates").select("*").eq("priority_flag", true),
     ]);
 
     const cjs = candidateJobs || [];
@@ -221,6 +223,15 @@ serve(async (req) => {
         suggestedDate: s.suggested_date,
         callContact: s.notes?.candidates?.name || s.notes?.clients?.company_name || "Unknown",
         callDate: s.notes?.created_at?.split("T")[0],
+      })),
+      priorityCandidates: (priorityCandidates || []).map((c: any) => ({
+        name: c.name,
+        jobTitle: c.job_title,
+        employer: c.current_employer,
+        reason: c.priority_reason,
+        flaggedAt: c.priority_flagged_at?.split("T")[0],
+        followUpDate: c.priority_followup_date,
+        daysSinceFlagged: c.priority_flagged_at ? Math.floor((Date.now() - new Date(c.priority_flagged_at).getTime()) / (1000 * 60 * 60 * 24)) : null,
       })),
     };
 
