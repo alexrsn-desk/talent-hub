@@ -249,6 +249,12 @@ function ClientDetailView({ client, onUpdate, onDelete }: {
 }) {
   const [nextAction, setNextAction] = useState(client.next_action || "");
   const [dueDate, setDueDate] = useState(client.next_action_due_date || "");
+  const { data: contacts = [] } = useContacts(client.id);
+  const createContact = useCreateContact();
+  const deleteContact = useDeleteContact();
+  const [addingContact, setAddingContact] = useState(false);
+  const [newContactName, setNewContactName] = useState("");
+  const [newContactTitle, setNewContactTitle] = useState("");
 
   const saveNextAction = async () => {
     await onUpdate({
