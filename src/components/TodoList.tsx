@@ -343,7 +343,7 @@ function TaskRow({ task, onToggle, onDelete, onUpdate }: {
       </button>
       <span className="flex-1 text-sm min-w-0 truncate">{task.title}</span>
       {task.recurrence && (
-        <RotateCcw className="h-3 w-3 text-muted-foreground shrink-0" title={`Recurs ${task.recurrence}`} />
+        <RotateCcw className="h-3 w-3 text-muted-foreground shrink-0" />
       )}
       {task.priority === "high" && (
         <Flag className="h-3 w-3 text-destructive shrink-0" />
