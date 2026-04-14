@@ -1,5 +1,6 @@
 import { useJobs, useTodayFollowUps, useOverdueFollowUps, useTodayInterviews, useCandidateJobs } from "@/hooks/use-data";
 import { AlertTriangle, Phone, Mail, Globe, FileText, Smartphone, MessageCircle, MessageSquare, Sun, Clock, CalendarCheck, Star, Users } from "lucide-react";
+import { DailyFocus } from "@/components/DailyFocus";
 
 const activityIcon: Record<string, typeof FileText> = {
   Note: FileText,
@@ -128,6 +129,9 @@ export default function DashboardPage() {
           <span className="font-medium text-foreground">{interviewsToday} interview{interviewsToday !== 1 ? "s" : ""}</span> today.
         </p>
       </div>
+
+      {/* AI Daily Focus */}
+      <DailyFocus />
 
       {/* Open Jobs Pipeline Overview */}
       <div className="rounded-lg border border-border bg-card p-4">
