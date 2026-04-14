@@ -158,8 +158,8 @@ export default function Portal() {
                           clientId={clientId!}
                           token={token!}
                           existingFeedback={portalData.feedback.filter((f: any) => f.candidate_job_id === cj.id)}
+                          availableSlots={portalData.interviewSlots?.filter((s: any) => s.candidate_job_id === cj.id) || []}
                           onFeedbackSubmitted={() => {
-                            // Refresh data
                             supabase.functions.invoke("portal-auth", {
                               body: { action: "get_portal_data", client_id: clientId, token },
                             }).then(({ data }) => data && setPortalData(data));
