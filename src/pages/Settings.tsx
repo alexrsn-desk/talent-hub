@@ -5,9 +5,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Slider } from "@/components/ui/slider";
 import { toast } from "sonner";
-import { Save, Loader2, Upload, Palette } from "lucide-react";
+import { Save, Loader2, Upload, Palette, Lightbulb } from "lucide-react";
 import { DataImport } from "@/components/DataImport";
 import { MigrationAssistant } from "@/components/MigrationAssistant";
+import { useSignalPerformance } from "@/hooks/use-signals";
 
 const NICHES = [
   "Tech/Digital", "Sales/Commercial", "Finance", "Legal",
@@ -300,6 +301,51 @@ export default function SettingsPage() {
         <p className="text-xs text-muted-foreground">Review and tidy imported data — unmatched jobs, notes, job assignments, and duplicates.</p>
         <MigrationAssistant onComplete={() => toast.success("All items reviewed!")} showLaterOption={false} />
       </div>
+
+      {/* Signal Performance */}
+      <SignalPerformanceSection />
+    </div>
+  );
+}
+
+function SignalPerformanceSection() {
+  const { data: stats = [], isLoading } = useSignalPerformance();
+
+  return (
+    <div className="pt-6 border-t border-border space-y-3">
+      <div className="flex items-center gap-2">
+        <Lightbulb className="h-4 w-4 text-yellow-400" />
+        <h2 className="text-sm font-medium">Signal Performance</h2>
+      </div>
+      <p className="text-xs text-muted-foreground">Review signal quality over time. Ordered by highest thumbs-down rate first.</p>
+      {isLoading ? (
+        <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+      ) : stats.length === 0 ? (
+        <p className="text-xs text-muted-foreground">No signal data yet. Signals will appear here as you use the Calls & Meetings section.</p>
+      ) : (
+        <div className="rounded-lg border border-border overflow-hidden">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="bg-muted/30 text-xs text-muted-foreground">
+                <th className="text-left px-3 py-2 font-medium">Signal Type</th>
+                <th className="text-center px-3 py-2 font-medium">Total</th>
+                <th className="text-center px-3 py-2 font-medium">👍</th>
+                <th className="text-center px-3 py-2 font-medium">👎</th>
+              </tr>
+            </thead>
+            <tbody>
+              {stats.map((s) => (
+                <tr key={s.type} className="border-t border-border">
+                  <td className="px-3 py-2 font-medium">{s.type}</td>
+                  <td className="px-3 py-2 text-center text-muted-foreground">{s.total}</td>
+                  <td className="px-3 py-2 text-center text-emerald-400">{s.up} ({s.upPct}%)</td>
+                  <td className="px-3 py-2 text-center text-destructive">{s.down} ({s.downPct}%)</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
     </div>
   );
 }

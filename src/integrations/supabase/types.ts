@@ -54,6 +54,9 @@ export type Database = {
         Row: {
           created_at: string
           explanation: string
+          feedback_at: string | null
+          feedback_rating: string | null
+          feedback_user_id: string | null
           id: string
           note_id: string
           signal_type: string
@@ -64,6 +67,9 @@ export type Database = {
         Insert: {
           created_at?: string
           explanation: string
+          feedback_at?: string | null
+          feedback_rating?: string | null
+          feedback_user_id?: string | null
           id?: string
           note_id: string
           signal_type: string
@@ -74,6 +80,9 @@ export type Database = {
         Update: {
           created_at?: string
           explanation?: string
+          feedback_at?: string | null
+          feedback_rating?: string | null
+          feedback_user_id?: string | null
           id?: string
           note_id?: string
           signal_type?: string
