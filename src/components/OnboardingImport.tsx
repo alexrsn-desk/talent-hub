@@ -480,6 +480,7 @@ export function OnboardingImport({ onComplete }: { onComplete: () => void }) {
         )}
 
         {/* ── Complete ────────────────────────────────────────────── */}
+        {/* ── Complete → Post-import checklist ─────────────────── */}
         {step === "complete" && (
           <div className="space-y-6 py-4">
             <div className="text-center space-y-2">
@@ -520,61 +521,7 @@ export function OnboardingImport({ onComplete }: { onComplete: () => void }) {
               )}
             </div>
 
-            {totalSkipped > 0 && (
-              <div className="text-center">
-                <p className="text-sm text-muted-foreground">
-                  {totalSkipped} record{totalSkipped > 1 ? "s" : ""} skipped
-                  {totalErrors > 0 && (
-                    <button
-                      onClick={() => {
-                        const allErrors = [
-                          ...(results.candidates?.errors || []),
-                          ...(results.clients?.errors || []),
-                          ...(results.jobs?.errors || []),
-                        ];
-                        downloadErrorReport(allErrors, "all");
-                      }}
-                      className="text-primary underline underline-offset-2 ml-1"
-                    >
-                      download error report
-                    </button>
-                  )}
-                </p>
-              </div>
-            )}
-
-            {unmatchedJobs.length > 0 && (
-              <Card className="border-primary/30">
-                <CardContent className="p-4 space-y-3">
-                  <div className="flex items-center gap-2">
-                    <Link2 className="h-4 w-4 text-primary" />
-                    <span className="text-sm font-medium">{unmatchedJobs.length} jobs couldn't be matched to clients</span>
-                  </div>
-                  <Button size="sm" onClick={() => setStep("link-jobs")}>
-                    Link them now <ArrowRight className="h-4 w-4 ml-1" />
-                  </Button>
-                </CardContent>
-              </Card>
-            )}
-
-            <div className="flex flex-col items-center gap-3 pt-4">
-              <Button size="lg" onClick={() => setStep("post-import")}>
-                Continue <ArrowRight className="h-4 w-4 ml-1" />
-              </Button>
-            </div>
-          </div>
-        )}
-
-        {/* ── Post-import guidance ─────────────────────────────────── */}
-        {step === "post-import" && (
-          <div className="space-y-6 py-4">
-            <div className="text-center space-y-2">
-              <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center mx-auto">
-                <ClipboardList className="h-6 w-6 text-primary" />
-              </div>
-              <h2 className="text-xl font-semibold">Your records have been imported successfully</h2>
-            </div>
-
+            {/* Guidance message */}
             <Card>
               <CardContent className="p-5 space-y-4">
                 <p className="text-sm font-medium">A few things to know:</p>
@@ -592,74 +539,22 @@ export function OnboardingImport({ onComplete }: { onComplete: () => void }) {
                     <span>Notes have been carried across</span>
                   </div>
                 </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardContent className="p-5 space-y-4">
-                <p className="text-sm font-medium">To finish setting up:</p>
-                <div className="space-y-2.5 text-sm text-muted-foreground">
-                  <div className="flex items-start gap-2.5">
-                    <ArrowRight className="h-4 w-4 text-primary mt-0.5 shrink-0" />
-                    <span>Review any unmatched jobs and link them to clients</span>
-                  </div>
-                  <div className="flex items-start gap-2.5">
-                    <ArrowRight className="h-4 w-4 text-primary mt-0.5 shrink-0" />
-                    <span>Add candidates to their current active jobs</span>
-                  </div>
-                  <div className="flex items-start gap-2.5">
-                    <ArrowRight className="h-4 w-4 text-primary mt-0.5 shrink-0" />
-                    <span>Your activity history starts fresh from today</span>
-                  </div>
-                </div>
                 <p className="text-xs text-muted-foreground pt-2 border-t border-border">
                   This is normal for any CRM migration and usually takes 30–60 minutes to tidy up.
                 </p>
               </CardContent>
             </Card>
 
-            {/* Post-import checklist */}
-            <Card>
-              <CardContent className="p-5 space-y-3">
-                <p className="text-sm font-medium">Post-import checklist</p>
-                <p className="text-xs text-muted-foreground">Tick these off as you complete them — you can always come back from Settings.</p>
-                <div className="space-y-3 pt-1">
-                  {[
-                    { id: "review-unmatched", label: "Review and link unmatched jobs to clients" },
-                    { id: "assign-candidates", label: "Add candidates to their current active jobs" },
-                    { id: "check-duplicates", label: "Check for and merge any duplicate records" },
-                    { id: "verify-contacts", label: "Verify key client contact details are correct" },
-                    { id: "update-statuses", label: "Update candidate and job statuses to current" },
-                    { id: "set-follow-ups", label: "Set follow-up dates for active conversations" },
-                  ].map(item => (
-                    <label
-                      key={item.id}
-                      className="flex items-center gap-3 cursor-pointer group"
-                    >
-                      <Checkbox
-                        checked={checklist[item.id] || false}
-                        onCheckedChange={(checked) =>
-                          setChecklist(prev => ({ ...prev, [item.id]: !!checked }))
-                        }
-                      />
-                      <span className={`text-sm transition-colors ${checklist[item.id] ? "line-through text-muted-foreground" : "text-foreground"}`}>
-                        {item.label}
-                      </span>
-                    </label>
-                  ))}
-                </div>
-                <p className="text-xs text-muted-foreground pt-2">
-                  {Object.values(checklist).filter(Boolean).length} of 6 complete
-                </p>
-              </CardContent>
-            </Card>
-
-            <div className="flex flex-col items-center gap-3 pt-2">
-              <Button size="lg" onClick={onComplete}>
-                <Sparkles className="h-4 w-4 mr-2" /> Go to my dashboard
-              </Button>
-              <p className="text-xs text-muted-foreground">You can revisit this checklist from Settings anytime</p>
-            </div>
+            {/* Dynamic checklist */}
+            <PostImportChecklist
+              unmatchedJobs={unmatchedJobs}
+              errors={[
+                ...(results.candidates?.errors || []),
+                ...(results.clients?.errors || []),
+                ...(results.jobs?.errors || []),
+              ]}
+              onDismiss={onComplete}
+            />
           </div>
         )}
 
