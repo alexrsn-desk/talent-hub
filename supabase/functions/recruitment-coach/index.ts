@@ -136,6 +136,7 @@ serve(async (req) => {
     const notes = recentNotes || [];
     const openJobs = allJobs.filter((j: any) => j.status === "Open");
     const bdProspects = allClients.filter((c: any) => ["Target", "Approached", "In Dialogue"].includes(c.status));
+    const profile = profiles?.[0] || null;
 
     // Build a concise desk snapshot
     const deskData = {
