@@ -58,6 +58,7 @@ export type CandidateJob = {
   candidate_id: string;
   job_id: string;
   stage: string;
+  interview_date: string | null;
   created_at: string;
   candidates?: Candidate;
   jobs?: Job & { clients?: Client | null };
@@ -259,8 +260,8 @@ export function useCreateCandidateJob() {
 export function useUpdateCandidateJob() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async ({ id, stage }: { id: string; stage: string }) => {
-      const { data, error } = await supabase.from("candidate_jobs").update({ stage }).eq("id", id).select().single();
+    mutationFn: async ({ id, ...updates }: { id: string; stage?: string; interview_date?: string | null }) => {
+      const { data, error } = await supabase.from("candidate_jobs").update(updates).eq("id", id).select().single();
       if (error) throw error;
       return data;
     },
