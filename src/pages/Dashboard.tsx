@@ -1,5 +1,5 @@
-import { useCandidates, useClients, useJobs, useTodayFollowUps } from "@/hooks/use-data";
-import { Users, Building2, Briefcase, TrendingUp, AlertTriangle, Phone, Mail, Globe, MessageSquare, FileText, Smartphone, MessageCircle } from "lucide-react";
+import { useCandidates, useClients, useJobs, useTodayFollowUps, useOverdueFollowUps, useTodayInterviews, useCandidateJobs } from "@/hooks/use-data";
+import { Users, Building2, Briefcase, TrendingUp, AlertTriangle, Phone, Mail, Globe, MessageSquare, FileText, Smartphone, MessageCircle, Sun, Clock, CalendarCheck, Star } from "lucide-react";
 
 const activityIcon: Record<string, typeof FileText> = {
   Note: FileText,
@@ -22,15 +22,39 @@ const activityColor: Record<string, string> = {
   "Follow-up": "text-orange-400",
 };
 
+function getGreeting() {
+  const hour = new Date().getHours();
+  if (hour < 12) return "Good morning";
+  if (hour < 17) return "Good afternoon";
+  return "Good evening";
+}
+
+function formatDate() {
+  return new Date().toLocaleDateString("en-GB", {
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  });
+}
+
 export default function DashboardPage() {
   const { data: candidates = [] } = useCandidates();
   const { data: clients = [] } = useClients();
   const { data: jobs = [] } = useJobs();
   const { data: todayActions = [] } = useTodayFollowUps();
+  const { data: overdueActions = [] } = useOverdueFollowUps();
+  const { data: interviewCandidates = [] } = useTodayInterviews();
+  const { data: allCandidateJobs = [] } = useCandidateJobs();
 
   const openJobs = jobs.filter(j => j.status === "Open").length;
   const activeClients = clients.filter(c => c.status === "Active Client").length;
   const placedCandidates = candidates.filter(c => c.status === "Placed").length;
+
+  // Today's Brief data
+  const callsDue = todayActions.filter(a => a.activity_type === "Call").length;
+  const offerStage = allCandidateJobs.filter(cj => cj.stage === "Offer" || cj.stage === "Awaiting Feedback");
+  const interviewsToday = interviewCandidates.length;
 
   const stats = [
     { label: "Total Candidates", value: candidates.length, icon: Users, accent: "text-primary" },
@@ -44,7 +68,67 @@ export default function DashboardPage() {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-semibold tracking-tight">Dashboard</h1>
+      {/* Today's Brief */}
+      <div className="rounded-lg border border-primary/20 bg-primary/5 p-5">
+        <div className="flex items-center gap-3 mb-3">
+          <Sun className="h-5 w-5 text-primary" />
+          <div>
+            <h1 className="text-lg font-semibold">{getGreeting()}</h1>
+            <p className="text-xs text-muted-foreground">{formatDate()}</p>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4">
+          <div className="flex items-center gap-2 rounded-md bg-card border border-border px-3 py-2">
+            <CalendarCheck className="h-4 w-4 text-primary" />
+            <div>
+              <p className="text-lg font-semibold">{todayActions.length}</p>
+              <p className="text-[11px] text-muted-foreground">Due today</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2 rounded-md bg-card border border-border px-3 py-2">
+            <Clock className="h-4 w-4 text-destructive" />
+            <div>
+              <p className="text-lg font-semibold">{overdueActions.length}</p>
+              <p className="text-[11px] text-muted-foreground">Overdue</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2 rounded-md bg-card border border-border px-3 py-2">
+            <Star className="h-4 w-4 text-yellow-400" />
+            <div>
+              <p className="text-lg font-semibold">{offerStage.length}</p>
+              <p className="text-[11px] text-muted-foreground">At offer / feedback</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2 rounded-md bg-card border border-border px-3 py-2">
+            <Users className="h-4 w-4 text-green-400" />
+            <div>
+              <p className="text-lg font-semibold">{interviewsToday}</p>
+              <p className="text-[11px] text-muted-foreground">Interviews</p>
+            </div>
+          </div>
+        </div>
+
+        {/* Offer / feedback candidates */}
+        {offerStage.length > 0 && (
+          <div className="mb-3">
+            <p className="text-xs font-medium text-muted-foreground mb-1">At offer / awaiting feedback:</p>
+            <div className="flex flex-wrap gap-2">
+              {offerStage.map(cj => (
+                <span key={cj.id} className="text-xs bg-card border border-border rounded px-2 py-1">
+                  {cj.candidates?.name} — {cj.stage} {cj.jobs?.title ? `(${cj.jobs.title})` : ""}
+                </span>
+              ))}
+            </div>
+          </div>
+        )}
+
+        <p className="text-sm text-muted-foreground">
+          You have <span className="font-medium text-foreground">{callsDue} call{callsDue !== 1 ? "s" : ""}</span> to make,{" "}
+          <span className="font-medium text-foreground">{overdueActions.length} follow-up{overdueActions.length !== 1 ? "s" : ""}</span> overdue, and{" "}
+          <span className="font-medium text-foreground">{interviewsToday} interview{interviewsToday !== 1 ? "s" : ""}</span> today.
+        </p>
+      </div>
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {stats.map(s => (
