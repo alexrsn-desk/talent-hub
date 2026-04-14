@@ -16,9 +16,10 @@ type FocusData = {
 
 export function DailyFocus() {
   const [data, setData] = useState<FocusData | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [open, setOpen] = useState(true);
+  const [open, setOpen] = useState(false);
+  const [fetched, setFetched] = useState(false);
 
   const fetchFocus = async () => {
     setLoading(true);
@@ -37,7 +38,31 @@ export function DailyFocus() {
     }
   };
 
-  useEffect(() => { fetchFocus(); }, []);
+  useEffect(() => {
+    if (open && !fetched) {
+      setFetched(true);
+      fetchFocus();
+    }
+  }, [open]);
+
+  const handleOpenChange = (isOpen: boolean) => {
+    setOpen(isOpen);
+  };
+
+  if (!open) {
+    return (
+      <div className="rounded-lg border border-border bg-card overflow-hidden">
+        <button
+          className="flex items-center gap-2 px-4 py-3 w-full hover:opacity-80 transition-opacity"
+          onClick={() => handleOpenChange(true)}
+        >
+          <Sparkles className="h-4 w-4 text-primary" />
+          <span className="text-sm font-medium">AI Daily Focus</span>
+          <ChevronDown className="h-3.5 w-3.5 text-muted-foreground -rotate-90 ml-auto" />
+        </button>
+      </div>
+    );
+  }
 
   if (loading) {
     return (
@@ -68,7 +93,7 @@ export function DailyFocus() {
   const hasGreen = data.green_flags.length > 0;
 
   return (
-    <Collapsible open={open} onOpenChange={setOpen}>
+    <Collapsible open={open} onOpenChange={handleOpenChange}>
       <div className="rounded-lg border border-border bg-card overflow-hidden">
         {/* Header */}
         <div className="flex items-center justify-between px-4 py-3 border-b border-border">
