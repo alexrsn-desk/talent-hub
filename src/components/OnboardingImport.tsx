@@ -8,15 +8,16 @@ import { toast } from "sonner";
 import {
   Upload, FileText, ArrowRight, ArrowLeft, Check, AlertTriangle,
   Download, Loader2, Users, Building2, Briefcase, Shield, Database,
-  Sparkles, Link2, X,
+  Sparkles, Link2, X, Square, CheckSquare, ClipboardList,
 } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   RecordType, FIELD_MAP, PLATFORM_OPTIONS, BUILT_IN_TEMPLATES,
   parseCSV, autoMapHeaders, buildRecord, runImportForType, downloadExampleCSV,
   downloadErrorReport, ImportResult,
 } from "@/lib/csv-import";
 
-type Step = "choice" | "select-types" | "upload" | "mapping" | "preview" | "importing" | "complete" | "link-jobs";
+type Step = "choice" | "select-types" | "upload" | "mapping" | "preview" | "importing" | "complete" | "post-import" | "link-jobs";
 
 interface FileData {
   headers: string[];
