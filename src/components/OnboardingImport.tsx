@@ -17,8 +17,9 @@ import {
   downloadErrorReport, ImportResult,
 } from "@/lib/csv-import";
 import { PostImportChecklist } from "@/components/PostImportChecklist";
+import { MigrationAssistant } from "@/components/MigrationAssistant";
 
-type Step = "choice" | "select-types" | "upload" | "mapping" | "preview" | "importing" | "complete";
+type Step = "choice" | "select-types" | "upload" | "mapping" | "preview" | "importing" | "complete" | "migration";
 
 interface FileData {
   headers: string[];
