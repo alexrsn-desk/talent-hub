@@ -205,7 +205,20 @@ serve(async (req) => {
       },
     };
 
-    const deskContext = `[LIVE DESK DATA]
+    const recruiterContext = profile ? `
+[RECRUITER PROFILE]
+Name: ${profile.display_name || "Unknown"}
+Specialisms: ${(profile.niches || []).join(", ")}${profile.niche_other ? ` (${profile.niche_other})` : ""}
+Salary range: £${(profile.salary_min || 0) / 1000}k - £${(profile.salary_max || 0) / 1000}k
+Placement type: ${profile.placement_type || "Both"}
+Client locations: ${(profile.locations || []).join(", ")}${profile.location_regional_detail ? ` (${profile.location_regional_detail})` : ""}
+Typical candidate: ${profile.ideal_candidate || "Not specified"}
+BD approach: ${profile.bd_approach || "Not specified"}
+Biggest challenge: ${profile.biggest_challenge || "Not specified"}
+` : "";
+
+    const deskContext = `${recruiterContext}
+[LIVE DESK DATA]
 ${JSON.stringify(deskData, null, 2)}
 
 Current date and time: ${dayOfWeek}, ${today} at ${timeStr}
