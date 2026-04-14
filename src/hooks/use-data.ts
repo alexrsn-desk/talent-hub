@@ -347,13 +347,3 @@ export function useDeleteContact() {
     onSuccess: () => qc.invalidateQueries({ queryKey: ["contacts"] }),
   });
 }
-  const qc = useQueryClient();
-  return useMutation({
-    mutationFn: async (note: { content: string; candidate_id?: string; client_id?: string; job_id?: string }) => {
-      const { data, error } = await supabase.from("notes").insert(note).select().single();
-      if (error) throw error;
-      return data;
-    },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["notes"] }),
-  });
-}
