@@ -1,11 +1,11 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Slider } from "@/components/ui/slider";
 import { toast } from "sonner";
-import { Save, Loader2 } from "lucide-react";
+import { Save, Loader2, Upload, Palette } from "lucide-react";
 
 const NICHES = [
   "Tech/Digital", "Sales/Commercial", "Finance", "Legal",
@@ -34,6 +34,11 @@ export default function SettingsPage() {
   const [bdApproach, setBdApproach] = useState("");
   const [biggestChallenge, setBiggestChallenge] = useState("");
   const [displayName, setDisplayName] = useState("");
+  const [agencyName, setAgencyName] = useState("");
+  const [agencyLogoUrl, setAgencyLogoUrl] = useState("");
+  const [brandColor, setBrandColor] = useState("#3B82F6");
+  const [uploadingLogo, setUploadingLogo] = useState(false);
+  const logoInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (!user) return;
@@ -54,6 +59,9 @@ export default function SettingsPage() {
         setBdApproach(data.bd_approach || "");
         setBiggestChallenge(data.biggest_challenge || "");
         setDisplayName(data.display_name || "");
+        setAgencyName((data as any).agency_name || "");
+        setAgencyLogoUrl((data as any).agency_logo_url || "");
+        setBrandColor((data as any).brand_color || "#3B82F6");
       }
       setLoading(false);
     })();
@@ -63,6 +71,25 @@ export default function SettingsPage() {
     setNiches(prev => prev.includes(n) ? prev.filter(x => x !== n) : [...prev, n]);
   const toggleLocation = (l: string) =>
     setLocations(prev => prev.includes(l) ? prev.filter(x => x !== l) : [...prev, l]);
+
+  const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !user) return;
+    setUploadingLogo(true);
+    try {
+      const ext = file.name.split(".").pop();
+      const path = `${user.id}/logo.${ext}`;
+      const { error: uploadError } = await supabase.storage.from("agency-logos").upload(path, file, { upsert: true });
+      if (uploadError) throw uploadError;
+      const { data: urlData } = supabase.storage.from("agency-logos").getPublicUrl(path);
+      setAgencyLogoUrl(urlData.publicUrl);
+      toast.success("Logo uploaded");
+    } catch (err: any) {
+      toast.error(err.message);
+    } finally {
+      setUploadingLogo(false);
+    }
+  };
 
   const handleSave = async () => {
     if (!user) return;
@@ -82,7 +109,10 @@ export default function SettingsPage() {
           ideal_candidate: idealCandidate,
           bd_approach: bdApproach,
           biggest_challenge: biggestChallenge,
-        })
+          agency_name: agencyName || null,
+          agency_logo_url: agencyLogoUrl || null,
+          brand_color: brandColor,
+        } as any)
         .eq("user_id", user.id);
       if (error) throw error;
       toast.success("Profile updated — AI coach will use your new preferences");
@@ -119,6 +149,48 @@ export default function SettingsPage() {
       <div>
         <h1 className="text-lg font-semibold">My Profile</h1>
         <p className="text-sm text-muted-foreground">Update your preferences — changes immediately affect your AI coach.</p>
+      </div>
+
+      {/* Agency Branding */}
+      <div className="space-y-4 border border-border rounded-lg p-4">
+        <div className="flex items-center gap-2">
+          <Palette className="h-4 w-4 text-primary" />
+          <label className="text-sm font-medium">Client Portal Branding</label>
+        </div>
+        <p className="text-xs text-muted-foreground">This branding appears on your client portal — clients see your agency, not the CRM.</p>
+
+        <div className="space-y-2">
+          <label className="text-xs font-medium">Agency Name</label>
+          <Input value={agencyName} onChange={(e) => setAgencyName(e.target.value)} placeholder="Your Agency Name" />
+        </div>
+
+        <div className="space-y-2">
+          <label className="text-xs font-medium">Agency Logo</label>
+          <div className="flex items-center gap-3">
+            {agencyLogoUrl && (
+              <img src={agencyLogoUrl} alt="Logo" className="h-10 w-auto rounded border border-border bg-white p-1" />
+            )}
+            <input ref={logoInputRef} type="file" accept="image/*" className="hidden" onChange={handleLogoUpload} />
+            <Button size="sm" variant="outline" onClick={() => logoInputRef.current?.click()} disabled={uploadingLogo}>
+              {uploadingLogo ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-1" /> : <Upload className="h-3.5 w-3.5 mr-1" />}
+              {agencyLogoUrl ? "Change" : "Upload"}
+            </Button>
+          </div>
+        </div>
+
+        <div className="space-y-2">
+          <label className="text-xs font-medium">Brand Colour</label>
+          <div className="flex items-center gap-3">
+            <input
+              type="color"
+              value={brandColor}
+              onChange={(e) => setBrandColor(e.target.value)}
+              className="h-9 w-12 rounded border border-border cursor-pointer bg-transparent"
+            />
+            <Input value={brandColor} onChange={(e) => setBrandColor(e.target.value)} className="w-28 font-mono text-sm" />
+            <div className="h-9 flex-1 rounded border border-border" style={{ backgroundColor: brandColor }} />
+          </div>
+        </div>
       </div>
 
       {/* Display name */}
