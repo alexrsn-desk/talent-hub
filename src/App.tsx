@@ -9,6 +9,7 @@ import Candidates from "./pages/Candidates";
 import Clients from "./pages/Clients";
 import Jobs from "./pages/Jobs";
 import BDPipeline from "./pages/BDPipeline";
+import Coach from "./pages/Coach";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -26,6 +27,7 @@ const App = () => (
             <Route path="/clients" element={<Clients />} />
             <Route path="/jobs" element={<Jobs />} />
             <Route path="/bd-pipeline" element={<BDPipeline />} />
+            <Route path="/coach" element={<Coach />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </AppLayout>
