@@ -248,6 +248,7 @@ export type Database = {
       }
       notes: {
         Row: {
+          activity_type: string
           candidate_id: string | null
           client_id: string | null
           content: string
@@ -256,6 +257,7 @@ export type Database = {
           job_id: string | null
         }
         Insert: {
+          activity_type?: string
           candidate_id?: string | null
           client_id?: string | null
           content: string
@@ -264,6 +266,7 @@ export type Database = {
           job_id?: string | null
         }
         Update: {
+          activity_type?: string
           candidate_id?: string | null
           client_id?: string | null
           content?: string

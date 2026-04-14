@@ -1,0 +1,1 @@
+ALTER TABLE public.notes ADD COLUMN activity_type text NOT NULL DEFAULT 'Note';
