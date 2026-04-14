@@ -47,6 +47,7 @@ export default function DashboardPage() {
   const { data: overdueActions = [] } = useOverdueFollowUps();
   const { data: interviewCandidates = [] } = useTodayInterviews();
   const { data: allCandidateJobs = [] } = useCandidateJobs();
+  const { data: unactionedSignals = [] } = useAllUnactionedSignals();
 
   const openJobsList = jobs.filter(j => j.status === "Open");
 
