@@ -205,11 +205,20 @@ serve(async (req) => {
         overdueCount: (overdueFollowUps || []).length,
         todayActionsCount: (todayFollowUps || []).length,
       },
-      unactionedSignals: (unactionedSignals || []).map((s: any) => ({
+      unactionedSignals: (unactionedSignals || []).filter((s: any) => s.signal_category !== "missing_action").map((s: any) => ({
         type: s.signal_type,
         triggerPhrase: s.trigger_phrase,
         explanation: s.explanation,
         suggestedAction: s.suggested_action,
+        callContact: s.notes?.candidates?.name || s.notes?.clients?.company_name || "Unknown",
+        callDate: s.notes?.created_at?.split("T")[0],
+      })),
+      missingActions: (unactionedSignals || []).filter((s: any) => s.signal_category === "missing_action").map((s: any) => ({
+        type: s.signal_type,
+        triggerPhrase: s.trigger_phrase,
+        explanation: s.explanation,
+        suggestedAction: s.suggested_action,
+        suggestedDate: s.suggested_date,
         callContact: s.notes?.candidates?.name || s.notes?.clients?.company_name || "Unknown",
         callDate: s.notes?.created_at?.split("T")[0],
       })),
