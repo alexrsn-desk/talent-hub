@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -11,9 +11,11 @@ import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import {
   Phone, Users as UsersIcon, Video, CalendarIcon, Clock, ExternalLink,
-  ChevronDown, Brain, FileText, Loader2, ArrowLeft,
+  ChevronDown, Brain, FileText, Loader2, ArrowLeft, Lightbulb,
 } from "lucide-react";
 import { Link } from "react-router-dom";
+import { SignalBox, SignalBadge } from "@/components/SignalBox";
+import { useSignalsForNote, useSignalCounts, useDetectSignals } from "@/hooks/use-signals";
 
 type ActivityType = "Call" | "Meeting" | "Video Call";
 
@@ -35,6 +37,16 @@ export default function CallsMeetings() {
   const [dateFrom, setDateFrom] = useState<Date | undefined>();
   const [dateTo, setDateTo] = useState<Date | undefined>();
   const [selectedNote, setSelectedNote] = useState<any>(null);
+  const { data: signalCounts = {} } = useSignalCounts();
+  const { data: noteSignals = [], isLoading: signalsLoading } = useSignalsForNote(selectedNote?.id);
+  const detectSignals = useDetectSignals();
+
+  // Auto-detect signals when viewing a note with content but no signals yet
+  useEffect(() => {
+    if (selectedNote && !signalsLoading && noteSignals.length === 0 && (selectedNote.transcript || selectedNote.content?.length > 50)) {
+      detectSignals.mutate(selectedNote.id);
+    }
+  }, [selectedNote?.id]);
 
   const { data: notes = [], isLoading } = useQuery({
     queryKey: ["calls-meetings"],
@@ -158,6 +170,9 @@ export default function CallsMeetings() {
                 </CollapsibleContent>
               </Collapsible>
             )}
+
+            {/* Signals */}
+            <SignalBox signals={noteSignals} loading={detectSignals.isPending} />
 
             {/* Transcript */}
             {note.transcript && (
@@ -300,6 +315,7 @@ export default function CallsMeetings() {
                             {contactType}
                           </span>
                           <span className={`text-xs font-medium ${color}`}>{note.activity_type}</span>
+                          {signalCounts[note.id] > 0 && <SignalBadge count={signalCounts[note.id]} />}
                         </div>
                         <ChevronDown className="h-4 w-4 text-muted-foreground -rotate-90 shrink-0" />
                       </div>

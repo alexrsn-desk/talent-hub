@@ -118,6 +118,7 @@ serve(async (req) => {
       { data: overdueFollowUps },
       { data: todayFollowUps },
       { data: profiles },
+      { data: unactionedSignals },
     ] = await Promise.all([
       sb.from("candidate_jobs").select("*, candidates(*), jobs(*, clients(*))"),
       sb.from("jobs").select("*, clients(*)"),
@@ -127,6 +128,7 @@ serve(async (req) => {
       sb.from("notes").select("*, candidates(*), clients(*)").not("follow_up_date", "is", null).lt("follow_up_date", today),
       sb.from("notes").select("*, candidates(*), clients(*)").eq("follow_up_date", today),
       sb.from("recruiter_profiles").select("*").limit(1),
+      sb.from("call_signals").select("*, notes:note_id(*, candidates(*), clients(*))").eq("status", "unactioned").order("created_at", { ascending: false }).limit(50),
     ]);
 
     const cjs = candidateJobs || [];
@@ -203,6 +205,14 @@ serve(async (req) => {
         overdueCount: (overdueFollowUps || []).length,
         todayActionsCount: (todayFollowUps || []).length,
       },
+      unactionedSignals: (unactionedSignals || []).map((s: any) => ({
+        type: s.signal_type,
+        triggerPhrase: s.trigger_phrase,
+        explanation: s.explanation,
+        suggestedAction: s.suggested_action,
+        callContact: s.notes?.candidates?.name || s.notes?.clients?.company_name || "Unknown",
+        callDate: s.notes?.created_at?.split("T")[0],
+      })),
     };
 
     const recruiterContext = profile ? `

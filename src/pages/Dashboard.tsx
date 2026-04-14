@@ -1,6 +1,8 @@
 import { useJobs, useTodayFollowUps, useOverdueFollowUps, useTodayInterviews, useCandidateJobs } from "@/hooks/use-data";
-import { AlertTriangle, Phone, Mail, Globe, FileText, Smartphone, MessageCircle, MessageSquare, Sun, Clock, CalendarCheck, Star, Users } from "lucide-react";
+import { AlertTriangle, Phone, Mail, Globe, FileText, Smartphone, MessageCircle, MessageSquare, Sun, Clock, CalendarCheck, Star, Users, Lightbulb } from "lucide-react";
 import { DailyFocus } from "@/components/DailyFocus";
+import { useAllUnactionedSignals } from "@/hooks/use-signals";
+import { SignalBox } from "@/components/SignalBox";
 
 const activityIcon: Record<string, typeof FileText> = {
   Note: FileText,
@@ -45,6 +47,7 @@ export default function DashboardPage() {
   const { data: overdueActions = [] } = useOverdueFollowUps();
   const { data: interviewCandidates = [] } = useTodayInterviews();
   const { data: allCandidateJobs = [] } = useCandidateJobs();
+  const { data: unactionedSignals = [] } = useAllUnactionedSignals();
 
   const openJobsList = jobs.filter(j => j.status === "Open");
 
@@ -132,6 +135,18 @@ export default function DashboardPage() {
 
       {/* AI Daily Focus */}
       <DailyFocus />
+
+      {/* Unactioned Signals */}
+      {unactionedSignals.length > 0 && (
+        <div className="rounded-lg border border-yellow-400/30 bg-yellow-400/5 p-4 space-y-3">
+          <div className="flex items-center gap-2">
+            <Lightbulb className="h-4 w-4 text-yellow-400" />
+            <h2 className="text-sm font-medium text-yellow-400">Signals ({unactionedSignals.length})</h2>
+            <span className="text-xs text-muted-foreground ml-auto">Last 7 days</span>
+          </div>
+          <SignalBox signals={unactionedSignals} />
+        </div>
+      )}
 
       {/* Open Jobs Pipeline Overview */}
       <div className="rounded-lg border border-border bg-card p-4">

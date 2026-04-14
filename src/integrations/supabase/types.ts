@@ -50,6 +50,39 @@ export type Database = {
         }
         Relationships: []
       }
+      call_signals: {
+        Row: {
+          created_at: string
+          explanation: string
+          id: string
+          note_id: string
+          signal_type: string
+          status: string
+          suggested_action: string
+          trigger_phrase: string
+        }
+        Insert: {
+          created_at?: string
+          explanation: string
+          id?: string
+          note_id: string
+          signal_type: string
+          status?: string
+          suggested_action: string
+          trigger_phrase: string
+        }
+        Update: {
+          created_at?: string
+          explanation?: string
+          id?: string
+          note_id?: string
+          signal_type?: string
+          status?: string
+          suggested_action?: string
+          trigger_phrase?: string
+        }
+        Relationships: []
+      }
       candidate_jobs: {
         Row: {
           candidate_id: string
