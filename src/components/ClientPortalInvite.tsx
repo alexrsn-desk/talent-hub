@@ -54,44 +54,34 @@ export function ClientPortalInvite({ clientId }: { clientId: string }) {
   if (loading) return <div className="text-sm text-muted-foreground">Loading portal status...</div>;
 
   return (
-    <div className="border border-border rounded-lg p-4 space-y-3">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <Link2 className="h-4 w-4 text-primary" />
-          <span className="text-sm font-medium">Client Portal</span>
-        </div>
-        {access && (
-          <div className="flex items-center gap-2">
-            <span className="text-xs text-muted-foreground">{access.enabled ? "Active" : "Disabled"}</span>
-            <Switch checked={access.enabled} onCheckedChange={toggleAccess} />
-          </div>
-        )}
+    <div className="border border-border rounded-md px-3 py-2 inline-flex items-center gap-3 flex-wrap">
+      <div className="flex items-center gap-1.5">
+        <Link2 className="h-3.5 w-3.5 text-primary" />
+        <span className="text-xs font-medium">Client Portal ATS</span>
       </div>
-
+      {access && (
+        <div className="flex items-center gap-1.5">
+          <span className="text-[10px] text-muted-foreground">{access.enabled ? "Active" : "Off"}</span>
+          <Switch checked={access.enabled} onCheckedChange={toggleAccess} className="scale-75 origin-left" />
+        </div>
+      )}
       {!access ? (
-        <Button size="sm" onClick={generateLink} disabled={generating} className="w-full">
-          {generating ? <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" /> : <Link2 className="h-3.5 w-3.5 mr-1" />}
-          Generate Portal Link
+        <Button size="sm" variant="outline" onClick={generateLink} disabled={generating} className="h-7 text-xs gap-1">
+          {generating ? <Loader2 className="h-3 w-3 animate-spin" /> : <Link2 className="h-3 w-3" />}
+          Generate Link
         </Button>
       ) : (
-        <div className="space-y-2">
-          <div className="flex gap-2">
-            <Button size="sm" variant="outline" onClick={copyLink} className="flex-1">
-              <Copy className="h-3.5 w-3.5 mr-1" /> Copy Link
-            </Button>
-            <Button size="sm" variant="outline" onClick={generateLink} disabled={generating}>
-              {generating ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : "Regenerate"}
-            </Button>
-          </div>
+        <div className="flex items-center gap-1.5">
+          <Button size="sm" variant="outline" onClick={copyLink} className="h-7 text-xs gap-1">
+            <Copy className="h-3 w-3" /> Copy
+          </Button>
+          <Button size="sm" variant="ghost" onClick={generateLink} disabled={generating} className="h-7 text-xs">
+            {generating ? <Loader2 className="h-3 w-3 animate-spin" /> : "Regen"}
+          </Button>
           {access.last_accessed_at && (
-            <p className="text-xs text-muted-foreground">
-              Last accessed: {new Date(access.last_accessed_at).toLocaleDateString("en-GB", { day: "numeric", month: "short" })}
-            </p>
-          )}
-          {access.token_expires_at && (
-            <p className="text-xs text-muted-foreground">
-              Expires: {new Date(access.token_expires_at).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}
-            </p>
+            <span className="text-[10px] text-muted-foreground">
+              Last: {new Date(access.last_accessed_at).toLocaleDateString("en-GB", { day: "numeric", month: "short" })}
+            </span>
           )}
         </div>
       )}
