@@ -38,7 +38,31 @@ export function DailyFocus() {
     }
   };
 
-  useEffect(() => { fetchFocus(); }, []);
+  useEffect(() => {
+    if (open && !fetched) {
+      setFetched(true);
+      fetchFocus();
+    }
+  }, [open]);
+
+  const handleOpenChange = (isOpen: boolean) => {
+    setOpen(isOpen);
+  };
+
+  if (!open) {
+    return (
+      <div className="rounded-lg border border-border bg-card overflow-hidden">
+        <button
+          className="flex items-center gap-2 px-4 py-3 w-full hover:opacity-80 transition-opacity"
+          onClick={() => handleOpenChange(true)}
+        >
+          <Sparkles className="h-4 w-4 text-primary" />
+          <span className="text-sm font-medium">AI Daily Focus</span>
+          <ChevronDown className="h-3.5 w-3.5 text-muted-foreground -rotate-90 ml-auto" />
+        </button>
+      </div>
+    );
+  }
 
   if (loading) {
     return (
