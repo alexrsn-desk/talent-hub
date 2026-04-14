@@ -182,7 +182,7 @@ export default function BDPipelinePage() {
                                 <div className="mt-2 space-y-1">
                                   {client.last_activity_date && (
                                     <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                                      <Calendar className="h-3 w-3" />
+                                      <CalendarIcon className="h-3 w-3" />
                                       <span>Last: {formatDate(client.last_activity_date)}</span>
                                     </div>
                                   )}
