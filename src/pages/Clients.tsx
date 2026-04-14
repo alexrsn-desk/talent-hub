@@ -222,8 +222,3 @@ function ClientDetail({ client, onUpdate, onDelete }: {
     </div>
   );
 }
-        </DialogContent>
-      </Dialog>
-    </div>
-  );
-}
