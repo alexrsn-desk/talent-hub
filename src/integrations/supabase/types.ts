@@ -688,6 +688,45 @@ export type Database = {
         }
         Relationships: []
       }
+      todo_tasks: {
+        Row: {
+          completed: boolean
+          completed_at: string | null
+          created_at: string
+          due_date: string | null
+          id: string
+          position: number
+          priority: string
+          recurrence: string | null
+          title: string
+          user_id: string | null
+        }
+        Insert: {
+          completed?: boolean
+          completed_at?: string | null
+          created_at?: string
+          due_date?: string | null
+          id?: string
+          position?: number
+          priority?: string
+          recurrence?: string | null
+          title: string
+          user_id?: string | null
+        }
+        Update: {
+          completed?: boolean
+          completed_at?: string | null
+          created_at?: string
+          due_date?: string | null
+          id?: string
+          position?: number
+          priority?: string
+          recurrence?: string | null
+          title?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       weekly_summaries: {
         Row: {
           created_at: string
