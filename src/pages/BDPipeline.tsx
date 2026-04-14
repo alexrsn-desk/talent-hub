@@ -164,8 +164,19 @@ export default function BDPipelinePage() {
                                 }}
                               >
                                 <p className="text-sm font-medium leading-tight">{client.company_name}</p>
-                                {client.contact_name && (
-                                  <p className="text-xs text-muted-foreground mt-0.5">{client.contact_name}</p>
+                                {(contactsByClient[client.id]?.length > 0 || client.contact_name) && (
+                                  <div className="mt-0.5 space-y-0">
+                                    {contactsByClient[client.id]?.length > 0 ? (
+                                      contactsByClient[client.id].map((contact) => (
+                                        <p key={contact.id} className="text-xs text-muted-foreground flex items-center gap-1">
+                                          <Users className="h-2.5 w-2.5 flex-shrink-0" />
+                                          {contact.name}{contact.job_title ? ` · ${contact.job_title}` : ""}
+                                        </p>
+                                      ))
+                                    ) : client.contact_name ? (
+                                      <p className="text-xs text-muted-foreground">{client.contact_name}</p>
+                                    ) : null}
+                                  </div>
                                 )}
 
                                 <div className="mt-2 space-y-1">
