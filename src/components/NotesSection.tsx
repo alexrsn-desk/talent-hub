@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useNotes, useCreateNote } from "@/hooks/use-data";
 import { useSignalCounts } from "@/hooks/use-signals";
-import { SignalBadge } from "@/components/SignalBox";
+import { NoteCard } from "@/components/NoteCard";
 import { Send, Phone, Mail, Users, MessageSquare, Globe, FileText, Smartphone, MessageCircle } from "lucide-react";
 
 const ACTIVITY_TYPES = [
@@ -17,28 +17,6 @@ const ACTIVITY_TYPES = [
   { value: "LinkedIn Message", label: "LinkedIn", icon: Globe },
   { value: "Follow-up", label: "Follow-up", icon: MessageSquare },
 ] as const;
-
-const activityIcon: Record<string, typeof FileText> = {
-  Note: FileText,
-  Call: Phone,
-  Email: Mail,
-  "Text Message": Smartphone,
-  WhatsApp: MessageCircle,
-  Meeting: Users,
-  "LinkedIn Message": Globe,
-  "Follow-up": MessageSquare,
-};
-
-const activityColor: Record<string, string> = {
-  Note: "text-muted-foreground",
-  Call: "text-green-400",
-  Email: "text-blue-400",
-  "Text Message": "text-violet-400",
-  WhatsApp: "text-emerald-400",
-  Meeting: "text-yellow-400",
-  "LinkedIn Message": "text-sky-400",
-  "Follow-up": "text-orange-400",
-};
 
 export function NotesSection({ entityType, entityId }: { entityType: "candidate" | "client" | "job"; entityId: string }) {
   const { data: notes = [] } = useNotes(entityType, entityId);
@@ -86,33 +64,10 @@ export function NotesSection({ entityType, entityId }: { entityType: "candidate"
           </Button>
         </div>
       </div>
-      <div className="space-y-1 max-h-72 overflow-y-auto">
-        {notes.map((n) => {
-          const Icon = activityIcon[n.activity_type] || FileText;
-          const color = activityColor[n.activity_type] || "text-muted-foreground";
-          const unactionedCount = signalCounts[n.id] || 0;
-          return (
-            <div key={n.id} className="flex gap-2.5 items-start rounded-md bg-muted/30 px-3 py-2">
-              <div className={`mt-0.5 ${color}`}>
-                <Icon className="h-3.5 w-3.5" />
-              </div>
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2 flex-wrap">
-                  <span className={`text-xs font-medium ${color}`}>{n.activity_type || "Note"}</span>
-                  {n.outcome && (
-                    <span className="text-xs bg-muted px-1.5 py-0.5 rounded">{n.outcome}</span>
-                  )}
-                  <span className="text-xs text-muted-foreground">{new Date(n.created_at).toLocaleString()}</span>
-                  {unactionedCount > 0 && <SignalBadge count={unactionedCount} />}
-                </div>
-                <p className="text-sm mt-0.5">{n.content}</p>
-                {n.follow_up_date && (
-                  <p className="text-xs text-warning mt-1">Follow-up: {new Date(n.follow_up_date).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}</p>
-                )}
-              </div>
-            </div>
-          );
-        })}
+      <div className="space-y-1.5 max-h-[500px] overflow-y-auto">
+        {notes.map((n) => (
+          <NoteCard key={n.id} note={n} unactionedCount={signalCounts[n.id] || 0} />
+        ))}
         {notes.length === 0 && <p className="text-sm text-muted-foreground">No history yet</p>}
       </div>
     </div>
