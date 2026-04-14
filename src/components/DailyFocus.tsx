@@ -1,7 +1,8 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { AlertCircle, AlertTriangle, CheckCircle, RefreshCw, Sparkles } from "lucide-react";
+import { AlertCircle, AlertTriangle, CheckCircle, ChevronDown, RefreshCw, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { toast } from "sonner";
 
 type Flag = { issue: string; why: string; action: string };
