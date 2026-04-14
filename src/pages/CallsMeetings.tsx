@@ -171,6 +171,9 @@ export default function CallsMeetings() {
               </Collapsible>
             )}
 
+            {/* Signals */}
+            <SignalBox signals={noteSignals} loading={detectSignals.isPending} />
+
             {/* Transcript */}
             {note.transcript && (
               <Collapsible>
