@@ -106,7 +106,10 @@ export type Database = {
           email: string | null
           id: string
           job_title: string | null
+          last_activity_date: string | null
           linkedin_url: string | null
+          next_action: string | null
+          next_action_due_date: string | null
           phone: string | null
           sector: string | null
           status: string
@@ -119,7 +122,10 @@ export type Database = {
           email?: string | null
           id?: string
           job_title?: string | null
+          last_activity_date?: string | null
           linkedin_url?: string | null
+          next_action?: string | null
+          next_action_due_date?: string | null
           phone?: string | null
           sector?: string | null
           status?: string
@@ -132,7 +138,10 @@ export type Database = {
           email?: string | null
           id?: string
           job_title?: string | null
+          last_activity_date?: string | null
           linkedin_url?: string | null
+          next_action?: string | null
+          next_action_due_date?: string | null
           phone?: string | null
           sector?: string | null
           status?: string
