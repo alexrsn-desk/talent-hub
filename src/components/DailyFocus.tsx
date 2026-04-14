@@ -1,7 +1,8 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { AlertCircle, AlertTriangle, CheckCircle, RefreshCw, Sparkles } from "lucide-react";
+import { AlertCircle, AlertTriangle, CheckCircle, ChevronDown, RefreshCw, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { toast } from "sonner";
 
 type Flag = { issue: string; why: string; action: string };
@@ -17,6 +18,7 @@ export function DailyFocus() {
   const [data, setData] = useState<FocusData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [open, setOpen] = useState(true);
 
   const fetchFocus = async () => {
     setLoading(true);
@@ -66,69 +68,76 @@ export function DailyFocus() {
   const hasGreen = data.green_flags.length > 0;
 
   return (
-    <div className="rounded-lg border border-border bg-card overflow-hidden">
-      {/* Header */}
-      <div className="flex items-center justify-between px-4 py-3 border-b border-border">
-        <div className="flex items-center gap-2">
-          <Sparkles className="h-4 w-4 text-primary" />
-          <span className="text-sm font-medium">AI Daily Focus</span>
+    <Collapsible open={open} onOpenChange={setOpen}>
+      <div className="rounded-lg border border-border bg-card overflow-hidden">
+        {/* Header */}
+        <div className="flex items-center justify-between px-4 py-3 border-b border-border">
+          <CollapsibleTrigger asChild>
+            <button className="flex items-center gap-2 hover:opacity-80 transition-opacity">
+              <Sparkles className="h-4 w-4 text-primary" />
+              <span className="text-sm font-medium">AI Daily Focus</span>
+              <ChevronDown className={`h-3.5 w-3.5 text-muted-foreground transition-transform ${open ? "" : "-rotate-90"}`} />
+            </button>
+          </CollapsibleTrigger>
+          <Button variant="ghost" size="icon" className="h-7 w-7" onClick={fetchFocus} disabled={loading}>
+            <RefreshCw className={`h-3.5 w-3.5 ${loading ? "animate-spin" : ""}`} />
+          </Button>
         </div>
-        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={fetchFocus} disabled={loading}>
-          <RefreshCw className={`h-3.5 w-3.5 ${loading ? "animate-spin" : ""}`} />
-        </Button>
+
+        <CollapsibleContent>
+          <div className="p-4 space-y-4">
+            {/* Greeting */}
+            <p className="text-sm text-muted-foreground">{data.greeting}</p>
+
+            {/* Red flags */}
+            {hasRed && (
+              <div className="space-y-2">
+                <div className="flex items-center gap-1.5">
+                  <AlertCircle className="h-3.5 w-3.5 text-destructive" />
+                  <span className="text-xs font-semibold text-destructive uppercase tracking-wide">Urgent</span>
+                </div>
+                {data.red_flags.map((f, i) => (
+                  <FlagCard key={i} flag={f} variant="red" />
+                ))}
+              </div>
+            )}
+
+            {/* Amber flags */}
+            {hasAmber && (
+              <div className="space-y-2">
+                <div className="flex items-center gap-1.5">
+                  <AlertTriangle className="h-3.5 w-3.5 text-amber-400" />
+                  <span className="text-xs font-semibold text-amber-400 uppercase tracking-wide">High Priority</span>
+                </div>
+                {data.amber_flags.map((f, i) => (
+                  <FlagCard key={i} flag={f} variant="amber" />
+                ))}
+              </div>
+            )}
+
+            {/* Green flags */}
+            {hasGreen && (
+              <div className="space-y-2">
+                <div className="flex items-center gap-1.5">
+                  <CheckCircle className="h-3.5 w-3.5 text-emerald-400" />
+                  <span className="text-xs font-semibold text-emerald-400 uppercase tracking-wide">Worth Doing</span>
+                </div>
+                {data.green_flags.map((f, i) => (
+                  <FlagCard key={i} flag={f} variant="green" />
+                ))}
+              </div>
+            )}
+
+            {/* Bottom line */}
+            {data.bottom_line && (
+              <div className="pt-2 border-t border-border">
+                <p className="text-sm font-medium">{data.bottom_line}</p>
+              </div>
+            )}
+          </div>
+        </CollapsibleContent>
       </div>
-
-      <div className="p-4 space-y-4">
-        {/* Greeting */}
-        <p className="text-sm text-muted-foreground">{data.greeting}</p>
-
-        {/* Red flags */}
-        {hasRed && (
-          <div className="space-y-2">
-            <div className="flex items-center gap-1.5">
-              <AlertCircle className="h-3.5 w-3.5 text-destructive" />
-              <span className="text-xs font-semibold text-destructive uppercase tracking-wide">Urgent</span>
-            </div>
-            {data.red_flags.map((f, i) => (
-              <FlagCard key={i} flag={f} variant="red" />
-            ))}
-          </div>
-        )}
-
-        {/* Amber flags */}
-        {hasAmber && (
-          <div className="space-y-2">
-            <div className="flex items-center gap-1.5">
-              <AlertTriangle className="h-3.5 w-3.5 text-amber-400" />
-              <span className="text-xs font-semibold text-amber-400 uppercase tracking-wide">High Priority</span>
-            </div>
-            {data.amber_flags.map((f, i) => (
-              <FlagCard key={i} flag={f} variant="amber" />
-            ))}
-          </div>
-        )}
-
-        {/* Green flags */}
-        {hasGreen && (
-          <div className="space-y-2">
-            <div className="flex items-center gap-1.5">
-              <CheckCircle className="h-3.5 w-3.5 text-emerald-400" />
-              <span className="text-xs font-semibold text-emerald-400 uppercase tracking-wide">Worth Doing</span>
-            </div>
-            {data.green_flags.map((f, i) => (
-              <FlagCard key={i} flag={f} variant="green" />
-            ))}
-          </div>
-        )}
-
-        {/* Bottom line */}
-        {data.bottom_line && (
-          <div className="pt-2 border-t border-border">
-            <p className="text-sm font-medium">{data.bottom_line}</p>
-          </div>
-        )}
-      </div>
-    </div>
+    </Collapsible>
   );
 }
 
