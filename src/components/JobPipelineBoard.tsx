@@ -166,8 +166,14 @@ export function JobPipelineBoard({ job }: { job: Job }) {
                                 <span className="truncate">{cj.candidates.availability}</span>
                               </div>
                             )}
-                            {/* Interview date */}
-                            <InterviewDatePicker candidateJob={cj} />
+                            {/* Interview date / scheduling */}
+                            <InterviewDatePicker
+                              candidateJob={cj}
+                              onOpenSlotPicker={() => {
+                                setSelectedCandidateJobForScheduling(cj);
+                                setScheduleOpen(true);
+                              }}
+                            />
                           </div>
                         )}
                       </Draggable>
@@ -230,7 +236,7 @@ function CandidateQuickProfile({ candidate }: { candidate: Candidate }) {
   );
 }
 
-function InterviewDatePicker({ candidateJob }: { candidateJob: CandidateJob }) {
+function InterviewDatePicker({ candidateJob, onOpenSlotPicker }: { candidateJob: CandidateJob; onOpenSlotPicker: () => void }) {
   const updateCandidateJob = useUpdateCandidateJob();
   const [open, setOpen] = useState(false);
 
@@ -262,21 +268,30 @@ function InterviewDatePicker({ candidateJob }: { candidateJob: CandidateJob }) {
           <button onClick={handleClear} className="ml-auto hover:text-destructive">×</button>
         </div>
       ) : (
-        <Popover open={open} onOpenChange={setOpen}>
-          <PopoverTrigger asChild>
-            <button className="flex items-center gap-1 text-[10px] text-muted-foreground hover:text-primary transition-colors">
-              <Calendar className="h-2.5 w-2.5" /> Schedule
-            </button>
-          </PopoverTrigger>
-          <PopoverContent className="w-auto p-2" align="start">
-            <Input
-              type="datetime-local"
-              className="text-xs h-8"
-              onChange={handleSetDate}
-              min={new Date().toISOString().slice(0, 16)}
-            />
-          </PopoverContent>
-        </Popover>
+        <div className="flex gap-1">
+          <Popover open={open} onOpenChange={setOpen}>
+            <PopoverTrigger asChild>
+              <button className="flex items-center gap-1 text-[10px] text-muted-foreground hover:text-primary transition-colors">
+                <Calendar className="h-2.5 w-2.5" /> Quick Set
+              </button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-2" align="start">
+              <Input
+                type="datetime-local"
+                className="text-xs h-8"
+                onChange={handleSetDate}
+                min={new Date().toISOString().slice(0, 16)}
+              />
+            </PopoverContent>
+          </Popover>
+          <span className="text-[10px] text-muted-foreground">·</span>
+          <button
+            onClick={(e) => { e.stopPropagation(); onOpenSlotPicker(); }}
+            className="flex items-center gap-1 text-[10px] text-muted-foreground hover:text-primary transition-colors"
+          >
+            <Clock className="h-2.5 w-2.5" /> Client Pick
+          </button>
+        </div>
       )}
     </div>
   );
