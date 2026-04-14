@@ -303,6 +303,22 @@ export function useCreateNote() {
   });
 }
 
+export function useTodayFollowUps() {
+  const today = new Date().toISOString().split("T")[0];
+  return useQuery({
+    queryKey: ["notes", "follow_ups", today],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("notes")
+        .select("*, candidates(*), clients(*)")
+        .eq("follow_up_date", today)
+        .order("created_at", { ascending: false });
+      if (error) throw error;
+      return data as (Note & { candidates: any; clients: any })[];
+    },
+  });
+}
+
 // Contacts
 export type Contact = {
   id: string;
