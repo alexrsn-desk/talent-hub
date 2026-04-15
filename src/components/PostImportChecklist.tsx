@@ -75,7 +75,24 @@ export function PostImportChecklist({ unmatchedJobs: initialUnmatched, errors, n
     setDuplicates(prev => prev.filter(d => !(d.id1 === id1 && d.id2 === id2)));
   };
 
-  const totalIssues = unmatchedJobs.length + errors.length + duplicates.length;
+  const confirmNameSplit = async (idx: number) => {
+    const item = nameReviews[idx];
+    // Find candidates with this full name and update first_name/last_name
+    const { data } = await supabase.from("candidates").select("id").eq("name", item.fullName);
+    if (data) {
+      for (const c of data) {
+        await supabase.from("candidates").update({
+          first_name: item.firstName,
+          last_name: item.lastName,
+          name: [item.firstName, item.lastName].filter(Boolean).join(" "),
+        } as any).eq("id", c.id);
+      }
+    }
+    toast.success(`Updated name split for ${item.fullName}`);
+    setNameReviews(prev => prev.filter((_, i) => i !== idx));
+  };
+
+  const totalIssues = unmatchedJobs.length + errors.length + duplicates.length + nameReviews.length;
   const allResolved = totalIssues === 0 && !loadingDupes;
 
   return (
