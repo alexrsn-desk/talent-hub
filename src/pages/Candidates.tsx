@@ -5,13 +5,16 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
-import { Plus, Search, ExternalLink } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { Plus, Search, ExternalLink, Star, PhoneCall } from "lucide-react";
 import { useCandidates, useCreateCandidate, useUpdateCandidate, useDeleteCandidate, type Candidate } from "@/hooks/use-data";
 import { PriorityStarIcon } from "@/components/PriorityFlag";
 import { CandidateDetail } from "@/components/CandidateDetail";
 import { CandidateContextMenu } from "@/components/CandidateContextMenu";
+import { LogTouchpointModal } from "@/components/LogTouchpointModal";
 import { logActivity } from "@/lib/activity-log";
 import { cn } from "@/lib/utils";
+import { toast } from "sonner";
 
 const STATUSES = ["New", "Contacted", "Screening", "Submitted", "Interviewing", "Placed", "On Hold", "Not Suitable"] as const;
 const SOURCES = ["LinkedIn", "Referral", "Job Board", "Inbound"] as const;
@@ -409,9 +412,11 @@ export default function CandidatesPage() {
                     />
                   </td>
                   <td className="px-4 py-3">
-                    <div className="flex items-center gap-1">
+                    <div className="flex items-center gap-0.5">
+                      <RowPriorityToggle candidate={c} onToggle={handleTogglePriority} />
+                      <RowTouchpointButton candidate={c} onOpen={handleOpenTouchpoint} />
                       {c.linkedin_url && (
-                        <a href={c.linkedin_url} target="_blank" rel="noopener noreferrer" onClick={e => e.stopPropagation()}>
+                        <a href={c.linkedin_url} target="_blank" rel="noopener noreferrer" onClick={e => e.stopPropagation()} className="p-2">
                           <ExternalLink className="h-4 w-4 text-muted-foreground hover:text-primary" />
                         </a>
                       )}
