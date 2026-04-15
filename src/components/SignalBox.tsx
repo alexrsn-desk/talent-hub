@@ -42,6 +42,7 @@ function SignalCard({
   expanded: boolean;
   onToggle: () => void;
 }) {
+  const navigate = useNavigate();
   const isMissingAction = signal.signal_category === "missing_action";
 
   const handleThumbsDown = (e?: React.MouseEvent) => {
