@@ -10,6 +10,7 @@ import { OnboardingImport } from "@/components/OnboardingImport";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Loader2, Upload, X } from "lucide-react";
+import { TrialBanner } from "@/components/TrialBanner";
 import Dashboard from "./pages/Dashboard";
 import Candidates from "./pages/Candidates";
 import Clients from "./pages/Clients";
@@ -135,6 +136,7 @@ function AppRoutes() {
 
   return (
     <>
+      <TrialBanner />
       <ImportBanner />
       <AppLayout>
         <Routes>
