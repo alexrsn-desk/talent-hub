@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { Search, Trash2, ArrowLeft } from "lucide-react";
-import { useJobs, useUpdateJob, useDeleteJob, useClients, useCandidateJobs, useUpdateCandidateJob, type Job } from "@/hooks/use-data";
+import { useJobs, useUpdateJob, useDeleteJob, type Job } from "@/hooks/use-data";
 import { NotesSection } from "@/components/NotesSection";
 import { JobPipelineBoard } from "@/components/JobPipelineBoard";
 import { AddJobDialog } from "@/components/AddJobDialog";
