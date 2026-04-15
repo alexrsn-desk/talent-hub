@@ -1,9 +1,10 @@
 import { useState } from "react";
-import { Lightbulb, AlertTriangle, ArrowRight, X, Loader2, ThumbsUp, ThumbsDown, ChevronDown } from "lucide-react";
+import { Lightbulb, AlertTriangle, ArrowRight, X, Loader2, ThumbsUp, ThumbsDown, ChevronDown, ExternalLink, Calendar } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { CallSignal, useUpdateSignalStatus, useFeedbackSignal } from "@/hooks/use-signals";
 import { toast } from "sonner";
+import { useNavigate } from "react-router-dom";
 
 const signalColors: Record<string, string> = {
   "Hiring Signal": "text-yellow-400",
