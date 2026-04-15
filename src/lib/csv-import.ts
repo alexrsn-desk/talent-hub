@@ -156,11 +156,12 @@ export function autoMapHeaders(
     ? [...BUILT_IN_TEMPLATES.filter(t => t.platform === platform), ...BUILT_IN_TEMPLATES.filter(t => t.platform !== platform)]
     : BUILT_IN_TEMPLATES;
 
+  const specialKeys = ["_fullname", "_contact_fullname", "_lastname", "_client_company"];
   for (const h of csvHeaders) {
     const lh = h.toLowerCase().trim();
     for (const tpl of templates) {
       for (const [tplHeader, fieldKey] of Object.entries(tpl.mappings)) {
-        if (tplHeader.toLowerCase() === lh && fields.some(f => f.key === fieldKey)) {
+        if (tplHeader.toLowerCase() === lh && (fields.some(f => f.key === fieldKey) || specialKeys.includes(fieldKey))) {
           newMap[h] = fieldKey;
           break;
         }
