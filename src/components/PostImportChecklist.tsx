@@ -23,15 +23,19 @@ interface Props {
   compact?: boolean;
 }
 
-export function PostImportChecklist({ unmatchedJobs: initialUnmatched, errors, onDismiss, compact }: Props) {
+export function PostImportChecklist({ unmatchedJobs: initialUnmatched, errors, nameReviewItems: initialNameReview, onDismiss, compact }: Props) {
   const [unmatchedJobs, setUnmatchedJobs] = useState(initialUnmatched);
   const [allClients, setAllClients] = useState<{ id: string; company_name: string }[]>([]);
   const [jobClientLinks, setJobClientLinks] = useState<Record<string, string>>({});
   const [duplicates, setDuplicates] = useState<DuplicateCandidate[]>([]);
+  const [nameReviews, setNameReviews] = useState<(NameReviewItem & { firstName: string; lastName: string })[]>(
+    (initialNameReview || []).map(n => ({ ...n, firstName: n.suggestedFirst, lastName: n.suggestedLast }))
+  );
   const [loadingDupes, setLoadingDupes] = useState(true);
   const [expandErrors, setExpandErrors] = useState(false);
   const [expandDupes, setExpandDupes] = useState(false);
   const [expandJobs, setExpandJobs] = useState(false);
+  const [expandNames, setExpandNames] = useState(nameReviews.length > 0);
   const [merging, setMerging] = useState<string | null>(null);
 
   useEffect(() => {
