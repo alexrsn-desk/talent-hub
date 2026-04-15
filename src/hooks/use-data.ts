@@ -34,6 +34,8 @@ export type Client = {
   linkedin_url: string | null;
   sector: string | null;
   status: string;
+  location: string | null;
+  website: string | null;
   last_activity_date: string | null;
   next_action: string | null;
   next_action_due_date: string | null;
