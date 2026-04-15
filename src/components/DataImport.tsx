@@ -12,7 +12,7 @@ import {
 import {
   RecordType, FIELD_MAP, BUILT_IN_TEMPLATES, MappingTemplate, NameReviewItem,
   PlatformKey, PLATFORMS, ArchiveOption,
-  parseCSV, autoMapHeaders, buildRecord, runImportForType,
+  parseCSV, autoMapHeaders, buildRecord, runImportForType, splitFullName,
   downloadErrorReport as dlErrors, ImportResult,
   saveImportHistory, getImportHistory, undoLastImport,
 } from "@/lib/csv-import";

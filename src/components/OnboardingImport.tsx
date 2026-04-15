@@ -13,7 +13,7 @@ import {
 import { Checkbox } from "@/components/ui/checkbox";
 import {
   RecordType, FIELD_MAP, PLATFORM_OPTIONS, BUILT_IN_TEMPLATES,
-  parseCSV, autoMapHeaders, buildRecord, runImportForType, downloadExampleCSV,
+  parseCSV, autoMapHeaders, buildRecord, runImportForType, downloadExampleCSV, splitFullName,
   downloadErrorReport, ImportResult,
 } from "@/lib/csv-import";
 import { PostImportChecklist } from "@/components/PostImportChecklist";
