@@ -27,7 +27,9 @@ export const CANDIDATE_FIELDS: FieldDef[] = [
 
 export const CLIENT_FIELDS: FieldDef[] = [
   { key: "company_name", label: "Company Name", required: true },
-  { key: "contact_name", label: "Contact Name", required: false },
+  { key: "first_name", label: "Contact First Name", required: false },
+  { key: "last_name", label: "Contact Last Name", required: false },
+  { key: "_contact_fullname", label: "Contact Full Name (will split)", required: false },
   { key: "email", label: "Email", required: false },
   { key: "phone", label: "Phone", required: false },
   { key: "linkedin_url", label: "LinkedIn URL", required: false },
