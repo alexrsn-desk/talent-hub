@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Lightbulb, AlertTriangle, ArrowRight, X, Loader2, ThumbsUp, ThumbsDown, CalendarPlus, ListPlus, Clock, Star } from "lucide-react";
+import { Lightbulb, AlertTriangle, ArrowRight, X, Loader2, ThumbsUp, ThumbsDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { CallSignal, useUpdateSignalStatus, useFeedbackSignal } from "@/hooks/use-signals";
@@ -49,130 +49,42 @@ function SignalCard({
     feedbackSignal.mutate({ id: signal.id, rating: "thumbs_up" });
   };
 
-  return (
-    <div
-      className={`rounded-md border p-3 space-y-2 ${
-        signal.status === "unactioned"
-          ? isMissingAction
-            ? missingActionBg
-            : signalBg[signal.signal_type] || "bg-muted/30 border-border"
-          : "bg-muted/20 border-border opacity-60"
-      }`}
-    >
-      <div className="flex items-center justify-between gap-2">
-        <Badge variant="outline" className={`text-[10px] ${signalColors[signal.signal_type] || ""}`}>
-          {signal.signal_type}
-        </Badge>
-        <div className="flex items-center gap-1">
-          {signal.feedback_rating === "thumbs_up" ? (
-            <span className="text-[10px] text-emerald-400 flex items-center gap-0.5">
-              <ThumbsUp className="h-3 w-3" /> Helpful
-            </span>
-          ) : signal.status === "unactioned" ? (
-            <>
-              <Button variant="ghost" size="sm" className="h-6 w-6 p-0 text-muted-foreground hover:text-emerald-400" onClick={handleThumbsUp} title="Helpful signal">
-                <ThumbsUp className="h-3 w-3" />
-              </Button>
-              <Button variant="ghost" size="sm" className="h-6 w-6 p-0 text-muted-foreground hover:text-destructive" onClick={handleThumbsDown} title="Not useful">
-                <ThumbsDown className="h-3 w-3" />
-              </Button>
-            </>
-          ) : (
-            <span className="text-[10px] text-muted-foreground uppercase">{signal.status}</span>
-          )}
-        </div>
-      </div>
-      <p className="text-xs italic text-muted-foreground">"{signal.trigger_phrase}"</p>
-      <p className="text-sm">{signal.explanation}</p>
-      <p className="text-xs text-primary">{signal.suggested_action}</p>
-      {signal.status === "unactioned" && (
-        <div className="flex items-center gap-2 pt-1 flex-wrap">
-          {/* Missing action quick buttons */}
-          {isMissingAction && signal.signal_type === "Missing Follow-up" && (
-            <Button
-              variant="outline"
-              size="sm"
-              className="h-7 text-[11px] gap-1"
-              onClick={() => {
-                toast("Set a follow-up date on the record to resolve this signal", { duration: 3000 });
-              }}
-            >
-              <CalendarPlus className="h-3 w-3" /> Set follow-up{signal.suggested_date ? ` for ${signal.suggested_date}` : ""}
-            </Button>
-          )}
-          {isMissingAction && (signal.signal_type === "Missing Next Action" || signal.signal_type === "Missing Commitment") && (
-            <Button
-              variant="outline"
-              size="sm"
-              className="h-7 text-[11px] gap-1"
-              onClick={() => {
-                toast("Add a next action on the record to resolve this signal", { duration: 3000 });
-              }}
-            >
-              <ListPlus className="h-3 w-3" /> Add to next actions
-            </Button>
-          )}
-          {isMissingAction && signal.signal_type === "Missing Interview Date" && (
-            <Button
-              variant="outline"
-              size="sm"
-              className="h-7 text-[11px] gap-1"
-              onClick={() => {
-                toast("Log an interview date on the candidate pipeline to resolve this signal", { duration: 3000 });
-              }}
-            >
-              <Clock className="h-3 w-3" /> Log interview date
-            </Button>
-          )}
+  const isActioned = signal.status !== "unactioned";
 
-          {/* Opportunity action buttons */}
-          {!isMissingAction && (signal.signal_type === "BD Lead" || signal.signal_type === "Hiring Signal") && (
-            <Button
-              variant="outline"
-              size="sm"
-              className="h-7 text-[11px] gap-1"
-              onClick={() => {
-                toast("Add this lead to your BD Pipeline to action this signal", { duration: 3000 });
-              }}
-            >
-              <ArrowRight className="h-3 w-3" /> Add to BD Pipeline
-            </Button>
-          )}
-          {!isMissingAction && signal.signal_type === "Candidate Signal" && (
-            <Button
-              variant="outline"
-              size="sm"
-              className="h-7 text-[11px] gap-1 border-yellow-400/30 text-yellow-400 hover:bg-yellow-400/10"
-              onClick={() => {
-                toast("Flag the candidate as priority from their profile", { duration: 3000 });
-              }}
-            >
-              <Star className="h-3 w-3" /> Flag as Priority
-            </Button>
-          )}
-          <Button
-            variant="outline"
-            size="sm"
-            className="h-7 text-[11px] gap-1 text-emerald-400 border-emerald-400/30 hover:bg-emerald-400/10"
-            onClick={() => {
-              updateStatus.mutate({ id: signal.id, status: "actioned" });
-              toast.success("Marked as actioned");
-            }}
-          >
-            <ThumbsUp className="h-3 w-3" /> Mark Actioned
+  return (
+    <div className={`flex items-center gap-2 px-2 py-2 group hover:bg-muted/30 transition-colors min-h-[40px] ${isActioned ? "opacity-50" : ""}`}>
+      {isMissingAction ? (
+        <AlertTriangle className="h-3.5 w-3.5 text-amber-400 shrink-0" />
+      ) : (
+        <Lightbulb className="h-3.5 w-3.5 text-yellow-400 shrink-0" />
+      )}
+      <Badge variant="outline" className={`text-[9px] px-1.5 py-0 shrink-0 ${signalColors[signal.signal_type] || ""}`}>
+        {signal.signal_type}
+      </Badge>
+      <span className="text-xs text-muted-foreground truncate flex-1 min-w-0">
+        {signal.suggested_action}
+      </span>
+      {signal.status === "unactioned" && (
+        <div className="hidden group-hover:flex items-center gap-0.5 shrink-0">
+          <Button variant="ghost" size="sm" className="h-6 w-6 p-0 text-muted-foreground hover:text-emerald-400" onClick={handleThumbsUp} title="Helpful">
+            <ThumbsUp className="h-3 w-3" />
           </Button>
-          <Button
-            variant="ghost"
-            size="sm"
-            className="h-7 text-[11px] gap-1 text-muted-foreground"
-            onClick={() => {
-              updateStatus.mutate({ id: signal.id, status: "dismissed" });
-              toast("Signal dismissed");
-            }}
-          >
-            <X className="h-3 w-3" /> Dismiss
+          <Button variant="ghost" size="sm" className="h-6 w-6 p-0 text-muted-foreground hover:text-destructive" onClick={handleThumbsDown} title="Not useful">
+            <ThumbsDown className="h-3 w-3" />
+          </Button>
+          <Button variant="ghost" size="sm" className="h-6 w-6 p-0 text-muted-foreground hover:text-emerald-400" onClick={() => { updateStatus.mutate({ id: signal.id, status: "actioned" }); toast.success("Actioned"); }} title="Mark actioned">
+            <ArrowRight className="h-3 w-3" />
+          </Button>
+          <Button variant="ghost" size="sm" className="h-6 w-6 p-0 text-muted-foreground hover:text-muted-foreground" onClick={() => { updateStatus.mutate({ id: signal.id, status: "dismissed" }); toast("Dismissed"); }} title="Dismiss">
+            <X className="h-3 w-3" />
           </Button>
         </div>
+      )}
+      {signal.feedback_rating === "thumbs_up" && (
+        <span className="text-[10px] text-emerald-400 shrink-0">✓</span>
+      )}
+      {isActioned && !signal.feedback_rating && (
+        <span className="text-[10px] text-muted-foreground uppercase shrink-0">{signal.status}</span>
       )}
     </div>
   );
@@ -216,7 +128,7 @@ export function SignalBox({ signals, loading }: { signals: CallSignal[]; loading
               Actions You May Have Missed ({missingActions.filter(s => s.status === "unactioned").length})
             </h3>
           </div>
-          <div className="space-y-2">
+          <div className="divide-y divide-border">
             {missingActions.map((signal) => (
               <SignalCard key={signal.id} signal={signal} updateStatus={updateStatus} feedbackSignal={feedbackSignal} onDismiss={handleDismiss} />
             ))}
@@ -233,7 +145,7 @@ export function SignalBox({ signals, loading }: { signals: CallSignal[]; loading
               Signals Detected ({opportunities.filter(s => s.status === "unactioned").length} unactioned)
             </h3>
           </div>
-          <div className="space-y-2">
+          <div className="divide-y divide-border">
             {opportunities.map((signal) => (
               <SignalCard key={signal.id} signal={signal} updateStatus={updateStatus} feedbackSignal={feedbackSignal} onDismiss={handleDismiss} />
             ))}

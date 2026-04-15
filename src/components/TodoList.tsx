@@ -409,7 +409,7 @@ function AIActionsSegment() {
         <p className="text-xs text-muted-foreground italic py-3">No actions right now. Your desk looks healthy.</p>
       )}
 
-      <div className="space-y-1.5">
+      <div className="divide-y divide-border">
         {displayed.map(action => (
           <AIActionCard key={action.id} action={action} onDismiss={handleDismiss} onAddToList={handleAddToMyList} />
         ))}
@@ -424,49 +424,31 @@ function AIActionsSegment() {
   );
 }
 
-// ── AI Action Card ─────────────────────────────────────
+// ── AI Action Row ──────────────────────────────────────
 function AIActionCard({ action, onDismiss, onAddToList }: {
   action: AIAction;
   onDismiss: (a: AIAction, reason: "done" | "not_relevant") => void;
   onAddToList: (a: AIAction) => void;
 }) {
-  const [showDismiss, setShowDismiss] = useState(false);
-
   return (
-    <div className={`rounded-md border border-border border-l-2 ${urgencyColors[action.urgency]} bg-card px-3 py-2 space-y-1.5`}>
-      <div className="flex items-start justify-between gap-2">
-        <div className="flex items-center gap-2 min-w-0 flex-1">
-          <span className={`h-1.5 w-1.5 rounded-full shrink-0 ${urgencyDot[action.urgency]}`} />
-          <span className="text-sm font-medium truncate">{action.contactName}</span>
-          {action.company && <span className="text-xs text-muted-foreground truncate hidden sm:inline">· {action.company}</span>}
-          <Badge variant="outline" className={`text-[9px] px-1 py-0 shrink-0 ${sourceColors[action.source] || ""}`}>
-            {action.source}
-          </Badge>
-        </div>
+    <div className="flex items-center gap-2 px-2 py-2 group hover:bg-muted/30 transition-colors min-h-[40px]">
+      <span className={`h-2 w-2 rounded-full shrink-0 ${urgencyDot[action.urgency]}`} />
+      <span className="text-sm font-medium shrink-0 max-w-[120px] truncate">{action.contactName}</span>
+      <span className="text-xs text-muted-foreground truncate flex-1 min-w-0">— {action.action}</span>
+      <Badge variant="outline" className={`text-[9px] px-1.5 py-0 shrink-0 ${sourceColors[action.source] || ""}`}>
+        {action.source}
+      </Badge>
+      <div className="hidden group-hover:flex items-center gap-0.5 shrink-0">
+        <Button size="sm" variant="ghost" className="h-6 w-6 p-0 text-muted-foreground hover:text-primary" onClick={() => onAddToList(action)} title="Add to My List">
+          <Plus className="h-3 w-3" />
+        </Button>
+        <Button size="sm" variant="ghost" className="h-6 w-6 p-0 text-muted-foreground hover:text-emerald-400" onClick={() => onDismiss(action, "done")} title="Done">
+          <Check className="h-3 w-3" />
+        </Button>
+        <Button size="sm" variant="ghost" className="h-6 w-6 p-0 text-muted-foreground hover:text-destructive" onClick={() => onDismiss(action, "not_relevant")} title="Dismiss">
+          <X className="h-3 w-3" />
+        </Button>
       </div>
-      <p className="text-xs">{action.action}</p>
-      <p className="text-[11px] text-muted-foreground">{action.reason}</p>
-
-      {showDismiss ? (
-        <div className="flex items-center gap-2 pt-1">
-          <span className="text-xs text-muted-foreground">Done, or not relevant?</span>
-          <Button size="sm" variant="outline" className="h-6 text-[11px]" onClick={() => onDismiss(action, "done")}>
-            Done
-          </Button>
-          <Button size="sm" variant="ghost" className="h-6 text-[11px]" onClick={() => onDismiss(action, "not_relevant")}>
-            Not Relevant
-          </Button>
-        </div>
-      ) : (
-        <div className="flex items-center gap-1.5 pt-0.5 flex-wrap">
-          <Button size="sm" variant="outline" className="h-6 text-[11px] gap-1" onClick={() => onAddToList(action)}>
-            <Plus className="h-3 w-3" /> My List
-          </Button>
-          <Button size="sm" variant="ghost" className="h-6 text-[11px] gap-1 text-muted-foreground" onClick={() => setShowDismiss(true)}>
-            <X className="h-3 w-3" /> Dismiss
-          </Button>
-        </div>
-      )}
     </div>
   );
 }
