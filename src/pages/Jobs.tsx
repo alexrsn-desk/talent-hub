@@ -22,39 +22,11 @@ const statusColor: Record<string, string> = {
 
 export default function JobsPage() {
   const { data: jobs = [], isLoading } = useJobs();
-  const { data: clients = [] } = useClients();
-  const createJob = useCreateJob();
   const updateJob = useUpdateJob();
   const deleteJob = useDeleteJob();
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
-  const [dialogOpen, setDialogOpen] = useState(false);
   const [selectedJob, setSelectedJob] = useState<Job | null>(null);
-
-  const filtered = jobs.filter((j) => {
-    const matchesSearch = j.title.toLowerCase().includes(search.toLowerCase()) ||
-      ((j.clients as any)?.company_name || "").toLowerCase().includes(search.toLowerCase());
-    const matchesStatus = statusFilter === "all" || j.status === statusFilter;
-    return matchesSearch && matchesStatus;
-  });
-
-  const handleCreate = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    const fd = new FormData(e.currentTarget);
-    await createJob.mutateAsync({
-      title: fd.get("title") as string,
-      client_id: (fd.get("client_id") as string) || null,
-      location: (fd.get("location") as string) || null,
-      salary_min: fd.get("salary_min") ? Number(fd.get("salary_min")) : null,
-      salary_max: fd.get("salary_max") ? Number(fd.get("salary_max")) : null,
-      job_type: (fd.get("job_type") as string) || "Perm",
-      status: "Open",
-      fee_type: (fd.get("fee_type") as string) || "Percentage",
-      fee_value: fd.get("fee_value") ? Number(fd.get("fee_value")) : null,
-      date_opened: new Date().toISOString().split("T")[0],
-    });
-    setDialogOpen(false);
-  };
 
   const formatSalary = (min: number | null, max: number | null) => {
     if (!min && !max) return "—";
