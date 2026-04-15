@@ -66,7 +66,7 @@ export const BUILT_IN_TEMPLATES: MappingTemplate[] = [
   {
     name: "Bullhorn Export", platform: "bullhorn",
     mappings: {
-      "First Name": "name", "Last Name": "_lastname", "Email": "email", "Phone": "phone",
+      "First Name": "first_name", "Last Name": "last_name", "Email": "email", "Phone": "phone",
       "Title": "job_title", "Company": "current_employer", "City": "location",
       "LinkedIn": "linkedin_url", "Source": "source", "Salary": "salary_current",
     },
@@ -74,7 +74,7 @@ export const BUILT_IN_TEMPLATES: MappingTemplate[] = [
   {
     name: "Vincere Export", platform: "vincere",
     mappings: {
-      "candidate_name": "name", "email_address": "email", "mobile": "phone",
+      "candidate_name": "_fullname", "email_address": "email", "mobile": "phone",
       "position_title": "job_title", "company_name": "current_employer",
       "city": "location", "linkedin_profile": "linkedin_url", "salary": "salary_current",
     },
@@ -82,7 +82,8 @@ export const BUILT_IN_TEMPLATES: MappingTemplate[] = [
   {
     name: "JobAdder Export", platform: "jobadder",
     mappings: {
-      "Name": "name", "Email Address": "email", "Mobile Number": "phone",
+      "Name": "_fullname", "First Name": "first_name", "Last Name": "last_name",
+      "Email Address": "email", "Mobile Number": "phone",
       "Job Title": "job_title", "Current Company": "current_employer",
       "Location": "location", "LinkedIn": "linkedin_url",
     },
@@ -90,11 +91,15 @@ export const BUILT_IN_TEMPLATES: MappingTemplate[] = [
   {
     name: "Generic Spreadsheet", platform: "generic",
     mappings: {
-      "name": "name", "full_name": "name", "email": "email", "phone": "phone",
+      "first_name": "first_name", "firstname": "first_name", "first name": "first_name",
+      "last_name": "last_name", "lastname": "last_name", "last name": "last_name", "surname": "last_name",
+      "name": "_fullname", "full_name": "_fullname", "full name": "_fullname",
+      "candidate_name": "_fullname", "contact_name": "_contact_fullname",
+      "email": "email", "phone": "phone",
       "mobile": "phone", "linkedin": "linkedin_url", "job_title": "job_title",
       "title": "job_title", "company": "current_employer", "employer": "current_employer",
       "location": "location", "city": "location", "salary": "salary_current",
-      "source": "source", "company_name": "company_name", "contact_name": "contact_name",
+      "source": "source", "company_name": "company_name",
       "sector": "sector", "industry": "sector",
     },
   },
