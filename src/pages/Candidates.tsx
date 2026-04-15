@@ -5,13 +5,16 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
-import { Plus, Search, ExternalLink } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { Plus, Search, ExternalLink, Star, PhoneCall } from "lucide-react";
 import { useCandidates, useCreateCandidate, useUpdateCandidate, useDeleteCandidate, type Candidate } from "@/hooks/use-data";
 import { PriorityStarIcon } from "@/components/PriorityFlag";
 import { CandidateDetail } from "@/components/CandidateDetail";
 import { CandidateContextMenu } from "@/components/CandidateContextMenu";
+import { LogTouchpointModal } from "@/components/LogTouchpointModal";
 import { logActivity } from "@/lib/activity-log";
 import { cn } from "@/lib/utils";
+import { toast } from "sonner";
 
 const STATUSES = ["New", "Contacted", "Screening", "Submitted", "Interviewing", "Placed", "On Hold", "Not Suitable"] as const;
 const SOURCES = ["LinkedIn", "Referral", "Job Board", "Inbound"] as const;
@@ -178,6 +181,53 @@ function InlineStatusCell({
   );
 }
 
+// --- Row priority toggle ---
+function RowPriorityToggle({ candidate, onToggle }: { candidate: Candidate; onToggle: (c: Candidate) => void }) {
+  return (
+    <TooltipProvider delayDuration={300}>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <button
+            className="p-2 rounded-md hover:bg-muted/40 transition-colors"
+            onClick={(e) => { e.stopPropagation(); onToggle(candidate); }}
+          >
+            <Star
+              className={cn(
+                "h-4 w-4 transition-colors",
+                candidate.priority_flag
+                  ? "fill-[#F5A623] text-[#F5A623]"
+                  : "text-muted-foreground hover:text-[#F5A623]/70"
+              )}
+            />
+          </button>
+        </TooltipTrigger>
+        <TooltipContent side="top" className="text-xs">
+          {candidate.priority_flag ? "Remove priority flag" : "Flag as priority"}
+        </TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
+  );
+}
+
+// --- Row touchpoint button ---
+function RowTouchpointButton({ candidate, onOpen }: { candidate: Candidate; onOpen: (c: Candidate) => void }) {
+  return (
+    <TooltipProvider delayDuration={300}>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <button
+            className="p-2 rounded-md hover:bg-muted/40 transition-colors text-muted-foreground hover:text-primary"
+            onClick={(e) => { e.stopPropagation(); onOpen(candidate); }}
+          >
+            <PhoneCall className="h-4 w-4" />
+          </button>
+        </TooltipTrigger>
+        <TooltipContent side="top" className="text-xs">Log touchpoint</TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
+  );
+}
+
 export default function CandidatesPage() {
   const { data: candidates = [], isLoading } = useCandidates();
   const createCandidate = useCreateCandidate();
@@ -190,6 +240,21 @@ export default function CandidatesPage() {
   const [detailOpen, setDetailOpen] = useState(false);
   // Track which cell is being edited: "candidateId:field"
   const [editingCell, setEditingCell] = useState<string | null>(null);
+  const [touchpointCandidate, setTouchpointCandidate] = useState<Candidate | null>(null);
+
+  const handleTogglePriority = useCallback((c: Candidate) => {
+    if (c.priority_flag) {
+      updateCandidate.mutate({ id: c.id, priority_flag: false, priority_reason: null, priority_flagged_at: null, priority_followup_date: null } as any);
+      toast("Removed", { duration: 1000 });
+    } else {
+      updateCandidate.mutate({ id: c.id, priority_flag: true, priority_flagged_at: new Date().toISOString() } as any);
+      toast("Flagged", { duration: 1000 });
+    }
+  }, [updateCandidate]);
+
+  const handleOpenTouchpoint = useCallback((c: Candidate) => {
+    setTouchpointCandidate(c);
+  }, []);
 
   const filtered = candidates
     .filter((c) => {
@@ -409,9 +474,11 @@ export default function CandidatesPage() {
                     />
                   </td>
                   <td className="px-4 py-3">
-                    <div className="flex items-center gap-1">
+                    <div className="flex items-center gap-0.5">
+                      <RowPriorityToggle candidate={c} onToggle={handleTogglePriority} />
+                      <RowTouchpointButton candidate={c} onOpen={handleOpenTouchpoint} />
                       {c.linkedin_url && (
-                        <a href={c.linkedin_url} target="_blank" rel="noopener noreferrer" onClick={e => e.stopPropagation()}>
+                        <a href={c.linkedin_url} target="_blank" rel="noopener noreferrer" onClick={e => e.stopPropagation()} className="p-2">
                           <ExternalLink className="h-4 w-4 text-muted-foreground hover:text-primary" />
                         </a>
                       )}
@@ -445,6 +512,16 @@ export default function CandidatesPage() {
           )}
         </DialogContent>
       </Dialog>
+
+      {touchpointCandidate && (
+        <LogTouchpointModal
+          open={!!touchpointCandidate}
+          onOpenChange={(open) => { if (!open) setTouchpointCandidate(null); }}
+          entityType="candidate"
+          entityId={touchpointCandidate.id}
+          entityName={touchpointCandidate.name}
+        />
+      )}
     </div>
   );
 }
