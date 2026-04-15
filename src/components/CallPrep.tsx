@@ -8,6 +8,8 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { ChevronDown, ChevronRight, Loader2, FileText, AlertTriangle, CheckCircle2, X } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useFeatureLimit, useLogUsage } from "@/hooks/use-usage";
+import { FeatureLockButton } from "@/components/UsageLimitGuard";
 
 interface Phase {
   number: number;

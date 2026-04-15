@@ -3,6 +3,7 @@ import ReactMarkdown from "react-markdown";
 import { Send, Sparkles, Loader2, Trash2, X, Copy, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
+import { useFeatureLimit, useLogUsage } from "@/hooks/use-usage";
 
 type Msg = { role: "user" | "assistant"; content: string };
 
@@ -258,13 +259,21 @@ export function CoachPanel() {
     });
   }, [open, proactiveSent, setHasAlert]);
 
+  const coachLimit = useFeatureLimit("coach_query");
+  const logUsage = useLogUsage();
+
   const send = async (text: string) => {
     if (!text.trim() || isLoading) return;
+    if (!coachLimit.canUse) {
+      toast.error("Monthly coach query limit reached");
+      return;
+    }
     const userMsg: Msg = { role: "user", content: text.trim() };
     const newMessages = [...messages, userMsg];
     setMessages(newMessages);
     setInput("");
     setIsLoading(true);
+    logUsage.mutate({ featureType: "coach_query", isGrace: coachLimit.graceGranted });
 
     let assistantContent = "";
     await streamChat({
