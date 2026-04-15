@@ -1,9 +1,8 @@
 import { useState } from "react";
-import { MoreHorizontal, Pencil, Eye, PhoneCall, Star, Trash2 } from "lucide-react";
+import { MoreHorizontal, Eye, PhoneCall, Star, Trash2 } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
 import { useUpdateCandidate, useDeleteCandidate, type Candidate } from "@/hooks/use-data";
-import { CandidateQuickEdit } from "@/components/CandidateQuickEdit";
 import { LogTouchpointModal } from "@/components/LogTouchpointModal";
 import { toast } from "sonner";
 import {
@@ -24,7 +23,6 @@ interface Props {
 }
 
 export function CandidateContextMenu({ candidate, onViewProfile, triggerClassName }: Props) {
-  const [quickEditOpen, setQuickEditOpen] = useState(false);
   const [touchpointOpen, setTouchpointOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
   const updateCandidate = useUpdateCandidate();
@@ -51,9 +49,6 @@ export function CandidateContextMenu({ candidate, onViewProfile, triggerClassNam
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
-          <DropdownMenuItem onClick={() => setQuickEditOpen(true)}>
-            <Pencil className="h-3.5 w-3.5 mr-2" /> Quick Edit
-          </DropdownMenuItem>
           {onViewProfile && (
             <DropdownMenuItem onClick={onViewProfile}>
               <Eye className="h-3.5 w-3.5 mr-2" /> View Profile
