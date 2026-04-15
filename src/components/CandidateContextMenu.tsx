@@ -68,7 +68,7 @@ export function CandidateContextMenu({ candidate, onViewProfile, triggerClassNam
         </DropdownMenuContent>
       </DropdownMenu>
 
-      <CandidateQuickEdit candidate={candidate} open={quickEditOpen} onOpenChange={setQuickEditOpen} />
+      <LogTouchpointModal open={touchpointOpen} onOpenChange={setTouchpointOpen} entityType="candidate" entityId={candidate.id} entityName={candidate.name} />
       <LogTouchpointModal open={touchpointOpen} onOpenChange={setTouchpointOpen} entityType="candidate" entityId={candidate.id} entityName={candidate.name} />
       
       <AlertDialog open={deleteOpen} onOpenChange={setDeleteOpen}>
