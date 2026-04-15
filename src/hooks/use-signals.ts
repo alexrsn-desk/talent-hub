@@ -144,7 +144,8 @@ export function useFeedbackSignal() {
 export function useDetectSignals() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (noteId: string) => {
+    mutationFn: async ({ noteId, logUsageFn }: { noteId: string; logUsageFn?: () => void }) => {
+      if (logUsageFn) logUsageFn();
       const { data, error } = await supabase.functions.invoke("detect-signals", {
         body: { note_id: noteId },
       });
