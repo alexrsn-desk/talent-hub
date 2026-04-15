@@ -355,12 +355,14 @@ export type Database = {
           job_title: string | null
           last_activity_date: string | null
           linkedin_url: string | null
+          location: string | null
           next_action: string | null
           next_action_due_date: string | null
           phone: string | null
           sector: string | null
           status: string
           updated_at: string
+          website: string | null
         }
         Insert: {
           company_name: string
@@ -371,12 +373,14 @@ export type Database = {
           job_title?: string | null
           last_activity_date?: string | null
           linkedin_url?: string | null
+          location?: string | null
           next_action?: string | null
           next_action_due_date?: string | null
           phone?: string | null
           sector?: string | null
           status?: string
           updated_at?: string
+          website?: string | null
         }
         Update: {
           company_name?: string
@@ -387,12 +391,14 @@ export type Database = {
           job_title?: string | null
           last_activity_date?: string | null
           linkedin_url?: string | null
+          location?: string | null
           next_action?: string | null
           next_action_due_date?: string | null
           phone?: string | null
           sector?: string | null
           status?: string
           updated_at?: string
+          website?: string | null
         }
         Relationships: []
       }
@@ -400,38 +406,50 @@ export type Database = {
         Row: {
           client_id: string
           created_at: string
+          direct_phone: string | null
           email: string | null
           first_name: string | null
           id: string
           job_title: string | null
           last_name: string | null
           linkedin_url: string | null
+          mobile_phone: string | null
           name: string
+          personal_email: string | null
           phone: string | null
+          status: string
         }
         Insert: {
           client_id: string
           created_at?: string
+          direct_phone?: string | null
           email?: string | null
           first_name?: string | null
           id?: string
           job_title?: string | null
           last_name?: string | null
           linkedin_url?: string | null
+          mobile_phone?: string | null
           name: string
+          personal_email?: string | null
           phone?: string | null
+          status?: string
         }
         Update: {
           client_id?: string
           created_at?: string
+          direct_phone?: string | null
           email?: string | null
           first_name?: string | null
           id?: string
           job_title?: string | null
           last_name?: string | null
           linkedin_url?: string | null
+          mobile_phone?: string | null
           name?: string
+          personal_email?: string | null
           phone?: string | null
+          status?: string
         }
         Relationships: [
           {
