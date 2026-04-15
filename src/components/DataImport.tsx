@@ -9,7 +9,7 @@ import {
   Download, Loader2, Users, Building2, Briefcase, Shield, Link2, Save, Trash2,
 } from "lucide-react";
 import {
-  RecordType, FIELD_MAP, BUILT_IN_TEMPLATES, MappingTemplate,
+  RecordType, FIELD_MAP, BUILT_IN_TEMPLATES, MappingTemplate, NameReviewItem,
   parseCSV, autoMapHeaders, buildRecord, runImportForType,
   downloadErrorReport as dlErrors, ImportResult,
 } from "@/lib/csv-import";
