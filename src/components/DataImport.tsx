@@ -26,6 +26,7 @@ export function DataImport() {
   const [duplicateAction, setDuplicateAction] = useState<"update" | "skip">("skip");
   const [result, setResult] = useState<ImportResult | null>(null);
   const [unmatchedJobs, setUnmatchedJobs] = useState<{ id: string; title: string }[]>([]);
+  const [nameReviewItems, setNameReviewItems] = useState<NameReviewItem[]>([]);
   const [jobClientLinks, setJobClientLinks] = useState<Record<string, string>>({});
   const [clients, setClients] = useState<{ id: string; company_name: string }[]>([]);
   const [savedTemplates, setSavedTemplates] = useState<MappingTemplate[]>(() => {
