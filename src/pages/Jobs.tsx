@@ -164,6 +164,8 @@ function JobFullView({ job, onBack, onUpdate, onDelete }: {
 
       <TagsSection entityType="job" entityId={job.id} />
 
+      <CandidateMatching job={job} autoRun={job.status === "Open"} />
+
       <div>
         <h2 className="text-sm font-medium mb-3">Candidate Pipeline</h2>
         <JobPipelineBoard job={job} />
