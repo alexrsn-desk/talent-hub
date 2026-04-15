@@ -86,9 +86,12 @@ export function DataImport() {
     toast.success("Template deleted");
   };
 
-  const requiredMapped = fields.filter(f => f.required).every(f =>
-    Object.values(mapping).includes(f.key)
-  );
+  const requiredMapped = fields.filter(f => f.required).every(f => {
+    if (f.key === "first_name") {
+      return Object.values(mapping).includes("first_name") || Object.values(mapping).includes("_fullname");
+    }
+    return Object.values(mapping).includes(f.key);
+  });
 
   const runImport = async () => {
     setStep("importing");
