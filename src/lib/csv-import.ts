@@ -267,6 +267,7 @@ export interface ImportResult {
   skipped: number;
   updated: number;
   errors: ImportError[];
+  nameReviewItems: NameReviewItem[];
 }
 
 // ── Run import for a single record type ───────────────────────────
@@ -279,8 +280,12 @@ export async function runImportForType(
   onProgress?: (current: number, total: number) => void,
 ): Promise<ImportResult & { unmatchedJobs: { id: string; title: string }[] }> {
   const fields = FIELD_MAP[recordType];
-  const res: ImportResult = { imported: 0, skipped: 0, updated: 0, errors: [] };
+  const res: ImportResult = { imported: 0, skipped: 0, updated: 0, errors: [], nameReviewItems: [] };
   const unmatchedJobs: { id: string; title: string }[] = [];
+
+  // Check if name comes from a fullname field (not separate first/last)
+  const hasFullnameMapping = Object.values(mapping).includes("_fullname") || Object.values(mapping).includes("_contact_fullname");
+  const hasFirstNameMapping = Object.values(mapping).includes("first_name");
 
   let existingEmails: Record<string, string> = {};
   if ((recordType === "candidates" || recordType === "clients") && Object.values(mapping).includes("email")) {
@@ -299,11 +304,29 @@ export async function runImportForType(
     const row = rows[i];
     const record = buildRecord(row, headers, mapping);
 
-    const missingFields = fields.filter(f => f.required && !record[f.key]);
+    // For candidates/contacts: check first_name is present (may come from _fullname split)
+    const namePresent = record.first_name || record.name;
+    const missingFields = fields.filter(f => {
+      if (f.key === "first_name" && (hasFullnameMapping || namePresent)) return false;
+      return f.required && !record[f.key];
+    });
     if (missingFields.length > 0) {
       res.errors.push({ row: i + 2, reason: `Missing required: ${missingFields.map(f => f.label).join(", ")}`, data: record });
       res.skipped++;
       continue;
+    }
+
+    // Collect names needing review (3+ word names from fullname split)
+    if (hasFullnameMapping && record.name) {
+      const parts = record.name.trim().split(/\s+/);
+      if (parts.length > 2) {
+        res.nameReviewItems.push({
+          row: i + 2,
+          fullName: record.name,
+          suggestedFirst: record.first_name || parts[0],
+          suggestedLast: record.last_name || parts.slice(1).join(" "),
+        });
+      }
     }
 
     const email = record.email?.toLowerCase();
