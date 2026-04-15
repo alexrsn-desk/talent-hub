@@ -4,17 +4,19 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import {
-  Check, Link2, AlertTriangle, Users, Loader2, ChevronDown, ChevronUp,
+  Check, Link2, AlertTriangle, Users, Loader2, ChevronDown, ChevronUp, UserCheck,
 } from "lucide-react";
 import {
-  ImportError, DuplicateCandidate, detectDuplicateCandidates, downloadErrorReport,
+  ImportError, DuplicateCandidate, NameReviewItem, detectDuplicateCandidates, downloadErrorReport,
 } from "@/lib/csv-import";
 
 interface Props {
   unmatchedJobs: { id: string; title: string }[];
   errors: ImportError[];
+  nameReviewItems?: NameReviewItem[];
   /** Called when user finishes / dismisses the checklist */
   onDismiss?: () => void;
   /** Compact mode for settings page */
