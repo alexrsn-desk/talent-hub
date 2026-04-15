@@ -316,23 +316,38 @@ export function DataImport() {
             )}
 
             <div className="space-y-2 max-h-80 overflow-y-auto">
-              {headers.map(h => (
-                <div key={h} className="flex items-center gap-3">
-                  <div className="flex-1 text-sm font-mono truncate bg-muted/50 rounded px-2 py-1.5">{h}</div>
-                  <ArrowRight className="h-4 w-4 text-muted-foreground shrink-0" />
-                  <Select value={mapping[h] || "_skip"} onValueChange={val => setMapping(prev => ({ ...prev, [h]: val }))}>
-                    <SelectTrigger className="flex-1"><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="_skip">— Skip this column —</SelectItem>
-                      {fields.map(f => (
-                        <SelectItem key={f.key} value={f.key}>
-                          {f.label} {f.required && <span className="text-destructive">*</span>}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              ))}
+              {headers.map(h => {
+                const mappedKey = mapping[h] || "_skip";
+                const isFullName = mappedKey === "_fullname";
+                // Show a preview of the split for the first non-empty row
+                const sampleVal = isFullName ? rows.find(r => r[headers.indexOf(h)]?.trim())?.[headers.indexOf(h)]?.trim() : null;
+                const splitPreview = sampleVal ? splitFullName(sampleVal) : null;
+                return (
+                  <div key={h} className="space-y-1">
+                    <div className="flex items-center gap-3">
+                      <div className="flex-1 text-sm font-mono truncate bg-muted/50 rounded px-2 py-1.5">{h}</div>
+                      <ArrowRight className="h-4 w-4 text-muted-foreground shrink-0" />
+                      <Select value={mappedKey} onValueChange={val => setMapping(prev => ({ ...prev, [h]: val }))}>
+                        <SelectTrigger className="flex-1"><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="_skip">— Skip this column —</SelectItem>
+                          {fields.map(f => (
+                            <SelectItem key={f.key} value={f.key}>
+                              {f.label} {f.required && <span className="text-destructive">*</span>}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    {isFullName && splitPreview && (
+                      <div className="ml-2 text-xs text-muted-foreground bg-muted/30 rounded px-2 py-1">
+                        Preview: &apos;{sampleVal}&apos; → First: <span className="text-foreground font-medium">{splitPreview.first}</span> / Last: <span className="text-foreground font-medium">{splitPreview.last}</span>
+                        {splitPreview.needsReview && <span className="text-yellow-500 ml-2">⚠ 3+ words — flagged for review</span>}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
             </div>
 
             {!requiredMapped && (

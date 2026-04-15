@@ -349,28 +349,42 @@ export function OnboardingImport({ onComplete }: { onComplete: () => void }) {
               return (
                 <div className="space-y-3">
                   <div className="max-h-72 overflow-y-auto space-y-2">
-                    {f.headers.map(h => (
-                      <div key={h} className="flex items-center gap-3">
-                        <div className="flex-1 text-sm font-mono truncate bg-muted/50 rounded px-2 py-1.5">{h}</div>
-                        <ArrowRight className="h-4 w-4 text-muted-foreground shrink-0" />
-                        <Select
-                          value={f.mapping[h] || "_skip"}
-                          onValueChange={val => updateMapping(activeType, h, val)}
-                        >
-                          <SelectTrigger className="flex-1">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="_skip">— Skip —</SelectItem>
-                            {fields.map(fd => (
-                              <SelectItem key={fd.key} value={fd.key}>
-                                {fd.label} {fd.required && "★"}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
-                    ))}
+                    {f.headers.map(h => {
+                      const mappedKey = f.mapping[h] || "_skip";
+                      const isFullName = mappedKey === "_fullname";
+                      const sampleVal = isFullName ? f.rows.find(r => r[f.headers.indexOf(h)]?.trim())?.[f.headers.indexOf(h)]?.trim() : null;
+                      const splitPrev = sampleVal ? splitFullName(sampleVal) : null;
+                      return (
+                        <div key={h} className="space-y-1">
+                          <div className="flex items-center gap-3">
+                            <div className="flex-1 text-sm font-mono truncate bg-muted/50 rounded px-2 py-1.5">{h}</div>
+                            <ArrowRight className="h-4 w-4 text-muted-foreground shrink-0" />
+                            <Select
+                              value={mappedKey}
+                              onValueChange={val => updateMapping(activeType, h, val)}
+                            >
+                              <SelectTrigger className="flex-1">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="_skip">— Skip —</SelectItem>
+                                {fields.map(fd => (
+                                  <SelectItem key={fd.key} value={fd.key}>
+                                    {fd.label} {fd.required && "★"}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          {isFullName && splitPrev && (
+                            <div className="ml-2 text-xs text-muted-foreground bg-muted/30 rounded px-2 py-1">
+                              Preview: &apos;{sampleVal}&apos; → First: <span className="text-foreground font-medium">{splitPrev.first}</span> / Last: <span className="text-foreground font-medium">{splitPrev.last}</span>
+                              {splitPrev.needsReview && <span className="text-yellow-500 ml-2">⚠ 3+ words — flagged for review</span>}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
                   </div>
 
                   {!requiredMapped && (
