@@ -31,61 +31,109 @@ function SignalCard({
   updateStatus,
   feedbackSignal,
   onDismiss,
+  expanded,
+  onToggle,
 }: {
   signal: CallSignal;
   updateStatus: ReturnType<typeof useUpdateSignalStatus>;
   feedbackSignal: ReturnType<typeof useFeedbackSignal>;
   onDismiss: (id: string) => void;
+  expanded: boolean;
+  onToggle: () => void;
 }) {
   const isMissingAction = signal.signal_category === "missing_action";
 
-  const handleThumbsDown = () => {
+  const handleThumbsDown = (e?: React.MouseEvent) => {
+    e?.stopPropagation();
     onDismiss(signal.id);
     feedbackSignal.mutate({ id: signal.id, rating: "thumbs_down" });
     toast("Got it, we'll improve", { duration: 2000 });
   };
 
-  const handleThumbsUp = () => {
+  const handleThumbsUp = (e?: React.MouseEvent) => {
+    e?.stopPropagation();
     feedbackSignal.mutate({ id: signal.id, rating: "thumbs_up" });
   };
 
   const isActioned = signal.status !== "unactioned";
 
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter") { e.preventDefault(); onToggle(); }
+    if (e.key === "Escape") { e.preventDefault(); onToggle(); }
+  };
+
+  const borderColor = isMissingAction ? "border-l-amber-400" : "border-l-yellow-400";
+
   return (
-    <div className={`flex items-center gap-2 px-2 py-2 group hover:bg-muted/30 transition-colors min-h-[40px] ${isActioned ? "opacity-50" : ""}`}>
-      {isMissingAction ? (
-        <AlertTriangle className="h-3.5 w-3.5 text-amber-400 shrink-0" />
-      ) : (
-        <Lightbulb className="h-3.5 w-3.5 text-yellow-400 shrink-0" />
-      )}
-      <Badge variant="outline" className={`text-[9px] px-1.5 py-0 shrink-0 ${signalColors[signal.signal_type] || ""}`}>
-        {signal.signal_type}
-      </Badge>
-      <span className="text-xs text-muted-foreground truncate flex-1 min-w-0">
-        {signal.suggested_action}
-      </span>
-      {signal.status === "unactioned" && (
-        <div className="hidden group-hover:flex items-center gap-0.5 shrink-0">
-          <Button variant="ghost" size="sm" className="h-6 w-6 p-0 text-muted-foreground hover:text-emerald-400" onClick={handleThumbsUp} title="Helpful">
-            <ThumbsUp className="h-3 w-3" />
-          </Button>
-          <Button variant="ghost" size="sm" className="h-6 w-6 p-0 text-muted-foreground hover:text-destructive" onClick={handleThumbsDown} title="Not useful">
-            <ThumbsDown className="h-3 w-3" />
-          </Button>
-          <Button variant="ghost" size="sm" className="h-6 w-6 p-0 text-muted-foreground hover:text-emerald-400" onClick={() => { updateStatus.mutate({ id: signal.id, status: "actioned" }); toast.success("Actioned"); }} title="Mark actioned">
-            <ArrowRight className="h-3 w-3" />
-          </Button>
-          <Button variant="ghost" size="sm" className="h-6 w-6 p-0 text-muted-foreground hover:text-muted-foreground" onClick={() => { updateStatus.mutate({ id: signal.id, status: "dismissed" }); toast("Dismissed"); }} title="Dismiss">
-            <X className="h-3 w-3" />
-          </Button>
+    <div className={`transition-all duration-200 ${expanded ? `bg-muted/20 border-l-2 ${borderColor}` : ""}`}>
+      {/* Collapsed row */}
+      <div
+        role="button"
+        tabIndex={0}
+        onClick={onToggle}
+        onKeyDown={handleKeyDown}
+        className={`flex items-center gap-2 px-2 py-2 group cursor-pointer hover:bg-muted/30 transition-colors min-h-[40px] ${isActioned ? "opacity-50" : ""}`}
+      >
+        {isMissingAction ? (
+          <AlertTriangle className="h-3.5 w-3.5 text-amber-400 shrink-0" />
+        ) : (
+          <Lightbulb className="h-3.5 w-3.5 text-yellow-400 shrink-0" />
+        )}
+        <Badge variant="outline" className={`text-[9px] px-1.5 py-0 shrink-0 ${signalColors[signal.signal_type] || ""}`}>
+          {signal.signal_type}
+        </Badge>
+        <span className="text-xs text-muted-foreground truncate flex-1 min-w-0">
+          {signal.suggested_action}
+        </span>
+        {!expanded && signal.status === "unactioned" && (
+          <div className="hidden group-hover:flex items-center gap-0.5 shrink-0">
+            <Button variant="ghost" size="sm" className="h-6 w-6 p-0 text-muted-foreground hover:text-emerald-400" onClick={e => { e.stopPropagation(); handleThumbsUp(); }} title="Helpful">
+              <ThumbsUp className="h-3 w-3" />
+            </Button>
+            <Button variant="ghost" size="sm" className="h-6 w-6 p-0 text-muted-foreground hover:text-emerald-400" onClick={e => { e.stopPropagation(); updateStatus.mutate({ id: signal.id, status: "actioned" }); toast.success("Actioned"); }} title="Mark actioned">
+              <ArrowRight className="h-3 w-3" />
+            </Button>
+          </div>
+        )}
+        {signal.feedback_rating === "thumbs_up" && (
+          <span className="text-[10px] text-emerald-400 shrink-0">✓</span>
+        )}
+        {isActioned && !signal.feedback_rating && (
+          <span className="text-[10px] text-muted-foreground uppercase shrink-0">{signal.status}</span>
+        )}
+        <ChevronDown className={`h-3.5 w-3.5 text-muted-foreground shrink-0 transition-transform duration-200 ${expanded ? "rotate-180" : ""}`} />
+      </div>
+
+      {/* Expanded detail */}
+      <div className={`overflow-hidden transition-all duration-200 ease-in-out ${expanded ? "max-h-[300px] opacity-100" : "max-h-0 opacity-0"}`}>
+        <div className="px-4 pb-3 pt-1 space-y-2">
+          {signal.trigger_phrase && (
+            <p className="text-xs text-muted-foreground italic">"{signal.trigger_phrase}"</p>
+          )}
+          <p className="text-sm text-foreground">{signal.explanation}</p>
+          <p className="text-xs text-muted-foreground">Suggested: {signal.suggested_action}</p>
+          {signal.suggested_date && (
+            <p className="text-xs text-muted-foreground">Suggested date: {new Date(signal.suggested_date).toLocaleDateString("en-GB", { day: "numeric", month: "short" })}</p>
+          )}
+
+          {signal.status === "unactioned" && (
+            <div className="flex flex-wrap gap-2 pt-1">
+              <Button size="sm" variant="outline" className="h-7 text-xs gap-1 text-emerald-400 hover:text-emerald-300" onClick={e => { e.stopPropagation(); handleThumbsUp(); }}>
+                <ThumbsUp className="h-3 w-3" /> Helpful
+              </Button>
+              <Button size="sm" variant="outline" className="h-7 text-xs gap-1 text-destructive hover:text-destructive/80" onClick={e => { e.stopPropagation(); handleThumbsDown(); }}>
+                <ThumbsDown className="h-3 w-3" /> Not Useful
+              </Button>
+              <Button size="sm" variant="outline" className="h-7 text-xs gap-1" onClick={e => { e.stopPropagation(); updateStatus.mutate({ id: signal.id, status: "actioned" }); toast.success("Actioned"); }}>
+                <ArrowRight className="h-3 w-3" /> Mark Actioned
+              </Button>
+              <Button size="sm" variant="outline" className="h-7 text-xs gap-1" onClick={e => { e.stopPropagation(); updateStatus.mutate({ id: signal.id, status: "dismissed" }); toast("Dismissed"); }}>
+                <X className="h-3 w-3" /> Dismiss
+              </Button>
+            </div>
+          )}
         </div>
-      )}
-      {signal.feedback_rating === "thumbs_up" && (
-        <span className="text-[10px] text-emerald-400 shrink-0">✓</span>
-      )}
-      {isActioned && !signal.feedback_rating && (
-        <span className="text-[10px] text-muted-foreground uppercase shrink-0">{signal.status}</span>
-      )}
+      </div>
     </div>
   );
 }
