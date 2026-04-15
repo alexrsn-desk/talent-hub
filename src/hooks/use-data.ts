@@ -458,6 +458,10 @@ export type Contact = {
   email: string | null;
   phone: string | null;
   linkedin_url: string | null;
+  status: string;
+  personal_email: string | null;
+  mobile_phone: string | null;
+  direct_phone: string | null;
   created_at: string;
 };
 
