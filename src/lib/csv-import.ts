@@ -371,14 +371,14 @@ export async function runImportForType(
 // ── Example CSV generators ────────────────────────────────────────
 export function generateExampleCSV(type: RecordType): string {
   if (type === "candidates") {
-    return `Name,Email,Phone,Job Title,Current Employer,Location,LinkedIn URL,Salary Expectation,Availability,Source
-John Smith,john@example.com,07700900000,Software Engineer,Acme Corp,London,https://linkedin.com/in/johnsmith,65000,1 month,LinkedIn
-Jane Doe,jane@example.com,07700900001,Product Manager,Tech Ltd,Manchester,,72000,2 weeks,Referral`;
+    return `First Name,Last Name,Email,Phone,Job Title,Current Employer,Location,LinkedIn URL,Salary Expectation,Availability,Source
+John,Smith,john@example.com,07700900000,Software Engineer,Acme Corp,London,https://linkedin.com/in/johnsmith,65000,1 month,LinkedIn
+Jane,Doe,jane@example.com,07700900001,Product Manager,Tech Ltd,Manchester,,72000,2 weeks,Referral`;
   }
   if (type === "clients") {
-    return `Company Name,Contact Name,Email,Phone,LinkedIn URL,Sector
-Acme Corp,Bob Williams,bob@acme.com,02012345678,https://linkedin.com/company/acme,Tech/Digital
-Global Inc,Sarah Jones,sarah@global.com,02087654321,,Finance`;
+    return `Company Name,Contact First Name,Contact Last Name,Email,Phone,LinkedIn URL,Sector
+Acme Corp,Bob,Williams,bob@acme.com,02012345678,https://linkedin.com/company/acme,Tech/Digital
+Global Inc,Sarah,Jones,sarah@global.com,02087654321,,Finance`;
   }
   return `Job Title,Client Company,Location,Salary Min,Salary Max,Job Type,Status,Date Opened,Fee %
 Senior Developer,Acme Corp,London,70000,90000,Perm,Open,2025-01-15,20
