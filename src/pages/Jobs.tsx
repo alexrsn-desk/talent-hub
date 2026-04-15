@@ -3,12 +3,12 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
-import { Plus, Search, Trash2, ArrowLeft } from "lucide-react";
-import { useJobs, useCreateJob, useUpdateJob, useDeleteJob, useClients, useCandidateJobs, useUpdateCandidateJob, type Job } from "@/hooks/use-data";
+import { Search, Trash2, ArrowLeft } from "lucide-react";
+import { useJobs, useUpdateJob, useDeleteJob, useClients, useCandidateJobs, useUpdateCandidateJob, type Job } from "@/hooks/use-data";
 import { NotesSection } from "@/components/NotesSection";
 import { JobPipelineBoard } from "@/components/JobPipelineBoard";
+import { AddJobDialog } from "@/components/AddJobDialog";
 
 const JOB_STATUSES = ["Open", "On Hold", "Filled", "Cancelled"] as const;
 const JOB_TYPES = ["Perm", "Contract"] as const;
