@@ -135,6 +135,20 @@ export function CandidateDetail({ candidate, onUpdate, onDelete }: Props) {
 
     await onUpdate(updates);
     await logActivity({ action_type: "candidate_updated", candidate_id: candidate.id, metadata: { changes, fields_updated: Object.keys(updates) } });
+
+    // GDPR log when Do Not Contact status is set
+    if (updates.status === "Do Not Contact" && candidate.status !== "Do Not Contact") {
+      await logActivity({
+        action_type: "gdpr_do_not_contact",
+        candidate_id: candidate.id,
+        metadata: {
+          previous_status: candidate.status,
+          reason: "Status changed to Do Not Contact",
+          permanent: true,
+        },
+      });
+    }
+
     setEditing(false);
     toast.success(`Updated: ${changes.length} field${changes.length > 1 ? "s" : ""} changed`);
   };
