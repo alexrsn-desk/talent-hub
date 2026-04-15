@@ -142,6 +142,7 @@ export function SignalBox({ signals, loading }: { signals: CallSignal[]; loading
   const updateStatus = useUpdateSignalStatus();
   const feedbackSignal = useFeedbackSignal();
   const [dismissedIds, setDismissedIds] = useState<Set<string>>(new Set());
+  const [expandedId, setExpandedId] = useState<string | null>(null);
 
   const visible = signals.filter(
     (s) => s.status !== "dismissed" && s.feedback_rating !== "thumbs_down" && !dismissedIds.has(s.id)
@@ -165,9 +166,12 @@ export function SignalBox({ signals, loading }: { signals: CallSignal[]; loading
     setDismissedIds((prev) => new Set(prev).add(id));
   };
 
+  const toggleExpand = (id: string) => {
+    setExpandedId(prev => prev === id ? null : id);
+  };
+
   return (
     <div className="space-y-3">
-      {/* Missing Actions — shown first, more urgent */}
       {missingActions.length > 0 && (
         <div className="border border-amber-400/30 bg-amber-400/5 rounded-lg p-4 space-y-3">
           <div className="flex items-center gap-2">
@@ -178,13 +182,12 @@ export function SignalBox({ signals, loading }: { signals: CallSignal[]; loading
           </div>
           <div className="divide-y divide-border">
             {missingActions.map((signal) => (
-              <SignalCard key={signal.id} signal={signal} updateStatus={updateStatus} feedbackSignal={feedbackSignal} onDismiss={handleDismiss} />
+              <SignalCard key={signal.id} signal={signal} updateStatus={updateStatus} feedbackSignal={feedbackSignal} onDismiss={handleDismiss} expanded={expandedId === signal.id} onToggle={() => toggleExpand(signal.id)} />
             ))}
           </div>
         </div>
       )}
 
-      {/* Opportunities */}
       {opportunities.length > 0 && (
         <div className="border border-yellow-400/30 bg-yellow-400/5 rounded-lg p-4 space-y-3">
           <div className="flex items-center gap-2">
@@ -195,7 +198,7 @@ export function SignalBox({ signals, loading }: { signals: CallSignal[]; loading
           </div>
           <div className="divide-y divide-border">
             {opportunities.map((signal) => (
-              <SignalCard key={signal.id} signal={signal} updateStatus={updateStatus} feedbackSignal={feedbackSignal} onDismiss={handleDismiss} />
+              <SignalCard key={signal.id} signal={signal} updateStatus={updateStatus} feedbackSignal={feedbackSignal} onDismiss={handleDismiss} expanded={expandedId === signal.id} onToggle={() => toggleExpand(signal.id)} />
             ))}
           </div>
         </div>
