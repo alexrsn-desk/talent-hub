@@ -10,6 +10,8 @@ import {
 } from "lucide-react";
 import { useCreateCandidateJob } from "@/hooks/use-data";
 import type { Job } from "@/hooks/use-data";
+import { useFeatureLimit, useLogUsage } from "@/hooks/use-usage";
+import { UsageLimitGuard, FeatureLockButton } from "@/components/UsageLimitGuard";
 
 interface MatchResult {
   candidate_id: string;
@@ -60,9 +62,17 @@ export function CandidateMatching({ job, autoRun = false }: { job: Job; autoRun?
   });
   const createCandidateJob = useCreateCandidateJob();
 
+  const matchLimit = useFeatureLimit("candidate_match");
+  const logUsage = useLogUsage();
+
   const runMatching = useCallback(async () => {
+    if (!matchLimit.canUse) {
+      toast.error("Monthly candidate matching limit reached");
+      return;
+    }
     setLoading(true);
     setError(null);
+    logUsage.mutate({ featureType: "candidate_match", isGrace: matchLimit.graceGranted });
     try {
       const { data: result, error: fnError } = await supabase.functions.invoke("match-candidates", {
         body: { job_id: job.id },
@@ -76,7 +86,7 @@ export function CandidateMatching({ job, autoRun = false }: { job: Job; autoRun?
     } finally {
       setLoading(false);
     }
-  }, [job.id]);
+  }, [job.id, matchLimit.canUse, matchLimit.graceGranted]);
 
   useEffect(() => {
     if (autoRun && !data && !loading) {

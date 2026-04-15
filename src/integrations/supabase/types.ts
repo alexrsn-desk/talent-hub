@@ -898,6 +898,75 @@ export type Database = {
         }
         Relationships: []
       }
+      usage_logs: {
+        Row: {
+          created_at: string
+          feature_type: string
+          id: string
+          is_grace_extension: boolean | null
+          month_year: string
+          token_count: number | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          feature_type: string
+          id?: string
+          is_grace_extension?: boolean | null
+          month_year: string
+          token_count?: number | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          feature_type?: string
+          id?: string
+          is_grace_extension?: boolean | null
+          month_year?: string
+          token_count?: number | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      user_plans: {
+        Row: {
+          billing_start_date: string
+          created_at: string
+          grace_used_this_month: boolean | null
+          id: string
+          next_reset_date: string
+          plan_type: string
+          status: string
+          trial_ends_at: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          billing_start_date?: string
+          created_at?: string
+          grace_used_this_month?: boolean | null
+          id?: string
+          next_reset_date?: string
+          plan_type?: string
+          status?: string
+          trial_ends_at?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          billing_start_date?: string
+          created_at?: string
+          grace_used_this_month?: boolean | null
+          id?: string
+          next_reset_date?: string
+          plan_type?: string
+          status?: string
+          trial_ends_at?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       weekly_summaries: {
         Row: {
           created_at: string

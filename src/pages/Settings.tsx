@@ -10,6 +10,7 @@ import { DataImport } from "@/components/DataImport";
 import { MigrationAssistant } from "@/components/MigrationAssistant";
 import { useSignalPerformance } from "@/hooks/use-signals";
 import { TagManagement } from "@/components/TagManagement";
+import { MyPlanSection } from "@/components/MyPlanSection";
 
 const NICHES = [
   "Tech/Digital", "Sales/Commercial", "Finance", "Legal",
@@ -306,6 +307,11 @@ export default function SettingsPage() {
       {/* Tag Management */}
       <div className="pt-6 border-t border-border">
         <TagManagement />
+      </div>
+
+      {/* My Plan */}
+      <div className="pt-6 border-t border-border">
+        <MyPlanSection />
       </div>
 
       {/* Signal Performance */}

@@ -3,6 +3,8 @@ import ReactMarkdown from "react-markdown";
 import { Send, Sparkles, Loader2, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
+import { useFeatureLimit, useLogUsage } from "@/hooks/use-usage";
+import { UsageLimitGuard } from "@/components/UsageLimitGuard";
 
 type Msg = { role: "user" | "assistant"; content: string };
 
@@ -110,13 +112,21 @@ export function RecruitmentCoach() {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
+  const coachLimit = useFeatureLimit("coach_query");
+  const logUsage = useLogUsage();
+
   const send = async (text: string) => {
     if (!text.trim() || isLoading) return;
+    if (!coachLimit.canUse) {
+      toast.error("Monthly coach query limit reached");
+      return;
+    }
     const userMsg: Msg = { role: "user", content: text.trim() };
     const newMessages = [...messages, userMsg];
     setMessages(newMessages);
     setInput("");
     setIsLoading(true);
+    logUsage.mutate({ featureType: "coach_query", isGrace: coachLimit.graceGranted });
 
     let assistantContent = "";
     const updateAssistant = (chunk: string) => {
@@ -154,6 +164,7 @@ export function RecruitmentCoach() {
   };
 
   return (
+    <UsageLimitGuard featureType="coach_query" renderDisabled>
     <div className="flex flex-col h-[calc(100vh-4rem)]">
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-3 border-b border-border">
@@ -254,5 +265,6 @@ export function RecruitmentCoach() {
         </div>
       </div>
     </div>
+    </UsageLimitGuard>
   );
 }

@@ -1,5 +1,6 @@
 import { useState, useMemo, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { useFeatureLimit, useLogUsage } from "@/hooks/use-usage";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -40,11 +41,16 @@ export default function CallsMeetings() {
   const { data: signalCounts = {} } = useSignalCounts();
   const { data: noteSignals = [], isLoading: signalsLoading } = useSignalsForNote(selectedNote?.id);
   const detectSignals = useDetectSignals();
+  const signalLimit = useFeatureLimit("signal_detection");
+  const logUsage = useLogUsage();
 
   // Auto-detect signals when viewing a note with content but no signals yet
   useEffect(() => {
-    if (selectedNote && !signalsLoading && noteSignals.length === 0 && (selectedNote.transcript || selectedNote.content?.length > 50)) {
-      detectSignals.mutate(selectedNote.id);
+    if (selectedNote && !signalsLoading && noteSignals.length === 0 && signalLimit.canUse && (selectedNote.transcript || selectedNote.content?.length > 50)) {
+      detectSignals.mutate({
+        noteId: selectedNote.id,
+        logUsageFn: () => logUsage.mutate({ featureType: "signal_detection", isGrace: signalLimit.graceGranted }),
+      });
     }
   }, [selectedNote?.id]);
 
