@@ -23,6 +23,7 @@ export const CANDIDATE_FIELDS: FieldDef[] = [
   { key: "availability", label: "Notice Period / Availability", required: false },
   { key: "source", label: "Source", required: false },
   { key: "status", label: "Status", required: false },
+  { key: "_notes", label: "Notes (import as note)", required: false },
 ];
 
 export const CLIENT_FIELDS: FieldDef[] = [
@@ -55,6 +56,26 @@ export const FIELD_MAP: Record<RecordType, FieldDef[]> = {
   jobs: JOB_FIELDS,
 };
 
+// ── Platform definitions ──────────────────────────────────────────
+export type PlatformKey = "vincere" | "bullhorn" | "jobadder" | "loxo" | "recruitee" | "spreadsheet" | "other";
+
+export interface PlatformOption {
+  value: PlatformKey;
+  label: string;
+  description: string;
+  autoMap: boolean; // true = skip manual mapping
+}
+
+export const PLATFORMS: PlatformOption[] = [
+  { value: "vincere", label: "Vincere", description: "Standard Vincere candidate export", autoMap: true },
+  { value: "bullhorn", label: "Bullhorn", description: "Standard Bullhorn candidate export", autoMap: true },
+  { value: "jobadder", label: "JobAdder", description: "Standard JobAdder candidate export", autoMap: true },
+  { value: "loxo", label: "Loxo", description: "Standard Loxo candidate export", autoMap: true },
+  { value: "recruitee", label: "Recruitee", description: "Standard Recruitee candidate export", autoMap: true },
+  { value: "spreadsheet", label: "Spreadsheet / Excel", description: "Manual column mapping", autoMap: false },
+  { value: "other", label: "Other CRM", description: "Manual column mapping", autoMap: false },
+];
+
 // ── Templates ─────────────────────────────────────────────────────
 export interface MappingTemplate {
   name: string;
@@ -64,32 +85,79 @@ export interface MappingTemplate {
 
 export const BUILT_IN_TEMPLATES: MappingTemplate[] = [
   {
-    name: "Bullhorn Export", platform: "bullhorn",
-    mappings: {
-      "First Name": "first_name", "Last Name": "last_name", "Email": "email", "Phone": "phone",
-      "Title": "job_title", "Company": "current_employer", "City": "location",
-      "LinkedIn": "linkedin_url", "Source": "source", "Salary": "salary_current",
-    },
-  },
-  {
     name: "Vincere Export", platform: "vincere",
     mappings: {
+      "First Name": "first_name", "Last Name": "last_name",
+      "Email": "email", "Mobile": "phone", "Phone": "phone",
+      "Current Job Title": "job_title", "Current Employer": "current_employer",
+      "City": "location", "Salary": "salary_current",
+      "LinkedIn URL": "linkedin_url", "Source": "source", "Status": "status",
+      "Notes": "_notes", "Created Date": "_skip", "Last Modified": "_skip",
+      // Vincere alternate headers
       "candidate_name": "_fullname", "email_address": "email", "mobile": "phone",
       "position_title": "job_title", "company_name": "current_employer",
       "city": "location", "linkedin_profile": "linkedin_url", "salary": "salary_current",
     },
   },
   {
-    name: "JobAdder Export", platform: "jobadder",
+    name: "Bullhorn Export", platform: "bullhorn",
     mappings: {
-      "Name": "_fullname", "First Name": "first_name", "Last Name": "last_name",
-      "Email Address": "email", "Mobile Number": "phone",
-      "Job Title": "job_title", "Current Company": "current_employer",
-      "Location": "location", "LinkedIn": "linkedin_url",
+      "firstName": "first_name", "lastName": "last_name",
+      "First Name": "first_name", "Last Name": "last_name",
+      "email": "email", "Email": "email",
+      "mobile": "phone", "Mobile": "phone",
+      "title": "job_title", "Title": "job_title",
+      "companyName": "current_employer", "Company": "current_employer", "Company Name": "current_employer",
+      "city": "location", "City": "location",
+      "salary": "salary_current", "Salary": "salary_current",
+      "linkedInURL": "linkedin_url", "LinkedIn": "linkedin_url", "LinkedIn URL": "linkedin_url",
+      "source": "source", "Source": "source",
+      "status": "status", "Status": "status",
+      "comments": "_notes", "Comments": "_notes",
+      "dateAdded": "_skip", "Date Added": "_skip",
     },
   },
   {
-    name: "Generic Spreadsheet", platform: "generic",
+    name: "JobAdder Export", platform: "jobadder",
+    mappings: {
+      "First Name": "first_name", "Last Name": "last_name",
+      "Email Address": "email", "Mobile Phone": "phone",
+      "Current Job Title": "job_title", "Current Employer": "current_employer",
+      "Location": "location", "Current Salary": "salary_current",
+      "LinkedIn": "linkedin_url", "Source": "source",
+      "Stage": "status", "Notes": "_notes", "Date Added": "_skip",
+      // Alternate headers
+      "Name": "_fullname", "Email": "email", "Mobile Number": "phone",
+      "Job Title": "job_title", "Current Company": "current_employer",
+    },
+  },
+  {
+    name: "Loxo Export", platform: "loxo",
+    mappings: {
+      "First Name": "first_name", "Last Name": "last_name",
+      "Email": "email", "Phone": "phone", "Mobile": "phone",
+      "Title": "job_title", "Current Title": "job_title",
+      "Company": "current_employer", "Current Company": "current_employer",
+      "Location": "location", "City": "location",
+      "Salary": "salary_current", "LinkedIn": "linkedin_url",
+      "Source": "source", "Status": "status", "Notes": "_notes",
+    },
+  },
+  {
+    name: "Recruitee Export", platform: "recruitee",
+    mappings: {
+      "First name": "first_name", "Last name": "last_name",
+      "First Name": "first_name", "Last Name": "last_name",
+      "Email": "email", "Phone": "phone", "Mobile": "phone",
+      "Position": "job_title", "Current Position": "job_title",
+      "Company": "current_employer", "Current Company": "current_employer",
+      "Location": "location", "City": "location",
+      "Source": "source", "Status": "status", "Notes": "_notes",
+      "LinkedIn": "linkedin_url", "LinkedIn URL": "linkedin_url",
+    },
+  },
+  {
+    name: "Generic Spreadsheet", platform: "spreadsheet",
     mappings: {
       "first_name": "first_name", "firstname": "first_name", "first name": "first_name",
       "last_name": "last_name", "lastname": "last_name", "last name": "last_name", "surname": "last_name",
@@ -101,18 +169,89 @@ export const BUILT_IN_TEMPLATES: MappingTemplate[] = [
       "location": "location", "city": "location", "salary": "salary_current",
       "source": "source", "company_name": "company_name",
       "sector": "sector", "industry": "sector",
+      "notes": "_notes", "comments": "_notes",
     },
   },
 ];
 
-export const PLATFORM_OPTIONS = [
-  { value: "bullhorn", label: "Bullhorn" },
-  { value: "vincere", label: "Vincere" },
-  { value: "jobadder", label: "JobAdder" },
-  { value: "generic", label: "Spreadsheet / Excel" },
-  { value: "other", label: "Other CRM" },
-  { value: "manual", label: "I don't know — just let me map the columns" },
-];
+// Legacy compat
+export const PLATFORM_OPTIONS = PLATFORMS.map(p => ({ value: p.value, label: p.label }));
+
+// ── Status mapping ────────────────────────────────────────────────
+const VINCERE_STATUS_MAP: Record<string, string> = {
+  "active": "Active", "placed": "Placed",
+  "do not contact": "Not Suitable", "unqualified": "Not Suitable",
+  "hot": "Active", "warm": "Active", "cold": "Cold",
+};
+
+const BULLHORN_STATUS_MAP: Record<string, string> = {
+  "active": "Active", "placed": "Placed",
+  "inactive": "Cold", "archive": "Cold",
+  "new lead": "New", "submitted": "Active",
+};
+
+const STATUS_MAPS: Record<string, Record<string, string>> = {
+  vincere: VINCERE_STATUS_MAP,
+  bullhorn: BULLHORN_STATUS_MAP,
+};
+
+const VALID_STATUSES = ["New", "Active", "Placed", "Cold", "Not Suitable"];
+
+export function mapStatus(raw: string | null, platform?: string): { status: string; flagPriority: boolean; flagged: boolean } {
+  if (!raw) return { status: "Active", flagPriority: false, flagged: false };
+  const lower = raw.toLowerCase().trim();
+
+  // Check platform-specific mapping first
+  if (platform && STATUS_MAPS[platform]) {
+    const mapped = STATUS_MAPS[platform][lower];
+    if (mapped) {
+      const flagPriority = lower === "hot";
+      return { status: mapped, flagPriority, flagged: false };
+    }
+  }
+
+  // Generic mapping
+  const directMatch = VALID_STATUSES.find(s => s.toLowerCase() === lower);
+  if (directMatch) return { status: directMatch, flagPriority: false, flagged: false };
+
+  // Default to Active and flag for review
+  return { status: "Active", flagPriority: false, flagged: true };
+}
+
+// ── Salary cleaning ───────────────────────────────────────────────
+export function cleanSalary(raw: string | null): { value: number | null; note: string | null } {
+  if (!raw) return { value: null, note: null };
+  const s = raw.trim();
+
+  // "Negotiable" or non-numeric
+  if (/^[a-z]/i.test(s) && !/\d/.test(s)) {
+    return { value: null, note: `Salary: ${s}` };
+  }
+
+  // Range like "£85k-£90k" or "85000-90000"
+  const rangeMatch = s.match(/[\d,.]+\s*[kK]?\s*[-–—to]+\s*[\d,.]+\s*[kK]?/);
+  if (rangeMatch) {
+    const nums = s.match(/[\d,.]+\s*[kK]?/g);
+    if (nums && nums.length >= 2) {
+      const v1 = parseSalaryToken(nums[0]);
+      const v2 = parseSalaryToken(nums[1]);
+      if (v1 && v2) {
+        return { value: Math.round((v1 + v2) / 2), note: `Original salary: ${s}` };
+      }
+    }
+  }
+
+  const val = parseSalaryToken(s);
+  return val ? { value: val, note: null } : { value: null, note: `Salary: ${s}` };
+}
+
+function parseSalaryToken(s: string): number | null {
+  const cleaned = s.replace(/[£$€,\s]/g, "");
+  const kMatch = cleaned.match(/^([\d.]+)\s*[kK]$/);
+  if (kMatch) return Math.round(parseFloat(kMatch[1]) * 1000);
+  const num = parseFloat(cleaned);
+  return isNaN(num) ? null : Math.round(num);
+}
 
 // ── CSV parser ────────────────────────────────────────────────────
 export function parseCSV(text: string): { headers: string[]; rows: string[][] } {
@@ -151,12 +290,11 @@ export function autoMapHeaders(
   platform?: string,
 ): Record<string, string> {
   const newMap: Record<string, string> = {};
-  // Prioritize selected platform template
   const templates = platform
     ? [...BUILT_IN_TEMPLATES.filter(t => t.platform === platform), ...BUILT_IN_TEMPLATES.filter(t => t.platform !== platform)]
     : BUILT_IN_TEMPLATES;
 
-  const specialKeys = ["_fullname", "_contact_fullname", "_lastname", "_client_company"];
+  const specialKeys = ["_fullname", "_contact_fullname", "_lastname", "_client_company", "_notes", "_skip"];
   for (const h of csvHeaders) {
     const lh = h.toLowerCase().trim();
     for (const tpl of templates) {
@@ -189,7 +327,6 @@ export function splitFullName(fullName: string): { first: string; last: string; 
   if (parts.length === 0) return { first: "", last: "", needsReview: false };
   if (parts.length === 1) return { first: parts[0], last: "", needsReview: false };
   if (parts.length === 2) return { first: parts[0], last: parts[1], needsReview: false };
-  // 3+ words — needs manual review, but suggest first/rest split
   return { first: parts[0], last: parts.slice(1).join(" "), needsReview: true };
 }
 
@@ -198,21 +335,51 @@ export function buildRecord(
   row: string[],
   headers: string[],
   mapping: Record<string, string>,
+  platform?: string,
 ): Record<string, any> {
   const rec: Record<string, any> = {};
+  let notesContent: string | null = null;
+
   for (const [csvHeader, fieldKey] of Object.entries(mapping)) {
     if (!fieldKey || fieldKey === "_skip") continue;
     const idx = headers.indexOf(csvHeader);
     if (idx === -1) continue;
     let val: any = row[idx]?.trim() || null;
 
-    // Skip internal mapping keys — handled below
     if (["_lastname", "_fullname", "_contact_fullname", "_client_company"].includes(fieldKey)) continue;
 
-    if (["salary_current", "salary_min", "salary_max", "fee_value"].includes(fieldKey) && val) {
-      val = parseFloat(String(val).replace(/[£$€,\s]/g, "")) || null;
+    if (fieldKey === "_notes") {
+      notesContent = val;
+      continue;
     }
+
+    if (fieldKey === "salary_current" && val) {
+      const { value, note } = cleanSalary(String(val));
+      rec.salary_current = value;
+      if (note) notesContent = notesContent ? `${notesContent}\n${note}` : note;
+      continue;
+    }
+
+    if (["salary_min", "salary_max", "fee_value"].includes(fieldKey) && val) {
+      val = parseSalaryToken(String(val)) || null;
+    }
+
+    if (fieldKey === "status" && val) {
+      const { status, flagPriority } = mapStatus(val, platform);
+      rec.status = status;
+      if (flagPriority) {
+        rec.priority_flag = true;
+        rec.priority_flagged_at = new Date().toISOString();
+      }
+      continue;
+    }
+
     rec[fieldKey] = val;
+  }
+
+  // Store notes for later insertion
+  if (notesContent) {
+    rec._notes_content = notesContent;
   }
 
   // Handle full name splitting for candidates
@@ -236,17 +403,14 @@ export function buildRecord(
       const { first, last } = splitFullName(contactFullName);
       rec.first_name = rec.first_name || first || null;
       rec.last_name = rec.last_name || last || null;
-      // Also set contact_name for backward compat
       rec.contact_name = contactFullName;
     }
   }
 
-  // Build the name column from first+last for backward compat
   if (rec.first_name || rec.last_name) {
     rec.name = [rec.first_name, rec.last_name].filter(Boolean).join(" ") || null;
   }
 
-  // If contact_name mapped directly (old clients), split it
   if (rec.contact_name && !rec.first_name) {
     const { first, last } = splitFullName(rec.contact_name);
     rec.first_name = first || null;
@@ -271,6 +435,9 @@ export interface ImportResult {
   nameReviewItems: NameReviewItem[];
 }
 
+// ── Archive option type ───────────────────────────────────────────
+export type ArchiveOption = "none" | "old_12m" | "cold_not_suitable";
+
 // ── Run import for a single record type ───────────────────────────
 export async function runImportForType(
   recordType: RecordType,
@@ -279,14 +446,15 @@ export async function runImportForType(
   mapping: Record<string, string>,
   duplicateAction: "update" | "skip",
   onProgress?: (current: number, total: number) => void,
-): Promise<ImportResult & { unmatchedJobs: { id: string; title: string }[] }> {
+  platform?: string,
+  archiveOption?: ArchiveOption,
+): Promise<ImportResult & { unmatchedJobs: { id: string; title: string }[]; importedIds: string[] }> {
   const fields = FIELD_MAP[recordType];
   const res: ImportResult = { imported: 0, skipped: 0, updated: 0, errors: [], nameReviewItems: [] };
   const unmatchedJobs: { id: string; title: string }[] = [];
+  const importedIds: string[] = [];
 
-  // Check if name comes from a fullname field (not separate first/last)
   const hasFullnameMapping = Object.values(mapping).includes("_fullname") || Object.values(mapping).includes("_contact_fullname");
-  const hasFirstNameMapping = Object.values(mapping).includes("first_name");
 
   let existingEmails: Record<string, string> = {};
   if ((recordType === "candidates" || recordType === "clients") && Object.values(mapping).includes("email")) {
@@ -300,12 +468,17 @@ export async function runImportForType(
     (data || []).forEach(c => { clientLookup[c.company_name.toLowerCase()] = c.id; });
   }
 
+  const platformLabel = PLATFORMS.find(p => p.value === platform)?.label || platform || "CSV";
+
   for (let i = 0; i < rows.length; i++) {
     onProgress?.(i + 1, rows.length);
     const row = rows[i];
-    const record = buildRecord(row, headers, mapping);
+    const record = buildRecord(row, headers, mapping, platform);
 
-    // For candidates/contacts: check first_name is present (may come from _fullname split)
+    // Extract notes content before inserting
+    const notesContent = record._notes_content;
+    delete record._notes_content;
+
     const namePresent = record.first_name || record.name;
     const missingFields = fields.filter(f => {
       if (f.key === "first_name" && (hasFullnameMapping || namePresent)) return false;
@@ -317,7 +490,6 @@ export async function runImportForType(
       continue;
     }
 
-    // Collect names needing review (3+ word names from fullname split)
     if (hasFullnameMapping && record.name) {
       const parts = record.name.trim().split(/\s+/);
       if (parts.length > 2) {
@@ -327,6 +499,13 @@ export async function runImportForType(
           suggestedFirst: record.first_name || parts[0],
           suggestedLast: record.last_name || parts.slice(1).join(" "),
         });
+      }
+    }
+
+    // Apply archive option for candidates
+    if (recordType === "candidates" && archiveOption === "cold_not_suitable") {
+      if (record.status === "Cold" || record.status === "Not Suitable") {
+        record.status = "Cold";
       }
     }
 
@@ -359,14 +538,69 @@ export async function runImportForType(
     if (error) { res.errors.push({ row: i + 2, reason: error.message, data: record }); res.skipped++; }
     else {
       res.imported++;
+      importedIds.push(inserted.id);
       if (email) existingEmails[email] = inserted.id;
       if (recordType === "jobs" && !record.client_id && inserted) {
         unmatchedJobs.push({ id: inserted.id, title: record.title });
       }
+
+      // Insert notes if present
+      if (notesContent && recordType === "candidates") {
+        await supabase.from("notes").insert({
+          candidate_id: inserted.id,
+          content: notesContent,
+          activity_type: "Note",
+          outcome: `Imported from ${platformLabel}`,
+        });
+      }
     }
   }
 
-  return { ...res, unmatchedJobs };
+  return { ...res, unmatchedJobs, importedIds };
+}
+
+// ── Import history ────────────────────────────────────────────────
+export async function saveImportHistory(
+  source: string,
+  recordType: RecordType,
+  result: ImportResult,
+  importedIds: string[],
+) {
+  await supabase.from("import_history" as any).insert({
+    source,
+    record_type: recordType,
+    records_imported: result.imported,
+    records_updated: result.updated,
+    records_skipped: result.skipped,
+    imported_ids: importedIds,
+  } as any);
+}
+
+export async function getImportHistory() {
+  const { data } = await supabase
+    .from("import_history" as any)
+    .select("*")
+    .order("created_at", { ascending: false });
+  return (data || []) as any[];
+}
+
+export async function undoLastImport(historyEntry: any): Promise<{ deleted: number }> {
+  const ids: string[] = historyEntry.imported_ids || [];
+  if (ids.length === 0) return { deleted: 0 };
+
+  const table = historyEntry.record_type as RecordType;
+  let deleted = 0;
+  // Delete in batches of 50
+  for (let i = 0; i < ids.length; i += 50) {
+    const batch = ids.slice(i, i + 50);
+    const { error } = await supabase.from(table as any).delete().in("id", batch);
+    if (!error) deleted += batch.length;
+  }
+
+  // Remove the history entry
+  await supabase.from("import_history" as any).delete().eq("id", historyEntry.id);
+
+  return { deleted };
 }
 
 // ── Example CSV generators ────────────────────────────────────────
