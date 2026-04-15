@@ -10,7 +10,9 @@ export interface FieldDef {
 }
 
 export const CANDIDATE_FIELDS: FieldDef[] = [
-  { key: "name", label: "Name", required: true },
+  { key: "first_name", label: "First Name", required: true },
+  { key: "last_name", label: "Last Name", required: false },
+  { key: "_fullname", label: "Full Name (will split)", required: false },
   { key: "email", label: "Email", required: false },
   { key: "phone", label: "Phone", required: false },
   { key: "linkedin_url", label: "LinkedIn URL", required: false },
