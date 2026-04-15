@@ -88,13 +88,15 @@ export const BUILT_IN_TEMPLATES: MappingTemplate[] = [
     name: "Vincere Export", platform: "vincere",
     mappings: {
       "First Name": "first_name", "Last Name": "last_name",
+      "Candidate Name": "_fullname", "Full Name": "_fullname",
       "Email": "email", "Mobile": "phone", "Phone": "phone",
       "Current Job Title": "job_title", "Current Employer": "current_employer",
       "City": "location", "Salary": "salary_current",
       "LinkedIn URL": "linkedin_url", "Source": "source", "Status": "status",
       "Notes": "_notes", "Created Date": "_skip", "Last Modified": "_skip",
       // Vincere alternate headers
-      "candidate_name": "_fullname", "email_address": "email", "mobile": "phone",
+      "candidate_name": "_fullname", "candidate name": "_fullname",
+      "email_address": "email", "mobile": "phone",
       "position_title": "job_title", "company_name": "current_employer",
       "city": "location", "linkedin_profile": "linkedin_url", "salary": "salary_current",
     },
