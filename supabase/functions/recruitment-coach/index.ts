@@ -150,6 +150,35 @@ serve(async (req) => {
     const bdProspects = allClients.filter((c: any) => ["Target", "Approached", "In Dialogue"].includes(c.status));
     const profile = profiles?.[0] || null;
 
+    // Detect stale clients and contacts
+    const nowMs = Date.now();
+    const dayMs = 1000 * 60 * 60 * 24;
+    const ninetyDaysAgo = new Date(nowMs - 90 * dayMs).toISOString().split("T")[0];
+    const sixMonthsAgo = new Date(nowMs - 180 * dayMs).toISOString().split("T")[0];
+
+    const staleClients = allClients
+      .filter((c: any) => c.status === "Active")
+      .map((c: any) => {
+        const lastActivity = c.last_activity_date || c.created_at?.split("T")[0];
+        const hasOpenJobs = openJobs.some((j: any) => j.client_id === c.id);
+        const daysSinceActivity = lastActivity ? Math.floor((nowMs - new Date(lastActivity).getTime()) / dayMs) : null;
+
+        const flags: string[] = [];
+        if (daysSinceActivity && daysSinceActivity >= 90) flags.push(`No activity in ${daysSinceActivity} days`);
+        if (lastActivity && lastActivity < sixMonthsAgo) flags.push(`Last contacted over 6 months ago`);
+        if (!hasOpenJobs) flags.push("No linked open jobs but status is Active");
+
+        return flags.length > 0 ? {
+          company: c.company_name,
+          contact: c.contact_name,
+          status: c.status,
+          lastActivity: lastActivity,
+          daysSinceActivity,
+          flags,
+        } : null;
+      })
+      .filter(Boolean);
+
     // Build a concise desk snapshot
     const deskData = {
       currentTime: `${dayOfWeek}, ${today} at ${timeStr} (${timeOfDay})`,
