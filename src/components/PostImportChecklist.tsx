@@ -4,32 +4,38 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import {
-  Check, Link2, AlertTriangle, Users, Loader2, ChevronDown, ChevronUp,
+  Check, Link2, AlertTriangle, Users, Loader2, ChevronDown, ChevronUp, UserCheck,
 } from "lucide-react";
 import {
-  ImportError, DuplicateCandidate, detectDuplicateCandidates, downloadErrorReport,
+  ImportError, DuplicateCandidate, NameReviewItem, detectDuplicateCandidates, downloadErrorReport,
 } from "@/lib/csv-import";
 
 interface Props {
   unmatchedJobs: { id: string; title: string }[];
   errors: ImportError[];
+  nameReviewItems?: NameReviewItem[];
   /** Called when user finishes / dismisses the checklist */
   onDismiss?: () => void;
   /** Compact mode for settings page */
   compact?: boolean;
 }
 
-export function PostImportChecklist({ unmatchedJobs: initialUnmatched, errors, onDismiss, compact }: Props) {
+export function PostImportChecklist({ unmatchedJobs: initialUnmatched, errors, nameReviewItems: initialNameReview, onDismiss, compact }: Props) {
   const [unmatchedJobs, setUnmatchedJobs] = useState(initialUnmatched);
   const [allClients, setAllClients] = useState<{ id: string; company_name: string }[]>([]);
   const [jobClientLinks, setJobClientLinks] = useState<Record<string, string>>({});
   const [duplicates, setDuplicates] = useState<DuplicateCandidate[]>([]);
+  const [nameReviews, setNameReviews] = useState<(NameReviewItem & { firstName: string; lastName: string })[]>(
+    (initialNameReview || []).map(n => ({ ...n, firstName: n.suggestedFirst, lastName: n.suggestedLast }))
+  );
   const [loadingDupes, setLoadingDupes] = useState(true);
   const [expandErrors, setExpandErrors] = useState(false);
   const [expandDupes, setExpandDupes] = useState(false);
   const [expandJobs, setExpandJobs] = useState(false);
+  const [expandNames, setExpandNames] = useState(nameReviews.length > 0);
   const [merging, setMerging] = useState<string | null>(null);
 
   useEffect(() => {
@@ -69,7 +75,24 @@ export function PostImportChecklist({ unmatchedJobs: initialUnmatched, errors, o
     setDuplicates(prev => prev.filter(d => !(d.id1 === id1 && d.id2 === id2)));
   };
 
-  const totalIssues = unmatchedJobs.length + errors.length + duplicates.length;
+  const confirmNameSplit = async (idx: number) => {
+    const item = nameReviews[idx];
+    // Find candidates with this full name and update first_name/last_name
+    const { data } = await supabase.from("candidates").select("id").eq("name", item.fullName);
+    if (data) {
+      for (const c of data) {
+        await supabase.from("candidates").update({
+          first_name: item.firstName,
+          last_name: item.lastName,
+          name: [item.firstName, item.lastName].filter(Boolean).join(" "),
+        } as any).eq("id", c.id);
+      }
+    }
+    toast.success(`Updated name split for ${item.fullName}`);
+    setNameReviews(prev => prev.filter((_, i) => i !== idx));
+  };
+
+  const totalIssues = unmatchedJobs.length + errors.length + duplicates.length + nameReviews.length;
   const allResolved = totalIssues === 0 && !loadingDupes;
 
   return (
@@ -178,6 +201,74 @@ export function PostImportChecklist({ unmatchedJobs: initialUnmatched, errors, o
                   onClick={() => downloadErrorReport(errors, "all")}
                 >
                   Download error report
+                </Button>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
+      {nameReviews.length > 0 && (
+        <Card>
+          <CardContent className="p-4 space-y-3">
+            <button
+              onClick={() => setExpandNames(p => !p)}
+              className="flex items-center justify-between w-full"
+            >
+              <div className="flex items-center gap-2">
+                <UserCheck className="h-4 w-4 text-primary" />
+                <span className="text-sm font-medium">
+                  {nameReviews.length} name{nameReviews.length > 1 ? "s" : ""} need first/last name review
+                </span>
+              </div>
+              <div className="flex items-center gap-2">
+                <Badge variant="outline" className="text-xs">{nameReviews.length}</Badge>
+                {expandNames ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+              </div>
+            </button>
+
+            {expandNames && (
+              <div className="space-y-3 pt-2 border-t border-border">
+                <p className="text-xs text-muted-foreground">
+                  These names have 3+ words. Confirm the first/last name split is correct.
+                </p>
+                {nameReviews.map((item, idx) => (
+                  <div key={idx} className="p-3 bg-muted/20 rounded-lg space-y-2">
+                    <div className="text-xs text-muted-foreground">Row {item.row}: <span className="font-medium text-foreground">{item.fullName}</span></div>
+                    <div className="flex items-center gap-2">
+                      <div className="flex-1">
+                        <label className="text-xs text-muted-foreground mb-0.5 block">First Name</label>
+                        <Input
+                          value={item.firstName}
+                          onChange={e => setNameReviews(prev => prev.map((n, i) => i === idx ? { ...n, firstName: e.target.value } : n))}
+                          className="h-8 text-sm"
+                        />
+                      </div>
+                      <div className="flex-1">
+                        <label className="text-xs text-muted-foreground mb-0.5 block">Last Name</label>
+                        <Input
+                          value={item.lastName}
+                          onChange={e => setNameReviews(prev => prev.map((n, i) => i === idx ? { ...n, lastName: e.target.value } : n))}
+                          className="h-8 text-sm"
+                        />
+                      </div>
+                      <Button size="sm" variant="ghost" className="h-8 mt-4" onClick={() => confirmNameSplit(idx)}>
+                        <Check className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="text-xs"
+                  onClick={async () => {
+                    for (let i = nameReviews.length - 1; i >= 0; i--) {
+                      await confirmNameSplit(i);
+                    }
+                  }}
+                >
+                  Confirm all splits
                 </Button>
               </div>
             )}

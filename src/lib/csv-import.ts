@@ -10,7 +10,9 @@ export interface FieldDef {
 }
 
 export const CANDIDATE_FIELDS: FieldDef[] = [
-  { key: "name", label: "Name", required: true },
+  { key: "first_name", label: "First Name", required: true },
+  { key: "last_name", label: "Last Name", required: false },
+  { key: "_fullname", label: "Full Name (will split)", required: false },
   { key: "email", label: "Email", required: false },
   { key: "phone", label: "Phone", required: false },
   { key: "linkedin_url", label: "LinkedIn URL", required: false },
@@ -25,7 +27,9 @@ export const CANDIDATE_FIELDS: FieldDef[] = [
 
 export const CLIENT_FIELDS: FieldDef[] = [
   { key: "company_name", label: "Company Name", required: true },
-  { key: "contact_name", label: "Contact Name", required: false },
+  { key: "first_name", label: "Contact First Name", required: false },
+  { key: "last_name", label: "Contact Last Name", required: false },
+  { key: "_contact_fullname", label: "Contact Full Name (will split)", required: false },
   { key: "email", label: "Email", required: false },
   { key: "phone", label: "Phone", required: false },
   { key: "linkedin_url", label: "LinkedIn URL", required: false },
@@ -62,7 +66,7 @@ export const BUILT_IN_TEMPLATES: MappingTemplate[] = [
   {
     name: "Bullhorn Export", platform: "bullhorn",
     mappings: {
-      "First Name": "name", "Last Name": "_lastname", "Email": "email", "Phone": "phone",
+      "First Name": "first_name", "Last Name": "last_name", "Email": "email", "Phone": "phone",
       "Title": "job_title", "Company": "current_employer", "City": "location",
       "LinkedIn": "linkedin_url", "Source": "source", "Salary": "salary_current",
     },
@@ -70,7 +74,7 @@ export const BUILT_IN_TEMPLATES: MappingTemplate[] = [
   {
     name: "Vincere Export", platform: "vincere",
     mappings: {
-      "candidate_name": "name", "email_address": "email", "mobile": "phone",
+      "candidate_name": "_fullname", "email_address": "email", "mobile": "phone",
       "position_title": "job_title", "company_name": "current_employer",
       "city": "location", "linkedin_profile": "linkedin_url", "salary": "salary_current",
     },
@@ -78,7 +82,8 @@ export const BUILT_IN_TEMPLATES: MappingTemplate[] = [
   {
     name: "JobAdder Export", platform: "jobadder",
     mappings: {
-      "Name": "name", "Email Address": "email", "Mobile Number": "phone",
+      "Name": "_fullname", "First Name": "first_name", "Last Name": "last_name",
+      "Email Address": "email", "Mobile Number": "phone",
       "Job Title": "job_title", "Current Company": "current_employer",
       "Location": "location", "LinkedIn": "linkedin_url",
     },
@@ -86,11 +91,15 @@ export const BUILT_IN_TEMPLATES: MappingTemplate[] = [
   {
     name: "Generic Spreadsheet", platform: "generic",
     mappings: {
-      "name": "name", "full_name": "name", "email": "email", "phone": "phone",
+      "first_name": "first_name", "firstname": "first_name", "first name": "first_name",
+      "last_name": "last_name", "lastname": "last_name", "last name": "last_name", "surname": "last_name",
+      "name": "_fullname", "full_name": "_fullname", "full name": "_fullname",
+      "candidate_name": "_fullname", "contact_name": "_contact_fullname",
+      "email": "email", "phone": "phone",
       "mobile": "phone", "linkedin": "linkedin_url", "job_title": "job_title",
       "title": "job_title", "company": "current_employer", "employer": "current_employer",
       "location": "location", "city": "location", "salary": "salary_current",
-      "source": "source", "company_name": "company_name", "contact_name": "contact_name",
+      "source": "source", "company_name": "company_name",
       "sector": "sector", "industry": "sector",
     },
   },
@@ -147,11 +156,12 @@ export function autoMapHeaders(
     ? [...BUILT_IN_TEMPLATES.filter(t => t.platform === platform), ...BUILT_IN_TEMPLATES.filter(t => t.platform !== platform)]
     : BUILT_IN_TEMPLATES;
 
+  const specialKeys = ["_fullname", "_contact_fullname", "_lastname", "_client_company"];
   for (const h of csvHeaders) {
     const lh = h.toLowerCase().trim();
     for (const tpl of templates) {
       for (const [tplHeader, fieldKey] of Object.entries(tpl.mappings)) {
-        if (tplHeader.toLowerCase() === lh && fields.some(f => f.key === fieldKey)) {
+        if (tplHeader.toLowerCase() === lh && (fields.some(f => f.key === fieldKey) || specialKeys.includes(fieldKey))) {
           newMap[h] = fieldKey;
           break;
         }
@@ -166,6 +176,23 @@ export function autoMapHeaders(
   return newMap;
 }
 
+// ── Name splitting helper ──────────────────────────────────────────
+export interface NameReviewItem {
+  row: number;
+  fullName: string;
+  suggestedFirst: string;
+  suggestedLast: string;
+}
+
+export function splitFullName(fullName: string): { first: string; last: string; needsReview: boolean } {
+  const parts = fullName.trim().split(/\s+/);
+  if (parts.length === 0) return { first: "", last: "", needsReview: false };
+  if (parts.length === 1) return { first: parts[0], last: "", needsReview: false };
+  if (parts.length === 2) return { first: parts[0], last: parts[1], needsReview: false };
+  // 3+ words — needs manual review, but suggest first/rest split
+  return { first: parts[0], last: parts.slice(1).join(" "), needsReview: true };
+}
+
 // ── Build record from row ─────────────────────────────────────────
 export function buildRecord(
   row: string[],
@@ -178,20 +205,54 @@ export function buildRecord(
     const idx = headers.indexOf(csvHeader);
     if (idx === -1) continue;
     let val: any = row[idx]?.trim() || null;
-    if (fieldKey === "name" && mapping[csvHeader] === "name") {
-      const lastNameHeader = Object.entries(mapping).find(([, v]) => v === "_lastname")?.[0];
-      if (lastNameHeader) {
-        const lnIdx = headers.indexOf(lastNameHeader);
-        const ln = lnIdx >= 0 ? row[lnIdx]?.trim() : "";
-        val = [val, ln].filter(Boolean).join(" ") || null;
-      }
-    }
-    if (fieldKey === "_lastname" || fieldKey === "_client_company") continue;
+
+    // Skip internal mapping keys — handled below
+    if (["_lastname", "_fullname", "_contact_fullname", "_client_company"].includes(fieldKey)) continue;
+
     if (["salary_current", "salary_min", "salary_max", "fee_value"].includes(fieldKey) && val) {
       val = parseFloat(String(val).replace(/[£$€,\s]/g, "")) || null;
     }
     rec[fieldKey] = val;
   }
+
+  // Handle full name splitting for candidates
+  const fullnameHeader = Object.entries(mapping).find(([, v]) => v === "_fullname")?.[0];
+  if (fullnameHeader) {
+    const fnIdx = headers.indexOf(fullnameHeader);
+    const fullName = fnIdx >= 0 ? row[fnIdx]?.trim() : "";
+    if (fullName) {
+      const { first, last } = splitFullName(fullName);
+      rec.first_name = rec.first_name || first || null;
+      rec.last_name = rec.last_name || last || null;
+    }
+  }
+
+  // Handle contact full name splitting for clients
+  const contactFullnameHeader = Object.entries(mapping).find(([, v]) => v === "_contact_fullname")?.[0];
+  if (contactFullnameHeader) {
+    const cfnIdx = headers.indexOf(contactFullnameHeader);
+    const contactFullName = cfnIdx >= 0 ? row[cfnIdx]?.trim() : "";
+    if (contactFullName) {
+      const { first, last } = splitFullName(contactFullName);
+      rec.first_name = rec.first_name || first || null;
+      rec.last_name = rec.last_name || last || null;
+      // Also set contact_name for backward compat
+      rec.contact_name = contactFullName;
+    }
+  }
+
+  // Build the name column from first+last for backward compat
+  if (rec.first_name || rec.last_name) {
+    rec.name = [rec.first_name, rec.last_name].filter(Boolean).join(" ") || null;
+  }
+
+  // If contact_name mapped directly (old clients), split it
+  if (rec.contact_name && !rec.first_name) {
+    const { first, last } = splitFullName(rec.contact_name);
+    rec.first_name = first || null;
+    rec.last_name = last || null;
+  }
+
   return rec;
 }
 
@@ -207,6 +268,7 @@ export interface ImportResult {
   skipped: number;
   updated: number;
   errors: ImportError[];
+  nameReviewItems: NameReviewItem[];
 }
 
 // ── Run import for a single record type ───────────────────────────
@@ -219,8 +281,12 @@ export async function runImportForType(
   onProgress?: (current: number, total: number) => void,
 ): Promise<ImportResult & { unmatchedJobs: { id: string; title: string }[] }> {
   const fields = FIELD_MAP[recordType];
-  const res: ImportResult = { imported: 0, skipped: 0, updated: 0, errors: [] };
+  const res: ImportResult = { imported: 0, skipped: 0, updated: 0, errors: [], nameReviewItems: [] };
   const unmatchedJobs: { id: string; title: string }[] = [];
+
+  // Check if name comes from a fullname field (not separate first/last)
+  const hasFullnameMapping = Object.values(mapping).includes("_fullname") || Object.values(mapping).includes("_contact_fullname");
+  const hasFirstNameMapping = Object.values(mapping).includes("first_name");
 
   let existingEmails: Record<string, string> = {};
   if ((recordType === "candidates" || recordType === "clients") && Object.values(mapping).includes("email")) {
@@ -239,11 +305,29 @@ export async function runImportForType(
     const row = rows[i];
     const record = buildRecord(row, headers, mapping);
 
-    const missingFields = fields.filter(f => f.required && !record[f.key]);
+    // For candidates/contacts: check first_name is present (may come from _fullname split)
+    const namePresent = record.first_name || record.name;
+    const missingFields = fields.filter(f => {
+      if (f.key === "first_name" && (hasFullnameMapping || namePresent)) return false;
+      return f.required && !record[f.key];
+    });
     if (missingFields.length > 0) {
       res.errors.push({ row: i + 2, reason: `Missing required: ${missingFields.map(f => f.label).join(", ")}`, data: record });
       res.skipped++;
       continue;
+    }
+
+    // Collect names needing review (3+ word names from fullname split)
+    if (hasFullnameMapping && record.name) {
+      const parts = record.name.trim().split(/\s+/);
+      if (parts.length > 2) {
+        res.nameReviewItems.push({
+          row: i + 2,
+          fullName: record.name,
+          suggestedFirst: record.first_name || parts[0],
+          suggestedLast: record.last_name || parts.slice(1).join(" "),
+        });
+      }
     }
 
     const email = record.email?.toLowerCase();
@@ -288,14 +372,14 @@ export async function runImportForType(
 // ── Example CSV generators ────────────────────────────────────────
 export function generateExampleCSV(type: RecordType): string {
   if (type === "candidates") {
-    return `Name,Email,Phone,Job Title,Current Employer,Location,LinkedIn URL,Salary Expectation,Availability,Source
-John Smith,john@example.com,07700900000,Software Engineer,Acme Corp,London,https://linkedin.com/in/johnsmith,65000,1 month,LinkedIn
-Jane Doe,jane@example.com,07700900001,Product Manager,Tech Ltd,Manchester,,72000,2 weeks,Referral`;
+    return `First Name,Last Name,Email,Phone,Job Title,Current Employer,Location,LinkedIn URL,Salary Expectation,Availability,Source
+John,Smith,john@example.com,07700900000,Software Engineer,Acme Corp,London,https://linkedin.com/in/johnsmith,65000,1 month,LinkedIn
+Jane,Doe,jane@example.com,07700900001,Product Manager,Tech Ltd,Manchester,,72000,2 weeks,Referral`;
   }
   if (type === "clients") {
-    return `Company Name,Contact Name,Email,Phone,LinkedIn URL,Sector
-Acme Corp,Bob Williams,bob@acme.com,02012345678,https://linkedin.com/company/acme,Tech/Digital
-Global Inc,Sarah Jones,sarah@global.com,02087654321,,Finance`;
+    return `Company Name,Contact First Name,Contact Last Name,Email,Phone,LinkedIn URL,Sector
+Acme Corp,Bob,Williams,bob@acme.com,02012345678,https://linkedin.com/company/acme,Tech/Digital
+Global Inc,Sarah,Jones,sarah@global.com,02087654321,,Finance`;
   }
   return `Job Title,Client Company,Location,Salary Min,Salary Max,Job Type,Status,Date Opened,Fee %
 Senior Developer,Acme Corp,London,70000,90000,Perm,Open,2025-01-15,20

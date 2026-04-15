@@ -98,7 +98,12 @@ export function OnboardingImport({ onComplete }: { onComplete: () => void }) {
     const f = files[t];
     if (!f) return false;
     const fields = FIELD_MAP[t];
-    return fields.filter(fd => fd.required).every(fd => Object.values(f.mapping).includes(fd.key));
+    return fields.filter(fd => fd.required).every(fd => {
+      if (fd.key === "first_name") {
+        return Object.values(f.mapping).includes("first_name") || Object.values(f.mapping).includes("_fullname");
+      }
+      return Object.values(f.mapping).includes(fd.key);
+    });
   });
 
   const totalRows = enabledList.reduce((sum, t) => sum + (files[t]?.rows.length || 0), 0);
@@ -334,7 +339,12 @@ export function OnboardingImport({ onComplete }: { onComplete: () => void }) {
               const f = files[activeType];
               if (!f) return null;
               const fields = FIELD_MAP[activeType];
-              const requiredMapped = fields.filter(fd => fd.required).every(fd => Object.values(f.mapping).includes(fd.key));
+              const requiredMapped = fields.filter(fd => fd.required).every(fd => {
+                if (fd.key === "first_name") {
+                  return Object.values(f.mapping).includes("first_name") || Object.values(f.mapping).includes("_fullname");
+                }
+                return Object.values(f.mapping).includes(fd.key);
+              });
 
               return (
                 <div className="space-y-3">
@@ -357,9 +367,6 @@ export function OnboardingImport({ onComplete }: { onComplete: () => void }) {
                                 {fd.label} {fd.required && "★"}
                               </SelectItem>
                             ))}
-                            {activeType === "candidates" && (
-                              <SelectItem value="_lastname">Last Name (merge)</SelectItem>
-                            )}
                           </SelectContent>
                         </Select>
                       </div>

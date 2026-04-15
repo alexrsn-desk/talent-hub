@@ -9,7 +9,7 @@ import {
   Download, Loader2, Users, Building2, Briefcase, Shield, Link2, Save, Trash2,
 } from "lucide-react";
 import {
-  RecordType, FIELD_MAP, BUILT_IN_TEMPLATES, MappingTemplate,
+  RecordType, FIELD_MAP, BUILT_IN_TEMPLATES, MappingTemplate, NameReviewItem,
   parseCSV, autoMapHeaders, buildRecord, runImportForType,
   downloadErrorReport as dlErrors, ImportResult,
 } from "@/lib/csv-import";
@@ -26,6 +26,7 @@ export function DataImport() {
   const [duplicateAction, setDuplicateAction] = useState<"update" | "skip">("skip");
   const [result, setResult] = useState<ImportResult | null>(null);
   const [unmatchedJobs, setUnmatchedJobs] = useState<{ id: string; title: string }[]>([]);
+  const [nameReviewItems, setNameReviewItems] = useState<NameReviewItem[]>([]);
   const [jobClientLinks, setJobClientLinks] = useState<Record<string, string>>({});
   const [clients, setClients] = useState<{ id: string; company_name: string }[]>([]);
   const [savedTemplates, setSavedTemplates] = useState<MappingTemplate[]>(() => {
@@ -86,9 +87,12 @@ export function DataImport() {
     toast.success("Template deleted");
   };
 
-  const requiredMapped = fields.filter(f => f.required).every(f =>
-    Object.values(mapping).includes(f.key)
-  );
+  const requiredMapped = fields.filter(f => f.required).every(f => {
+    if (f.key === "first_name") {
+      return Object.values(mapping).includes("first_name") || Object.values(mapping).includes("_fullname");
+    }
+    return Object.values(mapping).includes(f.key);
+  });
 
   const runImport = async () => {
     setStep("importing");
@@ -96,6 +100,7 @@ export function DataImport() {
       const res = await runImportForType(recordType, rows, headers, mapping, duplicateAction);
       setResult(res);
       setUnmatchedJobs(res.unmatchedJobs);
+      setNameReviewItems(res.nameReviewItems);
       if (res.unmatchedJobs.length > 0) {
         const { data } = await supabase.from("clients").select("id, company_name").order("company_name");
         setClients(data || []);
@@ -235,7 +240,6 @@ export function DataImport() {
                           {f.label} {f.required && <span className="text-destructive">*</span>}
                         </SelectItem>
                       ))}
-                      {recordType === "candidates" && <SelectItem value="_lastname">Last Name (merge with Name)</SelectItem>}
                     </SelectContent>
                   </Select>
                 </div>
@@ -352,6 +356,7 @@ export function DataImport() {
             <PostImportChecklist
               unmatchedJobs={unmatchedJobs}
               errors={result.errors}
+              nameReviewItems={nameReviewItems}
               compact
             />
 

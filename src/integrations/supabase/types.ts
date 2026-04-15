@@ -181,8 +181,10 @@ export type Database = {
           created_at: string
           current_employer: string | null
           email: string | null
+          first_name: string | null
           id: string
           job_title: string | null
+          last_name: string | null
           linkedin_url: string | null
           location: string | null
           name: string
@@ -201,8 +203,10 @@ export type Database = {
           created_at?: string
           current_employer?: string | null
           email?: string | null
+          first_name?: string | null
           id?: string
           job_title?: string | null
+          last_name?: string | null
           linkedin_url?: string | null
           location?: string | null
           name: string
@@ -221,8 +225,10 @@ export type Database = {
           created_at?: string
           current_employer?: string | null
           email?: string | null
+          first_name?: string | null
           id?: string
           job_title?: string | null
+          last_name?: string | null
           linkedin_url?: string | null
           location?: string | null
           name?: string
@@ -395,8 +401,10 @@ export type Database = {
           client_id: string
           created_at: string
           email: string | null
+          first_name: string | null
           id: string
           job_title: string | null
+          last_name: string | null
           linkedin_url: string | null
           name: string
           phone: string | null
@@ -405,8 +413,10 @@ export type Database = {
           client_id: string
           created_at?: string
           email?: string | null
+          first_name?: string | null
           id?: string
           job_title?: string | null
+          last_name?: string | null
           linkedin_url?: string | null
           name: string
           phone?: string | null
@@ -415,8 +425,10 @@ export type Database = {
           client_id?: string
           created_at?: string
           email?: string | null
+          first_name?: string | null
           id?: string
           job_title?: string | null
+          last_name?: string | null
           linkedin_url?: string | null
           name?: string
           phone?: string | null
