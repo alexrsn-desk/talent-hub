@@ -208,7 +208,74 @@ export function PostImportChecklist({ unmatchedJobs: initialUnmatched, errors, n
         </Card>
       )}
 
-      {duplicates.length > 0 && (
+      {nameReviews.length > 0 && (
+        <Card>
+          <CardContent className="p-4 space-y-3">
+            <button
+              onClick={() => setExpandNames(p => !p)}
+              className="flex items-center justify-between w-full"
+            >
+              <div className="flex items-center gap-2">
+                <UserCheck className="h-4 w-4 text-primary" />
+                <span className="text-sm font-medium">
+                  {nameReviews.length} name{nameReviews.length > 1 ? "s" : ""} need first/last name review
+                </span>
+              </div>
+              <div className="flex items-center gap-2">
+                <Badge variant="outline" className="text-xs">{nameReviews.length}</Badge>
+                {expandNames ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+              </div>
+            </button>
+
+            {expandNames && (
+              <div className="space-y-3 pt-2 border-t border-border">
+                <p className="text-xs text-muted-foreground">
+                  These names have 3+ words. Confirm the first/last name split is correct.
+                </p>
+                {nameReviews.map((item, idx) => (
+                  <div key={idx} className="p-3 bg-muted/20 rounded-lg space-y-2">
+                    <div className="text-xs text-muted-foreground">Row {item.row}: <span className="font-medium text-foreground">{item.fullName}</span></div>
+                    <div className="flex items-center gap-2">
+                      <div className="flex-1">
+                        <label className="text-xs text-muted-foreground mb-0.5 block">First Name</label>
+                        <Input
+                          value={item.firstName}
+                          onChange={e => setNameReviews(prev => prev.map((n, i) => i === idx ? { ...n, firstName: e.target.value } : n))}
+                          className="h-8 text-sm"
+                        />
+                      </div>
+                      <div className="flex-1">
+                        <label className="text-xs text-muted-foreground mb-0.5 block">Last Name</label>
+                        <Input
+                          value={item.lastName}
+                          onChange={e => setNameReviews(prev => prev.map((n, i) => i === idx ? { ...n, lastName: e.target.value } : n))}
+                          className="h-8 text-sm"
+                        />
+                      </div>
+                      <Button size="sm" variant="ghost" className="h-8 mt-4" onClick={() => confirmNameSplit(idx)}>
+                        <Check className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="text-xs"
+                  onClick={async () => {
+                    for (let i = nameReviews.length - 1; i >= 0; i--) {
+                      await confirmNameSplit(i);
+                    }
+                  }}
+                >
+                  Confirm all splits
+                </Button>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
         <Card>
           <CardContent className="p-4 space-y-3">
             <button
