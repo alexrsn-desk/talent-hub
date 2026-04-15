@@ -167,9 +167,18 @@ export function CandidateDetail({ candidate, onUpdate, onDelete }: Props) {
     if (!form.email) hints.push("No email on this record — worth adding?");
     if (!form.phone) hints.push("No phone number — worth adding?");
   }
+  const isDNC = candidate.status === "Do Not Contact";
 
   return (
     <div className="space-y-6">
+      {/* Do Not Contact Banner */}
+      {isDNC && (
+        <div className="flex items-center gap-2 rounded-lg border border-red-500/40 bg-red-500/10 px-4 py-3 text-sm text-red-400">
+          <Ban className="h-5 w-5 shrink-0" />
+          <span className="font-medium">⛔ Do Not Contact — this candidate has requested no further contact</span>
+        </div>
+      )}
+
       {/* Header */}
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
