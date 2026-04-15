@@ -10,6 +10,7 @@ import { JobPipelineBoard } from "@/components/JobPipelineBoard";
 import { AddJobDialog } from "@/components/AddJobDialog";
 import { ClickToEditField } from "@/components/ClickToEditField";
 import { TagsSection } from "@/components/TagsSection";
+import { CandidateMatching } from "@/components/CandidateMatching";
 
 const JOB_STATUSES = ["Open", "On Hold", "Filled", "Cancelled"] as const;
 const JOB_TYPES = ["Perm", "Contract"] as const;
@@ -162,6 +163,8 @@ function JobFullView({ job, onBack, onUpdate, onDelete }: {
       </div>
 
       <TagsSection entityType="job" entityId={job.id} />
+
+      <CandidateMatching job={job} autoRun={job.status === "Open"} />
 
       <div>
         <h2 className="text-sm font-medium mb-3">Candidate Pipeline</h2>
