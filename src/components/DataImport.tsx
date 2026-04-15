@@ -99,6 +99,7 @@ export function DataImport() {
       const res = await runImportForType(recordType, rows, headers, mapping, duplicateAction);
       setResult(res);
       setUnmatchedJobs(res.unmatchedJobs);
+      setNameReviewItems(res.nameReviewItems);
       if (res.unmatchedJobs.length > 0) {
         const { data } = await supabase.from("clients").select("id, company_name").order("company_name");
         setClients(data || []);
