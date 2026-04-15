@@ -34,6 +34,8 @@ export type Client = {
   linkedin_url: string | null;
   sector: string | null;
   status: string;
+  location: string | null;
+  website: string | null;
   last_activity_date: string | null;
   next_action: string | null;
   next_action_due_date: string | null;
@@ -456,6 +458,10 @@ export type Contact = {
   email: string | null;
   phone: string | null;
   linkedin_url: string | null;
+  status: string;
+  personal_email: string | null;
+  mobile_phone: string | null;
+  direct_phone: string | null;
   created_at: string;
 };
 
@@ -475,7 +481,7 @@ export function useContacts(clientId?: string) {
 export function useCreateContact() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (contact: Omit<Contact, "id" | "created_at">) => {
+    mutationFn: async (contact: Omit<Contact, "id" | "created_at" | "status" | "personal_email" | "mobile_phone" | "direct_phone"> & Partial<Pick<Contact, "status" | "personal_email" | "mobile_phone" | "direct_phone">>) => {
       const { data, error } = await supabase.from("contacts").insert(contact).select().single();
       if (error) throw error;
       await logActivity({ action_type: "contact_created", client_id: contact.client_id, metadata: { name: contact.name } });

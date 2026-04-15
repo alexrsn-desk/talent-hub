@@ -96,6 +96,8 @@ export default function BDPipelinePage() {
       phone: null,
       linkedin_url: null,
       sector: "Tech",
+      location: null,
+      website: null,
     });
     setAddingToStage(null);
   };

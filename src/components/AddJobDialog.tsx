@@ -153,6 +153,8 @@ export function AddJobDialog() {
           next_action: null,
           next_action_due_date: null,
           last_activity_date: new Date().toISOString().split("T")[0],
+          location: null,
+          website: null,
         });
         clientId = createdClient.id;
 

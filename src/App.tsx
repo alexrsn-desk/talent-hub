@@ -13,6 +13,7 @@ import { Loader2, Upload, X } from "lucide-react";
 import Dashboard from "./pages/Dashboard";
 import Candidates from "./pages/Candidates";
 import Clients from "./pages/Clients";
+import Contacts from "./pages/Contacts";
 import Jobs from "./pages/Jobs";
 import BDPipeline from "./pages/BDPipeline";
 import Coach from "./pages/Coach";
@@ -140,6 +141,7 @@ function AppRoutes() {
           <Route path="/" element={<Dashboard />} />
           <Route path="/candidates" element={<Candidates />} />
           <Route path="/clients" element={<Clients />} />
+          <Route path="/contacts" element={<Contacts />} />
           <Route path="/jobs" element={<Jobs />} />
           <Route path="/bd-pipeline" element={<BDPipeline />} />
           <Route path="/coach" element={<Coach />} />
