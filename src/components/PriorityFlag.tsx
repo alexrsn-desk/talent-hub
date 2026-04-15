@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Star, Phone, Mail, PhoneCall, X } from "lucide-react";
+import { CandidateContextMenu } from "@/components/CandidateContextMenu";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -201,7 +202,7 @@ export function PriorityCandidatesSection({ candidates }: { candidates: Candidat
           const status = getFollowUpStatus(c);
           const days = getDaysSinceFlagged(c);
           return (
-            <div key={c.id} className="flex items-start gap-3 rounded-md bg-card px-3 py-2 border border-border">
+            <div key={c.id} className="group flex items-start gap-3 rounded-md bg-card px-3 py-2 border border-border">
               <Star className="h-3.5 w-3.5 mt-0.5 text-yellow-400 fill-yellow-400 flex-shrink-0" />
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 text-xs">
@@ -243,6 +244,7 @@ export function PriorityCandidatesSection({ candidates }: { candidates: Candidat
                   </Button>
                 )}
                 <PriorityFlagButton candidate={c} size="xs" />
+                <CandidateContextMenu candidate={c} triggerClassName="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity" />
               </div>
             </div>
           );
