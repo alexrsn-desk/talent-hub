@@ -181,6 +181,53 @@ function InlineStatusCell({
   );
 }
 
+// --- Row priority toggle ---
+function RowPriorityToggle({ candidate, onToggle }: { candidate: Candidate; onToggle: (c: Candidate) => void }) {
+  return (
+    <TooltipProvider delayDuration={300}>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <button
+            className="p-2 rounded-md hover:bg-muted/40 transition-colors"
+            onClick={(e) => { e.stopPropagation(); onToggle(candidate); }}
+          >
+            <Star
+              className={cn(
+                "h-4 w-4 transition-colors",
+                candidate.priority_flag
+                  ? "fill-[#F5A623] text-[#F5A623]"
+                  : "text-muted-foreground hover:text-[#F5A623]/70"
+              )}
+            />
+          </button>
+        </TooltipTrigger>
+        <TooltipContent side="top" className="text-xs">
+          {candidate.priority_flag ? "Remove priority flag" : "Flag as priority"}
+        </TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
+  );
+}
+
+// --- Row touchpoint button ---
+function RowTouchpointButton({ candidate, onOpen }: { candidate: Candidate; onOpen: (c: Candidate) => void }) {
+  return (
+    <TooltipProvider delayDuration={300}>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <button
+            className="p-2 rounded-md hover:bg-muted/40 transition-colors text-muted-foreground hover:text-primary"
+            onClick={(e) => { e.stopPropagation(); onOpen(candidate); }}
+          >
+            <PhoneCall className="h-4 w-4" />
+          </button>
+        </TooltipTrigger>
+        <TooltipContent side="top" className="text-xs">Log touchpoint</TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
+  );
+}
+
 export default function CandidatesPage() {
   const { data: candidates = [], isLoading } = useCandidates();
   const createCandidate = useCreateCandidate();
