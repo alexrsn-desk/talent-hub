@@ -214,18 +214,24 @@ function RowPriorityToggle({ candidate, onToggle }: { candidate: Candidate; onTo
 
 // --- Row touchpoint button ---
 function RowTouchpointButton({ candidate, onOpen }: { candidate: Candidate; onOpen: (c: Candidate) => void }) {
+  const isDNC = candidate.status === "Do Not Contact";
   return (
     <TooltipProvider delayDuration={300}>
       <Tooltip>
         <TooltipTrigger asChild>
           <button
-            className="p-2 rounded-md hover:bg-muted/40 transition-colors text-muted-foreground hover:text-primary"
-            onClick={(e) => { e.stopPropagation(); onOpen(candidate); }}
+            className={cn(
+              "p-2 rounded-md transition-colors",
+              isDNC ? "opacity-40 cursor-not-allowed" : "hover:bg-muted/40 text-muted-foreground hover:text-primary"
+            )}
+            onClick={(e) => { e.stopPropagation(); if (!isDNC) onOpen(candidate); }}
           >
             <PhoneCall className="h-4 w-4" />
           </button>
         </TooltipTrigger>
-        <TooltipContent side="top" className="text-xs">Log touchpoint</TooltipContent>
+        <TooltipContent side="top" className="text-xs">
+          {isDNC ? "Cannot log touchpoint — Do Not Contact status" : "Log touchpoint"}
+        </TooltipContent>
       </Tooltip>
     </TooltipProvider>
   );
