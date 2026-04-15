@@ -3,15 +3,16 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Label } from "@/components/ui/label";
 import { Search, Trash2, ArrowLeft } from "lucide-react";
 import { useJobs, useUpdateJob, useDeleteJob, type Job } from "@/hooks/use-data";
 import { NotesSection } from "@/components/NotesSection";
 import { JobPipelineBoard } from "@/components/JobPipelineBoard";
 import { AddJobDialog } from "@/components/AddJobDialog";
+import { ClickToEditField } from "@/components/ClickToEditField";
 
 const JOB_STATUSES = ["Open", "On Hold", "Filled", "Cancelled"] as const;
 const JOB_TYPES = ["Perm", "Contract"] as const;
+const FEE_TYPES = ["Percentage", "Fixed"] as const;
 
 const statusColor: Record<string, string> = {
   Open: "bg-success/20 text-green-400",
@@ -42,7 +43,6 @@ export default function JobsPage() {
     return min ? fmt(min) : fmt(max!);
   };
 
-  // Full-page job detail view with pipeline
   if (selectedJob) {
     return (
       <JobFullView
@@ -121,6 +121,16 @@ function JobFullView({ job, onBack, onUpdate, onDelete }: {
   onUpdate: (u: Partial<Job>) => Promise<void>;
   onDelete: () => Promise<void>;
 }) {
+  const handleFieldSave = async (field: string, value: string) => {
+    const updates: any = {};
+    if (field === "salary_min" || field === "salary_max" || field === "fee_value") {
+      updates[field] = value ? Number(value) : null;
+    } else {
+      updates[field] = value || null;
+    }
+    await onUpdate(updates);
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-3">
@@ -133,22 +143,21 @@ function JobFullView({ job, onBack, onUpdate, onDelete }: {
             {(job.clients as any)?.company_name || "No client"} · {job.location || "Remote"} · {job.job_type}
           </p>
         </div>
-        <Select defaultValue={job.status} onValueChange={(v) => onUpdate({ status: v })}>
-          <SelectTrigger className="w-32"><SelectValue /></SelectTrigger>
-          <SelectContent>
-            {JOB_STATUSES.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
-          </SelectContent>
-        </Select>
+        <Badge variant="secondary" className={statusColor[job.status]}>{job.status}</Badge>
         <Button variant="ghost" size="icon" onClick={onDelete}>
           <Trash2 className="h-4 w-4 text-destructive" />
         </Button>
       </div>
 
-      <div className="grid grid-cols-4 gap-4 text-sm rounded-lg border border-border p-4">
-        <div><span className="text-muted-foreground block text-xs">Salary</span>{job.salary_min || job.salary_max ? `£${job.salary_min?.toLocaleString() || "?"} – £${job.salary_max?.toLocaleString() || "?"}` : "—"}</div>
-        <div><span className="text-muted-foreground block text-xs">Fee</span>{job.fee_value ? (job.fee_type === "Percentage" ? `${job.fee_value}%` : `£${job.fee_value.toLocaleString()}`) : "—"}</div>
-        <div><span className="text-muted-foreground block text-xs">Opened</span>{new Date(job.date_opened).toLocaleDateString()}</div>
-        <div><span className="text-muted-foreground block text-xs">Type</span>{job.job_type}</div>
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-sm rounded-lg border border-border p-4">
+        <ClickToEditField label="Title" value={job.title} field="title" layout="stacked" onSave={(v) => handleFieldSave("title", v)} entityType="job" entityId={job.id} />
+        <ClickToEditField label="Location" value={job.location || ""} field="location" layout="stacked" onSave={(v) => handleFieldSave("location", v)} entityType="job" entityId={job.id} />
+        <ClickToEditField label="Status" value={job.status} field="status" options={JOB_STATUSES} layout="stacked" onSave={(v) => handleFieldSave("status", v)} entityType="job" entityId={job.id} />
+        <ClickToEditField label="Type" value={job.job_type} field="job_type" options={JOB_TYPES} layout="stacked" onSave={(v) => handleFieldSave("job_type", v)} entityType="job" entityId={job.id} />
+        <ClickToEditField label="Salary Min (£)" value={job.salary_min?.toString() || ""} field="salary_min" type="number" layout="stacked" onSave={(v) => handleFieldSave("salary_min", v)} entityType="job" entityId={job.id} />
+        <ClickToEditField label="Salary Max (£)" value={job.salary_max?.toString() || ""} field="salary_max" type="number" layout="stacked" onSave={(v) => handleFieldSave("salary_max", v)} entityType="job" entityId={job.id} />
+        <ClickToEditField label="Fee Type" value={job.fee_type || ""} field="fee_type" options={FEE_TYPES} layout="stacked" onSave={(v) => handleFieldSave("fee_type", v)} entityType="job" entityId={job.id} />
+        <ClickToEditField label="Fee Value" value={job.fee_value?.toString() || ""} field="fee_value" type="number" layout="stacked" onSave={(v) => handleFieldSave("fee_value", v)} entityType="job" entityId={job.id} />
       </div>
 
       <div>
