@@ -339,7 +339,12 @@ export function OnboardingImport({ onComplete }: { onComplete: () => void }) {
               const f = files[activeType];
               if (!f) return null;
               const fields = FIELD_MAP[activeType];
-              const requiredMapped = fields.filter(fd => fd.required).every(fd => Object.values(f.mapping).includes(fd.key));
+              const requiredMapped = fields.filter(fd => fd.required).every(fd => {
+                if (fd.key === "first_name") {
+                  return Object.values(f.mapping).includes("first_name") || Object.values(f.mapping).includes("_fullname");
+                }
+                return Object.values(f.mapping).includes(fd.key);
+              });
 
               return (
                 <div className="space-y-3">
