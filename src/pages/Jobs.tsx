@@ -28,6 +28,13 @@ export default function JobsPage() {
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [selectedJob, setSelectedJob] = useState<Job | null>(null);
 
+  const filtered = jobs.filter((j) => {
+    const matchesSearch = j.title.toLowerCase().includes(search.toLowerCase()) ||
+      ((j.clients as any)?.company_name || "").toLowerCase().includes(search.toLowerCase());
+    const matchesStatus = statusFilter === "all" || j.status === statusFilter;
+    return matchesSearch && matchesStatus;
+  });
+
   const formatSalary = (min: number | null, max: number | null) => {
     if (!min && !max) return "—";
     const fmt = (n: number) => `£${(n / 1000).toFixed(0)}k`;
@@ -51,48 +58,7 @@ export default function JobsPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-semibold tracking-tight">Jobs</h1>
-        <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-          <DialogTrigger asChild>
-            <Button size="sm"><Plus className="mr-1 h-4 w-4" />Add Job</Button>
-          </DialogTrigger>
-          <DialogContent className="max-w-md">
-            <DialogHeader><DialogTitle>New Job</DialogTitle></DialogHeader>
-            <form onSubmit={handleCreate} className="space-y-3">
-              <div><Label>Job Title *</Label><Input name="title" required /></div>
-              <div>
-                <Label>Client</Label>
-                <select name="client_id" className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm">
-                  <option value="">No client</option>
-                  {clients.map(c => <option key={c.id} value={c.id}>{c.company_name}</option>)}
-                </select>
-              </div>
-              <div><Label>Location</Label><Input name="location" /></div>
-              <div className="grid grid-cols-2 gap-3">
-                <div><Label>Salary Min</Label><Input name="salary_min" type="number" /></div>
-                <div><Label>Salary Max</Label><Input name="salary_max" type="number" /></div>
-              </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <Label>Job Type</Label>
-                  <select name="job_type" className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm">
-                    {JOB_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
-                  </select>
-                </div>
-                <div>
-                  <Label>Fee Type</Label>
-                  <select name="fee_type" className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm">
-                    <option value="Percentage">Percentage</option>
-                    <option value="Flat">Flat Fee</option>
-                  </select>
-                </div>
-              </div>
-              <div><Label>Fee Value</Label><Input name="fee_value" type="number" step="0.1" /></div>
-              <Button type="submit" className="w-full" disabled={createJob.isPending}>
-                {createJob.isPending ? "Creating..." : "Create Job"}
-              </Button>
-            </form>
-          </DialogContent>
-        </Dialog>
+        <AddJobDialog />
       </div>
 
       <div className="flex items-center gap-3">
