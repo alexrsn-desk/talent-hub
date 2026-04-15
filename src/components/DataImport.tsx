@@ -238,7 +238,6 @@ export function DataImport() {
                           {f.label} {f.required && <span className="text-destructive">*</span>}
                         </SelectItem>
                       ))}
-                      {recordType === "candidates" && <SelectItem value="_lastname">Last Name (merge with Name)</SelectItem>}
                     </SelectContent>
                   </Select>
                 </div>
