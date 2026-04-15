@@ -10,7 +10,9 @@ import { useContacts, useCreateContact, useDeleteContact, useClients, type Conta
 import { NotesSection } from "@/components/NotesSection";
 import { LogTouchpointModal } from "@/components/LogTouchpointModal";
 import { CallPrepButton } from "@/components/CallPrep";
+import { ClickToEditField } from "@/components/ClickToEditField";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
 
 const CONTACT_STATUSES = ["Active", "Warm", "Cold", "Left Company"] as const;
 
@@ -78,6 +80,7 @@ export default function ContactsPage() {
           await deleteContact.mutateAsync(selectedContact.id);
           setSelectedContact(null);
         }}
+        onContactUpdate={(updated) => setSelectedContact(updated)}
       />
     );
   }
@@ -174,13 +177,25 @@ export default function ContactsPage() {
   );
 }
 
-function ContactFullView({ contact, client, onBack, onDelete }: {
+function ContactFullView({ contact, client, onBack, onDelete, onContactUpdate }: {
   contact: Contact;
   client: Client | null;
   onBack: () => void;
   onDelete: () => Promise<void>;
+  onContactUpdate: (updated: Contact) => void;
 }) {
   const [touchpointOpen, setTouchpointOpen] = useState(false);
+
+  const handleFieldSave = async (field: string, value: string) => {
+    const updates: any = { [field]: value || null };
+    if (field === "name") {
+      const parts = value.trim().split(/\s+/);
+      updates.first_name = parts[0];
+      updates.last_name = parts.slice(1).join(" ") || null;
+    }
+    await supabase.from("contacts").update(updates).eq("id", contact.id);
+    onContactUpdate({ ...contact, ...updates });
+  };
 
   return (
     <div className="space-y-6">
@@ -214,26 +229,33 @@ function ContactFullView({ contact, client, onBack, onDelete }: {
         </div>
       </div>
 
-      {/* Contact info */}
-      <div className="grid grid-cols-4 gap-4 text-sm rounded-lg border border-border p-4">
+      {/* Contact info — click to edit */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-sm rounded-lg border border-border p-4">
         <div>
-          <span className="text-muted-foreground block text-xs">Company</span>
+          <span className="text-muted-foreground block text-xs mb-0.5">Company</span>
           {client ? (
-            <button className="text-primary hover:underline text-left" onClick={onBack}>
+            <button className="text-primary hover:underline text-left text-sm" onClick={onBack}>
               {client.company_name}
             </button>
           ) : "—"}
         </div>
-        <div><span className="text-muted-foreground block text-xs">Email</span>{contact.email || "—"}</div>
-        <div><span className="text-muted-foreground block text-xs">Phone</span>{contact.phone || "—"}</div>
-        <div>
-          <span className="text-muted-foreground block text-xs">LinkedIn</span>
-          {contact.linkedin_url ? (
-            <a href={contact.linkedin_url} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline flex items-center gap-1">
+        <ClickToEditField label="Job Title" value={contact.job_title || ""} field="job_title" layout="stacked" onSave={(v) => handleFieldSave("job_title", v)} entityType="contact" entityId={contact.id} />
+        <ClickToEditField label="Email" value={contact.email || ""} field="email" type="email" layout="stacked" onSave={(v) => handleFieldSave("email", v)} entityType="contact" entityId={contact.id} />
+        <ClickToEditField label="Phone" value={contact.phone || ""} field="phone" layout="stacked" onSave={(v) => handleFieldSave("phone", v)} entityType="contact" entityId={contact.id} />
+        <ClickToEditField label="Personal Email" value={contact.personal_email || ""} field="personal_email" type="email" layout="stacked" onSave={(v) => handleFieldSave("personal_email", v)} entityType="contact" entityId={contact.id} />
+        <ClickToEditField label="Mobile" value={contact.mobile_phone || ""} field="mobile_phone" layout="stacked" onSave={(v) => handleFieldSave("mobile_phone", v)} entityType="contact" entityId={contact.id} />
+        <ClickToEditField label="Direct Dial" value={contact.direct_phone || ""} field="direct_phone" layout="stacked" onSave={(v) => handleFieldSave("direct_phone", v)} entityType="contact" entityId={contact.id} />
+        <ClickToEditField label="Status" value={contact.status} field="status" options={CONTACT_STATUSES} layout="stacked" onSave={(v) => handleFieldSave("status", v)} entityType="contact" entityId={contact.id} />
+        {contact.linkedin_url ? (
+          <div>
+            <span className="text-muted-foreground block text-xs">LinkedIn</span>
+            <a href={contact.linkedin_url} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline flex items-center gap-1 text-sm">
               <ExternalLink className="h-3 w-3" /> Profile
             </a>
-          ) : "—"}
-        </div>
+          </div>
+        ) : (
+          <ClickToEditField label="LinkedIn" value="" field="linkedin_url" layout="stacked" onSave={(v) => handleFieldSave("linkedin_url", v)} entityType="contact" entityId={contact.id} />
+        )}
       </div>
 
       <NotesSection entityType="client" entityId={contact.client_id} />

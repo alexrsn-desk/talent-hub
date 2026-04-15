@@ -12,9 +12,11 @@ import { NotesSection } from "@/components/NotesSection";
 import { LogTouchpointModal } from "@/components/LogTouchpointModal";
 import { ClientPortalInvite } from "@/components/ClientPortalInvite";
 import { CallPrepButton } from "@/components/CallPrep";
+import { ClickToEditField } from "@/components/ClickToEditField";
 import { toast } from "sonner";
 
 const STATUSES = ["Active", "Warm", "Cold", "Target"] as const;
+const SECTORS = ["Tech", "Digital", "FinTech", "SaaS", "Other"] as const;
 
 const statusColor: Record<string, string> = {
   Active: "bg-success/20 text-green-400",
@@ -36,7 +38,6 @@ export default function ClientsPage() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [selectedClient, setSelectedClient] = useState<Client | null>(null);
 
-  // Inline contact creation after client creation
   const [showContactPrompt, setShowContactPrompt] = useState(false);
   const [newClientId, setNewClientId] = useState<string | null>(null);
   const [newClientName, setNewClientName] = useState("");
@@ -65,18 +66,14 @@ export default function ClientsPage() {
     const companyName = fd.get("company_name") as string;
     const result = await createClient.mutateAsync({
       company_name: companyName,
-      contact_name: null,
-      job_title: null,
-      email: null,
-      phone: null,
+      contact_name: null, job_title: null, email: null, phone: null,
       linkedin_url: (fd.get("linkedin_url") as string) || null,
       sector: (fd.get("sector") as string) || "Tech",
       status: (fd.get("status") as string) || "Target",
       location: (fd.get("location") as string) || null,
       website: (fd.get("website") as string) || null,
       last_activity_date: new Date().toISOString().split("T")[0],
-      next_action: null,
-      next_action_due_date: null,
+      next_action: null, next_action_due_date: null,
     });
     setDialogOpen(false);
     setNewClientId(result.id);
@@ -91,10 +88,8 @@ export default function ClientsPage() {
     const name = fd.get("contact_name") as string;
     const parts = name.trim().split(" ");
     await createContact.mutateAsync({
-      client_id: newClientId,
-      name: name.trim(),
-      first_name: parts[0] || null,
-      last_name: parts.slice(1).join(" ") || null,
+      client_id: newClientId, name: name.trim(),
+      first_name: parts[0] || null, last_name: parts.slice(1).join(" ") || null,
       job_title: (fd.get("job_title") as string) || null,
       email: (fd.get("email") as string) || null,
       phone: (fd.get("phone") as string) || null,
@@ -137,7 +132,7 @@ export default function ClientsPage() {
               <div className="grid grid-cols-2 gap-3">
                 <div><Label>Sector</Label>
                   <select name="sector" defaultValue="Tech" className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm">
-                    <option>Tech</option><option>Digital</option><option>FinTech</option><option>SaaS</option><option>Other</option>
+                    {SECTORS.map(s => <option key={s}>{s}</option>)}
                   </select>
                 </div>
                 <div><Label>Status</Label>
@@ -157,12 +152,9 @@ export default function ClientsPage() {
         </Dialog>
       </div>
 
-      {/* Contact prompt after client creation */}
       <Dialog open={showContactPrompt} onOpenChange={setShowContactPrompt}>
         <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle>Add a contact at {newClientName}?</DialogTitle>
-          </DialogHeader>
+          <DialogHeader><DialogTitle>Add a contact at {newClientName}?</DialogTitle></DialogHeader>
           <p className="text-sm text-muted-foreground">A client without a contact is hard to action.</p>
           <form onSubmit={handleAddContactToNew} className="space-y-3">
             <div><Label>Contact Name *</Label><Input name="contact_name" required /></div>
@@ -232,7 +224,6 @@ export default function ClientsPage() {
   );
 }
 
-// Full-page client detail view with tabs
 function ClientFullView({ client, onBack, onUpdate, onDelete }: {
   client: Client;
   onBack: () => void;
@@ -247,16 +238,18 @@ function ClientFullView({ client, onBack, onUpdate, onDelete }: {
 
   const clientJobs = allJobs.filter(j => j.client_id === client.id);
 
+  const handleFieldSave = async (field: string, value: string) => {
+    await onUpdate({ [field]: value || null } as any);
+  };
+
   const handleAddContact = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const fd = new FormData(e.currentTarget);
     const name = fd.get("name") as string;
     const parts = name.trim().split(" ");
     await createContact.mutateAsync({
-      client_id: client.id,
-      name: name.trim(),
-      first_name: parts[0] || null,
-      last_name: parts.slice(1).join(" ") || null,
+      client_id: client.id, name: name.trim(),
+      first_name: parts[0] || null, last_name: parts.slice(1).join(" ") || null,
       job_title: (fd.get("job_title") as string) || null,
       email: (fd.get("email") as string) || null,
       phone: (fd.get("phone") as string) || null,
@@ -275,8 +268,7 @@ function ClientFullView({ client, onBack, onUpdate, onDelete }: {
         <div className="flex-1">
           <h1 className="text-xl font-semibold">{client.company_name}</h1>
           <p className="text-xs text-muted-foreground">
-            {client.sector || ""}
-            {client.location ? ` · ${client.location}` : ""}
+            {client.sector || ""}{client.location ? ` · ${client.location}` : ""}
           </p>
         </div>
         <div className="flex gap-2 items-center">
@@ -284,39 +276,38 @@ function ClientFullView({ client, onBack, onUpdate, onDelete }: {
           <Button size="sm" variant="outline" onClick={() => setTouchpointOpen(true)}>
             <PhoneCall className="h-3.5 w-3.5 mr-1" /> Log Touchpoint
           </Button>
-          <Select defaultValue={client.status} onValueChange={(v) => onUpdate({ status: v })}>
-            <SelectTrigger className="w-32"><SelectValue /></SelectTrigger>
-            <SelectContent>
-              {(["Active", "Warm", "Cold", "Target"] as const).map(s => (
-                <SelectItem key={s} value={s}>{s}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <Badge variant="secondary" className={statusColor[client.status] || ""}>{client.status}</Badge>
           <Button variant="ghost" size="icon" onClick={onDelete}>
             <Trash2 className="h-4 w-4 text-destructive" />
           </Button>
         </div>
       </div>
 
-      {/* Company info bar */}
-      <div className="grid grid-cols-4 gap-4 text-sm rounded-lg border border-border p-4">
-        <div><span className="text-muted-foreground block text-xs">Sector</span>{client.sector || "—"}</div>
-        <div><span className="text-muted-foreground block text-xs">Location</span>{client.location || "—"}</div>
+      {/* Company info — click to edit */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-sm rounded-lg border border-border p-4">
+        <ClickToEditField label="Company Name" value={client.company_name} field="company_name" layout="stacked" onSave={(v) => handleFieldSave("company_name", v)} entityType="client" entityId={client.id} />
+        <ClickToEditField label="Sector" value={client.sector || ""} field="sector" options={SECTORS} layout="stacked" onSave={(v) => handleFieldSave("sector", v)} entityType="client" entityId={client.id} />
+        <ClickToEditField label="Location" value={client.location || ""} field="location" layout="stacked" onSave={(v) => handleFieldSave("location", v)} entityType="client" entityId={client.id} />
+        <ClickToEditField label="Status" value={client.status} field="status" options={STATUSES} layout="stacked" onSave={(v) => handleFieldSave("status", v)} entityType="client" entityId={client.id} />
         <div>
           <span className="text-muted-foreground block text-xs">LinkedIn</span>
           {client.linkedin_url ? (
-            <a href={client.linkedin_url} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline flex items-center gap-1">
+            <a href={client.linkedin_url} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline flex items-center gap-1 text-sm">
               <ExternalLink className="h-3 w-3" /> Profile
             </a>
-          ) : "—"}
+          ) : (
+            <ClickToEditField label="" value="" field="linkedin_url" layout="stacked" onSave={(v) => handleFieldSave("linkedin_url", v)} entityType="client" entityId={client.id} />
+          )}
         </div>
         <div>
           <span className="text-muted-foreground block text-xs">Website</span>
           {client.website ? (
-            <a href={client.website} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline flex items-center gap-1">
+            <a href={client.website} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline flex items-center gap-1 text-sm">
               <Globe className="h-3 w-3" /> Visit
             </a>
-          ) : "—"}
+          ) : (
+            <ClickToEditField label="" value="" field="website" layout="stacked" onSave={(v) => handleFieldSave("website", v)} entityType="client" entityId={client.id} />
+          )}
         </div>
       </div>
 
