@@ -81,7 +81,15 @@ CONTEXT RULES:
 - If data is missing that you need, ask one specific question to get it
 - Never make up data or assume facts not in the context
 - If the desk is genuinely quiet, say so and give a specific BD plan to fix it
-- Use markdown formatting for readability: bold for emphasis, bullet lists for actions, headers for sections`;
+- Use markdown formatting for readability: bold for emphasis, bullet lists for actions, headers for sections
+
+STALE RECORDS:
+When you see stale clients or contacts in the desk data, proactively flag them.
+For each stale record, suggest something like:
+"[Name] at [Company] has been inactive for [X] days. Worth checking their LinkedIn to see if anything has changed before re-engaging."
+This surfaces the need to check manually rather than claiming to know what's happened.
+Never assume you know why they've gone quiet — just flag it and suggest a manual check.
+Stale records are a revenue risk — dormant relationships mean missed opportunities.`;
 
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
@@ -141,6 +149,35 @@ serve(async (req) => {
     const openJobs = allJobs.filter((j: any) => j.status === "Open");
     const bdProspects = allClients.filter((c: any) => ["Target", "Approached", "In Dialogue"].includes(c.status));
     const profile = profiles?.[0] || null;
+
+    // Detect stale clients and contacts
+    const nowMs = Date.now();
+    const dayMs = 1000 * 60 * 60 * 24;
+    const ninetyDaysAgo = new Date(nowMs - 90 * dayMs).toISOString().split("T")[0];
+    const sixMonthsAgo = new Date(nowMs - 180 * dayMs).toISOString().split("T")[0];
+
+    const staleClients = allClients
+      .filter((c: any) => c.status === "Active")
+      .map((c: any) => {
+        const lastActivity = c.last_activity_date || c.created_at?.split("T")[0];
+        const hasOpenJobs = openJobs.some((j: any) => j.client_id === c.id);
+        const daysSinceActivity = lastActivity ? Math.floor((nowMs - new Date(lastActivity).getTime()) / dayMs) : null;
+
+        const flags: string[] = [];
+        if (daysSinceActivity && daysSinceActivity >= 90) flags.push(`No activity in ${daysSinceActivity} days`);
+        if (lastActivity && lastActivity < sixMonthsAgo) flags.push(`Last contacted over 6 months ago`);
+        if (!hasOpenJobs) flags.push("No linked open jobs but status is Active");
+
+        return flags.length > 0 ? {
+          company: c.company_name,
+          contact: c.contact_name,
+          status: c.status,
+          lastActivity: lastActivity,
+          daysSinceActivity,
+          flags,
+        } : null;
+      })
+      .filter(Boolean);
 
     // Build a concise desk snapshot
     const deskData = {
@@ -233,6 +270,7 @@ serve(async (req) => {
         followUpDate: c.priority_followup_date,
         daysSinceFlagged: c.priority_flagged_at ? Math.floor((Date.now() - new Date(c.priority_flagged_at).getTime()) / (1000 * 60 * 60 * 24)) : null,
       })),
+      staleRecords: staleClients,
     };
 
     const recruiterContext = profile ? `
