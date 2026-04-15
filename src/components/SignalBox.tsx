@@ -106,23 +106,45 @@ function SignalCard({
       </div>
 
       {/* Expanded detail */}
-      <div className={`overflow-hidden transition-all duration-200 ease-in-out ${expanded ? "max-h-[300px] opacity-100" : "max-h-0 opacity-0"}`}>
+      <div className={`overflow-hidden transition-all duration-200 ease-in-out ${expanded ? "max-h-[400px] opacity-100" : "max-h-0 opacity-0"}`}>
         <div className="px-4 pb-3 pt-1 space-y-2">
+          <div className="flex items-center gap-2">
+            <Badge variant="outline" className={`text-[10px] px-1.5 py-0 ${signalColors[signal.signal_type] || ""}`}>
+              {signal.signal_type}
+            </Badge>
+            <span className="text-[10px] text-muted-foreground flex items-center gap-1">
+              <Calendar className="h-3 w-3" />
+              {new Date(signal.created_at).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}
+            </span>
+          </div>
+
           {signal.trigger_phrase && (
-            <p className="text-xs text-muted-foreground italic">"{signal.trigger_phrase}"</p>
+            <p className="text-xs text-muted-foreground italic border-l-2 border-muted-foreground/30 pl-2">"{signal.trigger_phrase}"</p>
           )}
+
           <p className="text-sm text-foreground">{signal.explanation}</p>
-          <p className="text-xs text-muted-foreground">Suggested: {signal.suggested_action}</p>
+          <p className="text-xs text-muted-foreground">
+            <span className="font-medium text-foreground/80">Suggested:</span> {signal.suggested_action}
+          </p>
           {signal.suggested_date && (
-            <p className="text-xs text-muted-foreground">Suggested date: {new Date(signal.suggested_date).toLocaleDateString("en-GB", { day: "numeric", month: "short" })}</p>
+            <p className="text-xs text-muted-foreground">Due by: {new Date(signal.suggested_date).toLocaleDateString("en-GB", { day: "numeric", month: "short" })}</p>
+          )}
+
+          {signal.note_id && (
+            <button
+              onClick={e => { e.stopPropagation(); navigate("/calls-meetings"); }}
+              className="text-xs text-primary hover:underline flex items-center gap-1"
+            >
+              <ExternalLink className="h-3 w-3" /> View source note
+            </button>
           )}
 
           {signal.status === "unactioned" && (
             <div className="flex flex-wrap gap-2 pt-1">
-              <Button size="sm" variant="outline" className="h-7 text-xs gap-1 text-emerald-400 hover:text-emerald-300" onClick={e => { e.stopPropagation(); handleThumbsUp(); }}>
+              <Button size="sm" variant="outline" className="h-7 text-xs gap-1 text-emerald-400 hover:text-emerald-300" onClick={e => { e.stopPropagation(); handleThumbsUp(e); }}>
                 <ThumbsUp className="h-3 w-3" /> Helpful
               </Button>
-              <Button size="sm" variant="outline" className="h-7 text-xs gap-1 text-destructive hover:text-destructive/80" onClick={e => { e.stopPropagation(); handleThumbsDown(); }}>
+              <Button size="sm" variant="outline" className="h-7 text-xs gap-1 text-destructive hover:text-destructive/80" onClick={e => { e.stopPropagation(); handleThumbsDown(e); }}>
                 <ThumbsDown className="h-3 w-3" /> Not Useful
               </Button>
               <Button size="sm" variant="outline" className="h-7 text-xs gap-1" onClick={e => { e.stopPropagation(); updateStatus.mutate({ id: signal.id, status: "actioned" }); toast.success("Actioned"); }}>
