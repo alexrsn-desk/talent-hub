@@ -503,6 +503,42 @@ export type Database = {
           },
         ]
       }
+      import_history: {
+        Row: {
+          created_at: string
+          id: string
+          imported_ids: Json | null
+          record_type: string
+          records_imported: number
+          records_skipped: number
+          records_updated: number
+          source: string
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          imported_ids?: Json | null
+          record_type: string
+          records_imported?: number
+          records_skipped?: number
+          records_updated?: number
+          source: string
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          imported_ids?: Json | null
+          record_type?: string
+          records_imported?: number
+          records_skipped?: number
+          records_updated?: number
+          source?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       interview_slots: {
         Row: {
           candidate_job_id: string
