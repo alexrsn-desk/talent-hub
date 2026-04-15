@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -10,6 +10,8 @@ import { useCandidates, useCreateCandidate, useUpdateCandidate, useDeleteCandida
 import { PriorityStarIcon } from "@/components/PriorityFlag";
 import { CandidateDetail } from "@/components/CandidateDetail";
 import { CandidateContextMenu } from "@/components/CandidateContextMenu";
+import { logActivity } from "@/lib/activity-log";
+import { cn } from "@/lib/utils";
 
 const STATUSES = ["New", "Contacted", "Screening", "Submitted", "Interviewing", "Placed", "On Hold", "Not Suitable"] as const;
 const SOURCES = ["LinkedIn", "Referral", "Job Board", "Inbound"] as const;
@@ -25,6 +27,157 @@ const statusColor: Record<string, string> = {
   "Not Suitable": "bg-destructive/20 text-red-400",
 };
 
+// --- Inline editable cell ---
+function InlineEditCell({
+  value,
+  field,
+  candidateId,
+  candidateName,
+  onSave,
+  type = "text",
+  formatDisplay,
+  isEditing,
+  onStartEdit,
+  onStopEdit,
+}: {
+  value: string;
+  field: string;
+  candidateId: string;
+  candidateName: string;
+  onSave: (field: string, newValue: string, oldValue: string) => Promise<void>;
+  type?: string;
+  formatDisplay?: (v: string) => string;
+  isEditing: boolean;
+  onStartEdit: () => void;
+  onStopEdit: () => void;
+}) {
+  const [editValue, setEditValue] = useState(value);
+  const [flash, setFlash] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (isEditing) {
+      setEditValue(value);
+      setTimeout(() => {
+        inputRef.current?.focus();
+        inputRef.current?.select();
+      }, 0);
+    }
+  }, [isEditing, value]);
+
+  const save = useCallback(async () => {
+    if (editValue === value) {
+      onStopEdit();
+      return;
+    }
+    await onSave(field, editValue, value);
+    setFlash(true);
+    setTimeout(() => setFlash(false), 500);
+    onStopEdit();
+  }, [editValue, value, field, onSave, onStopEdit]);
+
+  const cancel = useCallback(() => {
+    setEditValue(value);
+    onStopEdit();
+  }, [value, onStopEdit]);
+
+  if (isEditing) {
+    return (
+      <Input
+        ref={inputRef}
+        value={editValue}
+        onChange={(e) => setEditValue(e.target.value)}
+        onKeyDown={(e) => {
+          if (e.key === "Enter") save();
+          if (e.key === "Escape") cancel();
+        }}
+        onBlur={save}
+        type={type}
+        className="h-7 text-sm w-full border-primary ring-1 ring-primary/30"
+        onClick={(e) => e.stopPropagation()}
+      />
+    );
+  }
+
+  const display = formatDisplay ? formatDisplay(value) : value || "—";
+
+  return (
+    <span
+      className={cn(
+        "cursor-pointer rounded px-1 -mx-1 py-0.5 hover:bg-muted/40 transition-all inline-block",
+        flash && "bg-green-500/20"
+      )}
+      onClick={(e) => {
+        e.stopPropagation();
+        onStartEdit();
+      }}
+    >
+      {display}
+    </span>
+  );
+}
+
+// --- Inline status cell ---
+function InlineStatusCell({
+  value,
+  candidateId,
+  onSave,
+  isEditing,
+  onStartEdit,
+  onStopEdit,
+}: {
+  value: string;
+  candidateId: string;
+  onSave: (field: string, newValue: string, oldValue: string) => Promise<void>;
+  isEditing: boolean;
+  onStartEdit: () => void;
+  onStopEdit: () => void;
+}) {
+  const [flash, setFlash] = useState(false);
+
+  if (isEditing) {
+    return (
+      <div onClick={(e) => e.stopPropagation()}>
+        <Select
+          value={value}
+          onValueChange={async (v) => {
+            await onSave("status", v, value);
+            setFlash(true);
+            setTimeout(() => setFlash(false), 500);
+            onStopEdit();
+          }}
+          open={true}
+          onOpenChange={(open) => { if (!open) onStopEdit(); }}
+        >
+          <SelectTrigger className="h-7 text-xs w-auto min-w-[100px] border-primary ring-1 ring-primary/30">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {STATUSES.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+          </SelectContent>
+        </Select>
+      </div>
+    );
+  }
+
+  return (
+    <Badge
+      variant="secondary"
+      className={cn(
+        statusColor[value],
+        "cursor-pointer transition-all",
+        flash && "bg-green-500/20"
+      )}
+      onClick={(e) => {
+        e.stopPropagation();
+        onStartEdit();
+      }}
+    >
+      {value}
+    </Badge>
+  );
+}
+
 export default function CandidatesPage() {
   const { data: candidates = [], isLoading } = useCandidates();
   const createCandidate = useCreateCandidate();
@@ -35,6 +188,8 @@ export default function CandidatesPage() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [selectedCandidate, setSelectedCandidate] = useState<Candidate | null>(null);
   const [detailOpen, setDetailOpen] = useState(false);
+  // Track which cell is being edited: "candidateId:field"
+  const [editingCell, setEditingCell] = useState<string | null>(null);
 
   const filtered = candidates
     .filter((c) => {
@@ -72,6 +227,36 @@ export default function CandidatesPage() {
     });
     setDialogOpen(false);
   };
+
+  const handleInlineSave = useCallback(async (candidateId: string, field: string, newValue: string, oldValue: string) => {
+    const updates: Partial<Candidate> = {};
+    const labelMap: Record<string, string> = {
+      job_title: "Job title",
+      current_employer: "Employer",
+      salary_current: "Salary",
+      location: "Location",
+      status: "Status",
+    };
+    if (field === "salary_current") {
+      updates.salary_current = newValue ? parseInt(newValue.replace(/[^0-9]/g, "")) : null;
+    } else {
+      (updates as any)[field] = newValue || null;
+    }
+    await updateCandidate.mutateAsync({ id: candidateId, ...updates });
+    const label = labelMap[field] || field;
+    const oldDisplay = field === "salary_current" && oldValue ? `£${parseInt(oldValue).toLocaleString()}` : oldValue || "—";
+    const newDisplay = field === "salary_current" && newValue ? `£${parseInt(newValue.replace(/[^0-9]/g, "")).toLocaleString()}` : newValue || "—";
+    await logActivity({
+      action_type: "candidate_updated",
+      candidate_id: candidateId,
+      metadata: {
+        changes: [`${label}: ${oldDisplay} → ${newDisplay}`],
+        fields_updated: [field],
+      },
+    });
+  }, [updateCandidate]);
+
+  const cellKey = (id: string, field: string) => `${id}:${field}`;
 
   return (
     <div className="space-y-6">
@@ -143,9 +328,9 @@ export default function CandidatesPage() {
                 <th className="text-left px-4 py-3 font-medium text-muted-foreground">Name</th>
                 <th className="text-left px-4 py-3 font-medium text-muted-foreground">Title</th>
                 <th className="text-left px-4 py-3 font-medium text-muted-foreground">Employer</th>
+                <th className="text-left px-4 py-3 font-medium text-muted-foreground">Salary</th>
                 <th className="text-left px-4 py-3 font-medium text-muted-foreground">Location</th>
                 <th className="text-left px-4 py-3 font-medium text-muted-foreground">Status</th>
-                <th className="text-left px-4 py-3 font-medium text-muted-foreground">Source</th>
                 <th className="px-4 py-3 w-16"></th>
               </tr>
             </thead>
@@ -153,18 +338,76 @@ export default function CandidatesPage() {
               {filtered.length === 0 ? (
                 <tr><td colSpan={7} className="px-4 py-8 text-center text-muted-foreground">No candidates found</td></tr>
               ) : filtered.map(c => (
-                <tr key={c.id} className="group border-b border-border hover:bg-muted/20 cursor-pointer transition-colors" onClick={() => { setSelectedCandidate(c); setDetailOpen(true); }}>
+                <tr key={c.id} className="group border-b border-border hover:bg-muted/20 transition-colors">
                   <td className="px-4 py-3 font-medium">
-                    <span className="flex items-center gap-1.5">
+                    <span
+                      className="flex items-center gap-1.5 cursor-pointer hover:text-primary transition-colors"
+                      onClick={() => { setSelectedCandidate(c); setDetailOpen(true); }}
+                    >
                       {c.priority_flag && <PriorityStarIcon />}
                       {c.name}
                     </span>
                   </td>
-                  <td className="px-4 py-3 text-muted-foreground">{c.job_title || "—"}</td>
-                  <td className="px-4 py-3 text-muted-foreground">{c.current_employer || "—"}</td>
-                  <td className="px-4 py-3 text-muted-foreground">{c.location || "—"}</td>
-                  <td className="px-4 py-3"><Badge variant="secondary" className={statusColor[c.status]}>{c.status}</Badge></td>
-                  <td className="px-4 py-3 text-muted-foreground">{c.source || "—"}</td>
+                  <td className="px-4 py-3 text-muted-foreground">
+                    <InlineEditCell
+                      value={c.job_title || ""}
+                      field="job_title"
+                      candidateId={c.id}
+                      candidateName={c.name}
+                      onSave={(f, nv, ov) => handleInlineSave(c.id, f, nv, ov)}
+                      isEditing={editingCell === cellKey(c.id, "job_title")}
+                      onStartEdit={() => setEditingCell(cellKey(c.id, "job_title"))}
+                      onStopEdit={() => setEditingCell(null)}
+                    />
+                  </td>
+                  <td className="px-4 py-3 text-muted-foreground">
+                    <InlineEditCell
+                      value={c.current_employer || ""}
+                      field="current_employer"
+                      candidateId={c.id}
+                      candidateName={c.name}
+                      onSave={(f, nv, ov) => handleInlineSave(c.id, f, nv, ov)}
+                      isEditing={editingCell === cellKey(c.id, "current_employer")}
+                      onStartEdit={() => setEditingCell(cellKey(c.id, "current_employer"))}
+                      onStopEdit={() => setEditingCell(null)}
+                    />
+                  </td>
+                  <td className="px-4 py-3 text-muted-foreground">
+                    <InlineEditCell
+                      value={c.salary_current?.toString() || ""}
+                      field="salary_current"
+                      candidateId={c.id}
+                      candidateName={c.name}
+                      onSave={(f, nv, ov) => handleInlineSave(c.id, f, nv, ov)}
+                      type="number"
+                      formatDisplay={(v) => v ? `£${parseInt(v).toLocaleString()}` : "—"}
+                      isEditing={editingCell === cellKey(c.id, "salary_current")}
+                      onStartEdit={() => setEditingCell(cellKey(c.id, "salary_current"))}
+                      onStopEdit={() => setEditingCell(null)}
+                    />
+                  </td>
+                  <td className="px-4 py-3 text-muted-foreground">
+                    <InlineEditCell
+                      value={c.location || ""}
+                      field="location"
+                      candidateId={c.id}
+                      candidateName={c.name}
+                      onSave={(f, nv, ov) => handleInlineSave(c.id, f, nv, ov)}
+                      isEditing={editingCell === cellKey(c.id, "location")}
+                      onStartEdit={() => setEditingCell(cellKey(c.id, "location"))}
+                      onStopEdit={() => setEditingCell(null)}
+                    />
+                  </td>
+                  <td className="px-4 py-3">
+                    <InlineStatusCell
+                      value={c.status}
+                      candidateId={c.id}
+                      onSave={(f, nv, ov) => handleInlineSave(c.id, f, nv, ov)}
+                      isEditing={editingCell === cellKey(c.id, "status")}
+                      onStartEdit={() => setEditingCell(cellKey(c.id, "status"))}
+                      onStopEdit={() => setEditingCell(null)}
+                    />
+                  </td>
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-1">
                       {c.linkedin_url && (
