@@ -3,12 +3,12 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
-import { Plus, Search, Trash2, ArrowLeft } from "lucide-react";
-import { useJobs, useCreateJob, useUpdateJob, useDeleteJob, useClients, useCandidateJobs, useUpdateCandidateJob, type Job } from "@/hooks/use-data";
+import { Search, Trash2, ArrowLeft } from "lucide-react";
+import { useJobs, useUpdateJob, useDeleteJob, type Job } from "@/hooks/use-data";
 import { NotesSection } from "@/components/NotesSection";
 import { JobPipelineBoard } from "@/components/JobPipelineBoard";
+import { AddJobDialog } from "@/components/AddJobDialog";
 
 const JOB_STATUSES = ["Open", "On Hold", "Filled", "Cancelled"] as const;
 const JOB_TYPES = ["Perm", "Contract"] as const;
@@ -22,13 +22,10 @@ const statusColor: Record<string, string> = {
 
 export default function JobsPage() {
   const { data: jobs = [], isLoading } = useJobs();
-  const { data: clients = [] } = useClients();
-  const createJob = useCreateJob();
   const updateJob = useUpdateJob();
   const deleteJob = useDeleteJob();
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
-  const [dialogOpen, setDialogOpen] = useState(false);
   const [selectedJob, setSelectedJob] = useState<Job | null>(null);
 
   const filtered = jobs.filter((j) => {
@@ -37,24 +34,6 @@ export default function JobsPage() {
     const matchesStatus = statusFilter === "all" || j.status === statusFilter;
     return matchesSearch && matchesStatus;
   });
-
-  const handleCreate = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    const fd = new FormData(e.currentTarget);
-    await createJob.mutateAsync({
-      title: fd.get("title") as string,
-      client_id: (fd.get("client_id") as string) || null,
-      location: (fd.get("location") as string) || null,
-      salary_min: fd.get("salary_min") ? Number(fd.get("salary_min")) : null,
-      salary_max: fd.get("salary_max") ? Number(fd.get("salary_max")) : null,
-      job_type: (fd.get("job_type") as string) || "Perm",
-      status: "Open",
-      fee_type: (fd.get("fee_type") as string) || "Percentage",
-      fee_value: fd.get("fee_value") ? Number(fd.get("fee_value")) : null,
-      date_opened: new Date().toISOString().split("T")[0],
-    });
-    setDialogOpen(false);
-  };
 
   const formatSalary = (min: number | null, max: number | null) => {
     if (!min && !max) return "—";
@@ -79,48 +58,7 @@ export default function JobsPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-semibold tracking-tight">Jobs</h1>
-        <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-          <DialogTrigger asChild>
-            <Button size="sm"><Plus className="mr-1 h-4 w-4" />Add Job</Button>
-          </DialogTrigger>
-          <DialogContent className="max-w-md">
-            <DialogHeader><DialogTitle>New Job</DialogTitle></DialogHeader>
-            <form onSubmit={handleCreate} className="space-y-3">
-              <div><Label>Job Title *</Label><Input name="title" required /></div>
-              <div>
-                <Label>Client</Label>
-                <select name="client_id" className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm">
-                  <option value="">No client</option>
-                  {clients.map(c => <option key={c.id} value={c.id}>{c.company_name}</option>)}
-                </select>
-              </div>
-              <div><Label>Location</Label><Input name="location" /></div>
-              <div className="grid grid-cols-2 gap-3">
-                <div><Label>Salary Min</Label><Input name="salary_min" type="number" /></div>
-                <div><Label>Salary Max</Label><Input name="salary_max" type="number" /></div>
-              </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <Label>Job Type</Label>
-                  <select name="job_type" className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm">
-                    {JOB_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
-                  </select>
-                </div>
-                <div>
-                  <Label>Fee Type</Label>
-                  <select name="fee_type" className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm">
-                    <option value="Percentage">Percentage</option>
-                    <option value="Flat">Flat Fee</option>
-                  </select>
-                </div>
-              </div>
-              <div><Label>Fee Value</Label><Input name="fee_value" type="number" step="0.1" /></div>
-              <Button type="submit" className="w-full" disabled={createJob.isPending}>
-                {createJob.isPending ? "Creating..." : "Create Job"}
-              </Button>
-            </form>
-          </DialogContent>
-        </Dialog>
+        <AddJobDialog />
       </div>
 
       <div className="flex items-center gap-3">

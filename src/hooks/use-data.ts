@@ -450,6 +450,8 @@ export type Contact = {
   id: string;
   client_id: string;
   name: string;
+  first_name: string | null;
+  last_name: string | null;
   job_title: string | null;
   email: string | null;
   phone: string | null;

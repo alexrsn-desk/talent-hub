@@ -379,9 +379,12 @@ function ClientDetailView({ client, onUpdate, onDelete }: {
             onSubmit={async (e) => {
               e.preventDefault();
               if (!newContactName.trim()) return;
+              const nameParts = newContactName.trim().split(" ");
               await createContact.mutateAsync({
                 client_id: client.id,
                 name: newContactName.trim(),
+                first_name: nameParts[0] || null,
+                last_name: nameParts.slice(1).join(" ") || null,
                 job_title: newContactTitle.trim() || null,
                 email: null,
                 phone: null,
