@@ -356,6 +356,7 @@ export function DataImport() {
             <PostImportChecklist
               unmatchedJobs={unmatchedJobs}
               errors={result.errors}
+              nameReviewItems={nameReviewItems}
               compact
             />
 
