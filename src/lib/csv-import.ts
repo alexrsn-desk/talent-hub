@@ -175,6 +175,23 @@ export function autoMapHeaders(
   return newMap;
 }
 
+// ── Name splitting helper ──────────────────────────────────────────
+export interface NameReviewItem {
+  row: number;
+  fullName: string;
+  suggestedFirst: string;
+  suggestedLast: string;
+}
+
+export function splitFullName(fullName: string): { first: string; last: string; needsReview: boolean } {
+  const parts = fullName.trim().split(/\s+/);
+  if (parts.length === 0) return { first: "", last: "", needsReview: false };
+  if (parts.length === 1) return { first: parts[0], last: "", needsReview: false };
+  if (parts.length === 2) return { first: parts[0], last: parts[1], needsReview: false };
+  // 3+ words — needs manual review, but suggest first/rest split
+  return { first: parts[0], last: parts.slice(1).join(" "), needsReview: true };
+}
+
 // ── Build record from row ─────────────────────────────────────────
 export function buildRecord(
   row: string[],
@@ -187,20 +204,54 @@ export function buildRecord(
     const idx = headers.indexOf(csvHeader);
     if (idx === -1) continue;
     let val: any = row[idx]?.trim() || null;
-    if (fieldKey === "name" && mapping[csvHeader] === "name") {
-      const lastNameHeader = Object.entries(mapping).find(([, v]) => v === "_lastname")?.[0];
-      if (lastNameHeader) {
-        const lnIdx = headers.indexOf(lastNameHeader);
-        const ln = lnIdx >= 0 ? row[lnIdx]?.trim() : "";
-        val = [val, ln].filter(Boolean).join(" ") || null;
-      }
-    }
-    if (fieldKey === "_lastname" || fieldKey === "_client_company") continue;
+
+    // Skip internal mapping keys — handled below
+    if (["_lastname", "_fullname", "_contact_fullname", "_client_company"].includes(fieldKey)) continue;
+
     if (["salary_current", "salary_min", "salary_max", "fee_value"].includes(fieldKey) && val) {
       val = parseFloat(String(val).replace(/[£$€,\s]/g, "")) || null;
     }
     rec[fieldKey] = val;
   }
+
+  // Handle full name splitting for candidates
+  const fullnameHeader = Object.entries(mapping).find(([, v]) => v === "_fullname")?.[0];
+  if (fullnameHeader) {
+    const fnIdx = headers.indexOf(fullnameHeader);
+    const fullName = fnIdx >= 0 ? row[fnIdx]?.trim() : "";
+    if (fullName) {
+      const { first, last } = splitFullName(fullName);
+      rec.first_name = rec.first_name || first || null;
+      rec.last_name = rec.last_name || last || null;
+    }
+  }
+
+  // Handle contact full name splitting for clients
+  const contactFullnameHeader = Object.entries(mapping).find(([, v]) => v === "_contact_fullname")?.[0];
+  if (contactFullnameHeader) {
+    const cfnIdx = headers.indexOf(contactFullnameHeader);
+    const contactFullName = cfnIdx >= 0 ? row[cfnIdx]?.trim() : "";
+    if (contactFullName) {
+      const { first, last } = splitFullName(contactFullName);
+      rec.first_name = rec.first_name || first || null;
+      rec.last_name = rec.last_name || last || null;
+      // Also set contact_name for backward compat
+      rec.contact_name = contactFullName;
+    }
+  }
+
+  // Build the name column from first+last for backward compat
+  if (rec.first_name || rec.last_name) {
+    rec.name = [rec.first_name, rec.last_name].filter(Boolean).join(" ") || null;
+  }
+
+  // If contact_name mapped directly (old clients), split it
+  if (rec.contact_name && !rec.first_name) {
+    const { first, last } = splitFullName(rec.contact_name);
+    rec.first_name = first || null;
+    rec.last_name = last || null;
+  }
+
   return rec;
 }
 
