@@ -240,6 +240,21 @@ export default function CandidatesPage() {
   const [detailOpen, setDetailOpen] = useState(false);
   // Track which cell is being edited: "candidateId:field"
   const [editingCell, setEditingCell] = useState<string | null>(null);
+  const [touchpointCandidate, setTouchpointCandidate] = useState<Candidate | null>(null);
+
+  const handleTogglePriority = useCallback((c: Candidate) => {
+    if (c.priority_flag) {
+      updateCandidate.mutate({ id: c.id, priority_flag: false, priority_reason: null, priority_flagged_at: null, priority_followup_date: null } as any);
+      toast("Removed", { duration: 1000 });
+    } else {
+      updateCandidate.mutate({ id: c.id, priority_flag: true, priority_flagged_at: new Date().toISOString() } as any);
+      toast("Flagged", { duration: 1000 });
+    }
+  }, [updateCandidate]);
+
+  const handleOpenTouchpoint = useCallback((c: Candidate) => {
+    setTouchpointCandidate(c);
+  }, []);
 
   const filtered = candidates
     .filter((c) => {
@@ -497,6 +512,16 @@ export default function CandidatesPage() {
           )}
         </DialogContent>
       </Dialog>
+
+      {touchpointCandidate && (
+        <LogTouchpointModal
+          open={!!touchpointCandidate}
+          onOpenChange={(open) => { if (!open) setTouchpointCandidate(null); }}
+          entityType="candidate"
+          entityId={touchpointCandidate.id}
+          entityName={touchpointCandidate.name}
+        />
+      )}
     </div>
   );
 }
