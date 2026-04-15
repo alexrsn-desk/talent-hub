@@ -3,7 +3,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Pencil, X, Save, ExternalLink, Trash2, PhoneCall, Phone, AlertCircle } from "lucide-react";
+import { Pencil, X, Save, ExternalLink, Trash2, PhoneCall, Phone, AlertCircle, Ban, Lock } from "lucide-react";
 import { useUpdateCandidate, type Candidate } from "@/hooks/use-data";
 import { PriorityFlagButton, PriorityStarIcon } from "@/components/PriorityFlag";
 import { NotesSection } from "@/components/NotesSection";
