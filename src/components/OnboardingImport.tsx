@@ -98,7 +98,12 @@ export function OnboardingImport({ onComplete }: { onComplete: () => void }) {
     const f = files[t];
     if (!f) return false;
     const fields = FIELD_MAP[t];
-    return fields.filter(fd => fd.required).every(fd => Object.values(f.mapping).includes(fd.key));
+    return fields.filter(fd => fd.required).every(fd => {
+      if (fd.key === "first_name") {
+        return Object.values(f.mapping).includes("first_name") || Object.values(f.mapping).includes("_fullname");
+      }
+      return Object.values(f.mapping).includes(fd.key);
+    });
   });
 
   const totalRows = enabledList.reduce((sum, t) => sum + (files[t]?.rows.length || 0), 0);
