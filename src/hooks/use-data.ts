@@ -481,7 +481,7 @@ export function useContacts(clientId?: string) {
 export function useCreateContact() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (contact: Omit<Contact, "id" | "created_at">) => {
+    mutationFn: async (contact: Omit<Contact, "id" | "created_at" | "status" | "personal_email" | "mobile_phone" | "direct_phone"> & Partial<Pick<Contact, "status" | "personal_email" | "mobile_phone" | "direct_phone">>) => {
       const { data, error } = await supabase.from("contacts").insert(contact).select().single();
       if (error) throw error;
       await logActivity({ action_type: "contact_created", client_id: contact.client_id, metadata: { name: contact.name } });
