@@ -9,6 +9,7 @@ import { Save, Loader2, Upload, Palette, Lightbulb } from "lucide-react";
 import { DataImport } from "@/components/DataImport";
 import { MigrationAssistant } from "@/components/MigrationAssistant";
 import { useSignalPerformance } from "@/hooks/use-signals";
+import { TagManagement } from "@/components/TagManagement";
 
 const NICHES = [
   "Tech/Digital", "Sales/Commercial", "Finance", "Legal",
@@ -300,6 +301,11 @@ export default function SettingsPage() {
         <h2 className="text-sm font-medium">Migration Assistant</h2>
         <p className="text-xs text-muted-foreground">Review and tidy imported data — unmatched jobs, notes, job assignments, and duplicates.</p>
         <MigrationAssistant onComplete={() => toast.success("All items reviewed!")} showLaterOption={false} />
+      </div>
+
+      {/* Tag Management */}
+      <div className="pt-6 border-t border-border">
+        <TagManagement />
       </div>
 
       {/* Signal Performance */}

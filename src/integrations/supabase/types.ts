@@ -175,6 +175,48 @@ export type Database = {
           },
         ]
       }
+      candidate_tags: {
+        Row: {
+          candidate_id: string
+          confidence: string | null
+          created_at: string
+          id: string
+          source: string
+          tag_definition_id: string
+        }
+        Insert: {
+          candidate_id: string
+          confidence?: string | null
+          created_at?: string
+          id?: string
+          source?: string
+          tag_definition_id: string
+        }
+        Update: {
+          candidate_id?: string
+          confidence?: string | null
+          created_at?: string
+          id?: string
+          source?: string
+          tag_definition_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "candidate_tags_candidate_id_fkey"
+            columns: ["candidate_id"]
+            isOneToOne: false
+            referencedRelation: "candidates"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "candidate_tags_tag_definition_id_fkey"
+            columns: ["tag_definition_id"]
+            isOneToOne: false
+            referencedRelation: "tag_definitions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       candidates: {
         Row: {
           availability: string | null
@@ -499,6 +541,42 @@ export type Database = {
           },
         ]
       }
+      job_tags: {
+        Row: {
+          created_at: string
+          id: string
+          job_id: string
+          tag_definition_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          job_id: string
+          tag_definition_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          job_id?: string
+          tag_definition_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "job_tags_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "jobs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "job_tags_tag_definition_id_fkey"
+            columns: ["tag_definition_id"]
+            isOneToOne: false
+            referencedRelation: "tag_definitions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       jobs: {
         Row: {
           client_id: string | null
@@ -715,6 +793,33 @@ export type Database = {
           salary_min?: number | null
           updated_at?: string
           user_id?: string
+        }
+        Relationships: []
+      }
+      tag_definitions: {
+        Row: {
+          archived: boolean
+          category: string
+          created_at: string
+          id: string
+          label: string
+          position: number
+        }
+        Insert: {
+          archived?: boolean
+          category: string
+          created_at?: string
+          id?: string
+          label: string
+          position?: number
+        }
+        Update: {
+          archived?: boolean
+          category?: string
+          created_at?: string
+          id?: string
+          label?: string
+          position?: number
         }
         Relationships: []
       }

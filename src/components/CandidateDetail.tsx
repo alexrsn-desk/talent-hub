@@ -11,6 +11,7 @@ import { CandidateJobLinks } from "@/components/CandidateJobLinks";
 import { LogTouchpointModal } from "@/components/LogTouchpointModal";
 import { CallPrepButton } from "@/components/CallPrep";
 import { ClickToEditField } from "@/components/ClickToEditField";
+import { TagsSection } from "@/components/TagsSection";
 import { Label } from "@/components/ui/label";
 import { logActivity } from "@/lib/activity-log";
 import { toast } from "sonner";
@@ -275,6 +276,7 @@ export function CandidateDetail({ candidate, onUpdate, onDelete }: Props) {
         </div>
       )}
 
+      <TagsSection entityType="candidate" entityId={candidate.id} />
       <CandidateJobLinks candidateId={candidate.id} />
       <NotesSection entityType="candidate" entityId={candidate.id} />
       <LogTouchpointModal open={touchpointOpen} onOpenChange={setTouchpointOpen} entityType="candidate" entityId={candidate.id} entityName={candidate.name} />

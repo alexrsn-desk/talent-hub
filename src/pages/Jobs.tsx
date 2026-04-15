@@ -9,6 +9,7 @@ import { NotesSection } from "@/components/NotesSection";
 import { JobPipelineBoard } from "@/components/JobPipelineBoard";
 import { AddJobDialog } from "@/components/AddJobDialog";
 import { ClickToEditField } from "@/components/ClickToEditField";
+import { TagsSection } from "@/components/TagsSection";
 
 const JOB_STATUSES = ["Open", "On Hold", "Filled", "Cancelled"] as const;
 const JOB_TYPES = ["Perm", "Contract"] as const;
@@ -159,6 +160,8 @@ function JobFullView({ job, onBack, onUpdate, onDelete }: {
         <ClickToEditField label="Fee Type" value={job.fee_type || ""} field="fee_type" options={FEE_TYPES} layout="stacked" onSave={(v) => handleFieldSave("fee_type", v)} entityType="job" entityId={job.id} />
         <ClickToEditField label="Fee Value" value={job.fee_value?.toString() || ""} field="fee_value" type="number" layout="stacked" onSave={(v) => handleFieldSave("fee_value", v)} entityType="job" entityId={job.id} />
       </div>
+
+      <TagsSection entityType="job" entityId={job.id} />
 
       <div>
         <h2 className="text-sm font-medium mb-3">Candidate Pipeline</h2>
