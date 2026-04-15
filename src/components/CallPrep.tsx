@@ -56,9 +56,16 @@ function CallPrepDialog({ entityType, entityId, entityName, open, onOpenChange }
   const [expandedPhases, setExpandedPhases] = useState<Record<number, boolean>>({});
   const [showSummary, setShowSummary] = useState(false);
   const { toast } = useToast();
+  const callSummaryLimit = useFeatureLimit("call_summary");
+  const logUsage = useLogUsage();
 
   const loadPrep = async () => {
+    if (!callSummaryLimit.canUse) {
+      toast({ title: "Limit reached", description: "Monthly call summary limit reached", variant: "destructive" });
+      return;
+    }
     setLoading(true);
+    logUsage.mutate({ featureType: "call_summary", isGrace: callSummaryLimit.graceGranted });
     try {
       const { data, error } = await supabase.functions.invoke("call-prep", {
         body: { entity_type: entityType, entity_id: entityId },
