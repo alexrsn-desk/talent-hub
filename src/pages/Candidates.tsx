@@ -328,6 +328,19 @@ export default function CandidatesPage() {
         fields_updated: [field],
       },
     });
+
+    // GDPR log when Do Not Contact status is set inline
+    if (field === "status" && newValue === "Do Not Contact" && oldValue !== "Do Not Contact") {
+      await logActivity({
+        action_type: "gdpr_do_not_contact",
+        candidate_id: candidateId,
+        metadata: {
+          previous_status: oldValue,
+          reason: "Status changed to Do Not Contact",
+          permanent: true,
+        },
+      });
+    }
   }, [updateCandidate]);
 
   const cellKey = (id: string, field: string) => `${id}:${field}`;
