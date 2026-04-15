@@ -8,6 +8,7 @@ import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Plus, User, Building2, Clock, Calendar, Star } from "lucide-react";
 import { PriorityFlagButton, PriorityStarIcon } from "@/components/PriorityFlag";
+import { CandidateContextMenu } from "@/components/CandidateContextMenu";
 import { useCandidateJobs, useCandidates, useCreateCandidateJob, useUpdateCandidateJob, useNotes, type CandidateJob, type Candidate, type Job } from "@/hooks/use-data";
 import { NotesSection } from "@/components/NotesSection";
 import { CandidateJobLinks } from "@/components/CandidateJobLinks";
@@ -145,7 +146,7 @@ export function JobPipelineBoard({ job }: { job: Job }) {
                             {...provided.draggableProps}
                             {...provided.dragHandleProps}
                             onClick={() => openProfile(cj)}
-                            className={`rounded-md border bg-background p-2.5 cursor-pointer hover:border-primary/40 transition-all text-xs space-y-1.5 ${
+                            className={`group rounded-md border bg-background p-2.5 cursor-pointer hover:border-primary/40 transition-all text-xs space-y-1.5 ${
                               snapshot.isDragging ? "shadow-lg ring-1 ring-primary/30" : ""
                             } ${cj.candidates?.priority_flag ? "border-yellow-400/50" : "border-border"}`}
                           >
@@ -154,7 +155,9 @@ export function JobPipelineBoard({ job }: { job: Job }) {
                                 {cj.candidates?.priority_flag && <PriorityStarIcon />}
                                 {cj.candidates?.name || "Unknown"}
                               </p>
-                              {cj.candidates && <PriorityFlagButton candidate={cj.candidates} size="xs" />}
+                              <div className="flex items-center gap-0.5">
+                                {cj.candidates && <CandidateContextMenu candidate={cj.candidates} onViewProfile={() => openProfile(cj)} triggerClassName="h-6 w-6 opacity-0 group-hover:opacity-100" />}
+                              </div>
                             </div>
                             {cj.candidates?.current_employer && (
                               <div className="flex items-center gap-1 text-muted-foreground">
