@@ -180,7 +180,7 @@ export const PLATFORM_OPTIONS = PLATFORMS.map(p => ({ value: p.value, label: p.l
 // ── Status mapping ────────────────────────────────────────────────
 const VINCERE_STATUS_MAP: Record<string, string> = {
   "active": "Active", "placed": "Placed",
-  "do not contact": "Not Suitable", "unqualified": "Not Suitable",
+  "do not contact": "Do Not Contact", "unqualified": "Not Suitable",
   "hot": "Active", "warm": "Active", "cold": "Cold",
 };
 

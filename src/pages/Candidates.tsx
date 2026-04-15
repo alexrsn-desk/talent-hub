@@ -16,7 +16,7 @@ import { logActivity } from "@/lib/activity-log";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 
-const STATUSES = ["New", "Contacted", "Screening", "Submitted", "Interviewing", "Placed", "On Hold", "Not Suitable"] as const;
+const STATUSES = ["New", "Contacted", "Screening", "Submitted", "Interviewing", "Placed", "On Hold", "Not Suitable", "Cold", "Archive", "Do Not Contact"] as const;
 const SOURCES = ["LinkedIn", "Referral", "Job Board", "Inbound"] as const;
 
 const statusColor: Record<string, string> = {
@@ -28,6 +28,9 @@ const statusColor: Record<string, string> = {
   Placed: "bg-success/20 text-green-400",
   "On Hold": "bg-muted text-muted-foreground",
   "Not Suitable": "bg-destructive/20 text-red-400",
+  Cold: "bg-slate-500/20 text-slate-400",
+  Archive: "bg-slate-600/20 text-slate-500",
+  "Do Not Contact": "bg-red-600/30 text-red-500 ring-1 ring-red-500/30",
 };
 
 // --- Inline editable cell ---
@@ -211,18 +214,24 @@ function RowPriorityToggle({ candidate, onToggle }: { candidate: Candidate; onTo
 
 // --- Row touchpoint button ---
 function RowTouchpointButton({ candidate, onOpen }: { candidate: Candidate; onOpen: (c: Candidate) => void }) {
+  const isDNC = candidate.status === "Do Not Contact";
   return (
     <TooltipProvider delayDuration={300}>
       <Tooltip>
         <TooltipTrigger asChild>
           <button
-            className="p-2 rounded-md hover:bg-muted/40 transition-colors text-muted-foreground hover:text-primary"
-            onClick={(e) => { e.stopPropagation(); onOpen(candidate); }}
+            className={cn(
+              "p-2 rounded-md transition-colors",
+              isDNC ? "opacity-40 cursor-not-allowed" : "hover:bg-muted/40 text-muted-foreground hover:text-primary"
+            )}
+            onClick={(e) => { e.stopPropagation(); if (!isDNC) onOpen(candidate); }}
           >
             <PhoneCall className="h-4 w-4" />
           </button>
         </TooltipTrigger>
-        <TooltipContent side="top" className="text-xs">Log touchpoint</TooltipContent>
+        <TooltipContent side="top" className="text-xs">
+          {isDNC ? "Cannot log touchpoint — Do Not Contact status" : "Log touchpoint"}
+        </TooltipContent>
       </Tooltip>
     </TooltipProvider>
   );
@@ -319,6 +328,19 @@ export default function CandidatesPage() {
         fields_updated: [field],
       },
     });
+
+    // GDPR log when Do Not Contact status is set inline
+    if (field === "status" && newValue === "Do Not Contact" && oldValue !== "Do Not Contact") {
+      await logActivity({
+        action_type: "gdpr_do_not_contact",
+        candidate_id: candidateId,
+        metadata: {
+          previous_status: oldValue,
+          reason: "Status changed to Do Not Contact",
+          permanent: true,
+        },
+      });
+    }
   }, [updateCandidate]);
 
   const cellKey = (id: string, field: string) => `${id}:${field}`;

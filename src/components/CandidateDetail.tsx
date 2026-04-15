@@ -1,9 +1,10 @@
 import { useState } from "react";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Pencil, X, Save, ExternalLink, Trash2, PhoneCall, Phone, AlertCircle } from "lucide-react";
+import { Pencil, X, Save, ExternalLink, Trash2, PhoneCall, Phone, AlertCircle, Ban, Lock } from "lucide-react";
 import { useUpdateCandidate, type Candidate } from "@/hooks/use-data";
 import { PriorityFlagButton, PriorityStarIcon } from "@/components/PriorityFlag";
 import { NotesSection } from "@/components/NotesSection";
@@ -26,7 +27,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 
-const STATUSES = ["New", "Contacted", "Screening", "Submitted", "Interviewing", "Placed", "On Hold", "Not Suitable"] as const;
+const STATUSES = ["New", "Contacted", "Screening", "Submitted", "Interviewing", "Placed", "On Hold", "Not Suitable", "Cold", "Archive", "Do Not Contact"] as const;
 const SOURCES = ["LinkedIn", "Referral", "Job Board", "Inbound"] as const;
 
 const statusColor: Record<string, string> = {
@@ -38,6 +39,9 @@ const statusColor: Record<string, string> = {
   Placed: "bg-success/20 text-green-400",
   "On Hold": "bg-muted text-muted-foreground",
   "Not Suitable": "bg-destructive/20 text-red-400",
+  Cold: "bg-slate-500/20 text-slate-400",
+  Archive: "bg-slate-600/20 text-slate-500",
+  "Do Not Contact": "bg-red-600/30 text-red-500 ring-1 ring-red-500/30",
 };
 
 interface Props {
@@ -131,6 +135,20 @@ export function CandidateDetail({ candidate, onUpdate, onDelete }: Props) {
 
     await onUpdate(updates);
     await logActivity({ action_type: "candidate_updated", candidate_id: candidate.id, metadata: { changes, fields_updated: Object.keys(updates) } });
+
+    // GDPR log when Do Not Contact status is set
+    if (updates.status === "Do Not Contact" && candidate.status !== "Do Not Contact") {
+      await logActivity({
+        action_type: "gdpr_do_not_contact",
+        candidate_id: candidate.id,
+        metadata: {
+          previous_status: candidate.status,
+          reason: "Status changed to Do Not Contact",
+          permanent: true,
+        },
+      });
+    }
+
     setEditing(false);
     toast.success(`Updated: ${changes.length} field${changes.length > 1 ? "s" : ""} changed`);
   };
@@ -164,9 +182,18 @@ export function CandidateDetail({ candidate, onUpdate, onDelete }: Props) {
     if (!form.email) hints.push("No email on this record — worth adding?");
     if (!form.phone) hints.push("No phone number — worth adding?");
   }
+  const isDNC = candidate.status === "Do Not Contact";
 
   return (
     <div className="space-y-6">
+      {/* Do Not Contact Banner */}
+      {isDNC && (
+        <div className="flex items-center gap-2 rounded-lg border border-red-500/40 bg-red-500/10 px-4 py-3 text-sm text-red-400">
+          <Ban className="h-5 w-5 shrink-0" />
+          <span className="font-medium">⛔ Do Not Contact — this candidate has requested no further contact</span>
+        </div>
+      )}
+
       {/* Header */}
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
@@ -197,16 +224,29 @@ export function CandidateDetail({ candidate, onUpdate, onDelete }: Props) {
               <Button size="sm" variant="outline" onClick={handleStartEdit} className="gap-1.5">
                 <Pencil className="h-3.5 w-3.5" /> Edit
               </Button>
-              <PriorityFlagButton candidate={candidate} size="sm" />
-              {candidate.phone && (
+              {!isDNC && <PriorityFlagButton candidate={candidate} size="sm" />}
+              {!isDNC && candidate.phone && (
                 <a href={`tel:${candidate.phone}`}>
                   <Button size="sm" variant="default" className="gap-1.5"><Phone className="h-3.5 w-3.5" /> Call Now</Button>
                 </a>
               )}
-              <CallPrepButton entityType="candidate" entityId={candidate.id} entityName={candidate.name} />
-              <Button size="sm" variant="outline" className="gap-1.5" onClick={() => setTouchpointOpen(true)}>
-                <PhoneCall className="h-3.5 w-3.5" /> Log Touchpoint
-              </Button>
+              {!isDNC && <CallPrepButton entityType="candidate" entityId={candidate.id} entityName={candidate.name} />}
+              {isDNC ? (
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <span>
+                      <Button size="sm" variant="outline" className="gap-1.5 opacity-50" disabled>
+                        <Ban className="h-3.5 w-3.5" /> Log Touchpoint
+                      </Button>
+                    </span>
+                  </TooltipTrigger>
+                  <TooltipContent className="text-xs">Cannot log touchpoint — Do Not Contact status</TooltipContent>
+                </Tooltip>
+              ) : (
+                <Button size="sm" variant="outline" className="gap-1.5" onClick={() => setTouchpointOpen(true)}>
+                  <PhoneCall className="h-3.5 w-3.5" /> Log Touchpoint
+                </Button>
+              )}
               <Button variant="ghost" size="icon" onClick={onDelete}><Trash2 className="h-4 w-4 text-destructive" /></Button>
             </>
           )}

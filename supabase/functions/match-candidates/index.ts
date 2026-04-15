@@ -60,11 +60,11 @@ serve(async (req) => {
       .order("created_at", { ascending: false })
       .limit(5);
 
-    // Fetch all active candidates (not Placed or Not Suitable)
+    // Fetch all active candidates (exclude Placed, Not Suitable, Archive, Do Not Contact)
     const { data: candidates = [] } = await supabase
       .from("candidates")
       .select("*")
-      .not("status", "in", '("Placed","Not Suitable")')
+      .not("status", "in", '("Placed","Not Suitable","Archive","Do Not Contact")')
       .limit(200);
 
     if (candidates.length === 0) {
