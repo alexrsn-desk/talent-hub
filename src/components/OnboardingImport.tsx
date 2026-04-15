@@ -367,9 +367,6 @@ export function OnboardingImport({ onComplete }: { onComplete: () => void }) {
                                 {fd.label} {fd.required && "★"}
                               </SelectItem>
                             ))}
-                            {activeType === "candidates" && (
-                              <SelectItem value="_lastname">Last Name (merge)</SelectItem>
-                            )}
                           </SelectContent>
                         </Select>
                       </div>
