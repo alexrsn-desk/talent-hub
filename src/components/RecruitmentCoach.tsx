@@ -265,5 +265,6 @@ export function RecruitmentCoach() {
         </div>
       </div>
     </div>
+    </UsageLimitGuard>
   );
 }
