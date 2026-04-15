@@ -276,6 +276,7 @@ export function PostImportChecklist({ unmatchedJobs: initialUnmatched, errors, n
         </Card>
       )}
 
+      {duplicates.length > 0 && (
         <Card>
           <CardContent className="p-4 space-y-3">
             <button
