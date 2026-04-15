@@ -270,6 +270,7 @@ serve(async (req) => {
         followUpDate: c.priority_followup_date,
         daysSinceFlagged: c.priority_flagged_at ? Math.floor((Date.now() - new Date(c.priority_flagged_at).getTime()) / (1000 * 60 * 60 * 24)) : null,
       })),
+      staleRecords: staleClients,
     };
 
     const recruiterContext = profile ? `
