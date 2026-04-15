@@ -5,13 +5,11 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
-import { Plus, Search, ExternalLink, Trash2, PhoneCall, Star, Phone } from "lucide-react";
+import { Plus, Search, ExternalLink } from "lucide-react";
 import { useCandidates, useCreateCandidate, useUpdateCandidate, useDeleteCandidate, type Candidate } from "@/hooks/use-data";
-import { PriorityFlagButton, PriorityStarIcon } from "@/components/PriorityFlag";
-import { NotesSection } from "@/components/NotesSection";
-import { CandidateJobLinks } from "@/components/CandidateJobLinks";
-import { LogTouchpointModal } from "@/components/LogTouchpointModal";
-import { CallPrepButton } from "@/components/CallPrep";
+import { PriorityStarIcon } from "@/components/PriorityFlag";
+import { CandidateDetail } from "@/components/CandidateDetail";
+import { CandidateContextMenu } from "@/components/CandidateContextMenu";
 
 const STATUSES = ["New", "Contacted", "Screening", "Submitted", "Interviewing", "Placed", "On Hold", "Not Suitable"] as const;
 const SOURCES = ["LinkedIn", "Referral", "Job Board", "Inbound"] as const;
@@ -47,7 +45,6 @@ export default function CandidatesPage() {
       return matchesSearch && matchesStatus;
     })
     .sort((a, b) => {
-      // Priority candidates float to top
       if (a.priority_flag && !b.priority_flag) return -1;
       if (!a.priority_flag && b.priority_flag) return 1;
       return 0;
@@ -149,14 +146,14 @@ export default function CandidatesPage() {
                 <th className="text-left px-4 py-3 font-medium text-muted-foreground">Location</th>
                 <th className="text-left px-4 py-3 font-medium text-muted-foreground">Status</th>
                 <th className="text-left px-4 py-3 font-medium text-muted-foreground">Source</th>
-                <th className="px-4 py-3"></th>
+                <th className="px-4 py-3 w-16"></th>
               </tr>
             </thead>
             <tbody>
               {filtered.length === 0 ? (
                 <tr><td colSpan={7} className="px-4 py-8 text-center text-muted-foreground">No candidates found</td></tr>
               ) : filtered.map(c => (
-                <tr key={c.id} className="border-b border-border hover:bg-muted/20 cursor-pointer transition-colors" onClick={() => { setSelectedCandidate(c); setDetailOpen(true); }}>
+                <tr key={c.id} className="group border-b border-border hover:bg-muted/20 cursor-pointer transition-colors" onClick={() => { setSelectedCandidate(c); setDetailOpen(true); }}>
                   <td className="px-4 py-3 font-medium">
                     <span className="flex items-center gap-1.5">
                       {c.priority_flag && <PriorityStarIcon />}
@@ -169,11 +166,17 @@ export default function CandidatesPage() {
                   <td className="px-4 py-3"><Badge variant="secondary" className={statusColor[c.status]}>{c.status}</Badge></td>
                   <td className="px-4 py-3 text-muted-foreground">{c.source || "—"}</td>
                   <td className="px-4 py-3">
-                    {c.linkedin_url && (
-                      <a href={c.linkedin_url} target="_blank" rel="noopener noreferrer" onClick={e => e.stopPropagation()}>
-                        <ExternalLink className="h-4 w-4 text-muted-foreground hover:text-primary" />
-                      </a>
-                    )}
+                    <div className="flex items-center gap-1">
+                      {c.linkedin_url && (
+                        <a href={c.linkedin_url} target="_blank" rel="noopener noreferrer" onClick={e => e.stopPropagation()}>
+                          <ExternalLink className="h-4 w-4 text-muted-foreground hover:text-primary" />
+                        </a>
+                      )}
+                      <CandidateContextMenu
+                        candidate={c}
+                        onViewProfile={() => { setSelectedCandidate(c); setDetailOpen(true); }}
+                      />
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -182,7 +185,6 @@ export default function CandidatesPage() {
         </div>
       )}
 
-      {/* Detail dialog */}
       <Dialog open={detailOpen} onOpenChange={setDetailOpen}>
         <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
           {selectedCandidate && (
@@ -200,70 +202,6 @@ export default function CandidatesPage() {
           )}
         </DialogContent>
       </Dialog>
-    </div>
-  );
-}
-
-function CandidateDetail({ candidate, onUpdate, onDelete }: {
-  candidate: Candidate;
-  onUpdate: (updates: Partial<Candidate>) => Promise<void>;
-  onDelete: () => Promise<void>;
-}) {
-  const [touchpointOpen, setTouchpointOpen] = useState(false);
-
-  return (
-    <div className="space-y-6">
-      <div className="flex items-start justify-between">
-        <div>
-          <h2 className="text-xl font-semibold">{candidate.name}</h2>
-          <p className="text-muted-foreground">{candidate.job_title || "No title"} {candidate.current_employer ? `at ${candidate.current_employer}` : ""}</p>
-        </div>
-        <div className="flex gap-2 items-start flex-wrap">
-          <PriorityFlagButton candidate={candidate} size="sm" />
-          {candidate.phone && (
-            <a href={`tel:${candidate.phone}`}>
-              <Button size="sm" variant="default" className="gap-1.5">
-                <Phone className="h-3.5 w-3.5" /> Call Now
-              </Button>
-            </a>
-          )}
-          <CallPrepButton entityType="candidate" entityId={candidate.id} entityName={candidate.name} />
-          <Button size="sm" variant="outline" className="gap-1.5" onClick={() => setTouchpointOpen(true)}>
-            <PhoneCall className="h-3.5 w-3.5" /> Log Touchpoint
-          </Button>
-          <Select defaultValue={candidate.status} onValueChange={(v) => onUpdate({ status: v })}>
-            <SelectTrigger className="w-36"><SelectValue /></SelectTrigger>
-            <SelectContent>
-              {STATUSES.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
-            </SelectContent>
-          </Select>
-          <Button variant="ghost" size="icon" onClick={onDelete}><Trash2 className="h-4 w-4 text-destructive" /></Button>
-        </div>
-      </div>
-
-      <div className="grid grid-cols-2 gap-4 text-sm">
-        <div><span className="text-muted-foreground">Email:</span> {candidate.email || "—"}</div>
-        <div><span className="text-muted-foreground">Phone:</span> {candidate.phone || "—"}</div>
-        <div><span className="text-muted-foreground">Location:</span> {candidate.location || "—"}</div>
-        <div><span className="text-muted-foreground">Source:</span> {candidate.source || "—"}</div>
-        {candidate.linkedin_url && (
-          <div className="col-span-2">
-            <a href={candidate.linkedin_url} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline flex items-center gap-1">
-              <ExternalLink className="h-3 w-3" /> LinkedIn Profile
-            </a>
-          </div>
-        )}
-      </div>
-
-      <CandidateJobLinks candidateId={candidate.id} />
-      <NotesSection entityType="candidate" entityId={candidate.id} />
-      <LogTouchpointModal
-        open={touchpointOpen}
-        onOpenChange={setTouchpointOpen}
-        entityType="candidate"
-        entityId={candidate.id}
-        entityName={candidate.name}
-      />
     </div>
   );
 }
