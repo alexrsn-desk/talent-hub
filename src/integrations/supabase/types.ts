@@ -236,6 +236,7 @@ export type Database = {
           priority_followup_date: string | null
           priority_reason: string | null
           salary_current: number | null
+          salary_expectation: number | null
           source: string | null
           status: string
           updated_at: string
@@ -258,6 +259,7 @@ export type Database = {
           priority_followup_date?: string | null
           priority_reason?: string | null
           salary_current?: number | null
+          salary_expectation?: number | null
           source?: string | null
           status?: string
           updated_at?: string
@@ -280,6 +282,7 @@ export type Database = {
           priority_followup_date?: string | null
           priority_reason?: string | null
           salary_current?: number | null
+          salary_expectation?: number | null
           source?: string | null
           status?: string
           updated_at?: string
