@@ -213,28 +213,165 @@ function RowPriorityToggle({ candidate, onToggle }: { candidate: Candidate; onTo
   );
 }
 
-// --- Row touchpoint button ---
+// --- Row touchpoint button (clipboard icon) ---
 function RowTouchpointButton({ candidate, onOpen }: { candidate: Candidate; onOpen: (c: Candidate) => void }) {
   const isDNC = candidate.status === "Do Not Contact";
   return (
-    <TooltipProvider delayDuration={300}>
+    <TooltipProvider delayDuration={500}>
       <Tooltip>
         <TooltipTrigger asChild>
           <button
             className={cn(
-              "p-2 rounded-md transition-colors",
-              isDNC ? "opacity-40 cursor-not-allowed" : "hover:bg-muted/40 text-muted-foreground hover:text-primary"
+              "p-2 rounded-md transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center",
+              isDNC ? "opacity-40 cursor-not-allowed" : "text-[#9CA3AF] hover:text-[#4A90D9] hover:bg-muted/40"
             )}
             onClick={(e) => { e.stopPropagation(); if (!isDNC) onOpen(candidate); }}
           >
-            <PhoneCall className="h-4 w-4" />
+            <ClipboardList className="h-[18px] w-[18px]" />
           </button>
         </TooltipTrigger>
         <TooltipContent side="top" className="text-xs">
-          {isDNC ? "Cannot log touchpoint — Do Not Contact status" : "Log touchpoint"}
+          {isDNC ? "Cannot log touchpoint — Do Not Contact" : "Log touchpoint"}
         </TooltipContent>
       </Tooltip>
     </TooltipProvider>
+  );
+}
+
+// --- Row call now button ---
+function RowCallButton({ candidate, onOpenTouchpoint }: { candidate: Candidate; onOpenTouchpoint: (c: Candidate) => void }) {
+  const hasPhone = !!candidate.phone;
+  const isDNC = candidate.status === "Do Not Contact";
+  const disabled = !hasPhone || isDNC;
+
+  const tooltipText = isDNC
+    ? "Cannot call — Do Not Contact"
+    : hasPhone
+      ? "Call now"
+      : "No phone number — add one to their profile";
+
+  return (
+    <TooltipProvider delayDuration={500}>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          {disabled ? (
+            <span className="p-2 rounded-md min-w-[44px] min-h-[44px] flex items-center justify-center text-[#D1D5DB] cursor-not-allowed">
+              <Phone className="h-[18px] w-[18px]" />
+            </span>
+          ) : (
+            <a
+              href={`tel:${candidate.phone}`}
+              className="p-2 rounded-md transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center text-[#9CA3AF] hover:text-[#27AE60] hover:bg-muted/40"
+              onClick={(e) => {
+                e.stopPropagation();
+                // Open touchpoint modal to log the call
+                onOpenTouchpoint(candidate);
+              }}
+            >
+              <Phone className="h-[18px] w-[18px]" />
+            </a>
+          )}
+        </TooltipTrigger>
+        <TooltipContent side="top" className="text-xs">{tooltipText}</TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
+  );
+}
+
+// --- Row add to job button ---
+function RowAddToJobButton({ candidate }: { candidate: Candidate }) {
+  const { data: jobs = [] } = useJobs();
+  const { data: candidateJobs = [] } = useCandidateJobs(candidate.id);
+  const createCandidateJob = useCreateCandidateJob();
+  const [open, setOpen] = useState(false);
+  const [jobSearch, setJobSearch] = useState("");
+  const [addedJobId, setAddedJobId] = useState<string | null>(null);
+
+  const openJobs = jobs.filter(j => j.status === "Open");
+  const filtered = openJobs.filter(j =>
+    j.title.toLowerCase().includes(jobSearch.toLowerCase()) ||
+    (j.client?.company_name || "").toLowerCase().includes(jobSearch.toLowerCase())
+  ).slice(0, 8);
+
+  const existingJobIds = new Set(candidateJobs.map(cj => cj.job_id));
+
+  const handleAddToJob = async (job: typeof jobs[0]) => {
+    if (existingJobIds.has(job.id)) return;
+    await createCandidateJob.mutateAsync({
+      candidate_id: candidate.id,
+      job_id: job.id,
+      stage: "Longlist",
+    });
+    setAddedJobId(job.id);
+    toast.success(`Added to ${job.title} ✓`);
+    setTimeout(() => { setOpen(false); setAddedJobId(null); setJobSearch(""); }, 1200);
+  };
+
+  return (
+    <Popover open={open} onOpenChange={(o) => { setOpen(o); if (!o) { setJobSearch(""); setAddedJobId(null); } }}>
+      <TooltipProvider delayDuration={500}>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <PopoverTrigger asChild>
+              <button
+                className="p-2 rounded-md transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center text-[#9CA3AF] hover:text-[#4A90D9] hover:bg-muted/40"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <BriefcaseBusiness className="h-[18px] w-[18px]" />
+              </button>
+            </PopoverTrigger>
+          </TooltipTrigger>
+          <TooltipContent side="top" className="text-xs">Add to job</TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
+      <PopoverContent className="w-72 p-0" align="end" onClick={(e) => e.stopPropagation()}>
+        <div className="p-3 border-b border-border">
+          <p className="text-sm font-medium mb-2">Add {candidate.name} to a job</p>
+          <Input
+            placeholder="Search jobs..."
+            value={jobSearch}
+            onChange={(e) => setJobSearch(e.target.value)}
+            className="h-8 text-sm"
+            autoFocus
+          />
+        </div>
+        <div className="max-h-[280px] overflow-y-auto">
+          {openJobs.length === 0 ? (
+            <p className="text-sm text-muted-foreground p-3">No open jobs — add one first</p>
+          ) : filtered.length === 0 ? (
+            <p className="text-sm text-muted-foreground p-3">No matching jobs</p>
+          ) : filtered.map(job => {
+            const alreadyLinked = existingJobIds.has(job.id);
+            const justAdded = addedJobId === job.id;
+            return (
+              <button
+                key={job.id}
+                className={cn(
+                  "w-full text-left px-3 py-2 text-sm hover:bg-muted/40 transition-colors border-b border-border/50 last:border-0",
+                  alreadyLinked && "opacity-60",
+                  justAdded && "bg-green-500/10"
+                )}
+                onClick={() => handleAddToJob(job)}
+                disabled={alreadyLinked || createCandidateJob.isPending}
+              >
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="font-medium text-foreground">{job.title}</p>
+                    <p className="text-xs text-muted-foreground">{job.client?.company_name || "No client"}</p>
+                  </div>
+                  {alreadyLinked && !justAdded && (
+                    <span className="text-xs text-muted-foreground">Already linked</span>
+                  )}
+                  {justAdded && (
+                    <Check className="h-4 w-4 text-green-500" />
+                  )}
+                </div>
+              </button>
+            );
+          })}
+        </div>
+      </PopoverContent>
+    </Popover>
   );
 }
 
