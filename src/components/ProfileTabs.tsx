@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
@@ -6,6 +6,8 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useNotes, useCreateNote, type Note } from "@/hooks/use-data";
 import { CallEntryEditable } from "@/components/CallEntryEditable";
+import { CallRefCard } from "@/components/CallRefCard";
+import { isCallRef, parseCallRef } from "@/lib/call-reference";
 import { useSignalCounts } from "@/hooks/use-signals";
 import { NoteCard } from "@/components/NoteCard";
 import {
@@ -46,9 +48,19 @@ export function ProfileTabs({ entityType, entityId }: ProfileTabsProps) {
   const { data: signalCounts = {} } = useSignalCounts();
   const [noteContent, setNoteContent] = useState("");
   const [noteType, setNoteType] = useState("Note");
+  const [activeTab, setActiveTab] = useState("notes");
+  const callsContainerRef = useRef<HTMLDivElement>(null);
 
+  // Notes tab: manual notes (non-Call), including auto-generated call references
   const manualNotes = notes.filter(n => !CALL_ACTIVITY_TYPES.includes(n.activity_type));
   const callNotes = notes.filter(n => CALL_ACTIVITY_TYPES.includes(n.activity_type));
+
+  // Compute signal counts for call refs by mapping ref → underlying call note's signal count
+  const signalCountForRef = (refContent: string) => {
+    const ref = parseCallRef(refContent);
+    if (!ref) return 0;
+    return signalCounts[ref.callNoteId] || 0;
+  };
 
   const callSignalCount = callNotes.reduce((sum, n) => sum + (signalCounts[n.id] || 0), 0);
 
@@ -62,8 +74,21 @@ export function ProfileTabs({ entityType, entityId }: ProfileTabsProps) {
     setNoteContent("");
   };
 
+  const handleViewTranscript = (callNoteId: string) => {
+    setActiveTab("calls");
+    // Wait for tab to render then scroll
+    setTimeout(() => {
+      const el = document.getElementById(`call-entry-${callNoteId}`);
+      if (el) {
+        el.scrollIntoView({ behavior: "smooth", block: "center" });
+        el.classList.add("ring-2", "ring-primary");
+        setTimeout(() => el.classList.remove("ring-2", "ring-primary"), 2000);
+      }
+    }, 100);
+  };
+
   return (
-    <Tabs defaultValue="notes">
+    <Tabs value={activeTab} onValueChange={setActiveTab}>
       <TabsList>
         <TabsTrigger value="notes">Notes ({manualNotes.length})</TabsTrigger>
         <TabsTrigger value="calls" className="gap-1.5">
@@ -100,9 +125,18 @@ export function ProfileTabs({ entityType, entityId }: ProfileTabsProps) {
           </Button>
         </div>
         <div className="space-y-1.5 max-h-[500px] overflow-y-auto">
-          {manualNotes.map(n => (
-            <NoteCard key={n.id} note={n} unactionedCount={signalCounts[n.id] || 0} />
-          ))}
+          {manualNotes.map(n =>
+            isCallRef(n.content) ? (
+              <CallRefCard
+                key={n.id}
+                note={n}
+                unactionedCount={signalCountForRef(n.content)}
+                onViewTranscript={handleViewTranscript}
+              />
+            ) : (
+              <NoteCard key={n.id} note={n} unactionedCount={signalCounts[n.id] || 0} />
+            )
+          )}
           {manualNotes.length === 0 && <p className="text-sm text-muted-foreground py-4">No notes yet</p>}
         </div>
       </TabsContent>
@@ -116,9 +150,11 @@ export function ProfileTabs({ entityType, entityId }: ProfileTabsProps) {
             <p className="text-xs text-muted-foreground">Use Log Touchpoint to record calls, or connect Fireflies for automatic transcripts</p>
           </div>
         ) : (
-          <div className="space-y-1.5 max-h-[500px] overflow-y-auto">
+          <div ref={callsContainerRef} className="space-y-1.5 max-h-[500px] overflow-y-auto">
             {callNotes.map(n => (
-              <CallEntryEditable key={n.id} note={n} signalCount={signalCounts[n.id] || 0} />
+              <div key={n.id} id={`call-entry-${n.id}`} className="rounded-md transition-shadow">
+                <CallEntryEditable note={n} signalCount={signalCounts[n.id] || 0} />
+              </div>
             ))}
           </div>
         )}
