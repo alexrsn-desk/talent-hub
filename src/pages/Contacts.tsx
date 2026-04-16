@@ -273,7 +273,7 @@ function ContactFullView({ contact, client, onBack, onDelete, onContactUpdate }:
         )}
       </div>
 
-      <NotesSection entityType="client" entityId={contact.client_id} />
+      <ProfileTabs entityType="client" entityId={contact.client_id} />
 
       <LogTouchpointModal
         open={touchpointOpen}

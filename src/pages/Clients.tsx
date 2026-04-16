@@ -410,7 +410,7 @@ function ClientFullView({ client, onBack, onUpdate, onDelete }: {
         </TabsContent>
 
         <TabsContent value="notes" className="mt-4">
-          <NotesSection entityType="client" entityId={client.id} />
+          <ProfileTabs entityType="client" entityId={client.id} />
         </TabsContent>
       </Tabs>
 
