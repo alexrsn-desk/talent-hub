@@ -385,11 +385,12 @@ export function useCreateNote() {
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["notes"] });
-      // Signals will be populated async, invalidate after a delay
+      // Signals + insights populate async, invalidate after a delay
       setTimeout(() => {
         qc.invalidateQueries({ queryKey: ["call-signals"] });
         qc.invalidateQueries({ queryKey: ["call-signal-counts"] });
         qc.invalidateQueries({ queryKey: ["call-signals-unactioned"] });
+        qc.invalidateQueries({ queryKey: ["call-insights"] });
       }, 5000);
     },
   });
