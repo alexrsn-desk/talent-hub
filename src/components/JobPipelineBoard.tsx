@@ -6,11 +6,13 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Plus, Building2, Clock, Calendar, Sparkles, Hand, FastForward } from "lucide-react";
+import { Plus, Building2, Clock, Calendar, Sparkles, Hand, FastForward, ClipboardList, ChevronDown } from "lucide-react";
 import { PriorityStarIcon } from "@/components/PriorityFlag";
 import { CandidateContextMenu } from "@/components/CandidateContextMenu";
 import { useCandidateJobs, useCandidates, useCreateCandidateJob, useUpdateCandidateJob, type CandidateJob, type Candidate, type Job } from "@/hooks/use-data";
 import { NotesSection } from "@/components/NotesSection";
+import { ScreeningNotesPanel } from "@/components/ScreeningNotesPanel";
+import { useScreeningNote } from "@/hooks/use-screening-notes";
 import { toast } from "sonner";
 import { InterviewSlotPicker } from "@/components/InterviewSlotPicker";
 import { logActivity } from "@/lib/activity-log";
@@ -280,6 +282,7 @@ export function JobPipelineBoard({ job }: { job: Job }) {
                           <PipelineCard
                             cj={cj}
                             stage={stage}
+                            job={job}
                             dragProvided={dragProvided}
                             dragSnapshot={dragSnapshot}
                             onOpenProfile={() => openProfile(cj)}
@@ -387,6 +390,7 @@ function daysSince(iso: string | null | undefined): number {
 function PipelineCard({
   cj,
   stage,
+  job,
   dragProvided,
   dragSnapshot,
   onOpenProfile,
@@ -396,6 +400,7 @@ function PipelineCard({
 }: {
   cj: CandidateJob;
   stage: string;
+  job: Job;
   dragProvided: any;
   dragSnapshot: any;
   onOpenProfile: () => void;
@@ -408,6 +413,11 @@ function PipelineCard({
   const showFastTrack =
     ["AI Suggested", "Longlist", "Contact"].includes(stage); // not from Screening (one stage away)
   const showSourceBadge = stage === "Shortlist";
+  const isScreening = stage === "Screening";
+
+  // Auto-open the screening panel when card is in Screening stage
+  const [screeningOpen, setScreeningOpen] = useState(isScreening);
+  const { data: screeningNote } = useScreeningNote(isScreening || screeningOpen ? cj.id : undefined);
 
   return (
     <div
@@ -426,7 +436,16 @@ function PipelineCard({
           {cj.candidates?.priority_flag && <PriorityStarIcon />}
           <span className="truncate">{cj.candidates?.name || "Unknown"}</span>
         </p>
-        <div className="flex items-center gap-0.5 flex-shrink-0">
+        <div className="flex items-center gap-1 flex-shrink-0">
+          {screeningNote?.completed && (
+            <Badge
+              variant="outline"
+              className="border-emerald-500/40 text-emerald-400 text-[10px] h-5 px-1.5 gap-0.5"
+              title="Screening notes complete"
+            >
+              <ClipboardList className="h-2.5 w-2.5" /> Screened
+            </Badge>
+          )}
           {cj.candidates && (
             <CandidateContextMenu
               candidate={cj.candidates}
@@ -500,6 +519,32 @@ function PipelineCard({
 
       {/* Interview date / scheduling */}
       <InterviewDatePicker candidateJob={cj} onOpenSlotPicker={onOpenSlotPicker} />
+
+      {/* Screening notes — auto-open in Screening stage, available on demand otherwise */}
+      {cj.candidates && (
+        <div onClick={(e) => e.stopPropagation()} className="pt-1">
+          <button
+            onClick={() => setScreeningOpen((o) => !o)}
+            className="flex items-center gap-1 text-[10px] text-muted-foreground hover:text-foreground transition-colors"
+          >
+            <ChevronDown
+              className={`h-2.5 w-2.5 transition-transform ${screeningOpen ? "" : "-rotate-90"}`}
+            />
+            <ClipboardList className="h-2.5 w-2.5" />
+            Screening notes
+          </button>
+          {screeningOpen && (
+            <div className="mt-2">
+              <ScreeningNotesPanel
+                candidateJob={cj}
+                candidate={cj.candidates}
+                jobId={job.id}
+                jobTitle={job.title}
+              />
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }
