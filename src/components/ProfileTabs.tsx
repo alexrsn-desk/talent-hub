@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useNotes, useCreateNote, type Note } from "@/hooks/use-data";
+import { CallEntryEditable } from "@/components/CallEntryEditable";
 import { useSignalCounts } from "@/hooks/use-signals";
 import { NoteCard } from "@/components/NoteCard";
 import {
