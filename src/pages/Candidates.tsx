@@ -780,6 +780,7 @@ export default function CandidatesPage() {
             </tbody>
           </table>
         </div>
+        </>
       )}
 
       {/* Spacer when action bar is visible */}
