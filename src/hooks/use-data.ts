@@ -378,12 +378,18 @@ export function useCreateNote() {
 export function useUpdateNote() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async ({ id, content }: { id: string; content: string }) => {
-      const { error } = await supabase.from("notes").update({ content }).eq("id", id);
+    mutationFn: async (params: { id: string; content?: string; outcome?: string; duration?: number | null; transcript?: string | null; follow_up_date?: string | null }) => {
+      const { id, ...updates } = params;
+      const { error } = await supabase.from("notes").update(updates).eq("id", id);
       if (error) throw error;
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["notes"] });
+      setTimeout(() => {
+        qc.invalidateQueries({ queryKey: ["call-signals"] });
+        qc.invalidateQueries({ queryKey: ["call-signal-counts"] });
+        qc.invalidateQueries({ queryKey: ["call-signals-unactioned"] });
+      }, 5000);
     },
   });
 }
