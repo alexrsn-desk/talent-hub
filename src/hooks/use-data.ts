@@ -398,6 +398,13 @@ export function useUpdateNote() {
       const { id, ...updates } = params;
       const { error } = await supabase.from("notes").update(updates).eq("id", id);
       if (error) throw error;
+      // Re-run signal detection whenever content or transcript was touched
+      if (updates.content !== undefined || updates.transcript !== undefined) {
+        const scanText = (updates.transcript || "") + (updates.content || "");
+        if (scanText.length >= 20) {
+          supabase.functions.invoke("detect-signals", { body: { note_id: id } }).catch(console.error);
+        }
+      }
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["notes"] });
