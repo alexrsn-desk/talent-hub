@@ -519,6 +519,32 @@ function PipelineCard({
 
       {/* Interview date / scheduling */}
       <InterviewDatePicker candidateJob={cj} onOpenSlotPicker={onOpenSlotPicker} />
+
+      {/* Screening notes — auto-open in Screening stage, available on demand otherwise */}
+      {cj.candidates && (
+        <div onClick={(e) => e.stopPropagation()} className="pt-1">
+          <button
+            onClick={() => setScreeningOpen((o) => !o)}
+            className="flex items-center gap-1 text-[10px] text-muted-foreground hover:text-foreground transition-colors"
+          >
+            <ChevronDown
+              className={`h-2.5 w-2.5 transition-transform ${screeningOpen ? "" : "-rotate-90"}`}
+            />
+            <ClipboardList className="h-2.5 w-2.5" />
+            Screening notes
+          </button>
+          {screeningOpen && (
+            <div className="mt-2">
+              <ScreeningNotesPanel
+                candidateJob={cj}
+                candidate={cj.candidates}
+                jobId={job.id}
+                jobTitle={job.title}
+              />
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }
