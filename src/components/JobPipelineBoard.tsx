@@ -282,6 +282,7 @@ export function JobPipelineBoard({ job }: { job: Job }) {
                           <PipelineCard
                             cj={cj}
                             stage={stage}
+                            job={job}
                             dragProvided={dragProvided}
                             dragSnapshot={dragSnapshot}
                             onOpenProfile={() => openProfile(cj)}
