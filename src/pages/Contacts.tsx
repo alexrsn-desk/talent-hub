@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Plus, Search, ExternalLink, ArrowLeft, Trash2, PhoneCall } from "lucide-react";
 import { useContacts, useCreateContact, useDeleteContact, useClients, useCreateNote, type Contact, type Client } from "@/hooks/use-data";
 import { Textarea } from "@/components/ui/textarea";
-import { NotesSection } from "@/components/NotesSection";
+import { ProfileTabs } from "@/components/ProfileTabs";
 import { LogTouchpointModal } from "@/components/LogTouchpointModal";
 import { CallPrepButton } from "@/components/CallPrep";
 import { ClickToEditField } from "@/components/ClickToEditField";
@@ -273,7 +273,7 @@ function ContactFullView({ contact, client, onBack, onDelete, onContactUpdate }:
         )}
       </div>
 
-      <NotesSection entityType="client" entityId={contact.client_id} />
+      <ProfileTabs entityType="client" entityId={contact.client_id} />
 
       <LogTouchpointModal
         open={touchpointOpen}

@@ -7,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Pencil, X, Save, ExternalLink, Trash2, PhoneCall, Phone, AlertCircle, Ban, Lock } from "lucide-react";
 import { useUpdateCandidate, type Candidate } from "@/hooks/use-data";
 import { PriorityFlagButton, PriorityStarIcon } from "@/components/PriorityFlag";
-import { NotesSection } from "@/components/NotesSection";
+import { ProfileTabs } from "@/components/ProfileTabs";
 import { CandidateJobLinks } from "@/components/CandidateJobLinks";
 import { LogTouchpointModal } from "@/components/LogTouchpointModal";
 import { CallPrepButton } from "@/components/CallPrep";
@@ -318,7 +318,7 @@ export function CandidateDetail({ candidate, onUpdate, onDelete }: Props) {
 
       <TagsSection entityType="candidate" entityId={candidate.id} />
       <CandidateJobLinks candidateId={candidate.id} />
-      <NotesSection entityType="candidate" entityId={candidate.id} />
+      <ProfileTabs entityType="candidate" entityId={candidate.id} />
       <LogTouchpointModal open={touchpointOpen} onOpenChange={setTouchpointOpen} entityType="candidate" entityId={candidate.id} entityName={candidate.name} />
 
       <AlertDialog open={discardOpen} onOpenChange={setDiscardOpen}>
