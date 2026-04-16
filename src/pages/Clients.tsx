@@ -330,7 +330,7 @@ function ClientFullView({ client, onBack, onUpdate, onDelete }: {
         <TabsList>
           <TabsTrigger value="contacts">Contacts ({contacts.length})</TabsTrigger>
           <TabsTrigger value="jobs">Jobs ({clientJobs.length})</TabsTrigger>
-          <TabsTrigger value="notes">Notes & Activity</TabsTrigger>
+          <TabsTrigger value="notes">Notes & Calls</TabsTrigger>
         </TabsList>
 
         <TabsContent value="contacts" className="mt-4 space-y-3">
