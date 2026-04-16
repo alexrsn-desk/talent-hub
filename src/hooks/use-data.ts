@@ -6,6 +6,8 @@ import { logActivity } from "@/lib/activity-log";
 export type Candidate = {
   id: string;
   name: string;
+  first_name: string | null;
+  last_name: string | null;
   job_title: string | null;
   current_employer: string | null;
   location: string | null;
