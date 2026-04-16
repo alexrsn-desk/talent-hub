@@ -81,6 +81,18 @@ export function CallEntryEditable({ note, signalCount }: CallEntryEditableProps)
       metadata: { edit: true, message: `Call record edited — ${dateStr}`, fields_updated: changes },
     });
 
+    // Sync the Notes-tab reference entry (creates if missing, updates summary)
+    await upsertCallRefNote({
+      callNoteId: note.id,
+      source: note.transcript || updates.transcript ? "Recorded" : "Manual entry",
+      duration: updates.duration !== undefined ? updates.duration : note.duration,
+      outcome: updates.outcome !== undefined ? updates.outcome : note.outcome,
+      candidate_id: note.candidate_id,
+      client_id: note.client_id,
+      job_id: note.job_id,
+      created_at: note.created_at,
+    });
+
     // Re-run signal detection if content or transcript changed
     if (changes.includes("notes") || changes.includes("transcript")) {
       detectSignals.mutate({ noteId: note.id });
