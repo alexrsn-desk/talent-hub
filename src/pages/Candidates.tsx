@@ -2,6 +2,7 @@ import { useState, useRef, useEffect, useCallback } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
@@ -13,6 +14,7 @@ import { PriorityStarIcon } from "@/components/PriorityFlag";
 import { CandidateDetail } from "@/components/CandidateDetail";
 import { CandidateContextMenu } from "@/components/CandidateContextMenu";
 import { LogTouchpointModal } from "@/components/LogTouchpointModal";
+import { CandidateBulkActionBar } from "@/components/CandidateBulkActionBar";
 import { logActivity } from "@/lib/activity-log";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
@@ -388,6 +390,8 @@ export default function CandidatesPage() {
   // Track which cell is being edited: "candidateId:field"
   const [editingCell, setEditingCell] = useState<string | null>(null);
   const [touchpointCandidate, setTouchpointCandidate] = useState<Candidate | null>(null);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const lastClickedIndex = useRef<number | null>(null);
 
   const handleTogglePriority = useCallback((c: Candidate) => {
     if (c.priority_flag) {
@@ -417,11 +421,57 @@ export default function CandidatesPage() {
       return 0;
     });
 
+  // Keyboard shortcuts
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        setSelectedIds(new Set());
+        lastClickedIndex.current = null;
+      }
+      if ((e.ctrlKey || e.metaKey) && e.key === "a" && !editingCell) {
+        e.preventDefault();
+        setSelectedIds(new Set(filtered.map(c => c.id)));
+      }
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [filtered, editingCell]);
+
+  const toggleSelect = useCallback((candidateId: string, index: number, shiftKey: boolean) => {
+    setSelectedIds(prev => {
+      const next = new Set(prev);
+      if (shiftKey && lastClickedIndex.current !== null) {
+        const start = Math.min(lastClickedIndex.current, index);
+        const end = Math.max(lastClickedIndex.current, index);
+        for (let i = start; i <= end; i++) {
+          next.add(filtered[i].id);
+        }
+      } else {
+        if (next.has(candidateId)) next.delete(candidateId);
+        else next.add(candidateId);
+      }
+      return next;
+    });
+    lastClickedIndex.current = index;
+  }, [filtered]);
+
+  const toggleSelectAll = useCallback(() => {
+    if (selectedIds.size === filtered.length) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(filtered.map(c => c.id)));
+    }
+  }, [filtered, selectedIds.size]);
+
+  const selectedCandidates = filtered.filter(c => selectedIds.has(c.id));
+
   const handleCreate = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const fd = new FormData(e.currentTarget);
     await createCandidate.mutateAsync({
       name: fd.get("name") as string,
+      first_name: null,
+      last_name: null,
       job_title: (fd.get("job_title") as string) || null,
       current_employer: (fd.get("current_employer") as string) || null,
       location: (fd.get("location") as string) || null,
@@ -546,10 +596,17 @@ export default function CandidatesPage() {
       {isLoading ? (
         <div className="text-muted-foreground text-sm">Loading...</div>
       ) : (
-        <div className="rounded-lg border border-border overflow-hidden">
+         <div className="rounded-lg border border-border overflow-hidden">
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-border bg-muted/30">
+                <th className="px-3 py-3 w-10">
+                  <Checkbox
+                    checked={filtered.length > 0 && selectedIds.size === filtered.length}
+                    onCheckedChange={toggleSelectAll}
+                    aria-label="Select all"
+                  />
+                </th>
                 <th className="text-left px-4 py-3 font-medium text-muted-foreground">Name</th>
                 <th className="text-left px-4 py-3 font-medium text-muted-foreground">Title</th>
                 <th className="text-left px-4 py-3 font-medium text-muted-foreground">Employer</th>
@@ -561,9 +618,28 @@ export default function CandidatesPage() {
             </thead>
             <tbody>
               {filtered.length === 0 ? (
-                <tr><td colSpan={7} className="px-4 py-8 text-center text-muted-foreground">No candidates found</td></tr>
-              ) : filtered.map(c => (
-                <tr key={c.id} className="group border-b border-border hover:bg-muted/20 transition-colors">
+                <tr><td colSpan={8} className="px-4 py-8 text-center text-muted-foreground">No candidates found</td></tr>
+              ) : filtered.map((c, idx) => {
+                const isSelected = selectedIds.has(c.id);
+                return (
+                <tr
+                  key={c.id}
+                  className={cn(
+                    "group border-b border-border hover:bg-muted/20 transition-colors",
+                    isSelected && "bg-primary/5"
+                  )}
+                >
+                  <td className="px-3 py-3">
+                    <Checkbox
+                      checked={isSelected}
+                      onCheckedChange={() => {}}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        toggleSelect(c.id, idx, e.shiftKey);
+                      }}
+                      aria-label={`Select ${c.name}`}
+                    />
+                  </td>
                   <td className="px-4 py-3 font-medium">
                     <span
                       className="flex items-center gap-1.5 cursor-pointer hover:text-primary transition-colors"
@@ -646,11 +722,20 @@ export default function CandidatesPage() {
                      </div>
                    </td>
                 </tr>
-              ))}
+                );
+              })}
             </tbody>
           </table>
         </div>
       )}
+
+      {/* Spacer when action bar is visible */}
+      {selectedCandidates.length > 0 && <div className="h-16" />}
+
+      <CandidateBulkActionBar
+        selected={selectedCandidates}
+        onClear={() => { setSelectedIds(new Set()); lastClickedIndex.current = null; }}
+      />
 
       <Dialog open={detailOpen} onOpenChange={setDetailOpen}>
         <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
