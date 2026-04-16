@@ -6,7 +6,9 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { SignalBox } from "@/components/SignalBox";
+import { CallInsightsPanel } from "@/components/CallInsightsPanel";
 import { useSignalsForNote, useDetectSignals } from "@/hooks/use-signals";
+import { useCallInsights } from "@/hooks/use-call-insights";
 import { useUpdateNote, type Note } from "@/hooks/use-data";
 import { upsertCallRefNote } from "@/lib/call-reference";
 import { logActivity } from "@/lib/activity-log";
@@ -323,6 +325,7 @@ function CallExpandedContent({ note }: { note: Note }) {
           <SignalBox signals={signals} loading={isLoading} />
         </div>
       )}
+      <CallInsightsPanel noteId={note.id} />
     </>
   );
 }
