@@ -596,10 +596,17 @@ export default function CandidatesPage() {
       {isLoading ? (
         <div className="text-muted-foreground text-sm">Loading...</div>
       ) : (
-        <div className="rounded-lg border border-border overflow-hidden">
+         <div className="rounded-lg border border-border overflow-hidden">
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-border bg-muted/30">
+                <th className="px-3 py-3 w-10">
+                  <Checkbox
+                    checked={filtered.length > 0 && selectedIds.size === filtered.length}
+                    onCheckedChange={toggleSelectAll}
+                    aria-label="Select all"
+                  />
+                </th>
                 <th className="text-left px-4 py-3 font-medium text-muted-foreground">Name</th>
                 <th className="text-left px-4 py-3 font-medium text-muted-foreground">Title</th>
                 <th className="text-left px-4 py-3 font-medium text-muted-foreground">Employer</th>
@@ -611,9 +618,28 @@ export default function CandidatesPage() {
             </thead>
             <tbody>
               {filtered.length === 0 ? (
-                <tr><td colSpan={7} className="px-4 py-8 text-center text-muted-foreground">No candidates found</td></tr>
-              ) : filtered.map(c => (
-                <tr key={c.id} className="group border-b border-border hover:bg-muted/20 transition-colors">
+                <tr><td colSpan={8} className="px-4 py-8 text-center text-muted-foreground">No candidates found</td></tr>
+              ) : filtered.map((c, idx) => {
+                const isSelected = selectedIds.has(c.id);
+                return (
+                <tr
+                  key={c.id}
+                  className={cn(
+                    "group border-b border-border hover:bg-muted/20 transition-colors",
+                    isSelected && "bg-primary/5"
+                  )}
+                >
+                  <td className="px-3 py-3">
+                    <Checkbox
+                      checked={isSelected}
+                      onCheckedChange={() => {}}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        toggleSelect(c.id, idx, e.shiftKey);
+                      }}
+                      aria-label={`Select ${c.name}`}
+                    />
+                  </td>
                   <td className="px-4 py-3 font-medium">
                     <span
                       className="flex items-center gap-1.5 cursor-pointer hover:text-primary transition-colors"
@@ -696,11 +722,20 @@ export default function CandidatesPage() {
                      </div>
                    </td>
                 </tr>
-              ))}
+                );
+              })}
             </tbody>
           </table>
         </div>
       )}
+
+      {/* Spacer when action bar is visible */}
+      {selectedCandidates.length > 0 && <div className="h-16" />}
+
+      <CandidateBulkActionBar
+        selected={selectedCandidates}
+        onClear={() => { setSelectedIds(new Set()); lastClickedIndex.current = null; }}
+      />
 
       <Dialog open={detailOpen} onOpenChange={setDetailOpen}>
         <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
