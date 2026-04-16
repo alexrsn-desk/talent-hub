@@ -556,7 +556,7 @@ export default function CandidatesPage() {
                 <th className="text-left px-4 py-3 font-medium text-muted-foreground">Salary</th>
                 <th className="text-left px-4 py-3 font-medium text-muted-foreground">Location</th>
                 <th className="text-left px-4 py-3 font-medium text-muted-foreground">Status</th>
-                <th className="px-4 py-3 w-16"></th>
+                <th className="px-4 py-3 w-64"></th>
               </tr>
             </thead>
             <tbody>
