@@ -4,20 +4,26 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Plus, User, Building2, Clock, Calendar, Star } from "lucide-react";
-import { PriorityFlagButton, PriorityStarIcon } from "@/components/PriorityFlag";
+import { Plus, Building2, Clock, Calendar, Sparkles, Hand, FastForward } from "lucide-react";
+import { PriorityStarIcon } from "@/components/PriorityFlag";
 import { CandidateContextMenu } from "@/components/CandidateContextMenu";
-import { useCandidateJobs, useCandidates, useCreateCandidateJob, useUpdateCandidateJob, useNotes, type CandidateJob, type Candidate, type Job } from "@/hooks/use-data";
+import { useCandidateJobs, useCandidates, useCreateCandidateJob, useUpdateCandidateJob, type CandidateJob, type Candidate, type Job } from "@/hooks/use-data";
 import { NotesSection } from "@/components/NotesSection";
-import { CandidateJobLinks } from "@/components/CandidateJobLinks";
-import { LogTouchpointModal } from "@/components/LogTouchpointModal";
 import { toast } from "sonner";
 import { InterviewSlotPicker } from "@/components/InterviewSlotPicker";
+import { logActivity } from "@/lib/activity-log";
+
+// ============================================================================
+// Stage definitions — reflects real recruitment workflow
+// ============================================================================
 
 const PIPELINE_STAGES = [
+  "AI Suggested",
   "Longlist",
+  "Contact",
+  "Screening",
   "Shortlist",
   "Submitted",
   "Client Review",
@@ -28,44 +34,151 @@ const PIPELINE_STAGES = [
   "Rejected",
 ] as const;
 
-const stageColors: Record<string, string> = {
+type Stage = (typeof PIPELINE_STAGES)[number];
+
+// Top-border accent on each column header
+const stageBorder: Record<string, string> = {
+  "AI Suggested": "border-t-blue-500",
   Longlist: "border-t-slate-500",
-  Shortlist: "border-t-blue-500",
-  Submitted: "border-t-indigo-500",
-  "Client Review": "border-t-purple-500",
-  "First Interview": "border-t-amber-500",
-  "Second Interview": "border-t-orange-500",
-  Offer: "border-t-emerald-500",
-  Placed: "border-t-green-500",
+  Contact: "border-t-amber-500",
+  Screening: "border-t-amber-500",
+  Shortlist: "border-t-emerald-500",
+  Submitted: "border-t-primary",
+  "Client Review": "border-t-primary",
+  "First Interview": "border-t-primary",
+  "Second Interview": "border-t-primary",
+  Offer: "border-t-primary",
+  Placed: "border-t-primary",
   Rejected: "border-t-red-500",
 };
+
+// Card accent (left edge) — same colour family as the column
+const stageCardAccent: Record<string, string> = {
+  "AI Suggested": "border-l-blue-500/60",
+  Longlist: "border-l-slate-500/60",
+  Contact: "border-l-amber-500/60",
+  Screening: "border-l-amber-500/60",
+  Shortlist: "border-l-emerald-500/60",
+  Submitted: "border-l-primary/60",
+  "Client Review": "border-l-primary/60",
+  "First Interview": "border-l-primary/60",
+  "Second Interview": "border-l-primary/60",
+  Offer: "border-l-primary/60",
+  Placed: "border-l-primary/60",
+  Rejected: "border-l-red-500/60",
+};
+
+// Stage restriction rules — required predecessor stages
+function canMoveTo(targetStage: string, currentStage: string): { ok: boolean; message?: string } {
+  // Cannot enter Submitted unless coming from Shortlist (or later)
+  if (targetStage === "Submitted") {
+    const validPrior = ["Shortlist", "Submitted", "Client Review", "First Interview", "Second Interview", "Offer", "Placed"];
+    if (!validPrior.includes(currentStage)) {
+      return { ok: false, message: "This candidate needs to reach Shortlist before being submitted to a client." };
+    }
+  }
+  // Cannot enter Offer unless at an Interview stage (or later)
+  if (targetStage === "Offer") {
+    const validPrior = ["First Interview", "Second Interview", "Offer", "Placed"];
+    if (!validPrior.includes(currentStage)) {
+      return { ok: false, message: "This candidate needs to reach an Interview stage before an offer can be made." };
+    }
+  }
+  return { ok: true };
+}
+
+const REJECTION_REASONS = [
+  "Client rejected",
+  "Candidate withdrew",
+  "Not suitable",
+  "Role cancelled",
+] as const;
+
+// ============================================================================
+// Main board
+// ============================================================================
 
 export function JobPipelineBoard({ job }: { job: Job }) {
   const { data: candidateJobs = [] } = useCandidateJobs(undefined, job.id);
   const { data: allCandidates = [] } = useCandidates();
   const createCandidateJob = useCreateCandidateJob();
   const updateCandidateJob = useUpdateCandidateJob();
+
   const [addingToStage, setAddingToStage] = useState<string | null>(null);
   const [selectedCandidateId, setSelectedCandidateId] = useState("");
   const [selectedCandidate, setSelectedCandidate] = useState<Candidate | null>(null);
-  const [selectedCandidateJobForScheduling, setSelectedCandidateJobForScheduling] = useState<CandidateJob | null>(null);
+  const [selectedCJForScheduling, setSelectedCJForScheduling] = useState<CandidateJob | null>(null);
   const [profileOpen, setProfileOpen] = useState(false);
   const [scheduleOpen, setScheduleOpen] = useState(false);
 
-  const linkedCandidateIds = candidateJobs.map(cj => cj.candidate_id);
-  const availableCandidates = allCandidates.filter(c => !linkedCandidateIds.includes(c.id));
+  // Rejection-reason capture flow
+  const [rejectingCJ, setRejectingCJ] = useState<{ cj: CandidateJob; fromStage: string } | null>(null);
+  const [rejectionReason, setRejectionReason] = useState<string>(REJECTION_REASONS[0]);
+
+  const linkedCandidateIds = candidateJobs.map((cj) => cj.candidate_id);
+  const availableCandidates = allCandidates.filter((c) => !linkedCandidateIds.includes(c.id));
 
   const stageMap = PIPELINE_STAGES.reduce((acc, stage) => {
-    acc[stage] = candidateJobs.filter(cj => cj.stage === stage);
+    acc[stage] = candidateJobs.filter((cj) => cj.stage === stage);
     return acc;
   }, {} as Record<string, CandidateJob[]>);
 
+  const performStageMove = (cj: CandidateJob, fromStage: string, toStage: string, opts?: { rejectionReason?: string }) => {
+    const isFastTrack =
+      toStage === "Shortlist" &&
+      ["AI Suggested", "Longlist", "Contact", "Screening"].includes(fromStage) &&
+      fromStage !== "Screening";
+
+    updateCandidateJob.mutate(
+      {
+        id: cj.id,
+        stage: toStage,
+        ...(opts?.rejectionReason !== undefined ? { rejection_reason: opts.rejectionReason } : {}),
+      },
+      {
+        onSuccess: () => {
+          if (isFastTrack) {
+            logActivity({
+              action_type: "stage_change",
+              candidate_id: cj.candidate_id,
+              job_id: cj.job_id,
+              candidate_job_id: cj.id,
+              metadata: {
+                stage_from: fromStage,
+                stage_to: toStage,
+                fast_track: true,
+                note: `Moved directly to Shortlist — skipped ${["Contact", "Screening"].filter((s) => s !== fromStage).join(" and ")}`,
+              },
+            });
+            toast.success("Fast-tracked to Shortlist");
+          }
+        },
+      },
+    );
+  };
+
   const handleDragEnd = (result: DropResult) => {
     if (!result.destination) return;
-    const newStage = result.destination.droppableId;
-    const candidateJobId = result.draggableId;
-    if (result.source.droppableId === newStage) return;
-    updateCandidateJob.mutate({ id: candidateJobId, stage: newStage });
+    const fromStage = result.source.droppableId;
+    const toStage = result.destination.droppableId;
+    if (fromStage === toStage) return;
+
+    const cj = candidateJobs.find((c) => c.id === result.draggableId);
+    if (!cj) return;
+
+    const check = canMoveTo(toStage, fromStage);
+    if (!check.ok) {
+      toast.error(check.message ?? "Invalid stage transition");
+      return;
+    }
+
+    if (toStage === "Rejected") {
+      setRejectingCJ({ cj, fromStage });
+      setRejectionReason(REJECTION_REASONS[0]);
+      return;
+    }
+
+    performStageMove(cj, fromStage, toStage);
   };
 
   const handleAddCandidate = async (stage: string) => {
@@ -74,6 +187,7 @@ export function JobPipelineBoard({ job }: { job: Job }) {
       candidate_id: selectedCandidateId,
       job_id: job.id,
       stage,
+      source: "manual",
     });
     setAddingToStage(null);
     setSelectedCandidateId("");
@@ -86,29 +200,40 @@ export function JobPipelineBoard({ job }: { job: Job }) {
     }
   };
 
-  const formatSalary = (n: number | null) => n ? `£${(n / 1000).toFixed(0)}k` : null;
+  const formatSalary = (n: number | null) => (n ? `£${(n / 1000).toFixed(0)}k` : null);
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between flex-wrap gap-2">
         <h3 className="text-sm font-medium text-muted-foreground">
           {candidateJobs.length} candidate{candidateJobs.length !== 1 ? "s" : ""} in pipeline
         </h3>
+        <p className="text-[11px] text-muted-foreground">
+          Drag to progress · Cannot Submit before Shortlist · Cannot Offer before Interview
+        </p>
       </div>
 
       <DragDropContext onDragEnd={handleDragEnd}>
-        <div className="flex gap-3 overflow-x-auto pb-4" style={{ minHeight: 300 }}>
-          {PIPELINE_STAGES.map(stage => (
-            <div key={stage} className={`flex-shrink-0 w-52 rounded-lg border border-border bg-muted/20 border-t-2 ${stageColors[stage]}`}>
+        <div className="flex gap-3 overflow-x-auto pb-4" style={{ minHeight: 320 }}>
+          {PIPELINE_STAGES.map((stage) => (
+            <div
+              key={stage}
+              className={`flex-shrink-0 w-56 rounded-lg border border-border bg-muted/20 border-t-2 ${stageBorder[stage]}`}
+            >
               <div className="px-3 py-2 border-b border-border flex items-center justify-between">
                 <span className="text-xs font-medium truncate">{stage}</span>
                 <div className="flex items-center gap-1">
-                  <Badge variant="secondary" className="text-[10px] h-5 px-1.5">{stageMap[stage]?.length || 0}</Badge>
+                  <Badge variant="secondary" className="text-[10px] h-5 px-1.5">
+                    {stageMap[stage]?.length || 0}
+                  </Badge>
                   <Button
                     variant="ghost"
                     size="icon"
                     className="h-5 w-5"
-                    onClick={() => { setAddingToStage(addingToStage === stage ? null : stage); setSelectedCandidateId(""); }}
+                    onClick={() => {
+                      setAddingToStage(addingToStage === stage ? null : stage);
+                      setSelectedCandidateId("");
+                    }}
                   >
                     <Plus className="h-3 w-3" />
                   </Button>
@@ -118,14 +243,23 @@ export function JobPipelineBoard({ job }: { job: Job }) {
               {addingToStage === stage && (
                 <div className="p-2 border-b border-border space-y-2">
                   <Select value={selectedCandidateId} onValueChange={setSelectedCandidateId}>
-                    <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Select..." /></SelectTrigger>
+                    <SelectTrigger className="h-8 text-xs">
+                      <SelectValue placeholder="Select..." />
+                    </SelectTrigger>
                     <SelectContent>
-                      {availableCandidates.map(c => (
-                        <SelectItem key={c.id} value={c.id} className="text-xs">{c.name}</SelectItem>
+                      {availableCandidates.map((c) => (
+                        <SelectItem key={c.id} value={c.id} className="text-xs">
+                          {c.name}
+                        </SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
-                  <Button size="sm" className="w-full h-7 text-xs" onClick={() => handleAddCandidate(stage)} disabled={!selectedCandidateId}>
+                  <Button
+                    size="sm"
+                    className="w-full h-7 text-xs"
+                    onClick={() => handleAddCandidate(stage)}
+                    disabled={!selectedCandidateId}
+                  >
                     Add
                   </Button>
                 </div>
@@ -136,55 +270,33 @@ export function JobPipelineBoard({ job }: { job: Job }) {
                   <div
                     ref={provided.innerRef}
                     {...provided.droppableProps}
-                    className={`p-2 space-y-2 min-h-[100px] transition-colors ${snapshot.isDraggingOver ? "bg-primary/5" : ""}`}
+                    className={`p-2 space-y-2 min-h-[120px] transition-colors ${
+                      snapshot.isDraggingOver ? "bg-primary/5" : ""
+                    }`}
                   >
                     {(stageMap[stage] || []).map((cj, idx) => (
                       <Draggable key={cj.id} draggableId={cj.id} index={idx}>
-                        {(provided, snapshot) => (
-                          <div
-                            ref={provided.innerRef}
-                            {...provided.draggableProps}
-                            {...provided.dragHandleProps}
-                            onClick={() => openProfile(cj)}
-                            className={`group rounded-md border bg-background p-2.5 cursor-pointer hover:border-primary/40 transition-all text-xs space-y-1.5 ${
-                              snapshot.isDragging ? "shadow-lg ring-1 ring-primary/30" : ""
-                            } ${cj.candidates?.priority_flag ? "border-yellow-400/50" : "border-border"}`}
-                          >
-                            <div className="flex items-center justify-between">
-                              <p className="font-medium text-sm leading-tight flex items-center gap-1">
-                                {cj.candidates?.priority_flag && <PriorityStarIcon />}
-                                {cj.candidates?.name || "Unknown"}
-                              </p>
-                              <div className="flex items-center gap-0.5">
-                                {cj.candidates && <CandidateContextMenu candidate={cj.candidates} onViewProfile={() => openProfile(cj)} triggerClassName="h-6 w-6 opacity-0 group-hover:opacity-100" />}
-                              </div>
-                            </div>
-                            {cj.candidates?.current_employer && (
-                              <div className="flex items-center gap-1 text-muted-foreground">
-                                <Building2 className="h-3 w-3 flex-shrink-0" />
-                                <span className="truncate">{cj.candidates.current_employer}</span>
-                              </div>
-                            )}
-                            {cj.candidates?.salary_current && (
-                              <div className="text-muted-foreground">
-                                {formatSalary(cj.candidates.salary_current)}
-                              </div>
-                            )}
-                            {cj.candidates?.availability && (
-                              <div className="flex items-center gap-1 text-muted-foreground">
-                                <Clock className="h-3 w-3 flex-shrink-0" />
-                                <span className="truncate">{cj.candidates.availability}</span>
-                              </div>
-                            )}
-                            {/* Interview date / scheduling */}
-                            <InterviewDatePicker
-                              candidateJob={cj}
-                              onOpenSlotPicker={() => {
-                                setSelectedCandidateJobForScheduling(cj);
-                                setScheduleOpen(true);
-                              }}
-                            />
-                          </div>
+                        {(dragProvided, dragSnapshot) => (
+                          <PipelineCard
+                            cj={cj}
+                            stage={stage}
+                            dragProvided={dragProvided}
+                            dragSnapshot={dragSnapshot}
+                            onOpenProfile={() => openProfile(cj)}
+                            onOpenSlotPicker={() => {
+                              setSelectedCJForScheduling(cj);
+                              setScheduleOpen(true);
+                            }}
+                            onFastTrack={() => {
+                              const check = canMoveTo("Shortlist", cj.stage);
+                              if (!check.ok) {
+                                toast.error(check.message ?? "Cannot fast-track");
+                                return;
+                              }
+                              performStageMove(cj, cj.stage, "Shortlist");
+                            }}
+                            formatSalary={formatSalary}
+                          />
                         )}
                       </Draggable>
                     ))}
@@ -200,27 +312,201 @@ export function JobPipelineBoard({ job }: { job: Job }) {
       {/* Candidate profile slide-over */}
       <Dialog open={profileOpen} onOpenChange={setProfileOpen}>
         <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto">
-          {selectedCandidate && (
-            <CandidateQuickProfile candidate={selectedCandidate} />
-          )}
+          {selectedCandidate && <CandidateQuickProfile candidate={selectedCandidate} />}
         </DialogContent>
       </Dialog>
 
-      {/* Interview scheduling dialog */}
+      {/* Interview scheduling */}
       <Dialog open={scheduleOpen} onOpenChange={setScheduleOpen}>
         <DialogContent className="max-w-md">
-          {selectedCandidateJobForScheduling && (
+          {selectedCJForScheduling && (
             <InterviewSlotPicker
-              candidateJobId={selectedCandidateJobForScheduling.id}
-              candidateName={selectedCandidateJobForScheduling.candidates?.name || "Candidate"}
+              candidateJobId={selectedCJForScheduling.id}
+              candidateName={selectedCJForScheduling.candidates?.name || "Candidate"}
               onClose={() => setScheduleOpen(false)}
             />
           )}
         </DialogContent>
       </Dialog>
+
+      {/* Rejection reason capture */}
+      <Dialog open={!!rejectingCJ} onOpenChange={(o) => !o && setRejectingCJ(null)}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Reason for rejection</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3 py-2">
+            <p className="text-sm text-muted-foreground">
+              {rejectingCJ?.cj.candidates?.name ?? "Candidate"} — moving to Rejected
+            </p>
+            <Select value={rejectionReason} onValueChange={setRejectionReason}>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {REJECTION_REASONS.map((r) => (
+                  <SelectItem key={r} value={r}>
+                    {r}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setRejectingCJ(null)}>
+              Cancel
+            </Button>
+            <Button
+              onClick={() => {
+                if (!rejectingCJ) return;
+                performStageMove(rejectingCJ.cj, rejectingCJ.fromStage, "Rejected", {
+                  rejectionReason,
+                });
+                setRejectingCJ(null);
+                toast.success(`Marked rejected — ${rejectionReason}`);
+              }}
+            >
+              Confirm
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
+
+// ============================================================================
+// Pipeline card — extracted for clarity
+// ============================================================================
+
+function daysSince(iso: string | null | undefined): number {
+  if (!iso) return 0;
+  return Math.floor((Date.now() - new Date(iso).getTime()) / 86400000);
+}
+
+function PipelineCard({
+  cj,
+  stage,
+  dragProvided,
+  dragSnapshot,
+  onOpenProfile,
+  onOpenSlotPicker,
+  onFastTrack,
+  formatSalary,
+}: {
+  cj: CandidateJob;
+  stage: string;
+  dragProvided: any;
+  dragSnapshot: any;
+  onOpenProfile: () => void;
+  onOpenSlotPicker: () => void;
+  onFastTrack: () => void;
+  formatSalary: (n: number | null) => string | null;
+}) {
+  const days = daysSince(cj.stage_changed_at ?? cj.created_at);
+  const isAi = cj.source === "ai";
+  const showFastTrack =
+    ["AI Suggested", "Longlist", "Contact"].includes(stage); // not from Screening (one stage away)
+  const showSourceBadge = stage === "Shortlist";
+
+  return (
+    <div
+      ref={dragProvided.innerRef}
+      {...dragProvided.draggableProps}
+      {...dragProvided.dragHandleProps}
+      onClick={onOpenProfile}
+      className={`group rounded-md border-l-2 border bg-background p-2.5 cursor-pointer hover:border-primary/40 transition-all text-xs space-y-1.5 ${
+        stageCardAccent[stage] ?? ""
+      } ${dragSnapshot.isDragging ? "shadow-lg ring-1 ring-primary/30" : ""} ${
+        cj.candidates?.priority_flag ? "border-yellow-400/50" : "border-border"
+      }`}
+    >
+      <div className="flex items-center justify-between gap-1">
+        <p className="font-medium text-sm leading-tight flex items-center gap-1 min-w-0">
+          {cj.candidates?.priority_flag && <PriorityStarIcon />}
+          <span className="truncate">{cj.candidates?.name || "Unknown"}</span>
+        </p>
+        <div className="flex items-center gap-0.5 flex-shrink-0">
+          {cj.candidates && (
+            <CandidateContextMenu
+              candidate={cj.candidates}
+              onViewProfile={onOpenProfile}
+              triggerClassName="h-6 w-6 opacity-0 group-hover:opacity-100"
+            />
+          )}
+        </div>
+      </div>
+
+      {cj.candidates?.current_employer && (
+        <div className="flex items-center gap-1 text-muted-foreground">
+          <Building2 className="h-3 w-3 flex-shrink-0" />
+          <span className="truncate">{cj.candidates.current_employer}</span>
+        </div>
+      )}
+      {cj.candidates?.salary_current && (
+        <div className="text-muted-foreground">{formatSalary(cj.candidates.salary_current)}</div>
+      )}
+      {cj.candidates?.availability && (
+        <div className="flex items-center gap-1 text-muted-foreground">
+          <Clock className="h-3 w-3 flex-shrink-0" />
+          <span className="truncate">{cj.candidates.availability}</span>
+        </div>
+      )}
+
+      {/* Source badge — only shown in Shortlist */}
+      {showSourceBadge && (
+        <Badge
+          variant="outline"
+          className={`text-[10px] h-5 px-1.5 gap-1 ${
+            isAi ? "border-blue-500/40 text-blue-400" : "border-slate-500/40 text-muted-foreground"
+          }`}
+        >
+          {isAi ? <Sparkles className="h-2.5 w-2.5" /> : <Hand className="h-2.5 w-2.5" />}
+          {isAi ? "AI Route" : "Manual"}
+        </Badge>
+      )}
+
+      {/* Rejection reason — shown on Rejected cards */}
+      {stage === "Rejected" && cj.rejection_reason && (
+        <Badge variant="outline" className="text-[10px] h-5 px-1.5 border-red-500/40 text-red-400">
+          {cj.rejection_reason}
+        </Badge>
+      )}
+
+      {/* Days in current stage */}
+      <div className="flex items-center justify-between gap-2 pt-0.5">
+        <span
+          className={`text-[10px] ${
+            days >= 7 ? "text-yellow-400" : "text-muted-foreground"
+          }`}
+        >
+          {days === 0 ? "today" : `${days}d in stage`}
+        </span>
+
+        {/* Fast-track to Shortlist button */}
+        {showFastTrack && (
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              onFastTrack();
+            }}
+            className="flex items-center gap-0.5 text-[10px] text-muted-foreground hover:text-emerald-400 transition-colors"
+            title="Fast-track to Shortlist"
+          >
+            <FastForward className="h-2.5 w-2.5" /> Fast-track
+          </button>
+        )}
+      </div>
+
+      {/* Interview date / scheduling */}
+      <InterviewDatePicker candidateJob={cj} onOpenSlotPicker={onOpenSlotPicker} />
+    </div>
+  );
+}
+
+// ============================================================================
+// Candidate quick profile (unchanged)
+// ============================================================================
 
 function CandidateQuickProfile({ candidate }: { candidate: Candidate }) {
   return (
@@ -246,6 +532,10 @@ function CandidateQuickProfile({ candidate }: { candidate: Candidate }) {
   );
 }
 
+// ============================================================================
+// Interview date picker (unchanged behaviour)
+// ============================================================================
+
 function InterviewDatePicker({ candidateJob, onOpenSlotPicker }: { candidateJob: CandidateJob; onOpenSlotPicker: () => void }) {
   const updateCandidateJob = useUpdateCandidateJob();
   const [open, setOpen] = useState(false);
@@ -254,7 +544,7 @@ function InterviewDatePicker({ candidateJob, onOpenSlotPicker }: { candidateJob:
     const val = e.target.value;
     updateCandidateJob.mutate(
       { id: candidateJob.id, interview_date: val ? new Date(val).toISOString() : null },
-      { onSuccess: () => { toast.success("Interview scheduled"); setOpen(false); } }
+      { onSuccess: () => { toast.success("Interview scheduled"); setOpen(false); } },
     );
   };
 
@@ -262,7 +552,7 @@ function InterviewDatePicker({ candidateJob, onOpenSlotPicker }: { candidateJob:
     e.stopPropagation();
     updateCandidateJob.mutate(
       { id: candidateJob.id, interview_date: null },
-      { onSuccess: () => toast.success("Interview date removed") }
+      { onSuccess: () => toast.success("Interview date removed") },
     );
   };
 

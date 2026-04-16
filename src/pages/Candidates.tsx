@@ -304,6 +304,7 @@ function RowAddToJobButton({ candidate }: { candidate: Candidate }) {
       candidate_id: candidate.id,
       job_id: job.id,
       stage: "Longlist",
+      source: "manual",
     });
     setAddedJobId(job.id);
     toast.success(`Added to ${job.title} ✓`);
