@@ -69,6 +69,9 @@ export type CandidateJob = {
   candidate_id: string;
   job_id: string;
   stage: string;
+  source: string; // 'ai' | 'manual'
+  stage_changed_at: string;
+  rejection_reason: string | null;
   interview_date: string | null;
   created_at: string;
   candidates?: Candidate;
@@ -277,8 +280,8 @@ export function useCandidateJobs(candidateId?: string, jobId?: string) {
 export function useCreateCandidateJob() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (link: { candidate_id: string; job_id: string; stage?: string }) => {
-      const { data, error } = await supabase.from("candidate_jobs").insert(link).select().single();
+    mutationFn: async (link: { candidate_id: string; job_id: string; stage?: string; source?: string }) => {
+      const { data, error } = await supabase.from("candidate_jobs").insert(link as any).select().single();
       if (error) throw error;
       await logActivity({
         action_type: "candidate_job_linked",
@@ -296,7 +299,7 @@ export function useCreateCandidateJob() {
 export function useUpdateCandidateJob() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async ({ id, ...updates }: { id: string; stage?: string; interview_date?: string | null }) => {
+    mutationFn: async ({ id, ...updates }: { id: string; stage?: string; interview_date?: string | null; rejection_reason?: string | null }) => {
       // Capture old stage for stage_change logging
       const { data: old } = await supabase.from("candidate_jobs").select("stage, candidate_id, job_id").eq("id", id).single();
       const { data, error } = await supabase.from("candidate_jobs").update(updates).eq("id", id).select().single();

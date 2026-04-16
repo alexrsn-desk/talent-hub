@@ -99,9 +99,10 @@ export function CandidateMatching({ job, autoRun = false }: { job: Job; autoRun?
       await createCandidateJob.mutateAsync({
         candidate_id: candidateId,
         job_id: job.id,
-        stage: "Longlist",
+        stage: "AI Suggested",
+        source: "ai",
       });
-      toast.success(`${candidateName} added to longlist`);
+      toast.success(`${candidateName} added to AI Suggested`);
     } catch (e: any) {
       if (e.message?.includes("duplicate")) {
         toast.info(`${candidateName} is already linked to this job`);
@@ -283,7 +284,7 @@ function CandidateMatchCard({
         </div>
         <div className="flex gap-1 flex-shrink-0">
           <Button size="sm" variant="default" className="h-7 text-xs gap-1" onClick={onAddToLonglist}>
-            <UserPlus className="h-3 w-3" /> Longlist
+            <UserPlus className="h-3 w-3" /> Add to Pipeline
           </Button>
           <a href={`/candidates?id=${match.candidate_id}`}>
             <Button size="sm" variant="outline" className="h-7 text-xs gap-1">

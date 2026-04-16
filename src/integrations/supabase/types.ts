@@ -153,7 +153,10 @@ export type Database = {
           id: string
           interview_date: string | null
           job_id: string
+          rejection_reason: string | null
+          source: string
           stage: string
+          stage_changed_at: string
         }
         Insert: {
           candidate_id: string
@@ -161,7 +164,10 @@ export type Database = {
           id?: string
           interview_date?: string | null
           job_id: string
+          rejection_reason?: string | null
+          source?: string
           stage?: string
+          stage_changed_at?: string
         }
         Update: {
           candidate_id?: string
@@ -169,7 +175,10 @@ export type Database = {
           id?: string
           interview_date?: string | null
           job_id?: string
+          rejection_reason?: string | null
+          source?: string
           stage?: string
+          stage_changed_at?: string
         }
         Relationships: [
           {
