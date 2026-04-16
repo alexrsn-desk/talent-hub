@@ -413,6 +413,8 @@ export function useDeleteNote() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (id: string) => {
+      // If this is a call note, also delete any reference entries pointing to it
+      await supabase.from("notes").delete().ilike("content", `[CALL_REF:${id}]%`);
       const { error } = await supabase.from("notes").delete().eq("id", id);
       if (error) throw error;
     },
