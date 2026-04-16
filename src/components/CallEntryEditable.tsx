@@ -8,6 +8,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import { SignalBox } from "@/components/SignalBox";
 import { useSignalsForNote, useDetectSignals } from "@/hooks/use-signals";
 import { useUpdateNote, type Note } from "@/hooks/use-data";
+import { upsertCallRefNote } from "@/lib/call-reference";
 import { logActivity } from "@/lib/activity-log";
 import { toast } from "sonner";
 import {
