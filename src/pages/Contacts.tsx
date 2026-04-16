@@ -6,7 +6,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Plus, Search, ExternalLink, ArrowLeft, Trash2, PhoneCall } from "lucide-react";
-import { useContacts, useCreateContact, useDeleteContact, useClients, type Contact, type Client } from "@/hooks/use-data";
+import { useContacts, useCreateContact, useDeleteContact, useClients, useCreateNote, type Contact, type Client } from "@/hooks/use-data";
+import { Textarea } from "@/components/ui/textarea";
 import { NotesSection } from "@/components/NotesSection";
 import { LogTouchpointModal } from "@/components/LogTouchpointModal";
 import { CallPrepButton } from "@/components/CallPrep";
@@ -27,6 +28,7 @@ export default function ContactsPage() {
   const { data: contacts = [], isLoading } = useContacts();
   const { data: clients = [] } = useClients();
   const createContact = useCreateContact();
+  const createNote = useCreateNote();
   const deleteContact = useDeleteContact();
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
@@ -67,6 +69,15 @@ export default function ContactsPage() {
       linkedin_url: (fd.get("linkedin_url") as string) || null,
       status: (fd.get("status") as string) || "Active",
     });
+    const notes = (fd.get("notes") as string || "").trim();
+    if (notes && clientId) {
+      const dateStr = new Date().toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
+      await createNote.mutateAsync({
+        client_id: clientId,
+        content: `Added on creation — ${dateStr}\n\n${notes}`,
+        activity_type: "Note",
+      });
+    }
     setDialogOpen(false);
   };
 
@@ -113,6 +124,10 @@ export default function ContactsPage() {
                 <div><Label>Phone</Label><Input name="phone" /></div>
               </div>
               <div><Label>LinkedIn URL</Label><Input name="linkedin_url" /></div>
+              <div>
+                <Label>Notes</Label>
+                <Textarea name="notes" placeholder="Add any notes about this contact — how you know them, first impressions..." className="min-h-[80px]" />
+              </div>
               <div>
                 <Label>Status</Label>
                 <select name="status" defaultValue="Active" className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm">

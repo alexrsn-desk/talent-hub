@@ -9,7 +9,8 @@ import { Label } from "@/components/ui/label";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Plus, Search, Star, ClipboardList, Phone, BriefcaseBusiness, Check } from "lucide-react";
-import { useCandidates, useCreateCandidate, useUpdateCandidate, useDeleteCandidate, useJobs, useCreateCandidateJob, useCandidateJobs, type Candidate } from "@/hooks/use-data";
+import { useCandidates, useCreateCandidate, useUpdateCandidate, useDeleteCandidate, useJobs, useCreateCandidateJob, useCandidateJobs, useCreateNote, type Candidate } from "@/hooks/use-data";
+import { Textarea } from "@/components/ui/textarea";
 import { PriorityStarIcon } from "@/components/PriorityFlag";
 import { CandidateDetail } from "@/components/CandidateDetail";
 import { CandidateContextMenu } from "@/components/CandidateContextMenu";
@@ -380,6 +381,7 @@ function RowAddToJobButton({ candidate }: { candidate: Candidate }) {
 export default function CandidatesPage() {
   const { data: candidates = [], isLoading } = useCandidates();
   const createCandidate = useCreateCandidate();
+  const createNote = useCreateNote();
   const updateCandidate = useUpdateCandidate();
   const deleteCandidate = useDeleteCandidate();
   const [search, setSearch] = useState("");
@@ -468,7 +470,7 @@ export default function CandidatesPage() {
   const handleCreate = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const fd = new FormData(e.currentTarget);
-    await createCandidate.mutateAsync({
+    const result = await createCandidate.mutateAsync({
       name: fd.get("name") as string,
       first_name: null,
       last_name: null,
@@ -487,6 +489,15 @@ export default function CandidatesPage() {
       priority_flagged_at: null,
       priority_followup_date: null,
     });
+    const notes = (fd.get("notes") as string || "").trim();
+    if (notes && result?.id) {
+      const dateStr = new Date().toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
+      await createNote.mutateAsync({
+        candidate_id: result.id,
+        content: `Added on creation — ${dateStr}\n\n${notes}`,
+        activity_type: "Note",
+      });
+    }
     setDialogOpen(false);
   };
 
@@ -570,6 +581,10 @@ export default function CandidatesPage() {
                     {SOURCES.map(s => <option key={s} value={s}>{s}</option>)}
                   </select>
                 </div>
+              </div>
+              <div>
+                <Label>Notes</Label>
+                <Textarea name="notes" placeholder="Add any notes about this candidate — source, how you know them, first impressions..." className="min-h-[80px]" />
               </div>
               <Button type="submit" className="w-full" disabled={createCandidate.isPending}>
                 {createCandidate.isPending ? "Creating..." : "Create Candidate"}

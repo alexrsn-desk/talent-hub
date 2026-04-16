@@ -7,7 +7,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Plus, Search, ExternalLink, Trash2, PhoneCall, Globe, ArrowLeft } from "lucide-react";
-import { useClients, useCreateClient, useUpdateClient, useDeleteClient, useContacts, useCreateContact, useJobs, type Client, type Contact } from "@/hooks/use-data";
+import { useClients, useCreateClient, useUpdateClient, useDeleteClient, useContacts, useCreateContact, useCreateNote, useJobs, type Client, type Contact } from "@/hooks/use-data";
+import { Textarea } from "@/components/ui/textarea";
 import { NotesSection } from "@/components/NotesSection";
 import { LogTouchpointModal } from "@/components/LogTouchpointModal";
 import { ClientPortalInvite } from "@/components/ClientPortalInvite";
@@ -31,6 +32,7 @@ export default function ClientsPage() {
   const { data: allJobs = [] } = useJobs();
   const createClient = useCreateClient();
   const createContact = useCreateContact();
+  const createNote = useCreateNote();
   const updateClient = useUpdateClient();
   const deleteClient = useDeleteClient();
   const [search, setSearch] = useState("");
@@ -75,6 +77,15 @@ export default function ClientsPage() {
       last_activity_date: new Date().toISOString().split("T")[0],
       next_action: null, next_action_due_date: null,
     });
+    const notes = (fd.get("notes") as string || "").trim();
+    if (notes && result?.id) {
+      const dateStr = new Date().toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
+      await createNote.mutateAsync({
+        client_id: result.id,
+        content: `Added on creation — ${dateStr}\n\n${notes}`,
+        activity_type: "Note",
+      });
+    }
     setDialogOpen(false);
     setNewClientId(result.id);
     setNewClientName(companyName);
@@ -144,6 +155,10 @@ export default function ClientsPage() {
               <div><Label>Location</Label><Input name="location" placeholder="e.g. London, Remote" /></div>
               <div><Label>LinkedIn URL</Label><Input name="linkedin_url" /></div>
               <div><Label>Website</Label><Input name="website" placeholder="https://..." /></div>
+              <div>
+                <Label>Notes</Label>
+                <Textarea name="notes" placeholder="Add any notes about this client — how you found them, key info, first impressions..." className="min-h-[80px]" />
+              </div>
               <Button type="submit" className="w-full" disabled={createClient.isPending}>
                 {createClient.isPending ? "Creating..." : "Create Client"}
               </Button>
