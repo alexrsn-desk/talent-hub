@@ -792,7 +792,7 @@ export default function CandidatesPage() {
       />
 
       <Dialog open={detailOpen} onOpenChange={setDetailOpen}>
-        <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
+        <DialogContent className="max-w-2xl w-[calc(100vw-1rem)] sm:w-auto max-h-[90vh] sm:max-h-[85vh] overflow-y-auto">
           {selectedCandidate && (
             <CandidateDetail
               candidate={selectedCandidate}
