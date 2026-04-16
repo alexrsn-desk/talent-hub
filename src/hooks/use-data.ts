@@ -372,8 +372,9 @@ export function useCreateNote() {
           created_at: data.created_at,
         });
       }
-      // Auto-trigger signal detection on any new note/touchpoint
-      if (data?.content && data.content.length >= 20) {
+      // Auto-trigger signal detection on any new note/touchpoint with enough content OR transcript
+      const scanText = (data?.transcript || "") + (data?.content || "");
+      if (data && scanText.length >= 20) {
         supabase.functions.invoke("detect-signals", { body: { note_id: data.id } }).catch(console.error);
       }
       return data;
@@ -397,6 +398,13 @@ export function useUpdateNote() {
       const { id, ...updates } = params;
       const { error } = await supabase.from("notes").update(updates).eq("id", id);
       if (error) throw error;
+      // Re-run signal detection whenever content or transcript was touched
+      if (updates.content !== undefined || updates.transcript !== undefined) {
+        const scanText = (updates.transcript || "") + (updates.content || "");
+        if (scanText.length >= 20) {
+          supabase.functions.invoke("detect-signals", { body: { note_id: id } }).catch(console.error);
+        }
+      }
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["notes"] });
