@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useNotes, useCreateNote, type Note } from "@/hooks/use-data";
+import { CallEntryEditable } from "@/components/CallEntryEditable";
 import { useSignalCounts } from "@/hooks/use-signals";
 import { NoteCard } from "@/components/NoteCard";
 import {
@@ -117,7 +118,7 @@ export function ProfileTabs({ entityType, entityId }: ProfileTabsProps) {
         ) : (
           <div className="space-y-1.5 max-h-[500px] overflow-y-auto">
             {callNotes.map(n => (
-              <CallEntry key={n.id} note={n} signalCount={signalCounts[n.id] || 0} />
+              <CallEntryEditable key={n.id} note={n} signalCount={signalCounts[n.id] || 0} />
             ))}
           </div>
         )}
@@ -134,114 +135,5 @@ export function ProfileTabs({ entityType, entityId }: ProfileTabsProps) {
         </div>
       </TabsContent>
     </Tabs>
-  );
-}
-
-// Call entry component for the Calls & Transcripts tab
-function CallEntry({ note, signalCount }: { note: Note; signalCount: number }) {
-  const [expanded, setExpanded] = useState(false);
-
-  const isManualLog = !note.transcript;
-  const outcomeColor: Record<string, string> = {
-    Spoke: "bg-success/20 text-green-400",
-    Voicemail: "bg-yellow-500/20 text-yellow-400",
-    "No Answer": "bg-red-500/20 text-red-400",
-  };
-
-  return (
-    <div className="rounded-md bg-muted/30 border border-border/50 overflow-hidden">
-      <button
-        className="w-full flex gap-2.5 items-center px-3 py-2.5 text-left hover:bg-muted/50 transition-colors"
-        onClick={() => setExpanded(!expanded)}
-      >
-        <Phone className="h-3.5 w-3.5 text-green-400 shrink-0" />
-        <div className="flex-1 min-w-0 flex items-center gap-2 flex-wrap">
-          <span className="text-xs text-muted-foreground">
-            {new Date(note.created_at).toLocaleString("en-GB", {
-              day: "numeric", month: "short", year: "numeric",
-              hour: "2-digit", minute: "2-digit",
-            })}
-          </span>
-          {note.duration && (
-            <span className="text-xs text-muted-foreground flex items-center gap-0.5">
-              <Clock className="h-3 w-3" /> {note.duration}m
-            </span>
-          )}
-          {note.outcome && (
-            <Badge variant="secondary" className={`text-[10px] h-5 ${outcomeColor[note.outcome] || ""}`}>
-              {note.outcome}
-            </Badge>
-          )}
-          <Badge variant="secondary" className="text-[10px] h-5 bg-muted">
-            {isManualLog ? "Manual" : "Recorded"}
-          </Badge>
-          {signalCount > 0 && (
-            <Badge variant="destructive" className="h-4 min-w-4 px-1 text-[10px]">
-              {signalCount} signal{signalCount > 1 ? "s" : ""}
-            </Badge>
-          )}
-        </div>
-        <div className="shrink-0 text-muted-foreground">
-          {expanded ? <ChevronDown className="h-3.5 w-3.5" /> : <ChevronRight className="h-3.5 w-3.5" />}
-        </div>
-      </button>
-
-      {!expanded && note.content && (
-        <div className="px-3 pb-2 pl-9">
-          <p className="text-sm text-muted-foreground truncate">{note.content}</p>
-        </div>
-      )}
-
-      {expanded && (
-        <div className="px-3 pb-3 pl-9 space-y-3">
-          {note.content && (
-            <p className="text-sm whitespace-pre-wrap">{note.content}</p>
-          )}
-          {note.follow_up_date && (
-            <p className="text-xs text-warning">
-              Follow-up: {new Date(note.follow_up_date).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}
-            </p>
-          )}
-          {/* Use NoteCard's signal/transcript logic by embedding it */}
-          <CallExpandedContent note={note} />
-        </div>
-      )}
-    </div>
-  );
-}
-
-// Expanded content for call entries — transcript + signals
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { SignalBox } from "@/components/SignalBox";
-import { useSignalsForNote } from "@/hooks/use-signals";
-
-function CallExpandedContent({ note }: { note: Note }) {
-  const { data: signals = [], isLoading } = useSignalsForNote(note.id);
-  const [transcriptOpen, setTranscriptOpen] = useState(false);
-
-  return (
-    <>
-      {note.transcript && (
-        <Collapsible open={transcriptOpen} onOpenChange={setTranscriptOpen}>
-          <CollapsibleTrigger className="text-xs text-primary hover:underline flex items-center gap-1">
-            {transcriptOpen ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
-            Read full transcript
-          </CollapsibleTrigger>
-          {!transcriptOpen && (
-            <p className="text-xs text-muted-foreground mt-1 whitespace-pre-wrap line-clamp-3">
-              {note.transcript.split("\n").slice(0, 3).join("\n")}…
-            </p>
-          )}
-          <CollapsibleContent>
-            <p className="text-xs text-muted-foreground mt-1 whitespace-pre-wrap">{note.transcript}</p>
-          </CollapsibleContent>
-        </Collapsible>
-      )}
-      {(signals.length > 0 || isLoading) && (
-        <div className="pt-1">
-          <SignalBox signals={signals} loading={isLoading} />
-        </div>
-      )}
-    </>
   );
 }
