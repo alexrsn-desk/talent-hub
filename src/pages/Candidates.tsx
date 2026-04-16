@@ -482,7 +482,8 @@ export default function CandidatesPage() {
       linkedin_url: (fd.get("linkedin_url") as string) || null,
       status: (fd.get("status") as string) || "New",
       source: (fd.get("source") as string) || "LinkedIn",
-      salary_current: null,
+      salary_current: fd.get("salary_current") ? parseInt((fd.get("salary_current") as string).replace(/[^0-9]/g, "")) : null,
+      salary_expectation: fd.get("salary_expectation") ? parseInt((fd.get("salary_expectation") as string).replace(/[^0-9]/g, "")) : null,
       availability: null,
       priority_flag: false,
       priority_reason: null,
@@ -569,6 +570,14 @@ export default function CandidatesPage() {
                 <div><Label>LinkedIn URL</Label><Input name="linkedin_url" /></div>
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div><Label>Current Salary</Label><Input name="salary_current" type="number" placeholder="e.g. 85000" /></div>
+                <div>
+                  <Label>Salary Expectation</Label>
+                  <Input name="salary_expectation" type="number" placeholder="e.g. 95000" />
+                  <p className="text-xs text-muted-foreground mt-1">Enter numbers only — no £ signs or commas</p>
+                </div>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <Label>Status</Label>
                   <select name="status" defaultValue="New" className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm">
@@ -644,7 +653,7 @@ export default function CandidatesPage() {
                      <div className="flex items-center gap-2 mt-1 flex-wrap">
                        <Badge variant="secondary" className={cn("text-[10px]", statusColor[c.status])}>{c.status}</Badge>
                        {c.location && <span className="text-[10px] text-muted-foreground">{c.location}</span>}
-                       {c.salary_current && <span className="text-[10px] text-muted-foreground">£{c.salary_current.toLocaleString()}</span>}
+                       {c.salary_current ? <span className="text-[10px] text-muted-foreground">£{c.salary_current.toLocaleString()}</span> : c.salary_expectation ? <span className="text-[10px] text-muted-foreground">£{Math.round(c.salary_expectation / 1000)}k exp</span> : null}
                      </div>
                    </div>
                  </div>
@@ -749,7 +758,12 @@ export default function CandidatesPage() {
                       candidateName={c.name}
                       onSave={(f, nv, ov) => handleInlineSave(c.id, f, nv, ov)}
                       type="number"
-                      formatDisplay={(v) => v ? `£${parseInt(v).toLocaleString()}` : "—"}
+                      formatDisplay={(v) => {
+                        if (v) return `£${parseInt(v).toLocaleString()}`;
+                        const exp = c.salary_expectation;
+                        if (exp) return `£${Math.round(exp / 1000)}k exp`;
+                        return "—";
+                      }}
                       isEditing={editingCell === cellKey(c.id, "salary_current")}
                       onStartEdit={() => setEditingCell(cellKey(c.id, "salary_current"))}
                       onStopEdit={() => setEditingCell(null)}
