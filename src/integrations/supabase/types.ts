@@ -50,6 +50,54 @@ export type Database = {
         }
         Relationships: []
       }
+      call_insights: {
+        Row: {
+          candidate_id: string | null
+          confidence: string
+          created_at: string
+          detected_value: string | null
+          field_name: string | null
+          id: string
+          kind: string
+          note_id: string
+          resolved_at: string | null
+          source_quote: string | null
+          status: string
+          tag_category: string | null
+          tag_label: string | null
+        }
+        Insert: {
+          candidate_id?: string | null
+          confidence?: string
+          created_at?: string
+          detected_value?: string | null
+          field_name?: string | null
+          id?: string
+          kind: string
+          note_id: string
+          resolved_at?: string | null
+          source_quote?: string | null
+          status?: string
+          tag_category?: string | null
+          tag_label?: string | null
+        }
+        Update: {
+          candidate_id?: string | null
+          confidence?: string
+          created_at?: string
+          detected_value?: string | null
+          field_name?: string | null
+          id?: string
+          kind?: string
+          note_id?: string
+          resolved_at?: string | null
+          source_quote?: string | null
+          status?: string
+          tag_category?: string | null
+          tag_label?: string | null
+        }
+        Relationships: []
+      }
       call_signals: {
         Row: {
           created_at: string
