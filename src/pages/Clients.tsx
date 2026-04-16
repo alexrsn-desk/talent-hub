@@ -32,6 +32,7 @@ export default function ClientsPage() {
   const { data: allJobs = [] } = useJobs();
   const createClient = useCreateClient();
   const createContact = useCreateContact();
+  const createNote = useCreateNote();
   const updateClient = useUpdateClient();
   const deleteClient = useDeleteClient();
   const [search, setSearch] = useState("");

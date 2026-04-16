@@ -381,6 +381,7 @@ function RowAddToJobButton({ candidate }: { candidate: Candidate }) {
 export default function CandidatesPage() {
   const { data: candidates = [], isLoading } = useCandidates();
   const createCandidate = useCreateCandidate();
+  const createNote = useCreateNote();
   const updateCandidate = useUpdateCandidate();
   const deleteCandidate = useDeleteCandidate();
   const [search, setSearch] = useState("");

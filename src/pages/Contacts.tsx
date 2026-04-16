@@ -28,6 +28,7 @@ export default function ContactsPage() {
   const { data: contacts = [], isLoading } = useContacts();
   const { data: clients = [] } = useClients();
   const createContact = useCreateContact();
+  const createNote = useCreateNote();
   const deleteContact = useDeleteContact();
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
