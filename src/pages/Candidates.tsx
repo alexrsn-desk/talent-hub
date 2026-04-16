@@ -596,7 +596,7 @@ export default function CandidatesPage() {
       {isLoading ? (
         <div className="text-muted-foreground text-sm">Loading...</div>
       ) : (
-         {/* Mobile card view */}
+        <>
          <div className="sm:hidden space-y-2">
            {filtered.length === 0 ? (
              <p className="text-center text-muted-foreground py-8">No candidates found</p>
