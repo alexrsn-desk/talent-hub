@@ -257,6 +257,17 @@ function CallExpandedContent({ note }: { note: Note }) {
       job_id: note.job_id,
       metadata: { edit: true, message: `Call record edited — ${dateStr}`, fields_updated: ["transcript"] },
     });
+    // Sync the Notes-tab reference entry — source becomes "Recorded" if transcript present
+    await upsertCallRefNote({
+      callNoteId: note.id,
+      source: transcriptDraft ? "Recorded" : "Manual entry",
+      duration: note.duration,
+      outcome: note.outcome,
+      candidate_id: note.candidate_id,
+      client_id: note.client_id,
+      job_id: note.job_id,
+      created_at: note.created_at,
+    });
     detectSignals.mutate({ noteId: note.id });
     setEditingTranscript(false);
     toast.success("Transcript updated");
