@@ -1,0 +1,1 @@
+ALTER TABLE public.candidates ADD COLUMN salary_expectation integer DEFAULT NULL;
