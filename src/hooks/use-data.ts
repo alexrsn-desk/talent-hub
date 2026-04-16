@@ -372,8 +372,9 @@ export function useCreateNote() {
           created_at: data.created_at,
         });
       }
-      // Auto-trigger signal detection on any new note/touchpoint
-      if (data?.content && data.content.length >= 20) {
+      // Auto-trigger signal detection on any new note/touchpoint with enough content OR transcript
+      const scanText = (data?.transcript || "") + (data?.content || "");
+      if (data && scanText.length >= 20) {
         supabase.functions.invoke("detect-signals", { body: { note_id: data.id } }).catch(console.error);
       }
       return data;
