@@ -290,7 +290,7 @@ function RowAddToJobButton({ candidate }: { candidate: Candidate }) {
   const openJobs = jobs.filter(j => j.status === "Open");
   const filtered = openJobs.filter(j =>
     j.title.toLowerCase().includes(jobSearch.toLowerCase()) ||
-    (j.client?.company_name || "").toLowerCase().includes(jobSearch.toLowerCase())
+    (j.clients?.company_name || "").toLowerCase().includes(jobSearch.toLowerCase())
   ).slice(0, 8);
 
   const existingJobIds = new Set(candidateJobs.map(cj => cj.job_id));
@@ -357,7 +357,7 @@ function RowAddToJobButton({ candidate }: { candidate: Candidate }) {
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="font-medium text-foreground">{job.title}</p>
-                    <p className="text-xs text-muted-foreground">{job.client?.company_name || "No client"}</p>
+                    <p className="text-xs text-muted-foreground">{job.clients?.company_name || "No client"}</p>
                   </div>
                   {alreadyLinked && !justAdded && (
                     <span className="text-xs text-muted-foreground">Already linked</span>
