@@ -436,7 +436,16 @@ function PipelineCard({
           {cj.candidates?.priority_flag && <PriorityStarIcon />}
           <span className="truncate">{cj.candidates?.name || "Unknown"}</span>
         </p>
-        <div className="flex items-center gap-0.5 flex-shrink-0">
+        <div className="flex items-center gap-1 flex-shrink-0">
+          {screeningNote?.completed && (
+            <Badge
+              variant="outline"
+              className="border-emerald-500/40 text-emerald-400 text-[10px] h-5 px-1.5 gap-0.5"
+              title="Screening notes complete"
+            >
+              <ClipboardList className="h-2.5 w-2.5" /> Screened
+            </Badge>
+          )}
           {cj.candidates && (
             <CandidateContextMenu
               candidate={cj.candidates}
