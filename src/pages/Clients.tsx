@@ -9,7 +9,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Plus, Search, ExternalLink, Trash2, PhoneCall, Globe, ArrowLeft } from "lucide-react";
 import { useClients, useCreateClient, useUpdateClient, useDeleteClient, useContacts, useCreateContact, useCreateNote, useJobs, type Client, type Contact } from "@/hooks/use-data";
 import { Textarea } from "@/components/ui/textarea";
-import { NotesSection } from "@/components/NotesSection";
+import { ProfileTabs } from "@/components/ProfileTabs";
 import { LogTouchpointModal } from "@/components/LogTouchpointModal";
 import { ClientPortalInvite } from "@/components/ClientPortalInvite";
 import { CallPrepButton } from "@/components/CallPrep";
