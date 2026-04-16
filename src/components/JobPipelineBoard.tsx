@@ -390,6 +390,7 @@ function daysSince(iso: string | null | undefined): number {
 function PipelineCard({
   cj,
   stage,
+  job,
   dragProvided,
   dragSnapshot,
   onOpenProfile,
@@ -399,6 +400,7 @@ function PipelineCard({
 }: {
   cj: CandidateJob;
   stage: string;
+  job: Job;
   dragProvided: any;
   dragSnapshot: any;
   onOpenProfile: () => void;
@@ -411,6 +413,11 @@ function PipelineCard({
   const showFastTrack =
     ["AI Suggested", "Longlist", "Contact"].includes(stage); // not from Screening (one stage away)
   const showSourceBadge = stage === "Shortlist";
+  const isScreening = stage === "Screening";
+
+  // Auto-open the screening panel when card is in Screening stage
+  const [screeningOpen, setScreeningOpen] = useState(isScreening);
+  const { data: screeningNote } = useScreeningNote(isScreening || screeningOpen ? cj.id : undefined);
 
   return (
     <div
