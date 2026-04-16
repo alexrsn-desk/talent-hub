@@ -633,21 +633,18 @@ export default function CandidatesPage() {
                       onStopEdit={() => setEditingCell(null)}
                     />
                   </td>
-                  <td className="px-4 py-3">
-                    <div className="flex items-center gap-0.5">
-                      <RowPriorityToggle candidate={c} onToggle={handleTogglePriority} />
-                      <RowTouchpointButton candidate={c} onOpen={handleOpenTouchpoint} />
-                      {c.linkedin_url && (
-                        <a href={c.linkedin_url} target="_blank" rel="noopener noreferrer" onClick={e => e.stopPropagation()} className="p-2">
-                          <ExternalLink className="h-4 w-4 text-muted-foreground hover:text-primary" />
-                        </a>
-                      )}
-                      <CandidateContextMenu
-                        candidate={c}
-                        onViewProfile={() => { setSelectedCandidate(c); setDetailOpen(true); }}
-                      />
-                    </div>
-                  </td>
+                   <td className="px-4 py-3">
+                     <div className="flex items-center gap-2">
+                       <RowPriorityToggle candidate={c} onToggle={handleTogglePriority} />
+                       <RowTouchpointButton candidate={c} onOpen={handleOpenTouchpoint} />
+                       <RowCallButton candidate={c} onOpenTouchpoint={handleOpenTouchpoint} />
+                       <RowAddToJobButton candidate={c} />
+                       <CandidateContextMenu
+                         candidate={c}
+                         onViewProfile={() => { setSelectedCandidate(c); setDetailOpen(true); }}
+                       />
+                     </div>
+                   </td>
                 </tr>
               ))}
             </tbody>
