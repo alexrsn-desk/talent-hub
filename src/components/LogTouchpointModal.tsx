@@ -43,19 +43,19 @@ export function LogTouchpointModal({ open, onOpenChange, entityType, entityId, e
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md">
+      <DialogContent className="max-w-md w-[calc(100vw-2rem)] mx-auto">
         <DialogHeader>
-          <DialogTitle>Log Touchpoint — {entityName}</DialogTitle>
+          <DialogTitle className="text-base sm:text-lg">Log Touchpoint — {entityName}</DialogTitle>
         </DialogHeader>
         <div className="space-y-4">
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
               <Label className="text-xs text-muted-foreground">Type</Label>
               <Select value={type} onValueChange={setType}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectTrigger className="h-11 sm:h-10"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   {TOUCHPOINT_TYPES.map((t) => (
-                    <SelectItem key={t} value={t}>{t}</SelectItem>
+                    <SelectItem key={t} value={t} className="py-3 sm:py-2">{t}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -63,10 +63,10 @@ export function LogTouchpointModal({ open, onOpenChange, entityType, entityId, e
             <div>
               <Label className="text-xs text-muted-foreground">Outcome</Label>
               <Select value={outcome} onValueChange={setOutcome}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectTrigger className="h-11 sm:h-10"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   {OUTCOMES.map((o) => (
-                    <SelectItem key={o} value={o}>{o}</SelectItem>
+                    <SelectItem key={o} value={o} className="py-3 sm:py-2">{o}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -79,7 +79,7 @@ export function LogTouchpointModal({ open, onOpenChange, entityType, entityId, e
               placeholder="Quick summary of the interaction..."
               value={content}
               onChange={(e) => setContent(e.target.value)}
-              className="min-h-[80px] resize-none"
+              className="min-h-[100px] sm:min-h-[80px] resize-none text-base sm:text-sm"
               rows={3}
             />
           </div>
@@ -90,11 +90,12 @@ export function LogTouchpointModal({ open, onOpenChange, entityType, entityId, e
               type="date"
               value={followUpDate}
               onChange={(e) => setFollowUpDate(e.target.value)}
+              className="h-11 sm:h-10"
             />
           </div>
 
           <Button
-            className="w-full"
+            className="w-full h-12 sm:h-10 text-base sm:text-sm"
             onClick={handleSubmit}
             disabled={!content.trim() || createNote.isPending}
           >
