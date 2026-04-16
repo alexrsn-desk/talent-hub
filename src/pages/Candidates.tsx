@@ -422,6 +422,8 @@ export default function CandidatesPage() {
     const fd = new FormData(e.currentTarget);
     await createCandidate.mutateAsync({
       name: fd.get("name") as string,
+      first_name: null,
+      last_name: null,
       job_title: (fd.get("job_title") as string) || null,
       current_employer: (fd.get("current_employer") as string) || null,
       location: (fd.get("location") as string) || null,
