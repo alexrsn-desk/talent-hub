@@ -188,19 +188,19 @@ function InlineStatusCell({
 // --- Row priority toggle ---
 function RowPriorityToggle({ candidate, onToggle }: { candidate: Candidate; onToggle: (c: Candidate) => void }) {
   return (
-    <TooltipProvider delayDuration={300}>
+    <TooltipProvider delayDuration={500}>
       <Tooltip>
         <TooltipTrigger asChild>
           <button
-            className="p-2 rounded-md hover:bg-muted/40 transition-colors"
+            className="p-2 rounded-md hover:bg-muted/40 transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center"
             onClick={(e) => { e.stopPropagation(); onToggle(candidate); }}
           >
             <Star
               className={cn(
-                "h-4 w-4 transition-colors",
+                "h-[18px] w-[18px] transition-colors",
                 candidate.priority_flag
                   ? "fill-[#F5A623] text-[#F5A623]"
-                  : "text-muted-foreground hover:text-[#F5A623]/70"
+                  : "text-[#9CA3AF] hover:text-[#F5A623]/70"
               )}
             />
           </button>
