@@ -8,6 +8,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import { SignalBox } from "@/components/SignalBox";
 import { useSignalsForNote, useDetectSignals } from "@/hooks/use-signals";
 import { useUpdateNote, type Note } from "@/hooks/use-data";
+import { upsertCallRefNote } from "@/lib/call-reference";
 import { logActivity } from "@/lib/activity-log";
 import { toast } from "sonner";
 import {
@@ -78,6 +79,18 @@ export function CallEntryEditable({ note, signalCount }: CallEntryEditableProps)
       client_id: note.client_id,
       job_id: note.job_id,
       metadata: { edit: true, message: `Call record edited — ${dateStr}`, fields_updated: changes },
+    });
+
+    // Sync the Notes-tab reference entry (creates if missing, updates summary)
+    await upsertCallRefNote({
+      callNoteId: note.id,
+      source: note.transcript || updates.transcript ? "Recorded" : "Manual entry",
+      duration: updates.duration !== undefined ? updates.duration : note.duration,
+      outcome: updates.outcome !== undefined ? updates.outcome : note.outcome,
+      candidate_id: note.candidate_id,
+      client_id: note.client_id,
+      job_id: note.job_id,
+      created_at: note.created_at,
     });
 
     // Re-run signal detection if content or transcript changed
@@ -243,6 +256,17 @@ function CallExpandedContent({ note }: { note: Note }) {
       client_id: note.client_id,
       job_id: note.job_id,
       metadata: { edit: true, message: `Call record edited — ${dateStr}`, fields_updated: ["transcript"] },
+    });
+    // Sync the Notes-tab reference entry — source becomes "Recorded" if transcript present
+    await upsertCallRefNote({
+      callNoteId: note.id,
+      source: transcriptDraft ? "Recorded" : "Manual entry",
+      duration: note.duration,
+      outcome: note.outcome,
+      candidate_id: note.candidate_id,
+      client_id: note.client_id,
+      job_id: note.job_id,
+      created_at: note.created_at,
     });
     detectSignals.mutate({ noteId: note.id });
     setEditingTranscript(false);

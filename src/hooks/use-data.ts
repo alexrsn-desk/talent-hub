@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { logActivity } from "@/lib/activity-log";
+import { upsertCallRefNote } from "@/lib/call-reference";
 
 // Types
 export type Candidate = {
@@ -347,8 +348,9 @@ export function useNotes(entityType: "candidate" | "client" | "job", entityId: s
 export function useCreateNote() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (note: { content: string; activity_type?: string; outcome?: string; follow_up_date?: string; candidate_id?: string; client_id?: string; job_id?: string }) => {
-      const { data, error } = await supabase.from("notes").insert(note).select().single();
+    mutationFn: async (note: { content: string; activity_type?: string; outcome?: string; follow_up_date?: string; duration?: number | null; transcript?: string | null; candidate_id?: string; client_id?: string; job_id?: string; source?: string }) => {
+      const { source, ...insertNote } = note as any;
+      const { data, error } = await supabase.from("notes").insert(insertNote).select().single();
       if (error) throw error;
       await logActivity({
         action_type: note.activity_type && note.activity_type !== "Note" ? "touchpoint_logged" : "note_created",
@@ -357,6 +359,19 @@ export function useCreateNote() {
         job_id: note.job_id,
         metadata: { activity_type: note.activity_type, outcome: note.outcome, follow_up_date: note.follow_up_date },
       });
+      // Auto-create a Notes-tab reference entry for any Call record
+      if (data && note.activity_type === "Call") {
+        await upsertCallRefNote({
+          callNoteId: data.id,
+          source: source || (note.transcript ? "Recorded" : "Manual entry"),
+          duration: note.duration ?? null,
+          outcome: note.outcome ?? null,
+          candidate_id: note.candidate_id ?? null,
+          client_id: note.client_id ?? null,
+          job_id: note.job_id ?? null,
+          created_at: data.created_at,
+        });
+      }
       // Auto-trigger signal detection on any new note/touchpoint
       if (data?.content && data.content.length >= 20) {
         supabase.functions.invoke("detect-signals", { body: { note_id: data.id } }).catch(console.error);
@@ -398,6 +413,8 @@ export function useDeleteNote() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (id: string) => {
+      // If this is a call note, also delete any reference entries pointing to it
+      await supabase.from("notes").delete().ilike("content", `[CALL_REF:${id}]%`);
       const { error } = await supabase.from("notes").delete().eq("id", id);
       if (error) throw error;
     },
