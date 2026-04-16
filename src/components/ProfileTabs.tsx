@@ -117,7 +117,7 @@ export function ProfileTabs({ entityType, entityId }: ProfileTabsProps) {
         ) : (
           <div className="space-y-1.5 max-h-[500px] overflow-y-auto">
             {callNotes.map(n => (
-              <CallEntry key={n.id} note={n} signalCount={signalCounts[n.id] || 0} />
+              <CallEntryEditable key={n.id} note={n} signalCount={signalCounts[n.id] || 0} />
             ))}
           </div>
         )}

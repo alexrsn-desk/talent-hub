@@ -82,7 +82,7 @@ export function CallEntryEditable({ note, signalCount }: CallEntryEditableProps)
 
     // Re-run signal detection if content or transcript changed
     if (changes.includes("notes") || changes.includes("transcript")) {
-      detectSignals.mutate(note.id);
+      detectSignals.mutate({ noteId: note.id });
     }
 
     setEditing(false);
@@ -244,7 +244,7 @@ function CallExpandedContent({ note }: { note: Note }) {
       job_id: note.job_id,
       metadata: { edit: true, message: `Call record edited — ${dateStr}`, fields_updated: ["transcript"] },
     });
-    detectSignals.mutate(note.id);
+    detectSignals.mutate({ noteId: note.id });
     setEditingTranscript(false);
     toast.success("Transcript updated");
   };
