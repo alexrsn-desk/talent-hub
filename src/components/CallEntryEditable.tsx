@@ -37,7 +37,8 @@ export function CallEntryEditable({ note, signalCount }: CallEntryEditableProps)
 
   const updateNote = useUpdateNote();
   const detectSignals = useDetectSignals();
-
+  const { data: insights = [] } = useCallInsights(note.id);
+  const pendingInsights = insights.length;
   const isManualLog = !note.transcript;
   const outcomeColor: Record<string, string> = {
     Spoke: "bg-success/20 text-green-400",
@@ -135,6 +136,11 @@ export function CallEntryEditable({ note, signalCount }: CallEntryEditableProps)
           {signalCount > 0 && (
             <Badge variant="destructive" className="h-4 min-w-4 px-1 text-[10px]">
               {signalCount} signal{signalCount > 1 ? "s" : ""}
+            </Badge>
+          )}
+          {pendingInsights > 0 && (
+            <Badge variant="outline" className="h-4 px-1 text-[10px] border-primary/40 text-primary bg-primary/10">
+              {pendingInsights} suggestion{pendingInsights > 1 ? "s" : ""}
             </Badge>
           )}
         </div>
