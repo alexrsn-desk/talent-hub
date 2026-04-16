@@ -156,15 +156,15 @@ export default function DashboardPage() {
           <p className="text-sm text-muted-foreground">No open jobs</p>
         ) : (
           <div className="space-y-2">
-            <div className="grid grid-cols-[1fr_60px_60px_60px_60px] gap-2 text-[11px] text-muted-foreground font-medium px-2">
+            <div className="grid grid-cols-[1fr_50px_50px_50px_50px] sm:grid-cols-[1fr_60px_60px_60px_60px] gap-1 sm:gap-2 text-[10px] sm:text-[11px] text-muted-foreground font-medium px-2">
               <span>Job</span>
-              <span className="text-center">Shortlist</span>
-              <span className="text-center">CV Sent</span>
-              <span className="text-center">Interview</span>
+              <span className="text-center">Short</span>
+              <span className="text-center">CV</span>
+              <span className="text-center">Int.</span>
               <span className="text-center">Final</span>
             </div>
             {jobPipelineStats.map(j => (
-              <div key={j.id} className="grid grid-cols-[1fr_60px_60px_60px_60px] gap-2 items-center rounded-md border border-border px-2 py-2 text-sm">
+              <div key={j.id} className="grid grid-cols-[1fr_50px_50px_50px_50px] sm:grid-cols-[1fr_60px_60px_60px_60px] gap-1 sm:gap-2 items-center rounded-md border border-border px-2 py-2 text-sm">
                 <div className="min-w-0">
                   <p className="font-medium truncate">{j.title}</p>
                   {j.clients?.company_name && (

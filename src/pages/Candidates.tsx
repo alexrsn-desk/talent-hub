@@ -534,30 +534,30 @@ export default function CandidatesPage() {
   const cellKey = (id: string, field: string) => `${id}:${field}`;
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-semibold tracking-tight">Candidates</h1>
+    <div className="space-y-4 sm:space-y-6">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <h1 className="text-xl sm:text-2xl font-semibold tracking-tight">Candidates</h1>
         <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
           <DialogTrigger asChild>
-            <Button size="sm"><Plus className="mr-1 h-4 w-4" />Add Candidate</Button>
+            <Button size="sm" className="w-full sm:w-auto"><Plus className="mr-1 h-4 w-4" />Add Candidate</Button>
           </DialogTrigger>
-          <DialogContent className="max-w-md">
+          <DialogContent className="max-w-md w-[calc(100vw-2rem)]">
             <DialogHeader><DialogTitle>New Candidate</DialogTitle></DialogHeader>
             <form onSubmit={handleCreate} className="space-y-3">
               <div><Label>Name *</Label><Input name="name" required /></div>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div><Label>Job Title</Label><Input name="job_title" /></div>
                 <div><Label>Employer</Label><Input name="current_employer" /></div>
               </div>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div><Label>Location</Label><Input name="location" /></div>
                 <div><Label>Email</Label><Input name="email" type="email" /></div>
               </div>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div><Label>Phone</Label><Input name="phone" /></div>
                 <div><Label>LinkedIn URL</Label><Input name="linkedin_url" /></div>
               </div>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <Label>Status</Label>
                   <select name="status" defaultValue="New" className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm">
@@ -579,13 +579,13 @@ export default function CandidatesPage() {
         </Dialog>
       </div>
 
-      <div className="flex items-center gap-3">
-        <div className="relative flex-1 max-w-sm">
+      <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+        <div className="relative flex-1 sm:max-w-sm">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input placeholder="Search candidates..." className="pl-9" value={search} onChange={(e) => setSearch(e.target.value)} />
         </div>
         <Select value={statusFilter} onValueChange={setStatusFilter}>
-          <SelectTrigger className="w-40"><SelectValue /></SelectTrigger>
+          <SelectTrigger className="w-full sm:w-40"><SelectValue /></SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All Statuses</SelectItem>
             {STATUSES.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
@@ -596,7 +596,60 @@ export default function CandidatesPage() {
       {isLoading ? (
         <div className="text-muted-foreground text-sm">Loading...</div>
       ) : (
-         <div className="rounded-lg border border-border overflow-hidden">
+        <>
+         <div className="sm:hidden space-y-2">
+           {filtered.length === 0 ? (
+             <p className="text-center text-muted-foreground py-8">No candidates found</p>
+           ) : filtered.map((c, idx) => {
+             const isSelected = selectedIds.has(c.id);
+             return (
+               <div
+                 key={c.id}
+                 className={cn(
+                   "rounded-lg border border-border p-3 space-y-2 transition-colors",
+                   isSelected && "bg-primary/5 border-primary/30"
+                 )}
+               >
+                 <div className="flex items-start gap-2">
+                   <Checkbox
+                     checked={isSelected}
+                     onCheckedChange={() => {}}
+                     onClick={(e) => { e.stopPropagation(); toggleSelect(c.id, idx, e.shiftKey); }}
+                     className="mt-1"
+                   />
+                   <div
+                     className="flex-1 min-w-0 cursor-pointer"
+                     onClick={() => { setSelectedCandidate(c); setDetailOpen(true); }}
+                   >
+                     <div className="flex items-center gap-1.5">
+                       {c.priority_flag && <PriorityStarIcon />}
+                       <span className="font-medium truncate">{c.name}</span>
+                     </div>
+                     {c.job_title && <p className="text-xs text-muted-foreground truncate">{c.job_title}{c.current_employer ? ` at ${c.current_employer}` : ""}</p>}
+                     <div className="flex items-center gap-2 mt-1 flex-wrap">
+                       <Badge variant="secondary" className={cn("text-[10px]", statusColor[c.status])}>{c.status}</Badge>
+                       {c.location && <span className="text-[10px] text-muted-foreground">{c.location}</span>}
+                       {c.salary_current && <span className="text-[10px] text-muted-foreground">£{c.salary_current.toLocaleString()}</span>}
+                     </div>
+                   </div>
+                 </div>
+                 <div className="flex items-center justify-end gap-1 border-t border-border/50 pt-2 -mb-1">
+                   <RowPriorityToggle candidate={c} onToggle={handleTogglePriority} />
+                   <RowTouchpointButton candidate={c} onOpen={handleOpenTouchpoint} />
+                   <RowCallButton candidate={c} onOpenTouchpoint={handleOpenTouchpoint} />
+                   <RowAddToJobButton candidate={c} />
+                   <CandidateContextMenu
+                     candidate={c}
+                     onViewProfile={() => { setSelectedCandidate(c); setDetailOpen(true); }}
+                   />
+                 </div>
+               </div>
+             );
+           })}
+         </div>
+
+         {/* Desktop table view */}
+         <div className="hidden sm:block rounded-lg border border-border overflow-hidden">
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-border bg-muted/30">
@@ -727,6 +780,7 @@ export default function CandidatesPage() {
             </tbody>
           </table>
         </div>
+        </>
       )}
 
       {/* Spacer when action bar is visible */}
@@ -738,7 +792,7 @@ export default function CandidatesPage() {
       />
 
       <Dialog open={detailOpen} onOpenChange={setDetailOpen}>
-        <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
+        <DialogContent className="max-w-2xl w-[calc(100vw-1rem)] sm:w-auto max-h-[90vh] sm:max-h-[85vh] overflow-y-auto">
           {selectedCandidate && (
             <CandidateDetail
               candidate={selectedCandidate}

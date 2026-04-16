@@ -110,11 +110,11 @@ export default function BDPipelinePage() {
         <div className="text-muted-foreground text-sm">Loading...</div>
       ) : (
         <DragDropContext onDragEnd={handleDragEnd}>
-          <div className="flex gap-3 overflow-x-auto pb-4 h-[calc(100vh-180px)]">
+          <div className="flex gap-3 overflow-x-auto pb-4 h-[calc(100vh-180px)] snap-x snap-mandatory sm:snap-none">
             {BD_STAGES.map((stage) => {
               const stageClients = clients.filter((c) => c.status === stage);
               return (
-                <div key={stage} className="flex-shrink-0 w-[260px] flex flex-col">
+                <div key={stage} className="flex-shrink-0 w-[240px] sm:w-[260px] snap-start flex flex-col">
                   <div className="flex items-center justify-between px-3 py-2 mb-2">
                     <div className="flex items-center gap-2">
                       <h3 className={`text-xs font-semibold uppercase tracking-wider ${stageHeaderColor[stage]}`}>
@@ -242,7 +242,7 @@ export default function BDPipelinePage() {
 
       {/* Detail dialog */}
       <Dialog open={detailOpen} onOpenChange={setDetailOpen}>
-        <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
+        <DialogContent className="max-w-2xl w-[calc(100vw-2rem)] max-h-[85vh] overflow-y-auto">
           {selectedClient && (
             <ClientDetailView
               client={selectedClient}
@@ -286,7 +286,7 @@ function ClientDetailView({ client, onUpdate, onDelete }: {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-start justify-between">
+      <div className="flex flex-col sm:flex-row items-start sm:items-start justify-between gap-3">
         <div>
           <h2 className="text-xl font-semibold">{client.company_name}</h2>
           <p className="text-muted-foreground">
@@ -311,7 +311,7 @@ function ClientDetailView({ client, onUpdate, onDelete }: {
         </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-4 text-sm">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 text-sm">
         <div><span className="text-muted-foreground">Email:</span> {client.email || "—"}</div>
         <div><span className="text-muted-foreground">Phone:</span> {client.phone || "—"}</div>
         <div><span className="text-muted-foreground">Sector:</span> {client.sector || "—"}</div>

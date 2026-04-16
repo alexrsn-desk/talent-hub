@@ -195,7 +195,7 @@ export function CandidateDetail({ candidate, onUpdate, onDelete }: Props) {
       )}
 
       {/* Header */}
-      <div className="flex items-start justify-between gap-3">
+      <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
         <div className="min-w-0">
           {editing ? (
             <Input value={form.name} onChange={(e) => setForm(f => ({ ...f, name: e.target.value }))} className="text-xl font-semibold h-auto py-1" />
@@ -212,10 +212,10 @@ export function CandidateDetail({ candidate, onUpdate, onDelete }: Props) {
         <div className="flex gap-2 items-start flex-wrap flex-shrink-0">
           {editing ? (
             <>
-              <Button size="sm" onClick={handleSave} className="gap-1.5" disabled={updateCandidate.isPending}>
+              <Button size="sm" onClick={handleSave} className="gap-1.5 flex-1 sm:flex-none" disabled={updateCandidate.isPending}>
                 <Save className="h-3.5 w-3.5" /> Save
               </Button>
-              <Button size="sm" variant="outline" onClick={handleCancel} className="gap-1.5">
+              <Button size="sm" variant="outline" onClick={handleCancel} className="gap-1.5 flex-1 sm:flex-none">
                 <X className="h-3.5 w-3.5" /> Cancel
               </Button>
             </>
@@ -255,7 +255,7 @@ export function CandidateDetail({ candidate, onUpdate, onDelete }: Props) {
 
       {/* Fields */}
       {editing ? (
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div><Label className="text-xs text-muted-foreground">Job Title</Label><Input value={form.job_title} onChange={(e) => setForm(f => ({ ...f, job_title: e.target.value }))} className="h-8 text-sm" /></div>
           <div><Label className="text-xs text-muted-foreground">Employer</Label><Input value={form.current_employer} onChange={(e) => setForm(f => ({ ...f, current_employer: e.target.value }))} className="h-8 text-sm" /></div>
           <div><Label className="text-xs text-muted-foreground">Location</Label><Input value={form.location} onChange={(e) => setForm(f => ({ ...f, location: e.target.value }))} className="h-8 text-sm" /></div>
@@ -274,7 +274,7 @@ export function CandidateDetail({ candidate, onUpdate, onDelete }: Props) {
           </div>
         </div>
       ) : (
-        <div className="grid grid-cols-2 gap-2 text-sm">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm">
           <ClickToEditField label="Email" value={candidate.email || ""} field="email" type="email" onSave={(v) => handleFieldSave("email", v)} entityType="candidate" entityId={candidate.id} />
           <ClickToEditField label="Phone" value={candidate.phone || ""} field="phone" onSave={(v) => handleFieldSave("phone", v)} entityType="candidate" entityId={candidate.id} />
           <ClickToEditField label="Location" value={candidate.location || ""} field="location" onSave={(v) => handleFieldSave("location", v)} entityType="candidate" entityId={candidate.id} />
