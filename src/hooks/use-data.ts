@@ -372,10 +372,14 @@ export function useCreateNote() {
           created_at: data.created_at,
         });
       }
-      // Auto-trigger signal detection on any new note/touchpoint with enough content OR transcript
+      // Auto-trigger signal detection AND insight extraction on any saved content
       const scanText = (data?.transcript || "") + (data?.content || "");
       if (data && scanText.length >= 20) {
         supabase.functions.invoke("detect-signals", { body: { note_id: data.id } }).catch(console.error);
+        // Field + tag extraction (only meaningful when linked to a candidate)
+        if (data.candidate_id) {
+          supabase.functions.invoke("extract-insights", { body: { note_id: data.id } }).catch(console.error);
+        }
       }
       return data;
     },
@@ -398,20 +402,22 @@ export function useUpdateNote() {
       const { id, ...updates } = params;
       const { error } = await supabase.from("notes").update(updates).eq("id", id);
       if (error) throw error;
-      // Re-run signal detection whenever content or transcript was touched
+      // Re-run signal detection + insight extraction whenever content or transcript was touched
       if (updates.content !== undefined || updates.transcript !== undefined) {
         const scanText = (updates.transcript || "") + (updates.content || "");
         if (scanText.length >= 20) {
           supabase.functions.invoke("detect-signals", { body: { note_id: id } }).catch(console.error);
+          supabase.functions.invoke("extract-insights", { body: { note_id: id } }).catch(console.error);
         }
       }
     },
-    onSuccess: () => {
+    onSuccess: (_, vars) => {
       qc.invalidateQueries({ queryKey: ["notes"] });
       setTimeout(() => {
         qc.invalidateQueries({ queryKey: ["call-signals"] });
         qc.invalidateQueries({ queryKey: ["call-signal-counts"] });
         qc.invalidateQueries({ queryKey: ["call-signals-unactioned"] });
+        qc.invalidateQueries({ queryKey: ["call-insights", vars.id] });
       }, 5000);
     },
   });
