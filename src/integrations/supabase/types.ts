@@ -287,6 +287,7 @@ export type Database = {
           linkedin_url: string | null
           location: string | null
           name: string
+          notice_period: string | null
           phone: string | null
           priority_flag: boolean
           priority_flagged_at: string | null
@@ -310,6 +311,7 @@ export type Database = {
           linkedin_url?: string | null
           location?: string | null
           name: string
+          notice_period?: string | null
           phone?: string | null
           priority_flag?: boolean
           priority_flagged_at?: string | null
@@ -333,6 +335,7 @@ export type Database = {
           linkedin_url?: string | null
           location?: string | null
           name?: string
+          notice_period?: string | null
           phone?: string | null
           priority_flag?: boolean
           priority_flagged_at?: string | null
@@ -889,6 +892,54 @@ export type Database = {
           salary_min?: number | null
           updated_at?: string
           user_id?: string
+        }
+        Relationships: []
+      }
+      screening_notes: {
+        Row: {
+          availability_confirmed: string | null
+          candidate_job_id: string
+          completed: boolean
+          concerns: string | null
+          created_at: string
+          id: string
+          interest_level: string | null
+          key_strengths: string | null
+          notice_period_confirmed: string | null
+          questions_answered: string | null
+          salary_confirmed: number | null
+          updated_at: string
+          why_suitable: string | null
+        }
+        Insert: {
+          availability_confirmed?: string | null
+          candidate_job_id: string
+          completed?: boolean
+          concerns?: string | null
+          created_at?: string
+          id?: string
+          interest_level?: string | null
+          key_strengths?: string | null
+          notice_period_confirmed?: string | null
+          questions_answered?: string | null
+          salary_confirmed?: number | null
+          updated_at?: string
+          why_suitable?: string | null
+        }
+        Update: {
+          availability_confirmed?: string | null
+          candidate_job_id?: string
+          completed?: boolean
+          concerns?: string | null
+          created_at?: string
+          id?: string
+          interest_level?: string | null
+          key_strengths?: string | null
+          notice_period_confirmed?: string | null
+          questions_answered?: string | null
+          salary_confirmed?: number | null
+          updated_at?: string
+          why_suitable?: string | null
         }
         Relationships: []
       }
