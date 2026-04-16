@@ -92,7 +92,7 @@ function AddToJobAction({ selected }: { selected: Candidate[] }) {
     let added = 0;
     for (const c of selected) {
       try {
-        await createCandidateJob.mutateAsync({ candidate_id: c.id, job_id: job.id, stage: "Longlist" });
+        await createCandidateJob.mutateAsync({ candidate_id: c.id, job_id: job.id, stage: "Longlist", source: "manual" });
         added++;
       } catch { /* already linked */ }
     }
