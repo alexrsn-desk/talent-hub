@@ -390,6 +390,52 @@ export default function CandidatesPage() {
   // Track which cell is being edited: "candidateId:field"
   const [editingCell, setEditingCell] = useState<string | null>(null);
   const [touchpointCandidate, setTouchpointCandidate] = useState<Candidate | null>(null);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const lastClickedIndex = useRef<number | null>(null);
+
+  // Keyboard shortcuts
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        setSelectedIds(new Set());
+        lastClickedIndex.current = null;
+      }
+      if ((e.ctrlKey || e.metaKey) && e.key === "a" && !editingCell) {
+        e.preventDefault();
+        setSelectedIds(new Set(filtered.map(c => c.id)));
+      }
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [filtered, editingCell]);
+
+  const toggleSelect = useCallback((candidateId: string, index: number, shiftKey: boolean) => {
+    setSelectedIds(prev => {
+      const next = new Set(prev);
+      if (shiftKey && lastClickedIndex.current !== null) {
+        const start = Math.min(lastClickedIndex.current, index);
+        const end = Math.max(lastClickedIndex.current, index);
+        for (let i = start; i <= end; i++) {
+          next.add(filtered[i].id);
+        }
+      } else {
+        if (next.has(candidateId)) next.delete(candidateId);
+        else next.add(candidateId);
+      }
+      return next;
+    });
+    lastClickedIndex.current = index;
+  }, [filtered]);
+
+  const toggleSelectAll = useCallback(() => {
+    if (selectedIds.size === filtered.length) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(filtered.map(c => c.id)));
+    }
+  }, [filtered, selectedIds.size]);
+
+  const selectedCandidates = filtered.filter(c => selectedIds.has(c.id));
 
   const handleTogglePriority = useCallback((c: Candidate) => {
     if (c.priority_flag) {
