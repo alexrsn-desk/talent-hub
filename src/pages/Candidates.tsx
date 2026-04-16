@@ -393,6 +393,34 @@ export default function CandidatesPage() {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const lastClickedIndex = useRef<number | null>(null);
 
+  const handleTogglePriority = useCallback((c: Candidate) => {
+    if (c.priority_flag) {
+      updateCandidate.mutate({ id: c.id, priority_flag: false, priority_reason: null, priority_flagged_at: null, priority_followup_date: null } as any);
+      toast("Removed", { duration: 1000 });
+    } else {
+      updateCandidate.mutate({ id: c.id, priority_flag: true, priority_flagged_at: new Date().toISOString() } as any);
+      toast("Flagged", { duration: 1000 });
+    }
+  }, [updateCandidate]);
+
+  const handleOpenTouchpoint = useCallback((c: Candidate) => {
+    setTouchpointCandidate(c);
+  }, []);
+
+  const filtered = candidates
+    .filter((c) => {
+      const matchesSearch = c.name.toLowerCase().includes(search.toLowerCase()) ||
+        (c.job_title || "").toLowerCase().includes(search.toLowerCase()) ||
+        (c.current_employer || "").toLowerCase().includes(search.toLowerCase());
+      const matchesStatus = statusFilter === "all" || c.status === statusFilter;
+      return matchesSearch && matchesStatus;
+    })
+    .sort((a, b) => {
+      if (a.priority_flag && !b.priority_flag) return -1;
+      if (!a.priority_flag && b.priority_flag) return 1;
+      return 0;
+    });
+
   // Keyboard shortcuts
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
@@ -436,34 +464,6 @@ export default function CandidatesPage() {
   }, [filtered, selectedIds.size]);
 
   const selectedCandidates = filtered.filter(c => selectedIds.has(c.id));
-
-  const handleTogglePriority = useCallback((c: Candidate) => {
-    if (c.priority_flag) {
-      updateCandidate.mutate({ id: c.id, priority_flag: false, priority_reason: null, priority_flagged_at: null, priority_followup_date: null } as any);
-      toast("Removed", { duration: 1000 });
-    } else {
-      updateCandidate.mutate({ id: c.id, priority_flag: true, priority_flagged_at: new Date().toISOString() } as any);
-      toast("Flagged", { duration: 1000 });
-    }
-  }, [updateCandidate]);
-
-  const handleOpenTouchpoint = useCallback((c: Candidate) => {
-    setTouchpointCandidate(c);
-  }, []);
-
-  const filtered = candidates
-    .filter((c) => {
-      const matchesSearch = c.name.toLowerCase().includes(search.toLowerCase()) ||
-        (c.job_title || "").toLowerCase().includes(search.toLowerCase()) ||
-        (c.current_employer || "").toLowerCase().includes(search.toLowerCase());
-      const matchesStatus = statusFilter === "all" || c.status === statusFilter;
-      return matchesSearch && matchesStatus;
-    })
-    .sort((a, b) => {
-      if (a.priority_flag && !b.priority_flag) return -1;
-      if (!a.priority_flag && b.priority_flag) return 1;
-      return 0;
-    });
 
   const handleCreate = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
