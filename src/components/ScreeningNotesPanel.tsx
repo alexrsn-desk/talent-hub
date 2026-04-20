@@ -224,12 +224,31 @@ export function ScreeningNotesPanel({ candidateJob, candidate, jobId, jobTitle }
               <Check className="h-2.5 w-2.5" /> Screened
             </Badge>
           )}
+          <Select
+            value={styleOverride}
+            onValueChange={(v) => {
+              setStyleOverride(v);
+              if (v !== "none" && !existing) void generateDraft(v);
+            }}
+          >
+            <SelectTrigger className="h-6 w-auto gap-1 text-[10px] px-2 border-border bg-transparent">
+              <span className="text-muted-foreground">Style:</span>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="my_template" className="text-xs">My template</SelectItem>
+              <SelectItem value="formal" className="text-xs">Formal</SelectItem>
+              <SelectItem value="concise" className="text-xs">Concise</SelectItem>
+              <SelectItem value="detailed" className="text-xs">Detailed</SelectItem>
+              <SelectItem value="none" className="text-xs">No AI draft</SelectItem>
+            </SelectContent>
+          </Select>
           <Button
             variant="ghost"
             size="sm"
             className="h-6 px-1.5 text-[10px] gap-1 text-muted-foreground hover:text-foreground"
-            onClick={generateDraft}
-            disabled={drafting}
+            onClick={() => generateDraft()}
+            disabled={drafting || styleOverride === "none"}
             title="Regenerate AI draft"
           >
             {drafting ? <Loader2 className="h-3 w-3 animate-spin" /> : <RefreshCw className="h-3 w-3" />}
@@ -260,7 +279,7 @@ export function ScreeningNotesPanel({ candidateJob, candidate, jobId, jobTitle }
       {draftError && !drafting && (
         <div className="flex items-center justify-between gap-2 text-[11px] text-destructive rounded-md border border-destructive/30 bg-destructive/5 px-2.5 py-2">
           <span>Could not generate draft: {draftError}</span>
-          <Button variant="ghost" size="sm" className="h-6 text-[10px]" onClick={generateDraft}>
+          <Button variant="ghost" size="sm" className="h-6 text-[10px]" onClick={() => generateDraft()}>
             Retry
           </Button>
         </div>
