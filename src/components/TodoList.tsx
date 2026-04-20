@@ -221,24 +221,37 @@ function useAIActions(): AIAction[] {
 }
 
 // ── Source tag colors ──────────────────────────────────
-const sourceColors: Record<string, string> = {
+const sourceColors: Record<AIActionSource, string> = {
   Signal: "bg-yellow-400/20 text-yellow-400",
   Pipeline: "bg-primary/20 text-primary",
   BD: "bg-sky-400/20 text-sky-400",
   Coach: "bg-violet-400/20 text-violet-400",
   "Call Prep": "bg-emerald-400/20 text-emerald-400",
+  Sequence: "bg-teal-400/20 text-teal-400",
+};
+
+// Group/section labels and colors keyed by source
+const sourceGroupMeta: Record<AIActionSource, { label: string; headerClass: string; dotClass: string }> = {
+  Sequence: { label: "Sequence Follow-Ups", headerClass: "text-teal-400", dotClass: "bg-teal-400" },
+  Pipeline: { label: "Pipeline Alerts", headerClass: "text-amber-400", dotClass: "bg-amber-400" },
+  BD: { label: "BD Outreach", headerClass: "text-sky-400", dotClass: "bg-sky-400" },
+  Signal: { label: "Call Signals", headerClass: "text-yellow-400", dotClass: "bg-yellow-400" },
+  Coach: { label: "Coach Recommendations", headerClass: "text-violet-400", dotClass: "bg-violet-400" },
+  "Call Prep": { label: "Call Prep", headerClass: "text-emerald-400", dotClass: "bg-emerald-400" },
 };
 
 const urgencyColors: Record<string, string> = {
   red: "border-l-destructive",
   amber: "border-l-amber-400",
   green: "border-l-emerald-400",
+  sequence: "border-l-teal-400",
 };
 
 const urgencyDot: Record<string, string> = {
   red: "bg-destructive",
   amber: "bg-amber-400",
   green: "bg-emerald-400",
+  sequence: "bg-teal-400",
 };
 
 // ── My List Segment ────────────────────────────────────
