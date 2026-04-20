@@ -54,6 +54,7 @@ export function ScreeningNotesPanel({ candidateJob, candidate, jobId, jobTitle }
   const [interestReasoning, setInterestReasoning] = useState<string>("");
   const [thinData, setThinData] = useState(false);
   const [questionsCovered, setQuestionsCovered] = useState(false);
+  const [styleOverride, setStyleOverride] = useState<string>("my_template");
   const autoTriggeredRef = useRef(false);
 
   // Single-field re-enhance (existing behaviour, kept)
@@ -83,6 +84,7 @@ export function ScreeningNotesPanel({ candidateJob, candidate, jobId, jobTitle }
     if (loadingExisting) return;
     if (existing) return; // already have saved notes — never auto-overwrite
     if (autoTriggeredRef.current) return;
+    if (styleOverride === "none") return; // user chose no AI draft
     autoTriggeredRef.current = true;
     void generateDraft();
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -100,7 +102,9 @@ export function ScreeningNotesPanel({ candidateJob, candidate, jobId, jobTitle }
     setQuestionsCovered(false);
   };
 
-  const generateDraft = async () => {
+  const generateDraft = async (overrideValue?: string) => {
+    const activeStyle = overrideValue ?? styleOverride;
+    if (activeStyle === "none") return;
     setDrafting(true);
     setDraftError(null);
     try {
@@ -109,6 +113,7 @@ export function ScreeningNotesPanel({ candidateJob, candidate, jobId, jobTitle }
           candidate_job_id: candidateJob.id,
           candidate_id: candidate.id,
           job_id: jobId,
+          style_override: activeStyle,
         },
       });
       if (error) throw error;
