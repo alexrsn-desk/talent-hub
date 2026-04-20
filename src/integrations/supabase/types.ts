@@ -943,6 +943,42 @@ export type Database = {
         }
         Relationships: []
       }
+      screening_preferences: {
+        Row: {
+          created_at: string
+          examples: string[]
+          id: string
+          length: string
+          pov: string
+          sections: Json
+          tone: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          examples?: string[]
+          id?: string
+          length?: string
+          pov?: string
+          sections?: Json
+          tone?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          examples?: string[]
+          id?: string
+          length?: string
+          pov?: string
+          sections?: Json
+          tone?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       tag_definitions: {
         Row: {
           archived: boolean
