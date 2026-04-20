@@ -1,5 +1,5 @@
-import { useState, useMemo } from "react";
-import { Plus, Check, Flag, CalendarIcon, Trash2, GripVertical, ChevronDown, Phone, Mail, FileText, ExternalLink, X, Lightbulb, AlertTriangle, BarChart3, Brain, PhoneCall, RotateCcw } from "lucide-react";
+import { useState, useMemo, useEffect, useRef } from "react";
+import { Plus, Check, Flag, CalendarIcon, Trash2, GripVertical, ChevronDown, Phone, Mail, FileText, ExternalLink, X, Lightbulb, AlertTriangle, BarChart3, Brain, PhoneCall, RotateCcw, Link2, Repeat, SkipForward, Sparkles, Keyboard } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
