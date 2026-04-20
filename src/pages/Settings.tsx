@@ -11,6 +11,7 @@ import { MigrationAssistant } from "@/components/MigrationAssistant";
 import { useSignalPerformance } from "@/hooks/use-signals";
 import { TagManagement } from "@/components/TagManagement";
 import { MyPlanSection } from "@/components/MyPlanSection";
+import { ScreeningTemplateSettings } from "@/components/ScreeningTemplateSettings";
 
 const NICHES = [
   "Tech/Digital", "Sales/Commercial", "Finance", "Legal",
@@ -303,6 +304,9 @@ export default function SettingsPage() {
         <p className="text-xs text-muted-foreground">Review and tidy imported data — unmatched jobs, notes, job assignments, and duplicates.</p>
         <MigrationAssistant onComplete={() => toast.success("All items reviewed!")} showLaterOption={false} />
       </div>
+
+      {/* Screening Notes Template */}
+      <ScreeningTemplateSettings />
 
       {/* Tag Management */}
       <div className="pt-6 border-t border-border">
