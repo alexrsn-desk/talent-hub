@@ -11,18 +11,27 @@ import { useCandidateJobs, useClients, useTodayFollowUps, useOverdueFollowUps, u
 import { toast } from "sonner";
 
 // ── Types ──────────────────────────────────────────────
+type AIActionSource = "Signal" | "Pipeline" | "BD" | "Coach" | "Call Prep" | "Sequence";
+
 type AIAction = {
   id: string;
   contactName: string;
   company: string;
   action: string;
   reason: string;
-  urgency: "red" | "amber" | "green";
-  source: string;
+  urgency: "red" | "amber" | "green" | "sequence";
+  source: AIActionSource;
   entityType: "candidate" | "client";
   entityId: string;
   signalId?: string;
+  // Sequence-only fields (populated when source === "Sequence")
+  sequenceName?: string;
+  sequenceStep?: number;
+  sequenceChannel?: string;
+  sequencePrompt?: string;
 };
+
+type GroupMode = "priority" | "type" | "sequence";
 
 // ── Helpers ────────────────────────────────────────────
 function getGreeting() {
