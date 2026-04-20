@@ -212,8 +212,8 @@ function useAIActions(): AIAction[] {
       }
     }
 
-    // Sort: red first, then amber, then green. Within same, oldest first.
-    const urgencyOrder = { red: 0, amber: 1, green: 2 };
+    // Sort: red first, then amber, then green, then sequence. Within same, oldest first.
+    const urgencyOrder: Record<AIAction["urgency"], number> = { red: 0, amber: 1, green: 2, sequence: 3 };
     actions.sort((a, b) => urgencyOrder[a.urgency] - urgencyOrder[b.urgency]);
 
     return actions;
