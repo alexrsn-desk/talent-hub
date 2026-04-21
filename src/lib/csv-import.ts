@@ -702,10 +702,50 @@ export async function runImportForType(
         const clientIdx = headers.indexOf(clientHeader);
         companyName = clientIdx >= 0 ? (row[clientIdx]?.trim() || "") : "";
         const lcCompany = companyName.toLowerCase();
-        if (lcCompany && clientLookup[lcCompany]) {
+
+        // 1. Check explicit per-row decision from preview screen
+        const decision = companyDecisions?.[i];
+        if (decision) {
+          if (decision.kind === "skip") {
+            res.skipped++;
+            res.errors.push({ row: i + 2, reason: `Skipped — no client match for "${companyName}"`, data: record });
+            continue;
+          }
+          if (decision.kind === "link") {
+            record.client_id = decision.clientId;
+            // If exact match by lowercase => auto-linked, otherwise => confirmed
+            if (lcCompany && clientLookup[lcCompany] === decision.clientId) {
+              autoLinkedContacts++;
+            } else {
+              confirmedLinkedContacts++;
+            }
+          } else if (decision.kind === "create_new") {
+            // Re-use already-created client if same company appeared earlier in this run
+            if (lcCompany && clientLookup[lcCompany]) {
+              record.client_id = clientLookup[lcCompany];
+            } else {
+              const { data: newClient, error: ccErr } = await supabase
+                .from("clients")
+                .insert({ company_name: companyName, status: "Target" } as any)
+                .select("id")
+                .single();
+              if (!ccErr && newClient) {
+                record.client_id = newClient.id;
+                if (lcCompany) clientLookup[lcCompany] = newClient.id;
+                newClientsCreated++;
+              } else {
+                unlinked = true;
+              }
+            }
+          } else if (decision.kind === "leave_unlinked") {
+            unlinked = true;
+          }
+        } else if (lcCompany && clientLookup[lcCompany]) {
+          // 2. Fall back to direct exact match (no decision provided)
           record.client_id = clientLookup[lcCompany];
+          autoLinkedContacts++;
         } else if (companyName) {
-          // Need to handle unlinked contact
+          // 3. Legacy bulk action fallback
           if (contactUnlinkedAction === "skip") {
             res.skipped++;
             res.errors.push({ row: i + 2, reason: `No matching client for "${companyName}" — skipped`, data: record });
@@ -724,7 +764,6 @@ export async function runImportForType(
               unlinked = true;
             }
           } else {
-            // import_unlinked (default) — flag but still create
             unlinked = true;
           }
         }
