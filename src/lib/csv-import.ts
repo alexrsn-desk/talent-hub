@@ -852,7 +852,7 @@ export async function runImportForType(
     }
   }
 
-  return { ...res, unmatchedJobs, unlinkedContacts, newClientsCreated, importedIds };
+  return { ...res, unmatchedJobs, unlinkedContacts, newClientsCreated, importedIds, autoLinkedContacts, confirmedLinkedContacts };
 }
 
 // ── Import history ────────────────────────────────────────────────
