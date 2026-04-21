@@ -241,6 +241,10 @@ export function DataImport() {
     setUnlinkedContacts([]);
     setNewClientsCreated(0);
     setArchiveOption("none");
+    setMatchPreview(null);
+    setCompanyDecisions({});
+    setAutoLinkedContacts(0);
+    setConfirmedLinkedContacts(0);
   };
 
   return (
