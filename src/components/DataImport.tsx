@@ -131,11 +131,14 @@ export function DataImport() {
       const res = await runImportForType(
         recordType, rows, headers, mapping, duplicateAction,
         undefined, platform || undefined, archiveOption, contactUnlinkedAction,
+        recordType === "contacts" ? companyDecisions : undefined,
       );
       setResult(res);
       setUnmatchedJobs(res.unmatchedJobs);
       setUnlinkedContacts(res.unlinkedContacts || []);
       setNewClientsCreated(res.newClientsCreated || 0);
+      setAutoLinkedContacts(res.autoLinkedContacts || 0);
+      setConfirmedLinkedContacts(res.confirmedLinkedContacts || 0);
       setNameReviewItems(res.nameReviewItems);
 
       // Save import history
@@ -146,6 +149,65 @@ export function DataImport() {
       toast.error(`Import failed: ${err.message}`);
     }
     setStep("results");
+  };
+
+  // Build company-match preview when entering the company-match step
+  const goToCompanyMatch = async () => {
+    setMatchLoading(true);
+    setStep("company-match");
+    try {
+      const preview = await previewContactCompanyMatches(rows, headers, mapping);
+      setMatchPreview(preview);
+      // Pre-populate decisions: auto-matched rows are linked
+      const initial: CompanyDecisions = {};
+      preview.autoMatched.forEach(r => {
+        if (r.exactClient) initial[r.rowIndex] = { kind: "link", clientId: r.exactClient.id };
+      });
+      setCompanyDecisions(initial);
+    } catch (e: any) {
+      toast.error(`Could not load company matches: ${e.message}`);
+    } finally {
+      setMatchLoading(false);
+    }
+  };
+
+  const setRowDecision = (rowIndex: number, action: CompanyDecisions[number]) => {
+    setCompanyDecisions(prev => ({ ...prev, [rowIndex]: action }));
+  };
+
+  const confirmAllSuggested = () => {
+    if (!matchPreview) return;
+    const next = { ...companyDecisions };
+    matchPreview.suggested.forEach(r => {
+      if (r.tier === "suggested" && r.suggestion) {
+        next[r.rowIndex] = { kind: "link", clientId: r.suggestion.id };
+      }
+    });
+    setCompanyDecisions(next);
+    toast.success("Suggested matches confirmed");
+  };
+
+  const createAllUnmatched = () => {
+    if (!matchPreview) return;
+    const next = { ...companyDecisions };
+    matchPreview.unmatched.forEach(r => { next[r.rowIndex] = { kind: "create_new" }; });
+    setCompanyDecisions(next);
+    toast.success("All unmatched will create new clients");
+  };
+
+  const skipAllUnmatched = () => {
+    if (!matchPreview) return;
+    const next = { ...companyDecisions };
+    matchPreview.unmatched.forEach(r => { next[r.rowIndex] = { kind: "skip" }; });
+    setCompanyDecisions(next);
+    toast.success("Unmatched contacts will be skipped");
+  };
+
+  // True only when every suggested + unmatched row has an explicit decision
+  const allRowsResolved = (): boolean => {
+    if (!matchPreview) return false;
+    const needsDecision = [...matchPreview.suggested, ...matchPreview.unmatched];
+    return needsDecision.every(r => companyDecisions[r.rowIndex] != null);
   };
 
   const loadHistory = async () => {
