@@ -21,6 +21,7 @@ import Coach from "./pages/Coach";
 import Settings from "./pages/Settings";
 import WeeklyIntel from "./pages/WeeklyIntel";
 import CallsMeetings from "./pages/CallsMeetings";
+import Sequences from "./pages/Sequences";
 import Auth from "./pages/Auth";
 import Portal from "./pages/Portal";
 import NotFound from "./pages/NotFound";
@@ -149,6 +150,7 @@ function AppRoutes() {
           <Route path="/coach" element={<Coach />} />
           <Route path="/weekly" element={<WeeklyIntel />} />
           <Route path="/calls" element={<CallsMeetings />} />
+          <Route path="/sequences" element={<Sequences />} />
           <Route path="/settings" element={<Settings />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
