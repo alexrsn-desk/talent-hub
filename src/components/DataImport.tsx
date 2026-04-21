@@ -7,7 +7,7 @@ import { toast } from "sonner";
 import {
   Upload, FileText, ArrowRight, ArrowLeft, Check, AlertTriangle,
   Download, Loader2, Users, Building2, Briefcase, Shield, Save, Trash2,
-  History, Undo2, Database,
+  History, Undo2, Database, UserCircle2, Info,
 } from "lucide-react";
 import {
   RecordType, FIELD_MAP, BUILT_IN_TEMPLATES, MappingTemplate, NameReviewItem,
@@ -31,6 +31,9 @@ export function DataImport() {
   const [archiveOption, setArchiveOption] = useState<ArchiveOption>("none");
   const [result, setResult] = useState<ImportResult | null>(null);
   const [unmatchedJobs, setUnmatchedJobs] = useState<{ id: string; title: string }[]>([]);
+  const [unlinkedContacts, setUnlinkedContacts] = useState<{ id: string; name: string; companyName: string }[]>([]);
+  const [newClientsCreated, setNewClientsCreated] = useState(0);
+  const [contactUnlinkedAction, setContactUnlinkedAction] = useState<"create_client" | "skip" | "import_unlinked">("import_unlinked");
   const [nameReviewItems, setNameReviewItems] = useState<NameReviewItem[]>([]);
   const [importHistory, setImportHistory] = useState<any[]>([]);
   const [undoing, setUndoing] = useState(false);
