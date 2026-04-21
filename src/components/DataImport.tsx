@@ -7,7 +7,7 @@ import { toast } from "sonner";
 import {
   Upload, FileText, ArrowRight, ArrowLeft, Check, AlertTriangle,
   Download, Loader2, Users, Building2, Briefcase, Shield, Save, Trash2,
-  History, Undo2, Database,
+  History, Undo2, Database, UserCircle2, Info,
 } from "lucide-react";
 import {
   RecordType, FIELD_MAP, BUILT_IN_TEMPLATES, MappingTemplate, NameReviewItem,
@@ -31,6 +31,9 @@ export function DataImport() {
   const [archiveOption, setArchiveOption] = useState<ArchiveOption>("none");
   const [result, setResult] = useState<ImportResult | null>(null);
   const [unmatchedJobs, setUnmatchedJobs] = useState<{ id: string; title: string }[]>([]);
+  const [unlinkedContacts, setUnlinkedContacts] = useState<{ id: string; name: string; companyName: string }[]>([]);
+  const [newClientsCreated, setNewClientsCreated] = useState(0);
+  const [contactUnlinkedAction, setContactUnlinkedAction] = useState<"create_client" | "skip" | "import_unlinked">("import_unlinked");
   const [nameReviewItems, setNameReviewItems] = useState<NameReviewItem[]>([]);
   const [importHistory, setImportHistory] = useState<any[]>([]);
   const [undoing, setUndoing] = useState(false);
@@ -120,10 +123,12 @@ export function DataImport() {
     try {
       const res = await runImportForType(
         recordType, rows, headers, mapping, duplicateAction,
-        undefined, platform || undefined, archiveOption,
+        undefined, platform || undefined, archiveOption, contactUnlinkedAction,
       );
       setResult(res);
       setUnmatchedJobs(res.unmatchedJobs);
+      setUnlinkedContacts(res.unlinkedContacts || []);
+      setNewClientsCreated(res.newClientsCreated || 0);
       setNameReviewItems(res.nameReviewItems);
 
       // Save import history
@@ -164,6 +169,8 @@ export function DataImport() {
     setMapping({});
     setResult(null);
     setUnmatchedJobs([]);
+    setUnlinkedContacts([]);
+    setNewClientsCreated(0);
     setArchiveOption("none");
   };
 
@@ -193,10 +200,11 @@ export function DataImport() {
       {/* Step 1: Select record type */}
       {step === "select" && (
         <>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
             {([
               { type: "candidates" as const, icon: Users, label: "Candidates", desc: "Name, email, skills, salary…" },
-              { type: "clients" as const, icon: Building2, label: "Clients", desc: "Company, contact, sector…" },
+              { type: "clients" as const, icon: Building2, label: "Companies", desc: "Company, contact, sector…" },
+              { type: "contacts" as const, icon: UserCircle2, label: "Contacts", desc: "People at companies…" },
               { type: "jobs" as const, icon: Briefcase, label: "Jobs", desc: "Title, salary, type, fee…" },
             ]).map(({ type, icon: Icon, label, desc }) => (
               <Card
@@ -212,9 +220,17 @@ export function DataImport() {
               </Card>
             ))}
           </div>
+          {recordType === "contacts" && (
+            <div className="flex items-start gap-2 text-xs bg-muted border border-border rounded-lg p-3">
+              <Info className="h-4 w-4 shrink-0 mt-0.5 text-primary" />
+              <span className="text-foreground">
+                <strong>Import Companies first</strong> to ensure contacts link correctly to client records. Contacts without a matching company can be auto-created or skipped.
+              </span>
+            </div>
+          )}
           <div className="flex justify-end">
             <Button onClick={() => setStep("platform")}>
-              Continue with {recordType} <ArrowRight className="h-4 w-4 ml-1" />
+              Continue with {recordType === "clients" ? "companies" : recordType} <ArrowRight className="h-4 w-4 ml-1" />
             </Button>
           </div>
         </>
@@ -420,9 +436,11 @@ export function DataImport() {
             </div>
 
             {/* Duplicate handling */}
-            {(recordType === "candidates" || recordType === "clients") && (
+            {(recordType === "candidates" || recordType === "clients" || recordType === "contacts") && (
               <div className="space-y-2 pt-2 border-t border-border">
-                <p className="text-xs font-medium">If a record with the same email already exists:</p>
+                <p className="text-xs font-medium">
+                  If a record with the same {recordType === "contacts" ? "email or name + company" : "email"} already exists:
+                </p>
                 <div className="flex gap-2">
                   <Button variant={duplicateAction === "update" ? "default" : "outline"} size="sm" onClick={() => setDuplicateAction("update")}>
                     Update existing
@@ -430,6 +448,33 @@ export function DataImport() {
                   <Button variant={duplicateAction === "skip" ? "default" : "outline"} size="sm" onClick={() => setDuplicateAction("skip")}>
                     Skip
                   </Button>
+                </div>
+              </div>
+            )}
+
+            {/* Unlinked contact handling */}
+            {recordType === "contacts" && (
+              <div className="space-y-2 pt-2 border-t border-border">
+                <p className="text-xs font-medium">If a contact's company doesn't match an existing client:</p>
+                <div className="space-y-1.5">
+                  {([
+                    { value: "create_client" as const, label: "Create new client", desc: "Auto-create the company and link the contact" },
+                    { value: "import_unlinked" as const, label: "Import anyway", desc: "Flag with amber badge until resolved" },
+                    { value: "skip" as const, label: "Skip these contacts", desc: "Only import contacts with matching companies" },
+                  ]).map(opt => (
+                    <button
+                      key={opt.value}
+                      onClick={() => setContactUnlinkedAction(opt.value)}
+                      className={`w-full text-left rounded-lg border px-3 py-2 transition-colors text-sm ${
+                        contactUnlinkedAction === opt.value
+                          ? "border-primary bg-primary/10"
+                          : "border-border hover:border-primary/50"
+                      }`}
+                    >
+                      <span className="font-medium">{opt.label}</span>
+                      <span className="text-xs text-muted-foreground ml-2">— {opt.desc}</span>
+                    </button>
+                  ))}
                 </div>
               </div>
             )}
@@ -544,12 +589,37 @@ export function DataImport() {
               </div>
             </div>
 
+            {recordType === "contacts" && (newClientsCreated > 0 || unlinkedContacts.length > 0) && (
+              <div className="rounded-lg border border-border bg-muted/30 p-3 space-y-1.5 text-sm">
+                {newClientsCreated > 0 && (
+                  <div className="flex items-center gap-2">
+                    <Building2 className="h-4 w-4 text-primary" />
+                    <span><strong>{newClientsCreated}</strong> new {newClientsCreated === 1 ? "client" : "clients"} created from unlinked contacts</span>
+                  </div>
+                )}
+                {unlinkedContacts.length > 0 && (
+                  <div className="flex items-center gap-2">
+                    <AlertTriangle className="h-4 w-4 text-primary" />
+                    <span>
+                      <strong>{unlinkedContacts.length}</strong> {unlinkedContacts.length === 1 ? "contact" : "contacts"} could not be linked to a client — flagged for review
+                    </span>
+                  </div>
+                )}
+              </div>
+            )}
+
             <PostImportChecklist
               unmatchedJobs={unmatchedJobs}
               errors={result.errors}
               nameReviewItems={nameReviewItems}
               compact
             />
+
+            {result.errors.length > 0 && (
+              <Button variant="outline" size="sm" onClick={() => dlErrors(result.errors, recordType)}>
+                <Download className="h-4 w-4 mr-1" /> Download full report
+              </Button>
+            )}
 
             <div className="flex gap-2 pt-2">
               <Button variant="outline" size="sm" onClick={reset}>Import more</Button>
