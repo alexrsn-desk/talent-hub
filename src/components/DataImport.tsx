@@ -123,10 +123,12 @@ export function DataImport() {
     try {
       const res = await runImportForType(
         recordType, rows, headers, mapping, duplicateAction,
-        undefined, platform || undefined, archiveOption,
+        undefined, platform || undefined, archiveOption, contactUnlinkedAction,
       );
       setResult(res);
       setUnmatchedJobs(res.unmatchedJobs);
+      setUnlinkedContacts(res.unlinkedContacts || []);
+      setNewClientsCreated(res.newClientsCreated || 0);
       setNameReviewItems(res.nameReviewItems);
 
       // Save import history
@@ -167,6 +169,8 @@ export function DataImport() {
     setMapping({});
     setResult(null);
     setUnmatchedJobs([]);
+    setUnlinkedContacts([]);
+    setNewClientsCreated(0);
     setArchiveOption("none");
   };
 
