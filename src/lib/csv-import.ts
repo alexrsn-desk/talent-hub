@@ -684,7 +684,7 @@ export async function runImportForType(
     }
   }
 
-  return { ...res, unmatchedJobs, importedIds };
+  return { ...res, unmatchedJobs, unlinkedContacts, newClientsCreated, importedIds };
 }
 
 // ── Import history ────────────────────────────────────────────────
