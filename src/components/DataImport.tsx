@@ -221,9 +221,9 @@ export function DataImport() {
             ))}
           </div>
           {recordType === "contacts" && (
-            <div className="flex items-start gap-2 text-xs bg-amber-500/10 border border-amber-500/30 text-amber-600 dark:text-amber-400 rounded-lg p-3">
-              <Info className="h-4 w-4 shrink-0 mt-0.5" />
-              <span>
+            <div className="flex items-start gap-2 text-xs bg-muted border border-border rounded-lg p-3">
+              <Info className="h-4 w-4 shrink-0 mt-0.5 text-primary" />
+              <span className="text-foreground">
                 <strong>Import Companies first</strong> to ensure contacts link correctly to client records. Contacts without a matching company can be auto-created or skipped.
               </span>
             </div>
