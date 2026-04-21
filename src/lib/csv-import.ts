@@ -743,6 +743,11 @@ Jane,Doe,jane@example.com,07700900001,Product Manager,Tech Ltd,Manchester,,72000
 Acme Corp,Bob,Williams,bob@acme.com,02012345678,https://linkedin.com/company/acme,Tech/Digital
 Global Inc,Sarah,Jones,sarah@global.com,02087654321,,Finance`;
   }
+  if (type === "contacts") {
+    return `First Name,Last Name,Job Title,Company Name,Email (Primary),Email (Personal),Phone (Primary),Phone (Mobile),LinkedIn URL,Location,Status
+Alice,Brown,Head of Talent,Acme Corp,alice@acme.com,alice.b@gmail.com,02012345678,07700900100,https://linkedin.com/in/alicebrown,London,Active
+David,Lee,VP Engineering,Global Inc,david@global.com,,02087654321,07700900200,,Remote,Active`;
+  }
   return `Job Title,Client Company,Location,Salary Min,Salary Max,Job Type,Status,Date Opened,Fee %
 Senior Developer,Acme Corp,London,70000,90000,Perm,Open,2025-01-15,20
 Project Manager,Global Inc,Remote,55000,65000,Contract,Open,2025-02-01,15`;
