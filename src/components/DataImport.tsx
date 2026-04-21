@@ -200,10 +200,11 @@ export function DataImport() {
       {/* Step 1: Select record type */}
       {step === "select" && (
         <>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
             {([
               { type: "candidates" as const, icon: Users, label: "Candidates", desc: "Name, email, skills, salary…" },
-              { type: "clients" as const, icon: Building2, label: "Clients", desc: "Company, contact, sector…" },
+              { type: "clients" as const, icon: Building2, label: "Companies", desc: "Company, contact, sector…" },
+              { type: "contacts" as const, icon: UserCircle2, label: "Contacts", desc: "People at companies…" },
               { type: "jobs" as const, icon: Briefcase, label: "Jobs", desc: "Title, salary, type, fee…" },
             ]).map(({ type, icon: Icon, label, desc }) => (
               <Card
@@ -219,9 +220,17 @@ export function DataImport() {
               </Card>
             ))}
           </div>
+          {recordType === "contacts" && (
+            <div className="flex items-start gap-2 text-xs bg-amber-500/10 border border-amber-500/30 text-amber-600 dark:text-amber-400 rounded-lg p-3">
+              <Info className="h-4 w-4 shrink-0 mt-0.5" />
+              <span>
+                <strong>Import Companies first</strong> to ensure contacts link correctly to client records. Contacts without a matching company can be auto-created or skipped.
+              </span>
+            </div>
+          )}
           <div className="flex justify-end">
             <Button onClick={() => setStep("platform")}>
-              Continue with {recordType} <ArrowRight className="h-4 w-4 ml-1" />
+              Continue with {recordType === "clients" ? "companies" : recordType} <ArrowRight className="h-4 w-4 ml-1" />
             </Button>
           </div>
         </>
