@@ -38,6 +38,12 @@ export function DataImport() {
   const [nameReviewItems, setNameReviewItems] = useState<NameReviewItem[]>([]);
   const [importHistory, setImportHistory] = useState<any[]>([]);
   const [undoing, setUndoing] = useState(false);
+  const [matchPreview, setMatchPreview] = useState<CompanyMatchPreview | null>(null);
+  const [matchLoading, setMatchLoading] = useState(false);
+  // Per-row company decisions, keyed by row index
+  const [companyDecisions, setCompanyDecisions] = useState<CompanyDecisions>({});
+  const [autoLinkedContacts, setAutoLinkedContacts] = useState(0);
+  const [confirmedLinkedContacts, setConfirmedLinkedContacts] = useState(0);
   const [savedTemplates, setSavedTemplates] = useState<MappingTemplate[]>(() => {
     try { return JSON.parse(localStorage.getItem("csv_import_templates") || "[]"); } catch { return []; }
   });
