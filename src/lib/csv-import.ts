@@ -116,6 +116,14 @@ export const BUILT_IN_TEMPLATES: MappingTemplate[] = [
       "email_address": "email", "mobile": "phone",
       "position_title": "job_title", "company_name": "current_employer",
       "city": "location", "linkedin_profile": "linkedin_url", "salary": "salary_current",
+      // Contacts-specific Vincere headers
+      "Email (Primary)": "email", "Primary Email": "email", "Work Email": "email",
+      "Email (Personal)": "personal_email", "Personal Email": "personal_email",
+      "Phone (Primary)": "direct_phone", "Direct Phone": "direct_phone", "Work Phone": "direct_phone",
+      "Phone (Mobile)": "mobile_phone", "Mobile Phone": "mobile_phone",
+      "Job Title": "job_title",
+      "Company Name": "_client_company", "Company": "_client_company", "Client Company": "_client_company",
+      "Owner": "_skip", "Consultant": "_skip", "Date Created": "_skip",
     },
   },
   {
