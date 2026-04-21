@@ -15,6 +15,7 @@ import {
   parseCSV, autoMapHeaders, buildRecord, runImportForType, splitFullName,
   downloadErrorReport as dlErrors, ImportResult,
   saveImportHistory, getImportHistory, undoLastImport,
+  previewContactCompanyMatches, CompanyMatchPreview, CompanyMatchRow, CompanyDecisions,
 } from "@/lib/csv-import";
 import { PostImportChecklist } from "@/components/PostImportChecklist";
 
