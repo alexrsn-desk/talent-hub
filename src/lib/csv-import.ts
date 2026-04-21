@@ -601,11 +601,14 @@ export async function runImportForType(
   platform?: string,
   archiveOption?: ArchiveOption,
   contactUnlinkedAction?: "create_client" | "skip" | "import_unlinked",
+  companyDecisions?: CompanyDecisions,
 ): Promise<ImportResult & {
   unmatchedJobs: { id: string; title: string }[];
   unlinkedContacts: { id: string; name: string; companyName: string }[];
   newClientsCreated: number;
   importedIds: string[];
+  autoLinkedContacts: number;
+  confirmedLinkedContacts: number;
 }> {
   const fields = FIELD_MAP[recordType];
   const res: ImportResult = { imported: 0, skipped: 0, updated: 0, errors: [], nameReviewItems: [] };
@@ -613,6 +616,8 @@ export async function runImportForType(
   const unlinkedContacts: { id: string; name: string; companyName: string }[] = [];
   const importedIds: string[] = [];
   let newClientsCreated = 0;
+  let autoLinkedContacts = 0;
+  let confirmedLinkedContacts = 0;
 
   const hasFullnameMapping = Object.values(mapping).includes("_fullname") || Object.values(mapping).includes("_contact_fullname");
 
