@@ -1,7 +1,7 @@
 import { supabase } from "@/integrations/supabase/client";
 
 // ── Field definitions ─────────────────────────────────────────────
-export type RecordType = "candidates" | "clients" | "jobs";
+export type RecordType = "candidates" | "clients" | "jobs" | "contacts";
 
 export interface FieldDef {
   key: string;
@@ -50,10 +50,27 @@ export const JOB_FIELDS: FieldDef[] = [
   { key: "fee_value", label: "Fee %", required: false },
 ];
 
+export const CONTACT_FIELDS: FieldDef[] = [
+  { key: "first_name", label: "First Name", required: true },
+  { key: "last_name", label: "Last Name", required: false },
+  { key: "_fullname", label: "Full Name (will split)", required: false },
+  { key: "job_title", label: "Job Title", required: false },
+  { key: "_client_company", label: "Company Name (for linking)", required: false },
+  { key: "email", label: "Email (Work)", required: false },
+  { key: "personal_email", label: "Email (Personal)", required: false },
+  { key: "direct_phone", label: "Phone (Work / Direct)", required: false },
+  { key: "mobile_phone", label: "Phone (Mobile)", required: false },
+  { key: "linkedin_url", label: "LinkedIn URL", required: false },
+  { key: "location", label: "Location / City", required: false },
+  { key: "status", label: "Status", required: false },
+  { key: "_notes", label: "Notes (import as note)", required: false },
+];
+
 export const FIELD_MAP: Record<RecordType, FieldDef[]> = {
   candidates: CANDIDATE_FIELDS,
   clients: CLIENT_FIELDS,
   jobs: JOB_FIELDS,
+  contacts: CONTACT_FIELDS,
 };
 
 // ── Platform definitions ──────────────────────────────────────────
