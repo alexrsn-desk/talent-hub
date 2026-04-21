@@ -979,6 +979,204 @@ export type Database = {
         }
         Relationships: []
       }
+      sequence_enrollments: {
+        Row: {
+          candidate_id: string | null
+          client_id: string | null
+          completed_at: string | null
+          created_at: string
+          current_step: number
+          id: string
+          job_id: string | null
+          paused_at: string | null
+          sequence_id: string
+          start_date: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          candidate_id?: string | null
+          client_id?: string | null
+          completed_at?: string | null
+          created_at?: string
+          current_step?: number
+          id?: string
+          job_id?: string | null
+          paused_at?: string | null
+          sequence_id: string
+          start_date?: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          candidate_id?: string | null
+          client_id?: string | null
+          completed_at?: string | null
+          created_at?: string
+          current_step?: number
+          id?: string
+          job_id?: string | null
+          paused_at?: string | null
+          sequence_id?: string
+          start_date?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sequence_enrollments_sequence_id_fkey"
+            columns: ["sequence_id"]
+            isOneToOne: false
+            referencedRelation: "sequences"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sequence_step_logs: {
+        Row: {
+          channel_used: string | null
+          created_at: string
+          due_date: string
+          enrollment_id: string
+          id: string
+          logged_at: string | null
+          note: string | null
+          status: string
+          step_number: number
+        }
+        Insert: {
+          channel_used?: string | null
+          created_at?: string
+          due_date: string
+          enrollment_id: string
+          id?: string
+          logged_at?: string | null
+          note?: string | null
+          status?: string
+          step_number: number
+        }
+        Update: {
+          channel_used?: string | null
+          created_at?: string
+          due_date?: string
+          enrollment_id?: string
+          id?: string
+          logged_at?: string | null
+          note?: string | null
+          status?: string
+          step_number?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sequence_step_logs_enrollment_id_fkey"
+            columns: ["enrollment_id"]
+            isOneToOne: false
+            referencedRelation: "sequence_enrollments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sequence_steps: {
+        Row: {
+          channel: string
+          created_at: string
+          day_offset: number
+          id: string
+          message_prompt: string | null
+          note: string | null
+          sequence_id: string
+          step_number: number
+        }
+        Insert: {
+          channel?: string
+          created_at?: string
+          day_offset?: number
+          id?: string
+          message_prompt?: string | null
+          note?: string | null
+          sequence_id: string
+          step_number: number
+        }
+        Update: {
+          channel?: string
+          created_at?: string
+          day_offset?: number
+          id?: string
+          message_prompt?: string | null
+          note?: string | null
+          sequence_id?: string
+          step_number?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sequence_steps_sequence_id_fkey"
+            columns: ["sequence_id"]
+            isOneToOne: false
+            referencedRelation: "sequences"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sequence_templates: {
+        Row: {
+          category: string
+          created_at: string
+          description: string | null
+          id: string
+          name: string
+          steps: Json
+        }
+        Insert: {
+          category?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          name: string
+          steps?: Json
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          name?: string
+          steps?: Json
+        }
+        Relationships: []
+      }
+      sequences: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          name: string
+          status: string
+          type: string
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          name: string
+          status?: string
+          type?: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          name?: string
+          status?: string
+          type?: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       tag_definitions: {
         Row: {
           archived: boolean
