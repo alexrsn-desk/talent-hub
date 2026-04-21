@@ -16,6 +16,7 @@ import { CandidateDetail } from "@/components/CandidateDetail";
 import { CandidateContextMenu } from "@/components/CandidateContextMenu";
 import { LogTouchpointModal } from "@/components/LogTouchpointModal";
 import { CandidateBulkActionBar } from "@/components/CandidateBulkActionBar";
+import { AddToSequencePanel } from "@/components/AddToSequencePanel";
 import { logActivity } from "@/lib/activity-log";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
@@ -663,6 +664,7 @@ export default function CandidatesPage() {
                    <RowTouchpointButton candidate={c} onOpen={handleOpenTouchpoint} />
                    <RowCallButton candidate={c} onOpenTouchpoint={handleOpenTouchpoint} />
                    <RowAddToJobButton candidate={c} />
+                   <AddToSequencePanel candidateId={c.id} candidateName={c.name} />
                    <CandidateContextMenu
                      candidate={c}
                      onViewProfile={() => { setSelectedCandidate(c); setDetailOpen(true); }}
@@ -798,6 +800,7 @@ export default function CandidatesPage() {
                        <RowTouchpointButton candidate={c} onOpen={handleOpenTouchpoint} />
                        <RowCallButton candidate={c} onOpenTouchpoint={handleOpenTouchpoint} />
                        <RowAddToJobButton candidate={c} />
+                       <AddToSequencePanel candidateId={c.id} candidateName={c.name} />
                        <CandidateContextMenu
                          candidate={c}
                          onViewProfile={() => { setSelectedCandidate(c); setDetailOpen(true); }}
