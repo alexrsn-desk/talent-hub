@@ -250,6 +250,17 @@ export function CandidateDetail({ candidate, onUpdate, onDelete }: Props) {
                   <PhoneCall className="h-3.5 w-3.5" /> Log Touchpoint
                 </Button>
               )}
+              {!isDNC && (
+                <AddToSequencePanel
+                  candidateId={candidate.id}
+                  candidateName={candidate.name}
+                  trigger={
+                    <Button size="sm" variant="outline" className="gap-1.5">
+                      <GitBranch className="h-3.5 w-3.5" /> Add to Sequence
+                    </Button>
+                  }
+                />
+              )}
               <Button variant="ghost" size="icon" onClick={onDelete}><Trash2 className="h-4 w-4 text-destructive" /></Button>
             </>
           )}
@@ -320,6 +331,7 @@ export function CandidateDetail({ candidate, onUpdate, onDelete }: Props) {
       )}
 
       <TagsSection entityType="candidate" entityId={candidate.id} />
+      <ActiveSequencesSection candidateId={candidate.id} candidateName={candidate.name} />
       <CandidateJobLinks candidateId={candidate.id} />
       <ProfileTabs entityType="candidate" entityId={candidate.id} />
       <LogTouchpointModal open={touchpointOpen} onOpenChange={setTouchpointOpen} entityType="candidate" entityId={candidate.id} entityName={candidate.name} />
