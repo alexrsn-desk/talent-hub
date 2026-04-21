@@ -209,6 +209,7 @@ const VINCERE_STATUS_MAP: Record<string, string> = {
   "active": "Active", "placed": "Placed",
   "do not contact": "Do Not Contact", "unqualified": "Not Suitable",
   "hot": "Active", "warm": "Active", "cold": "Cold",
+  "inactive": "Cold",
 };
 
 const BULLHORN_STATUS_MAP: Record<string, string> = {
