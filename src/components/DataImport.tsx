@@ -583,8 +583,14 @@ export function DataImport() {
               <Button variant="outline" size="sm" onClick={() => setStep(selectedPlatform?.autoMap ? "upload" : "mapping")}>
                 <ArrowLeft className="h-4 w-4 mr-1" /> Back
               </Button>
-              <Button size="sm" onClick={() => setStep("preview")}>
-                Preview <ArrowRight className="h-4 w-4 ml-1" />
+              <Button
+                size="sm"
+                onClick={() => {
+                  if (recordType === "contacts") goToCompanyMatch();
+                  else setStep("preview");
+                }}
+              >
+                {recordType === "contacts" ? "Match companies" : "Preview"} <ArrowRight className="h-4 w-4 ml-1" />
               </Button>
             </div>
           </CardContent>
