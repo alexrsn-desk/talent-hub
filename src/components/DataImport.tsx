@@ -891,8 +891,20 @@ export function DataImport() {
               </div>
             </div>
 
-            {recordType === "contacts" && (newClientsCreated > 0 || unlinkedContacts.length > 0) && (
+            {recordType === "contacts" && (autoLinkedContacts > 0 || confirmedLinkedContacts > 0 || newClientsCreated > 0 || unlinkedContacts.length > 0) && (
               <div className="rounded-lg border border-border bg-muted/30 p-3 space-y-1.5 text-sm">
+                {autoLinkedContacts > 0 && (
+                  <div className="flex items-center gap-2">
+                    <Check className="h-4 w-4 text-emerald-500" />
+                    <span><strong>{autoLinkedContacts}</strong> {autoLinkedContacts === 1 ? "contact" : "contacts"} auto-linked to existing clients</span>
+                  </div>
+                )}
+                {confirmedLinkedContacts > 0 && (
+                  <div className="flex items-center gap-2">
+                    <Check className="h-4 w-4 text-amber-500" />
+                    <span><strong>{confirmedLinkedContacts}</strong> {confirmedLinkedContacts === 1 ? "contact" : "contacts"} linked after confirmation</span>
+                  </div>
+                )}
                 {newClientsCreated > 0 && (
                   <div className="flex items-center gap-2">
                     <Building2 className="h-4 w-4 text-primary" />
@@ -903,7 +915,7 @@ export function DataImport() {
                   <div className="flex items-center gap-2">
                     <AlertTriangle className="h-4 w-4 text-primary" />
                     <span>
-                      <strong>{unlinkedContacts.length}</strong> {unlinkedContacts.length === 1 ? "contact" : "contacts"} could not be linked to a client — flagged for review
+                      <strong>{unlinkedContacts.length}</strong> {unlinkedContacts.length === 1 ? "contact" : "contacts"} imported but unlinked — flagged for review
                     </span>
                   </div>
                 )}
