@@ -436,9 +436,11 @@ export function DataImport() {
             </div>
 
             {/* Duplicate handling */}
-            {(recordType === "candidates" || recordType === "clients") && (
+            {(recordType === "candidates" || recordType === "clients" || recordType === "contacts") && (
               <div className="space-y-2 pt-2 border-t border-border">
-                <p className="text-xs font-medium">If a record with the same email already exists:</p>
+                <p className="text-xs font-medium">
+                  If a record with the same {recordType === "contacts" ? "email or name + company" : "email"} already exists:
+                </p>
                 <div className="flex gap-2">
                   <Button variant={duplicateAction === "update" ? "default" : "outline"} size="sm" onClick={() => setDuplicateAction("update")}>
                     Update existing
@@ -446,6 +448,33 @@ export function DataImport() {
                   <Button variant={duplicateAction === "skip" ? "default" : "outline"} size="sm" onClick={() => setDuplicateAction("skip")}>
                     Skip
                   </Button>
+                </div>
+              </div>
+            )}
+
+            {/* Unlinked contact handling */}
+            {recordType === "contacts" && (
+              <div className="space-y-2 pt-2 border-t border-border">
+                <p className="text-xs font-medium">If a contact's company doesn't match an existing client:</p>
+                <div className="space-y-1.5">
+                  {([
+                    { value: "create_client" as const, label: "Create new client", desc: "Auto-create the company and link the contact" },
+                    { value: "import_unlinked" as const, label: "Import anyway", desc: "Flag with amber badge until resolved" },
+                    { value: "skip" as const, label: "Skip these contacts", desc: "Only import contacts with matching companies" },
+                  ]).map(opt => (
+                    <button
+                      key={opt.value}
+                      onClick={() => setContactUnlinkedAction(opt.value)}
+                      className={`w-full text-left rounded-lg border px-3 py-2 transition-colors text-sm ${
+                        contactUnlinkedAction === opt.value
+                          ? "border-primary bg-primary/10"
+                          : "border-border hover:border-primary/50"
+                      }`}
+                    >
+                      <span className="font-medium">{opt.label}</span>
+                      <span className="text-xs text-muted-foreground ml-2">— {opt.desc}</span>
+                    </button>
+                  ))}
                 </div>
               </div>
             )}
