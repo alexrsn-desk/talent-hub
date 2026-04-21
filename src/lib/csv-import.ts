@@ -55,7 +55,7 @@ export const CONTACT_FIELDS: FieldDef[] = [
   { key: "last_name", label: "Last Name", required: false },
   { key: "_fullname", label: "Full Name (will split)", required: false },
   { key: "job_title", label: "Job Title", required: false },
-  { key: "_client_company", label: "Company Name (for linking)", required: false },
+  { key: "_client_company", label: "Company", required: false },
   { key: "email", label: "Email (Work)", required: false },
   { key: "personal_email", label: "Email (Personal)", required: false },
   { key: "direct_phone", label: "Phone (Work / Direct)", required: false },
