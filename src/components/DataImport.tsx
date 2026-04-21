@@ -597,6 +597,229 @@ export function DataImport() {
         </Card>
       )}
 
+      {/* Step 5b: Company match preview (contacts only) */}
+      {step === "company-match" && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base flex items-center gap-2">
+              <Building2 className="h-4 w-4 text-primary" /> Match contacts to companies
+            </CardTitle>
+            <CardDescription>
+              {matchLoading || !matchPreview
+                ? "Analysing companies…"
+                : (() => {
+                    const total = matchPreview.totalRows - matchPreview.rowsWithoutCompany;
+                    return `We matched ${matchPreview.autoMatched.length} of ${total} companies automatically`;
+                  })()}
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {matchLoading || !matchPreview ? (
+              <div className="flex items-center gap-2 text-sm text-muted-foreground py-6">
+                <Loader2 className="h-4 w-4 animate-spin" /> Comparing CSV companies against existing clients…
+              </div>
+            ) : (
+              <>
+                {/* Bulk actions */}
+                <div className="flex flex-wrap gap-2">
+                  {matchPreview.suggested.length > 0 && (
+                    <Button variant="outline" size="sm" onClick={confirmAllSuggested}>
+                      <Check className="h-3.5 w-3.5 mr-1" /> Confirm all suggested ({matchPreview.suggested.filter(r => r.tier === "suggested").length})
+                    </Button>
+                  )}
+                  {matchPreview.unmatched.length > 0 && (
+                    <>
+                      <Button variant="outline" size="sm" onClick={createAllUnmatched}>
+                        <Building2 className="h-3.5 w-3.5 mr-1" /> Create all unmatched as new clients
+                      </Button>
+                      <Button variant="outline" size="sm" onClick={skipAllUnmatched}>
+                        Skip all unmatched
+                      </Button>
+                    </>
+                  )}
+                </div>
+
+                {/* AUTO-MATCHED */}
+                {matchPreview.autoMatched.length > 0 && (
+                  <div className="rounded-lg border border-emerald-500/30 bg-emerald-500/5">
+                    <div className="px-3 py-2 border-b border-emerald-500/20 flex items-center gap-2 text-sm">
+                      <Check className="h-4 w-4 text-emerald-500" />
+                      <span className="font-medium text-emerald-500">Auto-matched</span>
+                      <span className="text-xs text-muted-foreground">— {matchPreview.autoMatched.length} will link automatically</span>
+                    </div>
+                    <div className="max-h-44 overflow-y-auto divide-y divide-border/40">
+                      {matchPreview.autoMatched.slice(0, 20).map(r => (
+                        <div key={r.rowIndex} className="px-3 py-1.5 text-xs flex items-center gap-2">
+                          <span className="text-muted-foreground truncate flex-1">{r.contactName || "(no name)"}</span>
+                          <span className="font-mono truncate">{r.csvCompany}</span>
+                          <ArrowRight className="h-3 w-3 text-muted-foreground" />
+                          <span className="text-emerald-500 font-medium truncate">{r.exactClient?.company_name}</span>
+                        </div>
+                      ))}
+                      {matchPreview.autoMatched.length > 20 && (
+                        <div className="px-3 py-1.5 text-xs text-muted-foreground">…and {matchPreview.autoMatched.length - 20} more</div>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {/* SUGGESTED */}
+                {matchPreview.suggested.length > 0 && (
+                  <div className="rounded-lg border border-amber-500/30 bg-amber-500/5">
+                    <div className="px-3 py-2 border-b border-amber-500/20 flex items-center gap-2 text-sm">
+                      <AlertTriangle className="h-4 w-4 text-amber-500" />
+                      <span className="font-medium text-amber-500">Suggested matches</span>
+                      <span className="text-xs text-muted-foreground">— need confirmation</span>
+                    </div>
+                    <div className="max-h-72 overflow-y-auto divide-y divide-border/40">
+                      {matchPreview.suggested.map(r => {
+                        const decision = companyDecisions[r.rowIndex];
+                        return (
+                          <div key={r.rowIndex} className="px-3 py-2 text-xs space-y-1.5">
+                            <div className="flex items-center gap-2">
+                              <span className="text-muted-foreground truncate flex-1">{r.contactName || "(no name)"}</span>
+                              <span className="font-mono truncate">{r.csvCompany}</span>
+                            </div>
+                            {r.tier === "suggested" && r.suggestion && (
+                              <div className="flex items-center gap-1.5 flex-wrap">
+                                <span className="text-muted-foreground">→ Suggested:</span>
+                                <span className="font-medium">{r.suggestion.company_name}?</span>
+                                <Button
+                                  size="sm"
+                                  variant={decision?.kind === "link" && decision.clientId === r.suggestion.id ? "default" : "outline"}
+                                  className="h-6 px-2 text-[11px]"
+                                  onClick={() => setRowDecision(r.rowIndex, { kind: "link", clientId: r.suggestion!.id })}
+                                >
+                                  ✓ Confirm
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant={decision?.kind === "create_new" ? "default" : "outline"}
+                                  className="h-6 px-2 text-[11px]"
+                                  onClick={() => setRowDecision(r.rowIndex, { kind: "create_new" })}
+                                >
+                                  Create new
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant={decision?.kind === "skip" ? "default" : "outline"}
+                                  className="h-6 px-2 text-[11px]"
+                                  onClick={() => setRowDecision(r.rowIndex, { kind: "skip" })}
+                                >
+                                  ✗ Skip
+                                </Button>
+                              </div>
+                            )}
+                            {r.tier === "ambiguous" && r.candidates && (
+                              <div className="flex items-center gap-1.5 flex-wrap">
+                                <span className="text-muted-foreground">Which is it?</span>
+                                {r.candidates.map(c => (
+                                  <Button
+                                    key={c.id}
+                                    size="sm"
+                                    variant={decision?.kind === "link" && decision.clientId === c.id ? "default" : "outline"}
+                                    className="h-6 px-2 text-[11px]"
+                                    onClick={() => setRowDecision(r.rowIndex, { kind: "link", clientId: c.id })}
+                                  >
+                                    {c.company_name}
+                                  </Button>
+                                ))}
+                                <Button
+                                  size="sm"
+                                  variant={decision?.kind === "create_new" ? "default" : "outline"}
+                                  className="h-6 px-2 text-[11px]"
+                                  onClick={() => setRowDecision(r.rowIndex, { kind: "create_new" })}
+                                >
+                                  + Create new
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant={decision?.kind === "skip" ? "default" : "outline"}
+                                  className="h-6 px-2 text-[11px]"
+                                  onClick={() => setRowDecision(r.rowIndex, { kind: "skip" })}
+                                >
+                                  Skip
+                                </Button>
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
+                {/* UNMATCHED */}
+                {matchPreview.unmatched.length > 0 && (
+                  <div className="rounded-lg border border-destructive/30 bg-destructive/5">
+                    <div className="px-3 py-2 border-b border-destructive/20 flex items-center gap-2 text-sm">
+                      <AlertTriangle className="h-4 w-4 text-destructive" />
+                      <span className="font-medium text-destructive">No match found</span>
+                      <span className="text-xs text-muted-foreground">— need action</span>
+                    </div>
+                    <div className="max-h-72 overflow-y-auto divide-y divide-border/40">
+                      {matchPreview.unmatched.map(r => {
+                        const decision = companyDecisions[r.rowIndex];
+                        return (
+                          <div key={r.rowIndex} className="px-3 py-2 text-xs space-y-1.5">
+                            <div className="flex items-center gap-2">
+                              <span className="text-muted-foreground truncate flex-1">{r.contactName || "(no name)"}</span>
+                              <span className="font-mono truncate">{r.csvCompany}</span>
+                              <span className="text-destructive">No match</span>
+                            </div>
+                            <div className="flex items-center gap-1.5 flex-wrap">
+                              <Button
+                                size="sm"
+                                variant={decision?.kind === "create_new" ? "default" : "outline"}
+                                className="h-6 px-2 text-[11px]"
+                                onClick={() => setRowDecision(r.rowIndex, { kind: "create_new" })}
+                              >
+                                + Create new client
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant={decision?.kind === "skip" ? "default" : "outline"}
+                                className="h-6 px-2 text-[11px]"
+                                onClick={() => setRowDecision(r.rowIndex, { kind: "skip" })}
+                              >
+                                Skip contact
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant={decision?.kind === "leave_unlinked" ? "default" : "outline"}
+                                className="h-6 px-2 text-[11px]"
+                                onClick={() => setRowDecision(r.rowIndex, { kind: "leave_unlinked" })}
+                              >
+                                Import unlinked
+                              </Button>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
+                {matchPreview.rowsWithoutCompany > 0 && (
+                  <div className="text-xs text-muted-foreground">
+                    {matchPreview.rowsWithoutCompany} row{matchPreview.rowsWithoutCompany === 1 ? "" : "s"} have no company name and will be skipped.
+                  </div>
+                )}
+
+                <div className="flex gap-2 pt-2">
+                  <Button variant="outline" size="sm" onClick={() => setStep("options")}>
+                    <ArrowLeft className="h-4 w-4 mr-1" /> Back
+                  </Button>
+                  <Button size="sm" onClick={() => setStep("preview")} disabled={!allRowsResolved()}>
+                    {allRowsResolved() ? "Continue to preview" : "Resolve all rows to continue"} <ArrowRight className="h-4 w-4 ml-1" />
+                  </Button>
+                </div>
+              </>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
       {/* Step 6: Preview */}
       {step === "preview" && (
         <Card>
