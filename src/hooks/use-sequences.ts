@@ -151,6 +151,101 @@ export function useDeleteSequence() {
   });
 }
 
+export type CandidateEnrollment = {
+  id: string;
+  sequence_id: string;
+  candidate_id: string | null;
+  job_id: string | null;
+  start_date: string;
+  status: string;
+  current_step: number;
+  paused_at: string | null;
+  completed_at: string | null;
+  created_at: string;
+  sequences: {
+    id: string;
+    name: string;
+    type: string;
+  } | null;
+  total_steps?: number;
+};
+
+export function useCandidateEnrollments(candidateId: string | null) {
+  return useQuery({
+    queryKey: ["candidate_enrollments", candidateId],
+    enabled: !!candidateId,
+    queryFn: async (): Promise<CandidateEnrollment[]> => {
+      const { data, error } = await supabase
+        .from("sequence_enrollments")
+        .select("*, sequences(id,name,type)")
+        .eq("candidate_id", candidateId!)
+        .order("created_at", { ascending: false });
+      if (error) throw error;
+
+      const enrollments = (data ?? []) as any[];
+      // Fetch step counts per sequence
+      const seqIds = Array.from(new Set(enrollments.map((e) => e.sequence_id)));
+      if (seqIds.length === 0) return [];
+      const { data: stepCounts } = await supabase
+        .from("sequence_steps")
+        .select("sequence_id")
+        .in("sequence_id", seqIds);
+      const counts = new Map<string, number>();
+      (stepCounts ?? []).forEach((s: any) => {
+        counts.set(s.sequence_id, (counts.get(s.sequence_id) ?? 0) + 1);
+      });
+      return enrollments.map((e) => ({ ...e, total_steps: counts.get(e.sequence_id) ?? 0 }));
+    },
+  });
+}
+
+export function useSequenceEnrollmentCounts() {
+  return useQuery({
+    queryKey: ["sequence_enrollment_counts"],
+    queryFn: async (): Promise<Record<string, number>> => {
+      const { data, error } = await supabase
+        .from("sequence_enrollments")
+        .select("sequence_id")
+        .eq("status", "active");
+      if (error) throw error;
+      const counts: Record<string, number> = {};
+      (data ?? []).forEach((e: any) => {
+        counts[e.sequence_id] = (counts[e.sequence_id] ?? 0) + 1;
+      });
+      return counts;
+    },
+  });
+}
+
+export function useSequenceStepCounts() {
+  return useQuery({
+    queryKey: ["sequence_step_counts"],
+    queryFn: async (): Promise<Record<string, number>> => {
+      const { data, error } = await supabase.from("sequence_steps").select("sequence_id");
+      if (error) throw error;
+      const counts: Record<string, number> = {};
+      (data ?? []).forEach((s: any) => {
+        counts[s.sequence_id] = (counts[s.sequence_id] ?? 0) + 1;
+      });
+      return counts;
+    },
+  });
+}
+
+export function useRemoveEnrollment() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (enrollmentId: string) => {
+      const { error } = await supabase.from("sequence_enrollments").delete().eq("id", enrollmentId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["candidate_enrollments"] });
+      qc.invalidateQueries({ queryKey: ["sequence_enrollment_counts"] });
+    },
+  });
+}
+
 export function useEnrollCandidate() {
   const qc = useQueryClient();
   return useMutation({
@@ -202,6 +297,8 @@ export function useEnrollCandidate() {
     },
     onSuccess: (_, vars) => {
       qc.invalidateQueries({ queryKey: ["sequence_enrollments", vars.sequence_id] });
+      qc.invalidateQueries({ queryKey: ["candidate_enrollments", vars.candidate_id] });
+      qc.invalidateQueries({ queryKey: ["sequence_enrollment_counts"] });
     },
   });
 }
