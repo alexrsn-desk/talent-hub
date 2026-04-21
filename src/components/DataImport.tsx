@@ -589,12 +589,37 @@ export function DataImport() {
               </div>
             </div>
 
+            {recordType === "contacts" && (newClientsCreated > 0 || unlinkedContacts.length > 0) && (
+              <div className="rounded-lg border border-border bg-muted/30 p-3 space-y-1.5 text-sm">
+                {newClientsCreated > 0 && (
+                  <div className="flex items-center gap-2">
+                    <Building2 className="h-4 w-4 text-primary" />
+                    <span><strong>{newClientsCreated}</strong> new {newClientsCreated === 1 ? "client" : "clients"} created from unlinked contacts</span>
+                  </div>
+                )}
+                {unlinkedContacts.length > 0 && (
+                  <div className="flex items-center gap-2">
+                    <AlertTriangle className="h-4 w-4 text-primary" />
+                    <span>
+                      <strong>{unlinkedContacts.length}</strong> {unlinkedContacts.length === 1 ? "contact" : "contacts"} could not be linked to a client — flagged for review
+                    </span>
+                  </div>
+                )}
+              </div>
+            )}
+
             <PostImportChecklist
               unmatchedJobs={unmatchedJobs}
               errors={result.errors}
               nameReviewItems={nameReviewItems}
               compact
             />
+
+            {result.errors.length > 0 && (
+              <Button variant="outline" size="sm" onClick={() => dlErrors(result.errors, recordType)}>
+                <Download className="h-4 w-4 mr-1" /> Download full report
+              </Button>
+            )}
 
             <div className="flex gap-2 pt-2">
               <Button variant="outline" size="sm" onClick={reset}>Import more</Button>
