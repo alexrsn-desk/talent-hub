@@ -476,22 +476,49 @@ export async function runImportForType(
   onProgress?: (current: number, total: number) => void,
   platform?: string,
   archiveOption?: ArchiveOption,
-): Promise<ImportResult & { unmatchedJobs: { id: string; title: string }[]; importedIds: string[] }> {
+  contactUnlinkedAction?: "create_client" | "skip" | "import_unlinked",
+): Promise<ImportResult & {
+  unmatchedJobs: { id: string; title: string }[];
+  unlinkedContacts: { id: string; name: string; companyName: string }[];
+  newClientsCreated: number;
+  importedIds: string[];
+}> {
   const fields = FIELD_MAP[recordType];
   const res: ImportResult = { imported: 0, skipped: 0, updated: 0, errors: [], nameReviewItems: [] };
   const unmatchedJobs: { id: string; title: string }[] = [];
+  const unlinkedContacts: { id: string; name: string; companyName: string }[] = [];
   const importedIds: string[] = [];
+  let newClientsCreated = 0;
 
   const hasFullnameMapping = Object.values(mapping).includes("_fullname") || Object.values(mapping).includes("_contact_fullname");
 
   let existingEmails: Record<string, string> = {};
-  if ((recordType === "candidates" || recordType === "clients") && Object.values(mapping).includes("email")) {
-    const { data } = await supabase.from(recordType).select("id, email");
+  if ((recordType === "candidates" || recordType === "clients" || recordType === "contacts") && Object.values(mapping).includes("email")) {
+    const { data } = await supabase.from(recordType as any).select("id, email");
     (data || []).forEach((c: any) => { if (c.email) existingEmails[c.email.toLowerCase()] = c.id; });
   }
 
+  // For contacts: also check personal_email for dedup
+  let existingPersonalEmails: Record<string, string> = {};
+  if (recordType === "contacts") {
+    const { data } = await supabase.from("contacts").select("id, personal_email");
+    (data || []).forEach((c: any) => { if (c.personal_email) existingPersonalEmails[c.personal_email.toLowerCase()] = c.id; });
+  }
+
+  // For contacts: also need name+company combination dedup
+  let existingNameCompany: Record<string, string> = {};
+  if (recordType === "contacts") {
+    const { data } = await supabase.from("contacts").select("id, name, client_id");
+    (data || []).forEach((c: any) => {
+      if (c.name) {
+        const key = `${c.name.toLowerCase().trim()}|${c.client_id || ""}`;
+        existingNameCompany[key] = c.id;
+      }
+    });
+  }
+
   let clientLookup: Record<string, string> = {};
-  if (recordType === "jobs") {
+  if (recordType === "jobs" || recordType === "contacts") {
     const { data } = await supabase.from("clients").select("id, company_name");
     (data || []).forEach(c => { clientLookup[c.company_name.toLowerCase()] = c.id; });
   }
@@ -537,16 +564,83 @@ export async function runImportForType(
       }
     }
 
+    // Resolve client linking for contacts
+    let companyName = "";
+    let unlinked = false;
+    if (recordType === "contacts") {
+      const clientHeader = Object.entries(mapping).find(([, v]) => v === "_client_company")?.[0];
+      if (clientHeader) {
+        const clientIdx = headers.indexOf(clientHeader);
+        companyName = clientIdx >= 0 ? (row[clientIdx]?.trim() || "") : "";
+        const lcCompany = companyName.toLowerCase();
+        if (lcCompany && clientLookup[lcCompany]) {
+          record.client_id = clientLookup[lcCompany];
+        } else if (companyName) {
+          // Need to handle unlinked contact
+          if (contactUnlinkedAction === "skip") {
+            res.skipped++;
+            res.errors.push({ row: i + 2, reason: `No matching client for "${companyName}" — skipped`, data: record });
+            continue;
+          } else if (contactUnlinkedAction === "create_client") {
+            const { data: newClient, error: ccErr } = await supabase
+              .from("clients")
+              .insert({ company_name: companyName, status: "Target" } as any)
+              .select("id")
+              .single();
+            if (!ccErr && newClient) {
+              record.client_id = newClient.id;
+              clientLookup[lcCompany] = newClient.id;
+              newClientsCreated++;
+            } else {
+              unlinked = true;
+            }
+          } else {
+            // import_unlinked (default) — flag but still create
+            unlinked = true;
+          }
+        }
+      }
+      // Contacts table requires client_id (NOT NULL). If still none, skip with clear error.
+      if (!record.client_id) {
+        res.skipped++;
+        res.errors.push({
+          row: i + 2,
+          reason: companyName
+            ? `Could not link to client "${companyName}" — choose 'Create new clients' to import these`
+            : "No company name provided — contacts must link to a client",
+          data: record,
+        });
+        continue;
+      }
+    }
+
     const email = record.email?.toLowerCase();
+    const personalEmail = recordType === "contacts" ? record.personal_email?.toLowerCase() : null;
+
+    // Duplicate detection
+    let dupId: string | null = null;
+    let dupReason = "Duplicate email";
     if (email && existingEmails[email]) {
+      dupId = existingEmails[email];
+    } else if (personalEmail && existingPersonalEmails[personalEmail]) {
+      dupId = existingPersonalEmails[personalEmail];
+      dupReason = "Duplicate personal email";
+    } else if (recordType === "contacts" && record.name && record.client_id) {
+      const key = `${record.name.toLowerCase().trim()}|${record.client_id}`;
+      if (existingNameCompany[key]) {
+        dupId = existingNameCompany[key];
+        dupReason = "Duplicate name + company";
+      }
+    }
+
+    if (dupId) {
       if (duplicateAction === "skip") {
         res.skipped++;
-        res.errors.push({ row: i + 2, reason: "Duplicate email — skipped", data: record });
+        res.errors.push({ row: i + 2, reason: `${dupReason} — skipped`, data: record });
         continue;
       } else {
-        const id = existingEmails[email];
-        const { email: _, ...updateData } = record;
-        const { error } = await supabase.from(recordType as any).update(updateData as any).eq("id", id);
+        const { email: _e, personal_email: _pe, ...updateData } = record;
+        const { error } = await supabase.from(recordType as any).update(updateData as any).eq("id", dupId);
         if (error) { res.errors.push({ row: i + 2, reason: error.message, data: record }); res.skipped++; }
         else { res.updated++; }
         continue;
@@ -568,18 +662,24 @@ export async function runImportForType(
       res.imported++;
       importedIds.push(inserted.id);
       if (email) existingEmails[email] = inserted.id;
+      if (personalEmail) existingPersonalEmails[personalEmail] = inserted.id;
       if (recordType === "jobs" && !record.client_id && inserted) {
         unmatchedJobs.push({ id: inserted.id, title: record.title });
       }
+      if (recordType === "contacts" && unlinked && inserted) {
+        unlinkedContacts.push({ id: inserted.id, name: record.name || "(unnamed)", companyName });
+      }
 
       // Insert notes if present
-      if (notesContent && recordType === "candidates") {
-        await supabase.from("notes").insert({
-          candidate_id: inserted.id,
+      if (notesContent && (recordType === "candidates" || recordType === "contacts")) {
+        const noteRow: any = {
           content: notesContent,
           activity_type: "Note",
           outcome: `Imported from ${platformLabel}`,
-        });
+        };
+        if (recordType === "candidates") noteRow.candidate_id = inserted.id;
+        else if (recordType === "contacts") noteRow.client_id = record.client_id;
+        await supabase.from("notes").insert(noteRow);
       }
     }
   }
