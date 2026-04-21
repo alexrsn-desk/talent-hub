@@ -32,15 +32,16 @@ interface TypeResults {
   candidates?: ImportResult & { unmatchedJobs: { id: string; title: string }[] };
   clients?: ImportResult & { unmatchedJobs: { id: string; title: string }[] };
   jobs?: ImportResult & { unmatchedJobs: { id: string; title: string }[] };
+  contacts?: ImportResult & { unmatchedJobs: { id: string; title: string }[] };
 }
 
 export function OnboardingImport({ onComplete }: { onComplete: () => void }) {
   const [step, setStep] = useState<Step>("choice");
   const [enabledTypes, setEnabledTypes] = useState<Record<RecordType, boolean>>({
-    candidates: true, clients: true, jobs: true,
+    candidates: true, clients: true, jobs: true, contacts: false,
   });
   const [files, setFiles] = useState<Record<RecordType, FileData | null>>({
-    candidates: null, clients: null, jobs: null,
+    candidates: null, clients: null, jobs: null, contacts: null,
   });
   const [activeType, setActiveType] = useState<RecordType>("candidates");
   const [results, setResults] = useState<TypeResults>({});
