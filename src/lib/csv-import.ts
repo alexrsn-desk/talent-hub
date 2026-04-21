@@ -55,7 +55,7 @@ export const CONTACT_FIELDS: FieldDef[] = [
   { key: "last_name", label: "Last Name", required: false },
   { key: "_fullname", label: "Full Name (will split)", required: false },
   { key: "job_title", label: "Job Title", required: false },
-  { key: "_client_company", label: "Company Name (for linking)", required: false },
+  { key: "_client_company", label: "Company", required: false },
   { key: "email", label: "Email (Work)", required: false },
   { key: "personal_email", label: "Email (Personal)", required: false },
   { key: "direct_phone", label: "Phone (Work / Direct)", required: false },
@@ -466,6 +466,130 @@ export interface ImportResult {
 // ── Archive option type ───────────────────────────────────────────
 export type ArchiveOption = "none" | "old_12m" | "cold_not_suitable";
 
+// ── Company fuzzy matching ────────────────────────────────────────
+export interface ExistingClientLite { id: string; company_name: string; }
+
+export type CompanyMatchTier = "exact" | "suggested" | "ambiguous" | "none";
+
+export interface CompanyMatchRow {
+  rowIndex: number;
+  csvCompany: string;
+  contactName: string;
+  tier: CompanyMatchTier;
+  exactClient?: ExistingClientLite;
+  suggestion?: ExistingClientLite & { score: number };
+  candidates?: (ExistingClientLite & { score: number })[];
+}
+
+export interface CompanyMatchPreview {
+  autoMatched: CompanyMatchRow[];
+  suggested: CompanyMatchRow[];
+  unmatched: CompanyMatchRow[];
+  rowsWithoutCompany: number;
+  totalRows: number;
+}
+
+export type CompanyDecisionAction =
+  | { kind: "link"; clientId: string }
+  | { kind: "create_new" }
+  | { kind: "skip" }
+  | { kind: "leave_unlinked" };
+
+export type CompanyDecisions = Record<number, CompanyDecisionAction>;
+
+function normaliseCompany(s: string): string {
+  return s
+    .toLowerCase()
+    .replace(/[.,'`"()&+]/g, " ")
+    .replace(/\b(ltd|limited|inc|incorporated|llc|llp|plc|gmbh|sa|sas|srl|bv|nv|co|company|corp|corporation|group|holdings|the)\b/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function similarityScore(a: string, b: string): number {
+  const na = normaliseCompany(a);
+  const nb = normaliseCompany(b);
+  if (!na || !nb) return 0;
+  if (na === nb) return 1;
+  const ta = new Set(na.split(" ").filter(Boolean));
+  const tb = new Set(nb.split(" ").filter(Boolean));
+  if (ta.size === 0 || tb.size === 0) return 0;
+  let overlap = 0;
+  ta.forEach(t => { if (tb.has(t)) overlap++; });
+  const union = new Set([...ta, ...tb]).size;
+  const jaccard = overlap / union;
+  const prefix = na.startsWith(nb) || nb.startsWith(na) ? 0.15 : 0;
+  return Math.min(1, jaccard + prefix);
+}
+
+export async function previewContactCompanyMatches(
+  rows: string[][],
+  headers: string[],
+  mapping: Record<string, string>,
+): Promise<CompanyMatchPreview> {
+  const { data } = await supabase.from("clients").select("id, company_name");
+  const clients: ExistingClientLite[] = (data || []).map((c: any) => ({ id: c.id, company_name: c.company_name }));
+  const byLower: Record<string, ExistingClientLite> = {};
+  const byNormalised: Record<string, ExistingClientLite> = {};
+  clients.forEach(c => {
+    byLower[c.company_name.toLowerCase().trim()] = c;
+    const norm = normaliseCompany(c.company_name);
+    if (norm) byNormalised[norm] = c;
+  });
+
+  const clientHeader = Object.entries(mapping).find(([, v]) => v === "_client_company")?.[0];
+  const clientIdx = clientHeader ? headers.indexOf(clientHeader) : -1;
+  const fnHeader = Object.entries(mapping).find(([, v]) => v === "first_name")?.[0];
+  const lnHeader = Object.entries(mapping).find(([, v]) => v === "last_name")?.[0];
+  const fullHeader = Object.entries(mapping).find(([, v]) => v === "_fullname")?.[0];
+  const fnIdx = fnHeader ? headers.indexOf(fnHeader) : -1;
+  const lnIdx = lnHeader ? headers.indexOf(lnHeader) : -1;
+  const fullIdx = fullHeader ? headers.indexOf(fullHeader) : -1;
+
+  const autoMatched: CompanyMatchRow[] = [];
+  const suggested: CompanyMatchRow[] = [];
+  const unmatched: CompanyMatchRow[] = [];
+  let rowsWithoutCompany = 0;
+
+  for (let i = 0; i < rows.length; i++) {
+    const row = rows[i];
+    const csvCompany = clientIdx >= 0 ? (row[clientIdx]?.trim() || "") : "";
+    const parts: string[] = [];
+    if (fnIdx >= 0 && row[fnIdx]?.trim()) parts.push(row[fnIdx].trim());
+    if (lnIdx >= 0 && row[lnIdx]?.trim()) parts.push(row[lnIdx].trim());
+    let contactName = parts.join(" ");
+    if (!contactName && fullIdx >= 0 && row[fullIdx]?.trim()) contactName = row[fullIdx].trim();
+
+    if (!csvCompany) { rowsWithoutCompany++; continue; }
+
+    const lcCompany = csvCompany.toLowerCase().trim();
+    if (byLower[lcCompany]) {
+      autoMatched.push({ rowIndex: i, csvCompany, contactName, tier: "exact", exactClient: byLower[lcCompany] });
+      continue;
+    }
+    const norm = normaliseCompany(csvCompany);
+    if (norm && byNormalised[norm]) {
+      autoMatched.push({ rowIndex: i, csvCompany, contactName, tier: "exact", exactClient: byNormalised[norm] });
+      continue;
+    }
+
+    const scored = clients
+      .map(c => ({ ...c, score: similarityScore(csvCompany, c.company_name) }))
+      .filter(s => s.score >= 0.5)
+      .sort((a, b) => b.score - a.score);
+
+    if (scored.length === 0) {
+      unmatched.push({ rowIndex: i, csvCompany, contactName, tier: "none" });
+    } else if (scored[0].score >= 0.8 && (scored.length === 1 || scored[0].score - scored[1].score >= 0.2)) {
+      suggested.push({ rowIndex: i, csvCompany, contactName, tier: "suggested", suggestion: scored[0] });
+    } else {
+      suggested.push({ rowIndex: i, csvCompany, contactName, tier: "ambiguous", candidates: scored.slice(0, 4) });
+    }
+  }
+
+  return { autoMatched, suggested, unmatched, rowsWithoutCompany, totalRows: rows.length };
+}
+
 // ── Run import for a single record type ───────────────────────────
 export async function runImportForType(
   recordType: RecordType,
@@ -477,11 +601,14 @@ export async function runImportForType(
   platform?: string,
   archiveOption?: ArchiveOption,
   contactUnlinkedAction?: "create_client" | "skip" | "import_unlinked",
+  companyDecisions?: CompanyDecisions,
 ): Promise<ImportResult & {
   unmatchedJobs: { id: string; title: string }[];
   unlinkedContacts: { id: string; name: string; companyName: string }[];
   newClientsCreated: number;
   importedIds: string[];
+  autoLinkedContacts: number;
+  confirmedLinkedContacts: number;
 }> {
   const fields = FIELD_MAP[recordType];
   const res: ImportResult = { imported: 0, skipped: 0, updated: 0, errors: [], nameReviewItems: [] };
@@ -489,6 +616,8 @@ export async function runImportForType(
   const unlinkedContacts: { id: string; name: string; companyName: string }[] = [];
   const importedIds: string[] = [];
   let newClientsCreated = 0;
+  let autoLinkedContacts = 0;
+  let confirmedLinkedContacts = 0;
 
   const hasFullnameMapping = Object.values(mapping).includes("_fullname") || Object.values(mapping).includes("_contact_fullname");
 
@@ -573,10 +702,50 @@ export async function runImportForType(
         const clientIdx = headers.indexOf(clientHeader);
         companyName = clientIdx >= 0 ? (row[clientIdx]?.trim() || "") : "";
         const lcCompany = companyName.toLowerCase();
-        if (lcCompany && clientLookup[lcCompany]) {
+
+        // 1. Check explicit per-row decision from preview screen
+        const decision = companyDecisions?.[i];
+        if (decision) {
+          if (decision.kind === "skip") {
+            res.skipped++;
+            res.errors.push({ row: i + 2, reason: `Skipped — no client match for "${companyName}"`, data: record });
+            continue;
+          }
+          if (decision.kind === "link") {
+            record.client_id = decision.clientId;
+            // If exact match by lowercase => auto-linked, otherwise => confirmed
+            if (lcCompany && clientLookup[lcCompany] === decision.clientId) {
+              autoLinkedContacts++;
+            } else {
+              confirmedLinkedContacts++;
+            }
+          } else if (decision.kind === "create_new") {
+            // Re-use already-created client if same company appeared earlier in this run
+            if (lcCompany && clientLookup[lcCompany]) {
+              record.client_id = clientLookup[lcCompany];
+            } else {
+              const { data: newClient, error: ccErr } = await supabase
+                .from("clients")
+                .insert({ company_name: companyName, status: "Target" } as any)
+                .select("id")
+                .single();
+              if (!ccErr && newClient) {
+                record.client_id = newClient.id;
+                if (lcCompany) clientLookup[lcCompany] = newClient.id;
+                newClientsCreated++;
+              } else {
+                unlinked = true;
+              }
+            }
+          } else if (decision.kind === "leave_unlinked") {
+            unlinked = true;
+          }
+        } else if (lcCompany && clientLookup[lcCompany]) {
+          // 2. Fall back to direct exact match (no decision provided)
           record.client_id = clientLookup[lcCompany];
+          autoLinkedContacts++;
         } else if (companyName) {
-          // Need to handle unlinked contact
+          // 3. Legacy bulk action fallback
           if (contactUnlinkedAction === "skip") {
             res.skipped++;
             res.errors.push({ row: i + 2, reason: `No matching client for "${companyName}" — skipped`, data: record });
@@ -595,7 +764,6 @@ export async function runImportForType(
               unlinked = true;
             }
           } else {
-            // import_unlinked (default) — flag but still create
             unlinked = true;
           }
         }
@@ -684,7 +852,7 @@ export async function runImportForType(
     }
   }
 
-  return { ...res, unmatchedJobs, unlinkedContacts, newClientsCreated, importedIds };
+  return { ...res, unmatchedJobs, unlinkedContacts, newClientsCreated, importedIds, autoLinkedContacts, confirmedLinkedContacts };
 }
 
 // ── Import history ────────────────────────────────────────────────
