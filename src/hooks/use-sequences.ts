@@ -297,6 +297,8 @@ export function useEnrollCandidate() {
     },
     onSuccess: (_, vars) => {
       qc.invalidateQueries({ queryKey: ["sequence_enrollments", vars.sequence_id] });
+      qc.invalidateQueries({ queryKey: ["candidate_enrollments", vars.candidate_id] });
+      qc.invalidateQueries({ queryKey: ["sequence_enrollment_counts"] });
     },
   });
 }
