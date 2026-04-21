@@ -856,7 +856,7 @@ export function DataImport() {
               </table>
             </div>
             <div className="flex gap-2">
-              <Button variant="outline" size="sm" onClick={() => setStep("options")}><ArrowLeft className="h-4 w-4 mr-1" /> Adjust</Button>
+              <Button variant="outline" size="sm" onClick={() => setStep(recordType === "contacts" ? "company-match" : "options")}><ArrowLeft className="h-4 w-4 mr-1" /> {recordType === "contacts" ? "Back to matching" : "Adjust"}</Button>
               <Button size="sm" onClick={runImport}>Import {rows.length} {recordType} <Check className="h-4 w-4 ml-1" /></Button>
             </div>
           </CardContent>
