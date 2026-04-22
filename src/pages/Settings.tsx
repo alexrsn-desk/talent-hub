@@ -7,11 +7,13 @@ import { Slider } from "@/components/ui/slider";
 import { toast } from "sonner";
 import { Save, Loader2, Upload, Palette, Lightbulb } from "lucide-react";
 import { DataImport } from "@/components/DataImport";
+import { TidyUp } from "@/components/TidyUp";
 import { MigrationAssistant } from "@/components/MigrationAssistant";
 import { useSignalPerformance } from "@/hooks/use-signals";
 import { TagManagement } from "@/components/TagManagement";
 import { MyPlanSection } from "@/components/MyPlanSection";
 import { ScreeningTemplateSettings } from "@/components/ScreeningTemplateSettings";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 const NICHES = [
   "Tech/Digital", "Sales/Commercial", "Finance", "Legal",
@@ -295,7 +297,18 @@ export default function SettingsPage() {
       </div>
       {/* Data Import */}
       <div className="pt-6 border-t border-border">
-        <DataImport />
+        <Tabs defaultValue="import">
+          <TabsList>
+            <TabsTrigger value="import">Import</TabsTrigger>
+            <TabsTrigger value="tidy">Tidy Up</TabsTrigger>
+          </TabsList>
+          <TabsContent value="import" className="mt-4">
+            <DataImport />
+          </TabsContent>
+          <TabsContent value="tidy" className="mt-4">
+            <TidyUp />
+          </TabsContent>
+        </Tabs>
       </div>
 
       {/* Migration Assistant */}
