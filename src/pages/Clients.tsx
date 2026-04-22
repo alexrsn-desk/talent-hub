@@ -14,6 +14,7 @@ import { LogTouchpointModal } from "@/components/LogTouchpointModal";
 import { ClientPortalInvite } from "@/components/ClientPortalInvite";
 import { CallPrepButton } from "@/components/CallPrep";
 import { ClickToEditField } from "@/components/ClickToEditField";
+import { SummaryField } from "@/components/SummaryField";
 import { toast } from "sonner";
 
 const STATUSES = ["Active", "Warm", "Cold", "Target"] as const;
@@ -325,6 +326,15 @@ function ClientFullView({ client, onBack, onUpdate, onDelete }: {
           )}
         </div>
       </div>
+
+      <SummaryField
+        label="Company Brief"
+        value={client.summary || ""}
+        placeholder="Add a brief on this company — what they do, who you work with, and what's important to them."
+        onSave={async (next) => {
+          await onUpdate({ summary: next || null } as any);
+        }}
+      />
 
       <Tabs defaultValue="contacts">
         <TabsList>
