@@ -12,9 +12,26 @@ serve(async (req) => {
   }
 
   try {
-    const { candidate, job } = await req.json();
+    const { candidate, job, mode } = await req.json();
 
-    const prompt = `Write a professional one-page candidate profile summary for a recruitment client. Be concise, compelling, and highlight key strengths.
+    // Overview mode: no job context — used for the candidate profile Summary field.
+    const isOverview = mode === "overview" || !job;
+
+    const prompt = isOverview
+      ? `Write a concise candidate overview for a recruiter's internal profile. Cover who they are, what they want, and why they stand out. No headings, no markdown — just 2-3 short paragraphs (around 120-180 words). Direct, recruiter tone.
+
+CANDIDATE:
+- Name: ${candidate.name}
+- Current Role: ${candidate.job_title || "Not specified"}
+- Current Employer: ${candidate.current_employer || "Not specified"}
+- Location: ${candidate.location || "Not specified"}
+- Current Salary: ${candidate.salary_current ? `£${candidate.salary_current.toLocaleString()}` : "Not disclosed"}
+- Salary Expectation: ${candidate.salary_expectation ? `£${candidate.salary_expectation.toLocaleString()}` : "Not disclosed"}
+- Availability: ${candidate.availability || "Not specified"}
+- Source: ${candidate.source || "Direct"}
+
+If a field is missing, infer sensibly from what's there or skip it. Do not invent specific employers, achievements, or skills that aren't present.`
+      : `Write a professional one-page candidate profile summary for a recruitment client. Be concise, compelling, and highlight key strengths.
 
 CANDIDATE:
 - Name: ${candidate.name}
