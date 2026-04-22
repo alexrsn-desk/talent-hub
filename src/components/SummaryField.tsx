@@ -136,7 +136,7 @@ export function SummaryField({
             </span>
           )}
           {!saving && savedFlash && (
-            <span className="flex items-center gap-1 text-green-500">
+            <span className="flex items-center gap-1 text-success">
               <Check className="h-3 w-3" /> Saved
             </span>
           )}
