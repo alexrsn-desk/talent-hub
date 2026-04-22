@@ -12,12 +12,14 @@ import { CandidateJobLinks } from "@/components/CandidateJobLinks";
 import { LogTouchpointModal } from "@/components/LogTouchpointModal";
 import { CallPrepButton } from "@/components/CallPrep";
 import { ClickToEditField } from "@/components/ClickToEditField";
+import { SummaryField } from "@/components/SummaryField";
 import { TagsSection } from "@/components/TagsSection";
 import { ActiveSequencesSection } from "@/components/ActiveSequencesSection";
 import { AddToSequencePanel } from "@/components/AddToSequencePanel";
 import { GitBranch } from "lucide-react";
 import { Label } from "@/components/ui/label";
 import { logActivity } from "@/lib/activity-log";
+import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import {
   AlertDialog,
@@ -328,6 +330,29 @@ export function CandidateDetail({ candidate, onUpdate, onDelete }: Props) {
         <div className="flex items-center gap-2">
           <Badge variant="secondary" className={statusColor[candidate.status]}>{candidate.status}</Badge>
         </div>
+      )}
+
+      {!editing && (
+        <SummaryField
+          label="Summary"
+          value={candidate.summary || ""}
+          placeholder="Add an overview of this candidate — who they are, what they want, why they stand out."
+          onSave={async (next) => {
+            await onUpdate({ summary: next || null } as any);
+            await logActivity({
+              action_type: "candidate_updated",
+              candidate_id: candidate.id,
+              metadata: { fields_updated: ["summary"] },
+            });
+          }}
+          onGenerate={async () => {
+            const { data, error } = await supabase.functions.invoke("generate-candidate-summary", {
+              body: { candidate, mode: "overview" },
+            });
+            if (error) throw error;
+            return (data?.summary as string) || "";
+          }}
+        />
       )}
 
       <TagsSection entityType="candidate" entityId={candidate.id} />
