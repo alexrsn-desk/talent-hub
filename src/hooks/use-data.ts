@@ -20,7 +20,7 @@ export type Candidate = {
   salary_current: number | null;
   salary_expectation: number | null;
   availability: string | null;
-  summary: string | null;
+  summary?: string | null;
   priority_flag: boolean;
   priority_reason: string | null;
   priority_flagged_at: string | null;
@@ -41,7 +41,7 @@ export type Client = {
   status: string;
   location: string | null;
   website: string | null;
-  summary: string | null;
+  summary?: string | null;
   last_activity_date: string | null;
   next_action: string | null;
   next_action_due_date: string | null;
@@ -508,6 +508,7 @@ export type Contact = {
   personal_email: string | null;
   mobile_phone: string | null;
   direct_phone: string | null;
+  summary?: string | null;
   created_at: string;
 };
 
