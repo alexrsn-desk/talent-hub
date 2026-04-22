@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
-import { Pencil, Sparkles, Loader2, Check } from "lucide-react";
+import { Pencil, Sparkles, Loader2, Check, ChevronDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 
@@ -18,13 +18,18 @@ interface SummaryFieldProps {
   onGenerate?: () => Promise<string>;
   /** Label for the AI generate link */
   generateLabel?: string;
+  /** Unique key for persisting collapsed state per entity (e.g. "candidate:abc123"). */
+  storageKey?: string;
 }
+
+const PREVIEW_CHARS = 80;
 
 /**
  * Inline-editable multi-line summary field.
  * - Click anywhere (or pencil) to edit
  * - Auto-saves 3s after the user stops typing
  * - Shows "Generate with AI" link when empty (if onGenerate provided)
+ * - Collapsible via chevron; collapsed state remembered per storageKey
  */
 export function SummaryField({
   label = "Summary",
@@ -33,6 +38,7 @@ export function SummaryField({
   onSave,
   onGenerate,
   generateLabel = "Generate with AI",
+  storageKey,
 }: SummaryFieldProps) {
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(value || "");
@@ -42,6 +48,54 @@ export function SummaryField({
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const debounceRef = useRef<number | null>(null);
   const lastSavedRef = useRef(value || "");
+
+  const isEmpty = !value || value.trim().length === 0;
+  const lsKey = storageKey ? `summary-collapsed:${storageKey}` : null;
+
+  // Collapsed state: empty → collapsed by default; otherwise expanded by default.
+  // Restore per-entity preference if storageKey provided.
+  const [collapsed, setCollapsed] = useState<boolean>(() => {
+    if (lsKey) {
+      try {
+        const stored = window.localStorage.getItem(lsKey);
+        if (stored === "1") return true;
+        if (stored === "0") return false;
+      } catch {
+        // ignore
+      }
+    }
+    return isEmpty;
+  });
+
+  // Re-evaluate default when storageKey changes (switching profiles)
+  useEffect(() => {
+    if (lsKey) {
+      try {
+        const stored = window.localStorage.getItem(lsKey);
+        if (stored === "1") {
+          setCollapsed(true);
+          return;
+        }
+        if (stored === "0") {
+          setCollapsed(false);
+          return;
+        }
+      } catch {
+        // ignore
+      }
+    }
+    setCollapsed(isEmpty);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [storageKey]);
+
+  const persistCollapsed = (next: boolean) => {
+    if (!lsKey) return;
+    try {
+      window.localStorage.setItem(lsKey, next ? "1" : "0");
+    } catch {
+      // ignore
+    }
+  };
 
   // Sync external value changes when not editing
   useEffect(() => {
@@ -123,12 +177,69 @@ export function SummaryField({
     }
   };
 
-  const isEmpty = !value || value.trim().length === 0;
+  const toggleCollapsed = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    const next = !collapsed;
+    setCollapsed(next);
+    persistCollapsed(next);
+  };
 
+  // Clicking the collapsed row: if empty → expand + edit; otherwise just expand.
+  const handleCollapsedClick = () => {
+    setCollapsed(false);
+    persistCollapsed(false);
+    if (isEmpty) {
+      // wait for expanded layout, then enter edit
+      setTimeout(() => startEdit(), 0);
+    }
+  };
+
+  const previewText = (() => {
+    if (isEmpty) return "Add summary…";
+    const trimmed = value.trim().replace(/\s+/g, " ");
+    return trimmed.length > PREVIEW_CHARS ? `${trimmed.slice(0, PREVIEW_CHARS)}…` : trimmed;
+  })();
+
+  // ---- COLLAPSED VIEW ----
+  if (collapsed && !editing) {
+    return (
+      <div className="space-y-1">
+        <button
+          type="button"
+          onClick={handleCollapsedClick}
+          className="group/sum flex items-center gap-2 w-full text-left rounded-md px-2 py-1.5 -mx-2 hover:bg-muted/30 transition-colors"
+        >
+          <ChevronDown
+            className="h-3.5 w-3.5 text-muted-foreground shrink-0 -rotate-90 transition-transform"
+            onClick={toggleCollapsed}
+          />
+          <span className="text-xs text-muted-foreground shrink-0">{label}</span>
+          <span
+            className={cn(
+              "text-sm truncate flex-1 min-w-0",
+              isEmpty ? "italic text-muted-foreground" : "text-foreground/80"
+            )}
+          >
+            {previewText}
+          </span>
+        </button>
+      </div>
+    );
+  }
+
+  // ---- EXPANDED VIEW ----
   return (
     <div className="space-y-1">
       <div className="flex items-center justify-between">
-        <span className="text-xs text-muted-foreground">{label}</span>
+        <button
+          type="button"
+          onClick={toggleCollapsed}
+          className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
+          aria-label={`Collapse ${label}`}
+        >
+          <ChevronDown className="h-3.5 w-3.5 transition-transform" />
+          <span>{label}</span>
+        </button>
         <div className="flex items-center gap-2 text-[10px] text-muted-foreground">
           {saving && (
             <span className="flex items-center gap-1">

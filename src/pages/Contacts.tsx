@@ -276,6 +276,7 @@ function ContactFullView({ contact, client, onBack, onDelete, onContactUpdate }:
 
       <SummaryField
         label="Summary"
+        storageKey={`contact:${contact.id}`}
         value={contact.summary || ""}
         placeholder="Add an overview of this contact — their role, what they care about, and how you work together."
         onSave={async (next) => {

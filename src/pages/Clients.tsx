@@ -329,6 +329,7 @@ function ClientFullView({ client, onBack, onUpdate, onDelete }: {
 
       <SummaryField
         label="Company Brief"
+        storageKey={`client:${client.id}`}
         value={client.summary || ""}
         placeholder="Add a brief on this company — what they do, who you work with, and what's important to them."
         onSave={async (next) => {
