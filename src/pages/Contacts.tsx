@@ -12,6 +12,7 @@ import { ProfileTabs } from "@/components/ProfileTabs";
 import { LogTouchpointModal } from "@/components/LogTouchpointModal";
 import { CallPrepButton } from "@/components/CallPrep";
 import { ClickToEditField } from "@/components/ClickToEditField";
+import { SummaryField } from "@/components/SummaryField";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -272,6 +273,16 @@ function ContactFullView({ contact, client, onBack, onDelete, onContactUpdate }:
           <ClickToEditField label="LinkedIn" value="" field="linkedin_url" layout="stacked" onSave={(v) => handleFieldSave("linkedin_url", v)} entityType="contact" entityId={contact.id} />
         )}
       </div>
+
+      <SummaryField
+        label="Summary"
+        value={contact.summary || ""}
+        placeholder="Add an overview of this contact — their role, what they care about, and how you work together."
+        onSave={async (next) => {
+          await supabase.from("contacts").update({ summary: next || null }).eq("id", contact.id);
+          onContactUpdate({ ...contact, summary: next || null });
+        }}
+      />
 
       <ProfileTabs entityType="client" entityId={contact.client_id} />
 
