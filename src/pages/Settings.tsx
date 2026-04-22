@@ -13,6 +13,7 @@ import { useSignalPerformance } from "@/hooks/use-signals";
 import { TagManagement } from "@/components/TagManagement";
 import { MyPlanSection } from "@/components/MyPlanSection";
 import { ScreeningTemplateSettings } from "@/components/ScreeningTemplateSettings";
+import { WebhookSettingsSection } from "@/components/WebhookSettings";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 const NICHES = [
@@ -317,6 +318,9 @@ export default function SettingsPage() {
         <p className="text-xs text-muted-foreground">Review and tidy imported data — unmatched jobs, notes, job assignments, and duplicates.</p>
         <MigrationAssistant onComplete={() => toast.success("All items reviewed!")} showLaterOption={false} />
       </div>
+
+      {/* Integrations · Webhook */}
+      <WebhookSettingsSection />
 
       {/* Screening Notes Template */}
       <ScreeningTemplateSettings />

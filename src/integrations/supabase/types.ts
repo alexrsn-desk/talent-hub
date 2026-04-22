@@ -1321,6 +1321,84 @@ export type Database = {
         }
         Relationships: []
       }
+      webhook_logs: {
+        Row: {
+          action: string
+          created_at: string
+          entity_type: string
+          error_message: string | null
+          id: string
+          payload: Json | null
+          processing_ms: number | null
+          record_id: string | null
+          record_name: string | null
+          status: string
+          user_id: string | null
+        }
+        Insert: {
+          action: string
+          created_at?: string
+          entity_type: string
+          error_message?: string | null
+          id?: string
+          payload?: Json | null
+          processing_ms?: number | null
+          record_id?: string | null
+          record_name?: string | null
+          status: string
+          user_id?: string | null
+        }
+        Update: {
+          action?: string
+          created_at?: string
+          entity_type?: string
+          error_message?: string | null
+          id?: string
+          payload?: Json | null
+          processing_ms?: number | null
+          record_id?: string | null
+          record_name?: string | null
+          status?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      webhook_settings: {
+        Row: {
+          auto_create_clients: boolean
+          consecutive_failures: number
+          created_at: string
+          id: string
+          run_signal_detection: boolean
+          secret_key: string
+          show_in_activity_feed: boolean
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          auto_create_clients?: boolean
+          consecutive_failures?: number
+          created_at?: string
+          id?: string
+          run_signal_detection?: boolean
+          secret_key?: string
+          show_in_activity_feed?: boolean
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          auto_create_clients?: boolean
+          consecutive_failures?: number
+          created_at?: string
+          id?: string
+          run_signal_detection?: boolean
+          secret_key?: string
+          show_in_activity_feed?: boolean
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       weekly_summaries: {
         Row: {
           created_at: string
