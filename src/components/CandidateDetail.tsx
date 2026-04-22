@@ -335,6 +335,7 @@ export function CandidateDetail({ candidate, onUpdate, onDelete }: Props) {
       {!editing && (
         <SummaryField
           label="Summary"
+          storageKey={`candidate:${candidate.id}`}
           value={candidate.summary || ""}
           placeholder="Add an overview of this candidate — who they are, what they want, why they stand out."
           onSave={async (next) => {
