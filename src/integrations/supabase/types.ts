@@ -297,6 +297,7 @@ export type Database = {
           salary_expectation: number | null
           source: string | null
           status: string
+          summary: string | null
           updated_at: string
         }
         Insert: {
@@ -321,6 +322,7 @@ export type Database = {
           salary_expectation?: number | null
           source?: string | null
           status?: string
+          summary?: string | null
           updated_at?: string
         }
         Update: {
@@ -345,6 +347,7 @@ export type Database = {
           salary_expectation?: number | null
           source?: string | null
           status?: string
+          summary?: string | null
           updated_at?: string
         }
         Relationships: []
@@ -466,6 +469,7 @@ export type Database = {
           phone: string | null
           sector: string | null
           status: string
+          summary: string | null
           updated_at: string
           website: string | null
         }
@@ -484,6 +488,7 @@ export type Database = {
           phone?: string | null
           sector?: string | null
           status?: string
+          summary?: string | null
           updated_at?: string
           website?: string | null
         }
@@ -502,6 +507,7 @@ export type Database = {
           phone?: string | null
           sector?: string | null
           status?: string
+          summary?: string | null
           updated_at?: string
           website?: string | null
         }
@@ -523,6 +529,7 @@ export type Database = {
           personal_email: string | null
           phone: string | null
           status: string
+          summary: string | null
         }
         Insert: {
           client_id: string
@@ -539,6 +546,7 @@ export type Database = {
           personal_email?: string | null
           phone?: string | null
           status?: string
+          summary?: string | null
         }
         Update: {
           client_id?: string
@@ -555,6 +563,7 @@ export type Database = {
           personal_email?: string | null
           phone?: string | null
           status?: string
+          summary?: string | null
         }
         Relationships: [
           {
