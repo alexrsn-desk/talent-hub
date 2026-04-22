@@ -710,7 +710,7 @@ function FindDuplicates() {
           }
         }
         if (Object.keys(patch).length > 0) {
-          await supabase.from("candidates").update(patch).eq("id", keepId);
+          await supabase.from("candidates").update(patch as any).eq("id", keepId);
         }
       }
       // reassign children
