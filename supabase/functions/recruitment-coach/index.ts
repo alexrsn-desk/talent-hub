@@ -209,16 +209,16 @@ serve(async (req) => {
       }),
       bdPipeline: allClients.map((c: any) => {
         const followupOverdue =
-          c.next_followup_date && c.next_followup_date < today;
+          c.next_action_due_date && c.next_action_due_date < today;
         const clientNotes = notes.filter((n: any) => n.client_id === c.id);
         const touchedAfterFollowup =
           followupOverdue &&
           clientNotes.some(
-            (n: any) => n.created_at?.split("T")[0] >= c.next_followup_date
+            (n: any) => n.created_at?.split("T")[0] >= c.next_action_due_date
           );
         const daysOverdue = followupOverdue
           ? Math.floor(
-              (Date.now() - new Date(c.next_followup_date).getTime()) / dayMs
+              (Date.now() - new Date(c.next_action_due_date).getTime()) / dayMs
             )
           : null;
         return {
@@ -228,7 +228,6 @@ serve(async (req) => {
           lastActivity: c.last_activity_date,
           nextAction: c.next_action,
           nextActionDue: c.next_action_due_date,
-          nextFollowupDate: c.next_followup_date,
           followupOverdue: followupOverdue && !touchedAfterFollowup,
           daysOverdue: followupOverdue && !touchedAfterFollowup ? daysOverdue : null,
         };
