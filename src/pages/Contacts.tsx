@@ -13,6 +13,7 @@ import { LogTouchpointModal } from "@/components/LogTouchpointModal";
 import { CallPrepButton } from "@/components/CallPrep";
 import { ClickToEditField } from "@/components/ClickToEditField";
 import { SummaryField } from "@/components/SummaryField";
+import { ConversationPrompts } from "@/components/ConversationPrompts";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -284,6 +285,8 @@ function ContactFullView({ contact, client, onBack, onDelete, onContactUpdate }:
           onContactUpdate({ ...contact, summary: next || null });
         }}
       />
+
+      <ConversationPrompts entityType="contact" entityId={contact.id} />
 
       <ProfileTabs entityType="client" entityId={contact.client_id} />
 
