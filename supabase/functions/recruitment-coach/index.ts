@@ -207,14 +207,32 @@ serve(async (req) => {
           lastActivity: jobNotes[0]?.created_at?.split("T")[0] || "none",
         };
       }),
-      bdPipeline: bdProspects.map((c: any) => ({
-        company: c.company_name,
-        contact: c.contact_name,
-        status: c.status,
-        lastActivity: c.last_activity_date,
-        nextAction: c.next_action,
-        nextActionDue: c.next_action_due_date,
-      })),
+      bdPipeline: allClients.map((c: any) => {
+        const followupOverdue =
+          c.next_followup_date && c.next_followup_date < today;
+        const clientNotes = notes.filter((n: any) => n.client_id === c.id);
+        const touchedAfterFollowup =
+          followupOverdue &&
+          clientNotes.some(
+            (n: any) => n.created_at?.split("T")[0] >= c.next_followup_date
+          );
+        const daysOverdue = followupOverdue
+          ? Math.floor(
+              (Date.now() - new Date(c.next_followup_date).getTime()) / dayMs
+            )
+          : null;
+        return {
+          company: c.company_name,
+          contact: c.contact_name,
+          status: c.status,
+          lastActivity: c.last_activity_date,
+          nextAction: c.next_action,
+          nextActionDue: c.next_action_due_date,
+          nextFollowupDate: c.next_followup_date,
+          followupOverdue: followupOverdue && !touchedAfterFollowup,
+          daysOverdue: followupOverdue && !touchedAfterFollowup ? daysOverdue : null,
+        };
+      }),
       overdueFollowUps: (overdueFollowUps || []).map((n: any) => ({
         type: n.activity_type,
         content: n.content?.slice(0, 100),
