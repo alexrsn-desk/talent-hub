@@ -132,6 +132,7 @@ function InlineEditCell({
 // --- Inline status cell ---
 function InlineStatusCell({
   value,
+  reengageDate,
   candidateId,
   onSave,
   isEditing,
@@ -139,6 +140,7 @@ function InlineStatusCell({
   onStopEdit,
 }: {
   value: string;
+  reengageDate?: string | null;
   candidateId: string;
   onSave: (field: string, newValue: string, oldValue: string) => Promise<void>;
   isEditing: boolean;
@@ -173,20 +175,23 @@ function InlineStatusCell({
   }
 
   return (
-    <Badge
-      variant="secondary"
-      className={cn(
-        statusColor[value],
-        "cursor-pointer transition-all",
-        flash && "bg-green-500/20"
-      )}
-      onClick={(e) => {
-        e.stopPropagation();
-        onStartEdit();
-      }}
-    >
-      {value}
-    </Badge>
+    <div className="flex items-center gap-1.5 flex-wrap">
+      <Badge
+        variant="secondary"
+        className={cn(
+          statusColor[value],
+          "cursor-pointer transition-all",
+          flash && "bg-green-500/20"
+        )}
+        onClick={(e) => {
+          e.stopPropagation();
+          onStartEdit();
+        }}
+      >
+        {value}
+      </Badge>
+      {value === "On Hold" && reengageDate && <ReengageBadge date={reengageDate} />}
+    </div>
   );
 }
 
