@@ -720,6 +720,7 @@ export default function CandidatesPage() {
               ) : filtered.map((c, idx) => {
                 const isSelected = selectedIds.has(c.id);
                 return (
+                <>
                 <tr
                   key={c.id}
                   className={cn(
