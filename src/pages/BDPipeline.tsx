@@ -13,6 +13,7 @@ import { NotesSection } from "@/components/NotesSection";
 import { BDTipsButton } from "@/components/BDTipsPanel";
 import { Calendar as CalendarIcon, AlertTriangle, Plus, Trash2, ExternalLink, Users, CalendarPlus, Info, GitBranch } from "lucide-react";
 import { AddToSequencePanel } from "@/components/AddToSequencePanel";
+import { ActiveSequencesSection } from "@/components/ActiveSequencesSection";
 
 const BD_STAGES = [
   "Target",
