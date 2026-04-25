@@ -7,10 +7,11 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useClients, useUpdateClient, useDeleteClient, useCreateClient, useContacts, useCreateContact, useDeleteContact, type Client, type Contact } from "@/hooks/use-data";
 import { NotesSection } from "@/components/NotesSection";
 import { BDTipsButton } from "@/components/BDTipsPanel";
-import { Calendar as CalendarIcon, AlertTriangle, Plus, Trash2, ExternalLink, Users, CalendarPlus } from "lucide-react";
+import { Calendar as CalendarIcon, AlertTriangle, Plus, Trash2, ExternalLink, Users, CalendarPlus, Info } from "lucide-react";
 
 const BD_STAGES = [
   "Target",
@@ -65,6 +66,22 @@ function buildCalendarUrl(title: string, date: string, companyName: string): str
   const d = date.replace(/-/g, "");
   const text = encodeURIComponent(`${title} – ${companyName}`);
   return `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${text}&dates=${d}/${d}&details=${encodeURIComponent(`BD action for ${companyName}`)}`;
+}
+
+const HEAT_OPTIONS = [
+  { value: "hot", icon: "🔥", label: "Hot" },
+  { value: "warm", icon: "〰", label: "Warm" },
+  { value: "cold", icon: "❄", label: "Cold" },
+] as const;
+
+function heatIcon(heat: string | null | undefined): string {
+  const h = (heat || "warm").toLowerCase();
+  return HEAT_OPTIONS.find((o) => o.value === h)?.icon || "〰";
+}
+
+function heatLabel(heat: string | null | undefined): string {
+  const h = (heat || "warm").toLowerCase();
+  return HEAT_OPTIONS.find((o) => o.value === h)?.label || "Warm";
 }
 
 export default function BDPipelinePage() {
@@ -187,7 +204,16 @@ export default function BDPipelinePage() {
                                   setDetailOpen(true);
                                 }}
                               >
-                                <p className="text-sm font-medium leading-tight">{client.company_name}</p>
+                                <div className="flex items-start justify-between gap-2">
+                                  <p className="text-sm font-medium leading-tight flex-1">{client.company_name}</p>
+                                  <span
+                                    className="text-sm leading-none flex-shrink-0"
+                                    title={`Heat: ${heatLabel(client.heat)}`}
+                                    aria-label={`Heat: ${heatLabel(client.heat)}`}
+                                  >
+                                    {heatIcon(client.heat)}
+                                  </span>
+                                </div>
                                 {(contactsByClient[client.id]?.length > 0 || client.contact_name) && (
                                   <div className="mt-0.5 space-y-0">
                                     {contactsByClient[client.id]?.length > 0 ? (
@@ -275,6 +301,8 @@ function ClientDetailView({ client, onUpdate, onDelete }: {
   const [dueDate, setDueDate] = useState(client.next_action_due_date || "");
   const [followupDate, setFollowupDate] = useState(client.next_followup_date || "");
   const [followupSaved, setFollowupSaved] = useState(false);
+  const [heat, setHeat] = useState((client.heat || "warm").toLowerCase());
+  const [heatSaved, setHeatSaved] = useState(false);
   const { data: contacts = [] } = useContacts(client.id);
   const createContact = useCreateContact();
   const deleteContact = useDeleteContact();
@@ -295,6 +323,13 @@ function ClientDetailView({ client, onUpdate, onDelete }: {
     await onUpdate({ next_followup_date: value || null });
     setFollowupSaved(true);
     setTimeout(() => setFollowupSaved(false), 2000);
+  };
+
+  const saveHeat = async (value: string) => {
+    setHeat(value);
+    await onUpdate({ heat: value });
+    setHeatSaved(true);
+    setTimeout(() => setHeatSaved(false), 2000);
   };
 
   return (
@@ -336,6 +371,80 @@ function ClientDetailView({ client, onUpdate, onDelete }: {
             </a>
           </div>
         )}
+      </div>
+
+      {/* Heat */}
+      <div className="rounded-lg border border-border p-4 space-y-3">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-1.5">
+            <h3 className="text-sm font-medium">Heat</h3>
+            <Popover>
+              <PopoverTrigger asChild>
+                <button
+                  type="button"
+                  className="text-muted-foreground hover:text-foreground transition-colors"
+                  aria-label="What does heat mean?"
+                >
+                  <Info className="h-3.5 w-3.5" />
+                </button>
+              </PopoverTrigger>
+              <PopoverContent side="right" align="start" className="w-[300px] text-xs leading-relaxed space-y-3">
+                <div>
+                  <p className="font-semibold text-sm mb-1">HEAT — Your Professional Judgment</p>
+                  <p className="text-muted-foreground">
+                    Heat is your read on this opportunity — not automated. It captures things the AI cannot know:
+                  </p>
+                </div>
+                <ul className="list-disc pl-4 space-y-0.5 text-muted-foreground">
+                  <li>The tone of the conversation.</li>
+                  <li>How engaged they actually felt.</li>
+                  <li>Whether they were genuine or just polite.</li>
+                  <li>Your gut read on their hiring timeline.</li>
+                  <li>The strength of your personal relationship.</li>
+                  <li>What they said off the record.</li>
+                  <li>Whether they would actually pick up your call.</li>
+                </ul>
+                <p className="text-muted-foreground">
+                  Update heat after every conversation. Your gut feel after a call is more accurate than any algorithm. The AI coach uses your heat rating to prioritise BD recommendations.
+                </p>
+                <div className="space-y-2 border-t border-border pt-2">
+                  <div>
+                    <p className="font-medium">🔥 Hot</p>
+                    <p className="text-muted-foreground">You believe they will hire soon. Based on what they said, how they said it, and your read on the relationship. Needs your attention this week.</p>
+                  </div>
+                  <div>
+                    <p className="font-medium">〰 Warm</p>
+                    <p className="text-muted-foreground">Positive signals but not confirmed. Good relationship, likely to hire but timeline is unclear. Stay in regular contact.</p>
+                  </div>
+                  <div>
+                    <p className="font-medium">❄ Cold</p>
+                    <p className="text-muted-foreground">Long timeline, vague interest, or early stage relationship. Worth nurturing but no urgency. Check in quarterly.</p>
+                  </div>
+                </div>
+              </PopoverContent>
+            </Popover>
+          </div>
+          {heatSaved && (
+            <span className="text-xs text-success">Saved ✓</span>
+          )}
+        </div>
+        <div className="flex gap-2">
+          {HEAT_OPTIONS.map((opt) => (
+            <button
+              key={opt.value}
+              type="button"
+              onClick={() => saveHeat(opt.value)}
+              className={`flex-1 rounded-md border px-3 py-2 text-sm transition-colors ${
+                heat === opt.value
+                  ? "border-primary bg-primary/10"
+                  : "border-border hover:bg-muted/50"
+              }`}
+            >
+              <span className="mr-1.5">{opt.icon}</span>
+              {opt.label}
+            </button>
+          ))}
+        </div>
       </div>
 
       {/* Next Follow Up */}
