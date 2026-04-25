@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useClients, useUpdateClient, useDeleteClient, useCreateClient, useContacts, useCreateContact, useDeleteContact, type Client, type Contact } from "@/hooks/use-data";
 import { NotesSection } from "@/components/NotesSection";
+import { BDTipsButton } from "@/components/BDTipsPanel";
 import { Calendar as CalendarIcon, AlertTriangle, Plus, Trash2, ExternalLink, Users, CalendarPlus } from "lucide-react";
 
 const BD_STAGES = [
@@ -104,7 +105,10 @@ export default function BDPipelinePage() {
 
   return (
     <div className="space-y-6 h-full">
-      <h1 className="text-2xl font-semibold tracking-tight">BD Pipeline</h1>
+      <div className="flex items-center justify-between gap-3">
+        <h1 className="text-2xl font-semibold tracking-tight">BD Pipeline</h1>
+        <BDTipsButton />
+      </div>
 
       {isLoading ? (
         <div className="text-muted-foreground text-sm">Loading...</div>
