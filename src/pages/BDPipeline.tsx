@@ -273,6 +273,8 @@ function ClientDetailView({ client, onUpdate, onDelete }: {
 }) {
   const [nextAction, setNextAction] = useState(client.next_action || "");
   const [dueDate, setDueDate] = useState(client.next_action_due_date || "");
+  const [followupDate, setFollowupDate] = useState(client.next_followup_date || "");
+  const [followupSaved, setFollowupSaved] = useState(false);
   const { data: contacts = [] } = useContacts(client.id);
   const createContact = useCreateContact();
   const deleteContact = useDeleteContact();
@@ -286,6 +288,13 @@ function ClientDetailView({ client, onUpdate, onDelete }: {
       next_action_due_date: dueDate || null,
       last_activity_date: new Date().toISOString().split("T")[0],
     });
+  };
+
+  const saveFollowupDate = async (value: string) => {
+    setFollowupDate(value);
+    await onUpdate({ next_followup_date: value || null });
+    setFollowupSaved(true);
+    setTimeout(() => setFollowupSaved(false), 2000);
   };
 
   return (
