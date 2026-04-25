@@ -158,6 +158,7 @@ serve(async (req) => {
           job: cj.jobs?.title,
           company: cj.jobs?.clients?.company_name,
         })),
+        bdFollowUpsOverdue: bdFollowupsOverdue,
       },
       amberFlags: {
         jobsNoCVsSent7Days: jobsNoSubmissions.map((j: any) => ({
