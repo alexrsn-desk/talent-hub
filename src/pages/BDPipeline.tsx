@@ -68,6 +68,22 @@ function buildCalendarUrl(title: string, date: string, companyName: string): str
   return `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${text}&dates=${d}/${d}&details=${encodeURIComponent(`BD action for ${companyName}`)}`;
 }
 
+const HEAT_OPTIONS = [
+  { value: "hot", icon: "🔥", label: "Hot" },
+  { value: "warm", icon: "〰", label: "Warm" },
+  { value: "cold", icon: "❄", label: "Cold" },
+] as const;
+
+function heatIcon(heat: string | null | undefined): string {
+  const h = (heat || "warm").toLowerCase();
+  return HEAT_OPTIONS.find((o) => o.value === h)?.icon || "〰";
+}
+
+function heatLabel(heat: string | null | undefined): string {
+  const h = (heat || "warm").toLowerCase();
+  return HEAT_OPTIONS.find((o) => o.value === h)?.label || "Warm";
+}
+
 export default function BDPipelinePage() {
   const { data: clients = [], isLoading } = useClients();
   const { data: allContacts = [] } = useContacts();
