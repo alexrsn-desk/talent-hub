@@ -62,6 +62,29 @@ function formatRelative(date: string | null | undefined): string {
   return `in ${Math.abs(diffDays)} days`;
 }
 
+function dueDateColour(date: string | null | undefined): string {
+  if (!date) return "text-muted-foreground";
+  const today = new Date(new Date().toISOString().split("T")[0]);
+  const d = new Date(date);
+  const diff = Math.round((d.getTime() - today.getTime()) / 86400000);
+  if (diff < 0) return "text-red-500";
+  if (diff === 0) return "text-amber-500";
+  return "text-green-500";
+}
+
+function dueDateLabel(date: string | null | undefined): string {
+  if (!date) return "";
+  const today = new Date(new Date().toISOString().split("T")[0]);
+  const d = new Date(date);
+  const diff = Math.round((d.getTime() - today.getTime()) / 86400000);
+  if (diff === 0) return "Today";
+  if (diff < 0) {
+    const n = Math.abs(diff);
+    return n === 1 ? "yesterday" : `${n} days ago`;
+  }
+  return formatDate(date);
+}
+
 function buildCalendarUrl(title: string, date: string, companyName: string): string {
   const d = date.replace(/-/g, "");
   const text = encodeURIComponent(`${title} – ${companyName}`);
@@ -236,7 +259,14 @@ export default function BDPipelinePage() {
                                   {client.next_action && (
                                     <p className="text-xs text-muted-foreground truncate">
                                       Next: {client.next_action}
-                                      {client.next_action_due_date ? ` — ${formatDate(client.next_action_due_date)}` : ""}
+                                      {client.next_action_due_date && (
+                                        <>
+                                          {" — "}
+                                          <span className={dueDateColour(client.next_action_due_date)}>
+                                            {dueDateLabel(client.next_action_due_date)}
+                                          </span>
+                                        </>
+                                      )}
                                     </p>
                                   )}
                                 </div>
