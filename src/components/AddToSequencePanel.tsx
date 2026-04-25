@@ -13,21 +13,30 @@ import {
   useSequenceStepCounts,
   useSequenceEnrollmentCounts,
   useCandidateEnrollments,
-  useEnrollCandidate,
+  useEnrollEntity,
+  type EntityType,
 } from "@/hooks/use-sequences";
 
 interface Props {
-  candidateId: string;
-  candidateName: string;
+  candidateId?: string;
+  candidateName?: string;
+  /** Newer entity-aware props (preferred). */
+  entityType?: EntityType;
+  entityId?: string;
+  entityName?: string;
   trigger?: React.ReactNode;
   align?: "start" | "center" | "end";
 }
 
 /**
- * Reusable popover panel that lets a user add a candidate to an Auto or
- * Personal sequence. Used from candidate row icons and the profile button.
+ * Reusable popover panel that lets a user add a candidate, contact or client
+ * to an Auto or Personal sequence.
  */
-export function AddToSequencePanel({ candidateId, candidateName, trigger, align = "end" }: Props) {
+export function AddToSequencePanel({ candidateId, candidateName, entityType, entityId, entityName, trigger, align = "end" }: Props) {
+  const resolvedType: EntityType = entityType ?? "candidate";
+  const resolvedId = entityId ?? candidateId ?? "";
+  const resolvedName = entityName ?? candidateName ?? "";
+
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
   const [addedId, setAddedId] = useState<string | null>(null);
@@ -35,8 +44,11 @@ export function AddToSequencePanel({ candidateId, candidateName, trigger, align 
   const { data: sequences = [], isLoading } = useSequences();
   const { data: stepCounts = {} } = useSequenceStepCounts();
   const { data: enrollmentCounts = {} } = useSequenceEnrollmentCounts();
-  const { data: existing = [] } = useCandidateEnrollments(open ? candidateId : null);
-  const enroll = useEnrollCandidate();
+  // Existing-enrollment lookup currently only supports candidates
+  const { data: existing = [] } = useCandidateEnrollments(
+    open && resolvedType === "candidate" ? resolvedId : null
+  );
+  const enroll = useEnrollEntity();
 
   const existingByseq = useMemo(() => {
     const m = new Map<string, { current_step: number; total: number; name: string }>();
@@ -60,8 +72,13 @@ export function AddToSequencePanel({ candidateId, candidateName, trigger, align 
   const personalSeqs = filtered.filter((s) => s.type !== "auto");
 
   const handleAdd = async (seqId: string, seqName: string) => {
+    if (!resolvedId) return;
     try {
-      await enroll.mutateAsync({ sequence_id: seqId, candidate_id: candidateId });
+      await enroll.mutateAsync({
+        sequence_id: seqId,
+        entity_type: resolvedType,
+        entity_id: resolvedId,
+      });
       setAddedId(seqId);
       toast.success(`Added to ${seqName} ✓`);
       setTimeout(() => {
