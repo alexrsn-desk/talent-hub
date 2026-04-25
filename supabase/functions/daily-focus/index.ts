@@ -194,6 +194,8 @@ serve(async (req) => {
           company: cj.jobs?.clients?.company_name,
         })),
         bdFollowUpsOverdue: bdFollowupsOverdue,
+        reengageCandidatesDue,
+        reengageContactsDue,
       },
       amberFlags: {
         jobsNoCVsSent7Days: jobsNoSubmissions.map((j: any) => ({
