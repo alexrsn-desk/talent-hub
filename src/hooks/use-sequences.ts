@@ -624,7 +624,11 @@ export function usePauseEnrollment() {
         .update({ status: "paused", paused_at: new Date().toISOString() })
         .eq("id", enrollment_id);
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["personal_sequence_steps_due"] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["personal_sequence_steps_due"] });
+      qc.invalidateQueries({ queryKey: ["entity_enrollments"] });
+      qc.invalidateQueries({ queryKey: ["candidate_enrollments"] });
+    },
   });
 }
 
@@ -637,7 +641,11 @@ export function useResumeEnrollment() {
         .update({ status: "active", paused_at: null })
         .eq("id", enrollment_id);
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["personal_sequence_steps_due"] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["personal_sequence_steps_due"] });
+      qc.invalidateQueries({ queryKey: ["entity_enrollments"] });
+      qc.invalidateQueries({ queryKey: ["candidate_enrollments"] });
+    },
   });
 }
 
