@@ -276,7 +276,9 @@ export function useRemoveEnrollment() {
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["candidate_enrollments"] });
+      qc.invalidateQueries({ queryKey: ["entity_enrollments"] });
       qc.invalidateQueries({ queryKey: ["sequence_enrollment_counts"] });
+      qc.invalidateQueries({ queryKey: ["personal_sequence_steps_due"] });
     },
   });
 }
