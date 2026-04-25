@@ -16,6 +16,7 @@ import { SummaryField } from "@/components/SummaryField";
 import { ConversationPrompts } from "@/components/ConversationPrompts";
 import { ReengageBadge, ReengageInlineEditor, formatReengageDate } from "@/components/ReengageDate";
 import { AddToSequencePanel } from "@/components/AddToSequencePanel";
+import { ActiveSequencesSection } from "@/components/ActiveSequencesSection";
 import { GitBranch } from "lucide-react";
 import { CalendarClock } from "lucide-react";
 import { toast } from "sonner";
