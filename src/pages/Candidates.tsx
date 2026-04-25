@@ -851,7 +851,7 @@ export default function CandidatesPage() {
                     </td>
                   </tr>
                 )}
-                </>
+                </Fragment>
                 );
               })}
             </tbody>
