@@ -270,6 +270,8 @@ function ContactFullView({ contact, client, onBack, onDelete, onContactUpdate }:
         </div>
       </div>
 
+      <ActiveSequencesSection entityType="contact" entityId={contact.id} entityName={contact.name} />
+
       {/* Cold Re-engage Banner */}
       {contact.status === "Cold" && (
         <div className="rounded-lg border border-amber-500/40 bg-amber-500/10 px-4 py-3 space-y-2">
