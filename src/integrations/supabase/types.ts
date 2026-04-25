@@ -1011,8 +1011,11 @@ export type Database = {
           candidate_id: string | null
           client_id: string | null
           completed_at: string | null
+          contact_id: string | null
           created_at: string
           current_step: number
+          entity_id: string | null
+          entity_type: string | null
           id: string
           job_id: string | null
           paused_at: string | null
@@ -1025,8 +1028,11 @@ export type Database = {
           candidate_id?: string | null
           client_id?: string | null
           completed_at?: string | null
+          contact_id?: string | null
           created_at?: string
           current_step?: number
+          entity_id?: string | null
+          entity_type?: string | null
           id?: string
           job_id?: string | null
           paused_at?: string | null
@@ -1039,8 +1045,11 @@ export type Database = {
           candidate_id?: string | null
           client_id?: string | null
           completed_at?: string | null
+          contact_id?: string | null
           created_at?: string
           current_step?: number
+          entity_id?: string | null
+          entity_type?: string | null
           id?: string
           job_id?: string | null
           paused_at?: string | null
