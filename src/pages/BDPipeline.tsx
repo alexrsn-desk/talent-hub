@@ -233,9 +233,12 @@ export default function BDPipelinePage() {
                                   <p className="text-xs text-muted-foreground">
                                     Last: {client.last_activity_date ? formatRelative(client.last_activity_date) : "—"}
                                   </p>
-                                  <p className="text-xs text-muted-foreground">
-                                    Next: {client.next_followup_date ? formatDate(client.next_followup_date) : "—"}
-                                  </p>
+                                  {client.next_action && (
+                                    <p className="text-xs text-muted-foreground truncate">
+                                      Next: {client.next_action}
+                                      {client.next_action_due_date ? ` — ${formatDate(client.next_action_due_date)}` : ""}
+                                    </p>
+                                  )}
                                 </div>
                               </div>
                             )}
@@ -281,8 +284,7 @@ function ClientDetailView({ client, onUpdate, onDelete }: {
 }) {
   const [nextAction, setNextAction] = useState(client.next_action || "");
   const [dueDate, setDueDate] = useState(client.next_action_due_date || "");
-  const [followupDate, setFollowupDate] = useState(client.next_followup_date || "");
-  const [followupSaved, setFollowupSaved] = useState(false);
+  const [actionSaved, setActionSaved] = useState(false);
   const [heat, setHeat] = useState((client.heat || "warm").toLowerCase());
   const [heatSaved, setHeatSaved] = useState(false);
   const { data: contacts = [] } = useContacts(client.id);
@@ -292,19 +294,34 @@ function ClientDetailView({ client, onUpdate, onDelete }: {
   const [newContactName, setNewContactName] = useState("");
   const [newContactTitle, setNewContactTitle] = useState("");
 
-  const saveNextAction = async () => {
-    await onUpdate({
-      next_action: nextAction || null,
-      next_action_due_date: dueDate || null,
-      last_activity_date: new Date().toISOString().split("T")[0],
-    });
+  const flashSaved = () => {
+    setActionSaved(true);
+    setTimeout(() => setActionSaved(false), 2000);
   };
 
-  const saveFollowupDate = async (value: string) => {
-    setFollowupDate(value);
-    await onUpdate({ next_followup_date: value || null });
-    setFollowupSaved(true);
-    setTimeout(() => setFollowupSaved(false), 2000);
+  // Debounced save when text changes
+  const persistAction = async (text: string, date: string) => {
+    await onUpdate({
+      next_action: text || null,
+      next_action_due_date: date || null,
+      last_activity_date: new Date().toISOString().split("T")[0],
+    });
+    flashSaved();
+  };
+
+  const handleActionTextChange = (val: string) => {
+    setNextAction(val);
+  };
+
+  const handleActionTextBlur = () => {
+    if ((nextAction || "") !== (client.next_action || "")) {
+      persistAction(nextAction, dueDate);
+    }
+  };
+
+  const handleDueDateChange = (val: string) => {
+    setDueDate(val);
+    persistAction(nextAction, val);
   };
 
   const saveHeat = async (value: string) => {
@@ -429,45 +446,29 @@ function ClientDetailView({ client, onUpdate, onDelete }: {
         </div>
       </div>
 
-      {/* Next Follow Up */}
-      <div className="rounded-lg border border-border p-4 space-y-2">
+      {/* Next Action */}
+      <div className="rounded-lg border border-border p-4 space-y-3">
         <div className="flex items-center justify-between">
-          <h3 className="text-sm font-medium">Next Follow Up</h3>
-          {followupSaved && (
+          <h3 className="text-sm font-medium">Next Action</h3>
+          {actionSaved && (
             <span className="text-xs text-success flex items-center gap-1">Saved ✓</span>
           )}
         </div>
-        <Input
-          type="date"
-          value={followupDate}
-          onChange={(e) => saveFollowupDate(e.target.value)}
-          className="max-w-xs"
-        />
-        {isOverdue(followupDate) && (
-          <div className="flex items-center gap-1 text-warning text-xs">
-            <AlertTriangle className="h-3 w-3" />
-            <span>Follow up overdue</span>
-          </div>
-        )}
-      </div>
-
-      {/* Next Action */}
-      <div className="rounded-lg border border-border p-4 space-y-3">
-        <h3 className="text-sm font-medium">Next Action</h3>
         <div className="space-y-2">
           <Input
-            placeholder="e.g. Follow up on proposal"
+            placeholder="e.g. Call James re Q2 hiring plan / Send intro deck / Follow up on terms"
             value={nextAction}
-            onChange={(e) => setNextAction(e.target.value)}
+            onChange={(e) => handleActionTextChange(e.target.value)}
+            onBlur={handleActionTextBlur}
           />
           <div className="flex gap-2">
             <Input
               type="date"
               value={dueDate}
-              onChange={(e) => setDueDate(e.target.value)}
+              onChange={(e) => handleDueDateChange(e.target.value)}
+              placeholder="Select date"
               className="flex-1"
             />
-            <Button size="sm" onClick={saveNextAction}>Save</Button>
             {nextAction && dueDate && (
               <a
                 href={buildCalendarUrl(nextAction, dueDate, client.company_name)}
@@ -481,7 +482,7 @@ function ClientDetailView({ client, onUpdate, onDelete }: {
               </a>
             )}
           </div>
-          {isOverdue(client.next_action_due_date) && client.next_action && (
+          {isOverdue(dueDate) && nextAction && (
             <div className="flex items-center gap-1 text-warning text-xs">
               <AlertTriangle className="h-3 w-3" />
               <span>This action is overdue</span>
