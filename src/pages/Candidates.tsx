@@ -399,6 +399,8 @@ export default function CandidatesPage() {
   const [detailOpen, setDetailOpen] = useState(false);
   // Track which cell is being edited: "candidateId:field"
   const [editingCell, setEditingCell] = useState<string | null>(null);
+  // Track which candidate's re-engage editor is open (just-set Hold or already Hold)
+  const [reengageOpenForId, setReengageOpenForId] = useState<string | null>(null);
   const [touchpointCandidate, setTouchpointCandidate] = useState<Candidate | null>(null);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const lastClickedIndex = useRef<number | null>(null);
