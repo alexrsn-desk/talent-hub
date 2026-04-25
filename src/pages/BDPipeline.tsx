@@ -284,8 +284,7 @@ function ClientDetailView({ client, onUpdate, onDelete }: {
 }) {
   const [nextAction, setNextAction] = useState(client.next_action || "");
   const [dueDate, setDueDate] = useState(client.next_action_due_date || "");
-  const [followupDate, setFollowupDate] = useState(client.next_followup_date || "");
-  const [followupSaved, setFollowupSaved] = useState(false);
+  const [actionSaved, setActionSaved] = useState(false);
   const [heat, setHeat] = useState((client.heat || "warm").toLowerCase());
   const [heatSaved, setHeatSaved] = useState(false);
   const { data: contacts = [] } = useContacts(client.id);
@@ -295,19 +294,34 @@ function ClientDetailView({ client, onUpdate, onDelete }: {
   const [newContactName, setNewContactName] = useState("");
   const [newContactTitle, setNewContactTitle] = useState("");
 
-  const saveNextAction = async () => {
-    await onUpdate({
-      next_action: nextAction || null,
-      next_action_due_date: dueDate || null,
-      last_activity_date: new Date().toISOString().split("T")[0],
-    });
+  const flashSaved = () => {
+    setActionSaved(true);
+    setTimeout(() => setActionSaved(false), 2000);
   };
 
-  const saveFollowupDate = async (value: string) => {
-    setFollowupDate(value);
-    await onUpdate({ next_followup_date: value || null });
-    setFollowupSaved(true);
-    setTimeout(() => setFollowupSaved(false), 2000);
+  // Debounced save when text changes
+  const persistAction = async (text: string, date: string) => {
+    await onUpdate({
+      next_action: text || null,
+      next_action_due_date: date || null,
+      last_activity_date: new Date().toISOString().split("T")[0],
+    });
+    flashSaved();
+  };
+
+  const handleActionTextChange = (val: string) => {
+    setNextAction(val);
+  };
+
+  const handleActionTextBlur = () => {
+    if ((nextAction || "") !== (client.next_action || "")) {
+      persistAction(nextAction, dueDate);
+    }
+  };
+
+  const handleDueDateChange = (val: string) => {
+    setDueDate(val);
+    persistAction(nextAction, val);
   };
 
   const saveHeat = async (value: string) => {
