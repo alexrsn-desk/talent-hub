@@ -383,6 +383,16 @@ function ClientDetailView({ client, onUpdate, onDelete }: {
               ))}
             </SelectContent>
           </Select>
+          <AddToSequencePanel
+            entityType="client"
+            entityId={client.id}
+            entityName={client.company_name}
+            trigger={
+              <Button size="sm" variant="outline" className="gap-1.5">
+                <GitBranch className="h-3.5 w-3.5" /> Add to Sequence
+              </Button>
+            }
+          />
           <Button variant="ghost" size="icon" onClick={onDelete}>
             <Trash2 className="h-4 w-4 text-destructive" />
           </Button>
