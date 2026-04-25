@@ -15,6 +15,7 @@ import { ClientPortalInvite } from "@/components/ClientPortalInvite";
 import { CallPrepButton } from "@/components/CallPrep";
 import { ClickToEditField } from "@/components/ClickToEditField";
 import { SummaryField } from "@/components/SummaryField";
+import { ConversationPrompts } from "@/components/ConversationPrompts";
 import { toast } from "sonner";
 
 const STATUSES = ["Active", "Warm", "Cold", "Target"] as const;
@@ -336,6 +337,8 @@ function ClientFullView({ client, onBack, onUpdate, onDelete }: {
           await onUpdate({ summary: next || null } as any);
         }}
       />
+
+      <ConversationPrompts entityType="client" entityId={client.id} />
 
       <Tabs defaultValue="contacts">
         <TabsList>
