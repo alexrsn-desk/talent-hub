@@ -119,7 +119,7 @@ export function AddToSequencePanel({ candidateId, candidateName, entityType, ent
         onClick={(e) => e.stopPropagation()}
       >
         <div className="p-3 border-b border-border">
-          <p className="text-sm font-medium mb-2">Add {candidateName} to a sequence</p>
+          <p className="text-sm font-medium mb-2">Add {resolvedName} to a sequence</p>
           <div className="relative">
             <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
             <Input
