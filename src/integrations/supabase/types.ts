@@ -293,6 +293,8 @@ export type Database = {
           priority_flagged_at: string | null
           priority_followup_date: string | null
           priority_reason: string | null
+          reengage_date: string | null
+          reengage_reason: string | null
           salary_current: number | null
           salary_expectation: number | null
           source: string | null
@@ -318,6 +320,8 @@ export type Database = {
           priority_flagged_at?: string | null
           priority_followup_date?: string | null
           priority_reason?: string | null
+          reengage_date?: string | null
+          reengage_reason?: string | null
           salary_current?: number | null
           salary_expectation?: number | null
           source?: string | null
@@ -343,6 +347,8 @@ export type Database = {
           priority_flagged_at?: string | null
           priority_followup_date?: string | null
           priority_reason?: string | null
+          reengage_date?: string | null
+          reengage_reason?: string | null
           salary_current?: number | null
           salary_expectation?: number | null
           source?: string | null
@@ -534,6 +540,8 @@ export type Database = {
           name: string
           personal_email: string | null
           phone: string | null
+          reengage_date: string | null
+          reengage_reason: string | null
           status: string
           summary: string | null
         }
@@ -551,6 +559,8 @@ export type Database = {
           name: string
           personal_email?: string | null
           phone?: string | null
+          reengage_date?: string | null
+          reengage_reason?: string | null
           status?: string
           summary?: string | null
         }
@@ -568,6 +578,8 @@ export type Database = {
           name?: string
           personal_email?: string | null
           phone?: string | null
+          reengage_date?: string | null
+          reengage_reason?: string | null
           status?: string
           summary?: string | null
         }

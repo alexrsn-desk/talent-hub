@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useCallback } from "react";
+import { useState, useRef, useEffect, useCallback, Fragment } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -8,7 +8,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Label } from "@/components/ui/label";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Plus, Search, Star, ClipboardList, Phone, BriefcaseBusiness, Check } from "lucide-react";
+import { Plus, Search, Star, ClipboardList, Phone, BriefcaseBusiness, Check, CalendarClock } from "lucide-react";
 import { useCandidates, useCreateCandidate, useUpdateCandidate, useDeleteCandidate, useJobs, useCreateCandidateJob, useCandidateJobs, useCreateNote, type Candidate } from "@/hooks/use-data";
 import { Textarea } from "@/components/ui/textarea";
 import { PriorityStarIcon } from "@/components/PriorityFlag";
@@ -17,6 +17,7 @@ import { CandidateContextMenu } from "@/components/CandidateContextMenu";
 import { LogTouchpointModal } from "@/components/LogTouchpointModal";
 import { CandidateBulkActionBar } from "@/components/CandidateBulkActionBar";
 import { AddToSequencePanel } from "@/components/AddToSequencePanel";
+import { ReengageBadge, ReengageInlineEditor } from "@/components/ReengageDate";
 import { logActivity } from "@/lib/activity-log";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
@@ -131,6 +132,7 @@ function InlineEditCell({
 // --- Inline status cell ---
 function InlineStatusCell({
   value,
+  reengageDate,
   candidateId,
   onSave,
   isEditing,
@@ -138,6 +140,7 @@ function InlineStatusCell({
   onStopEdit,
 }: {
   value: string;
+  reengageDate?: string | null;
   candidateId: string;
   onSave: (field: string, newValue: string, oldValue: string) => Promise<void>;
   isEditing: boolean;
@@ -172,20 +175,23 @@ function InlineStatusCell({
   }
 
   return (
-    <Badge
-      variant="secondary"
-      className={cn(
-        statusColor[value],
-        "cursor-pointer transition-all",
-        flash && "bg-green-500/20"
-      )}
-      onClick={(e) => {
-        e.stopPropagation();
-        onStartEdit();
-      }}
-    >
-      {value}
-    </Badge>
+    <div className="flex items-center gap-1.5 flex-wrap">
+      <Badge
+        variant="secondary"
+        className={cn(
+          statusColor[value],
+          "cursor-pointer transition-all",
+          flash && "bg-green-500/20"
+        )}
+        onClick={(e) => {
+          e.stopPropagation();
+          onStartEdit();
+        }}
+      >
+        {value}
+      </Badge>
+      {value === "On Hold" && reengageDate && <ReengageBadge date={reengageDate} />}
+    </div>
   );
 }
 
@@ -393,6 +399,8 @@ export default function CandidatesPage() {
   const [detailOpen, setDetailOpen] = useState(false);
   // Track which cell is being edited: "candidateId:field"
   const [editingCell, setEditingCell] = useState<string | null>(null);
+  // Track which candidate's re-engage editor is open (just-set Hold or already Hold)
+  const [reengageOpenForId, setReengageOpenForId] = useState<string | null>(null);
   const [touchpointCandidate, setTouchpointCandidate] = useState<Candidate | null>(null);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const lastClickedIndex = useRef<number | null>(null);
@@ -543,6 +551,16 @@ export default function CandidatesPage() {
         },
       });
     }
+
+    // Auto-open re-engage editor when Hold status is selected
+    if (field === "status" && newValue === "On Hold") {
+      setReengageOpenForId(candidateId);
+    }
+    // Clear re-engage data when leaving Hold
+    if (field === "status" && oldValue === "On Hold" && newValue !== "On Hold") {
+      await updateCandidate.mutateAsync({ id: candidateId, reengage_date: null, reengage_reason: null } as any);
+      setReengageOpenForId(null);
+    }
   }, [updateCandidate]);
 
   const cellKey = (id: string, field: string) => `${id}:${field}`;
@@ -652,13 +670,26 @@ export default function CandidatesPage() {
                        <span className="font-medium truncate">{c.name}</span>
                      </div>
                      {c.job_title && <p className="text-xs text-muted-foreground truncate">{c.job_title}{c.current_employer ? ` at ${c.current_employer}` : ""}</p>}
-                     <div className="flex items-center gap-2 mt-1 flex-wrap">
-                       <Badge variant="secondary" className={cn("text-[10px]", statusColor[c.status])}>{c.status}</Badge>
-                       {c.location && <span className="text-[10px] text-muted-foreground">{c.location}</span>}
-                       {c.salary_current ? <span className="text-[10px] text-muted-foreground">£{c.salary_current.toLocaleString()}</span> : c.salary_expectation ? <span className="text-[10px] text-muted-foreground">£{Math.round(c.salary_expectation / 1000)}k exp</span> : null}
-                     </div>
-                   </div>
-                 </div>
+                      <div className="flex items-center gap-2 mt-1 flex-wrap">
+                        <Badge variant="secondary" className={cn("text-[10px]", statusColor[c.status])}>{c.status}</Badge>
+                        {c.status === "On Hold" && c.reengage_date && <ReengageBadge date={c.reengage_date} />}
+                        {c.location && <span className="text-[10px] text-muted-foreground">{c.location}</span>}
+                        {c.salary_current ? <span className="text-[10px] text-muted-foreground">£{c.salary_current.toLocaleString()}</span> : c.salary_expectation ? <span className="text-[10px] text-muted-foreground">£{Math.round(c.salary_expectation / 1000)}k exp</span> : null}
+                      </div>
+                    </div>
+                  </div>
+                  {c.status === "On Hold" && (reengageOpenForId === c.id || !c.reengage_date) && (
+                    <ReengageInlineEditor
+                      date={c.reengage_date}
+                      reason={c.reengage_reason}
+                      autoOpen={!c.reengage_date}
+                      onSave={async (date, reason) => {
+                        await updateCandidate.mutateAsync({ id: c.id, reengage_date: date, reengage_reason: reason } as any);
+                        if (date) setReengageOpenForId(null);
+                        toast.success(date ? "Re-engage date saved" : "Re-engage cleared");
+                      }}
+                    />
+                  )}
                  <div className="flex items-center justify-end gap-1 border-t border-border/50 pt-2 -mb-1">
                    <RowPriorityToggle candidate={c} onToggle={handleTogglePriority} />
                    <RowTouchpointButton candidate={c} onOpen={handleOpenTouchpoint} />
@@ -702,8 +733,8 @@ export default function CandidatesPage() {
               ) : filtered.map((c, idx) => {
                 const isSelected = selectedIds.has(c.id);
                 return (
+                <Fragment key={c.id}>
                 <tr
-                  key={c.id}
                   className={cn(
                     "group border-b border-border hover:bg-muted/20 transition-colors",
                     isSelected && "bg-primary/5"
@@ -787,12 +818,21 @@ export default function CandidatesPage() {
                   <td className="px-4 py-3">
                     <InlineStatusCell
                       value={c.status}
+                      reengageDate={c.reengage_date}
                       candidateId={c.id}
                       onSave={(f, nv, ov) => handleInlineSave(c.id, f, nv, ov)}
                       isEditing={editingCell === cellKey(c.id, "status")}
                       onStartEdit={() => setEditingCell(cellKey(c.id, "status"))}
                       onStopEdit={() => setEditingCell(null)}
                     />
+                    {c.status === "On Hold" && !c.reengage_date && reengageOpenForId !== c.id && (
+                      <button
+                        className="mt-1 text-[10px] text-primary hover:underline flex items-center gap-1"
+                        onClick={(e) => { e.stopPropagation(); setReengageOpenForId(c.id); }}
+                      >
+                        <CalendarClock className="h-3 w-3" /> Set re-engage date
+                      </button>
+                    )}
                   </td>
                    <td className="px-4 py-3">
                      <div className="flex items-center gap-2">
@@ -808,6 +848,23 @@ export default function CandidatesPage() {
                      </div>
                    </td>
                 </tr>
+                {(reengageOpenForId === c.id || (c.status === "On Hold" && c.reengage_date && false)) && (
+                  <tr key={`${c.id}-reengage`} className="bg-muted/10 border-b border-border">
+                    <td colSpan={8} className="px-4 py-3">
+                      <ReengageInlineEditor
+                        date={c.reengage_date}
+                        reason={c.reengage_reason}
+                        autoOpen={!c.reengage_date}
+                        onSave={async (date, reason) => {
+                          await updateCandidate.mutateAsync({ id: c.id, reengage_date: date, reengage_reason: reason } as any);
+                          if (date) setReengageOpenForId(null);
+                          toast.success(date ? "Re-engage date saved" : "Re-engage cleared");
+                        }}
+                      />
+                    </td>
+                  </tr>
+                )}
+                </Fragment>
                 );
               })}
             </tbody>

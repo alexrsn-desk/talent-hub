@@ -288,6 +288,18 @@ serve(async (req) => {
         followUpDate: c.priority_followup_date,
         daysSinceFlagged: c.priority_flagged_at ? Math.floor((Date.now() - new Date(c.priority_flagged_at).getTime()) / (1000 * 60 * 60 * 24)) : null,
       })),
+      reengageCandidatesDue: allCandidates
+        .filter((c: any) => c.status === "On Hold" && c.reengage_date && c.reengage_date <= today)
+        .map((c: any) => {
+          const lastNote = notes.find((n: any) => n.candidate_id === c.id);
+          return {
+            name: c.name,
+            reengageDate: c.reengage_date,
+            reason: c.reengage_reason,
+            lastSpoke: lastNote?.created_at?.split("T")[0] || null,
+            daysOverdue: Math.floor((Date.now() - new Date(c.reengage_date).getTime()) / dayMs),
+          };
+        }),
       staleRecords: staleClients,
     };
 

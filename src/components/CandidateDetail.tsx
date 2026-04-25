@@ -16,7 +16,8 @@ import { SummaryField } from "@/components/SummaryField";
 import { TagsSection } from "@/components/TagsSection";
 import { ActiveSequencesSection } from "@/components/ActiveSequencesSection";
 import { AddToSequencePanel } from "@/components/AddToSequencePanel";
-import { GitBranch } from "lucide-react";
+import { ReengageInlineEditor, formatReengageDate } from "@/components/ReengageDate";
+import { GitBranch, CalendarClock } from "lucide-react";
 import { Label } from "@/components/ui/label";
 import { logActivity } from "@/lib/activity-log";
 import { supabase } from "@/integrations/supabase/client";
@@ -196,6 +197,29 @@ export function CandidateDetail({ candidate, onUpdate, onDelete }: Props) {
         <div className="flex items-center gap-2 rounded-lg border border-red-500/40 bg-red-500/10 px-4 py-3 text-sm text-red-400">
           <Ban className="h-5 w-5 shrink-0" />
           <span className="font-medium">⛔ Do Not Contact — this candidate has requested no further contact</span>
+        </div>
+      )}
+
+      {/* On Hold Re-engage Banner */}
+      {candidate.status === "On Hold" && (
+        <div className="rounded-lg border border-amber-500/40 bg-amber-500/10 px-4 py-3 space-y-2">
+          <div className="flex items-center gap-2 text-sm text-amber-500">
+            <CalendarClock className="h-4 w-4 shrink-0" />
+            <span className="font-medium">
+              On hold — {candidate.reengage_date ? `re-engage ${formatReengageDate(candidate.reengage_date)}` : "no re-engage date set"}
+            </span>
+          </div>
+          {candidate.reengage_reason && (
+            <p className="text-xs text-amber-500/80 pl-6">{candidate.reengage_reason}</p>
+          )}
+          <ReengageInlineEditor
+            date={candidate.reengage_date}
+            reason={candidate.reengage_reason}
+            onSave={async (date, reason) => {
+              await onUpdate({ reengage_date: date, reengage_reason: reason } as any);
+              toast.success(date ? "Re-engage date saved" : "Re-engage cleared");
+            }}
+          />
         </div>
       )}
 

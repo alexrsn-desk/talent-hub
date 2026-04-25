@@ -14,6 +14,8 @@ import { CallPrepButton } from "@/components/CallPrep";
 import { ClickToEditField } from "@/components/ClickToEditField";
 import { SummaryField } from "@/components/SummaryField";
 import { ConversationPrompts } from "@/components/ConversationPrompts";
+import { ReengageBadge, ReengageInlineEditor, formatReengageDate } from "@/components/ReengageDate";
+import { CalendarClock } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -182,7 +184,10 @@ export default function ContactsPage() {
                   <td className="px-4 py-3 text-muted-foreground">{clientMap[c.client_id]?.company_name || "—"}</td>
                   <td className="px-4 py-3 text-muted-foreground">{c.email || "—"}</td>
                   <td className="px-4 py-3">
-                    <Badge variant="secondary" className={statusColor[c.status] || ""}>{c.status}</Badge>
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      <Badge variant="secondary" className={statusColor[c.status] || ""}>{c.status}</Badge>
+                      {c.status === "Cold" && c.reengage_date && <ReengageBadge date={c.reengage_date} />}
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -209,6 +214,11 @@ function ContactFullView({ contact, client, onBack, onDelete, onContactUpdate }:
       const parts = value.trim().split(/\s+/);
       updates.first_name = parts[0];
       updates.last_name = parts.slice(1).join(" ") || null;
+    }
+    // Clear re-engage data when status leaves Cold
+    if (field === "status" && contact.status === "Cold" && value !== "Cold") {
+      updates.reengage_date = null;
+      updates.reengage_reason = null;
     }
     await supabase.from("contacts").update(updates).eq("id", contact.id);
     onContactUpdate({ ...contact, ...updates });
@@ -240,11 +250,36 @@ function ContactFullView({ contact, client, onBack, onDelete, onContactUpdate }:
             <PhoneCall className="h-3.5 w-3.5 mr-1" /> Log Touchpoint
           </Button>
           <Badge variant="secondary" className={statusColor[contact.status] || ""}>{contact.status}</Badge>
+          {contact.status === "Cold" && contact.reengage_date && <ReengageBadge date={contact.reengage_date} />}
           <Button variant="ghost" size="icon" onClick={onDelete}>
             <Trash2 className="h-4 w-4 text-destructive" />
           </Button>
         </div>
       </div>
+
+      {/* Cold Re-engage Banner */}
+      {contact.status === "Cold" && (
+        <div className="rounded-lg border border-amber-500/40 bg-amber-500/10 px-4 py-3 space-y-2">
+          <div className="flex items-center gap-2 text-sm text-amber-500">
+            <CalendarClock className="h-4 w-4 shrink-0" />
+            <span className="font-medium">
+              Cold — {contact.reengage_date ? `re-engage ${formatReengageDate(contact.reengage_date)}` : "no re-engage date set"}
+            </span>
+          </div>
+          {contact.reengage_reason && (
+            <p className="text-xs text-amber-500/80 pl-6">{contact.reengage_reason}</p>
+          )}
+          <ReengageInlineEditor
+            date={contact.reengage_date}
+            reason={contact.reengage_reason}
+            onSave={async (date, reason) => {
+              await supabase.from("contacts").update({ reengage_date: date, reengage_reason: reason }).eq("id", contact.id);
+              onContactUpdate({ ...contact, reengage_date: date, reengage_reason: reason } as any);
+              toast.success(date ? "Re-engage date saved" : "Re-engage cleared");
+            }}
+          />
+        </div>
+      )}
 
       {/* Contact info — click to edit */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-sm rounded-lg border border-border p-4">

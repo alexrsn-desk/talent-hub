@@ -25,6 +25,8 @@ export type Candidate = {
   priority_reason: string | null;
   priority_flagged_at: string | null;
   priority_followup_date: string | null;
+  reengage_date?: string | null;
+  reengage_reason?: string | null;
   created_at: string;
   updated_at: string;
 };
@@ -511,6 +513,8 @@ export type Contact = {
   mobile_phone: string | null;
   direct_phone: string | null;
   summary?: string | null;
+  reengage_date?: string | null;
+  reengage_reason?: string | null;
   created_at: string;
 };
 

@@ -34,6 +34,8 @@ serve(async (req) => {
       { data: recentNotes },
       { data: overdueFollowUps },
       { data: todayFollowUps },
+      { data: candidates },
+      { data: contacts },
     ] = await Promise.all([
       sb.from("candidate_jobs").select("*, candidates(*), jobs(*, clients(*))"),
       sb.from("jobs").select("*, clients(*)"),
@@ -41,6 +43,8 @@ serve(async (req) => {
       sb.from("notes").select("*").order("created_at", { ascending: false }).limit(500),
       sb.from("notes").select("*, candidates(*), clients(*)").not("follow_up_date", "is", null).lt("follow_up_date", today),
       sb.from("notes").select("*, candidates(*), clients(*)").eq("follow_up_date", today),
+      sb.from("candidates").select("id, name, status, reengage_date, reengage_reason"),
+      sb.from("contacts").select("id, name, status, client_id, reengage_date, reengage_reason"),
     ]);
 
     // Build desk snapshot for AI
@@ -123,6 +127,37 @@ serve(async (req) => {
 
     const recentJobsOpened = allJobs.filter((j: any) => j.date_opened >= fourteenDaysAgo);
 
+    // Re-engage candidates: status On Hold + reengage_date today/past
+    const reengageCandidatesDue = (candidates || [])
+      .filter((c: any) => c.status === "On Hold" && c.reengage_date && c.reengage_date <= today)
+      .map((c: any) => {
+        const cNotes = notes.filter((n: any) => n.candidate_id === c.id);
+        const lastSpoke = cNotes[0]?.created_at?.split("T")[0] || null;
+        const daysOverdue = Math.floor((now.getTime() - new Date(c.reengage_date).getTime()) / 86400000);
+        return {
+          name: c.name,
+          reengageDate: c.reengage_date,
+          reason: c.reengage_reason || null,
+          lastSpoke,
+          daysOverdue,
+        };
+      });
+
+    // Re-engage contacts: status Cold + reengage_date today/past
+    const reengageContactsDue = (contacts || [])
+      .filter((c: any) => c.status === "Cold" && c.reengage_date && c.reengage_date <= today)
+      .map((c: any) => {
+        const company = allClients.find((cl: any) => cl.id === c.client_id)?.company_name;
+        const daysOverdue = Math.floor((now.getTime() - new Date(c.reengage_date).getTime()) / 86400000);
+        return {
+          name: c.name,
+          company,
+          reengageDate: c.reengage_date,
+          reason: c.reengage_reason || null,
+          daysOverdue,
+        };
+      });
+
     // GREEN FLAGS data
     const longlistNotContacted = cjs.filter((cj: any) => {
       if (cj.stage !== "Longlist") return false;
@@ -159,6 +194,8 @@ serve(async (req) => {
           company: cj.jobs?.clients?.company_name,
         })),
         bdFollowUpsOverdue: bdFollowupsOverdue,
+        reengageCandidatesDue,
+        reengageContactsDue,
       },
       amberFlags: {
         jobsNoCVsSent7Days: jobsNoSubmissions.map((j: any) => ({
