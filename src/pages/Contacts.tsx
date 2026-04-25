@@ -245,11 +245,36 @@ function ContactFullView({ contact, client, onBack, onDelete, onContactUpdate }:
             <PhoneCall className="h-3.5 w-3.5 mr-1" /> Log Touchpoint
           </Button>
           <Badge variant="secondary" className={statusColor[contact.status] || ""}>{contact.status}</Badge>
+          {contact.status === "Cold" && contact.reengage_date && <ReengageBadge date={contact.reengage_date} />}
           <Button variant="ghost" size="icon" onClick={onDelete}>
             <Trash2 className="h-4 w-4 text-destructive" />
           </Button>
         </div>
       </div>
+
+      {/* Cold Re-engage Banner */}
+      {contact.status === "Cold" && (
+        <div className="rounded-lg border border-amber-500/40 bg-amber-500/10 px-4 py-3 space-y-2">
+          <div className="flex items-center gap-2 text-sm text-amber-500">
+            <CalendarClock className="h-4 w-4 shrink-0" />
+            <span className="font-medium">
+              Cold — {contact.reengage_date ? `re-engage ${formatReengageDate(contact.reengage_date)}` : "no re-engage date set"}
+            </span>
+          </div>
+          {contact.reengage_reason && (
+            <p className="text-xs text-amber-500/80 pl-6">{contact.reengage_reason}</p>
+          )}
+          <ReengageInlineEditor
+            date={contact.reengage_date}
+            reason={contact.reengage_reason}
+            onSave={async (date, reason) => {
+              await supabase.from("contacts").update({ reengage_date: date, reengage_reason: reason }).eq("id", contact.id);
+              onContactUpdate({ ...contact, reengage_date: date, reengage_reason: reason } as any);
+              toast.success(date ? "Re-engage date saved" : "Re-engage cleared");
+            }}
+          />
+        </div>
+      )}
 
       {/* Contact info — click to edit */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-sm rounded-lg border border-border p-4">
