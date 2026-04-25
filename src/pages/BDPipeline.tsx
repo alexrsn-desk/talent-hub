@@ -39,14 +39,26 @@ const stageHeaderColor: Record<string, string> = {
   "Active Client": "text-green-400",
 };
 
-function isOverdue(dueDate: string | null): boolean {
+function isOverdue(dueDate: string | null | undefined): boolean {
   if (!dueDate) return false;
   return new Date(dueDate) < new Date(new Date().toISOString().split("T")[0]);
 }
 
-function formatDate(date: string | null): string {
+function formatDate(date: string | null | undefined): string {
   if (!date) return "—";
   return new Date(date).toLocaleDateString("en-GB", { day: "numeric", month: "short" });
+}
+
+function formatRelative(date: string | null | undefined): string {
+  if (!date) return "—";
+  const today = new Date(new Date().toISOString().split("T")[0]);
+  const d = new Date(date);
+  const diffDays = Math.round((today.getTime() - d.getTime()) / 86400000);
+  if (diffDays === 0) return "today";
+  if (diffDays === 1) return "yesterday";
+  if (diffDays > 0) return `${diffDays} days ago`;
+  if (diffDays === -1) return "tomorrow";
+  return `in ${Math.abs(diffDays)} days`;
 }
 
 function buildCalendarUrl(title: string, date: string, companyName: string): string {
@@ -191,16 +203,16 @@ export default function BDPipelinePage() {
                                   </div>
                                 )}
 
-                                <div className="mt-2 space-y-1">
-                                  {client.last_activity_date && (
-                                    <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                                      <CalendarIcon className="h-3 w-3" />
-                                      <span>Last: {formatDate(client.last_activity_date)}</span>
-                                    </div>
-                                  )}
+                                <div className="mt-2 space-y-0.5">
+                                  <p className="text-xs text-muted-foreground">
+                                    Last: {client.last_activity_date ? formatRelative(client.last_activity_date) : "—"}
+                                  </p>
+                                  <p className="text-xs text-muted-foreground">
+                                    Next: {client.next_followup_date ? formatDate(client.next_followup_date) : "—"}
+                                  </p>
 
                                   {client.next_action && (
-                                    <div className={`flex items-start gap-1 text-xs ${
+                                    <div className={`flex items-start gap-1 pt-1 text-xs ${
                                       isOverdue(client.next_action_due_date)
                                         ? "text-warning"
                                         : "text-muted-foreground"
@@ -214,18 +226,6 @@ export default function BDPipelinePage() {
                                           <span className="ml-1 opacity-70">· {formatDate(client.next_action_due_date)}</span>
                                         )}
                                       </span>
-                                      {client.next_action_due_date && (
-                                        <a
-                                          href={buildCalendarUrl(client.next_action, client.next_action_due_date, client.company_name)}
-                                          target="_blank"
-                                          rel="noopener noreferrer"
-                                          onClick={(e) => e.stopPropagation()}
-                                          className="flex-shrink-0 hover:text-primary transition-colors"
-                                          title="Add to Google Calendar"
-                                        >
-                                          <CalendarPlus className="h-3 w-3" />
-                                        </a>
-                                      )}
                                     </div>
                                   )}
                                 </div>
@@ -273,6 +273,8 @@ function ClientDetailView({ client, onUpdate, onDelete }: {
 }) {
   const [nextAction, setNextAction] = useState(client.next_action || "");
   const [dueDate, setDueDate] = useState(client.next_action_due_date || "");
+  const [followupDate, setFollowupDate] = useState(client.next_followup_date || "");
+  const [followupSaved, setFollowupSaved] = useState(false);
   const { data: contacts = [] } = useContacts(client.id);
   const createContact = useCreateContact();
   const deleteContact = useDeleteContact();
@@ -286,6 +288,13 @@ function ClientDetailView({ client, onUpdate, onDelete }: {
       next_action_due_date: dueDate || null,
       last_activity_date: new Date().toISOString().split("T")[0],
     });
+  };
+
+  const saveFollowupDate = async (value: string) => {
+    setFollowupDate(value);
+    await onUpdate({ next_followup_date: value || null });
+    setFollowupSaved(true);
+    setTimeout(() => setFollowupSaved(false), 2000);
   };
 
   return (
@@ -325,6 +334,28 @@ function ClientDetailView({ client, onUpdate, onDelete }: {
             <a href={client.linkedin_url} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline flex items-center gap-1">
               <ExternalLink className="h-3 w-3" /> LinkedIn
             </a>
+          </div>
+        )}
+      </div>
+
+      {/* Next Follow Up */}
+      <div className="rounded-lg border border-border p-4 space-y-2">
+        <div className="flex items-center justify-between">
+          <h3 className="text-sm font-medium">Next Follow Up</h3>
+          {followupSaved && (
+            <span className="text-xs text-success flex items-center gap-1">Saved ✓</span>
+          )}
+        </div>
+        <Input
+          type="date"
+          value={followupDate}
+          onChange={(e) => saveFollowupDate(e.target.value)}
+          className="max-w-xs"
+        />
+        {isOverdue(followupDate) && (
+          <div className="flex items-center gap-1 text-warning text-xs">
+            <AlertTriangle className="h-3 w-3" />
+            <span>Follow up overdue</span>
           </div>
         )}
       </div>

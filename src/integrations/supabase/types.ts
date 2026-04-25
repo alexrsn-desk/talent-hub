@@ -466,6 +466,7 @@ export type Database = {
           location: string | null
           next_action: string | null
           next_action_due_date: string | null
+          next_followup_date: string | null
           phone: string | null
           sector: string | null
           status: string
@@ -485,6 +486,7 @@ export type Database = {
           location?: string | null
           next_action?: string | null
           next_action_due_date?: string | null
+          next_followup_date?: string | null
           phone?: string | null
           sector?: string | null
           status?: string
@@ -504,6 +506,7 @@ export type Database = {
           location?: string | null
           next_action?: string | null
           next_action_due_date?: string | null
+          next_followup_date?: string | null
           phone?: string | null
           sector?: string | null
           status?: string

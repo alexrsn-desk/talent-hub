@@ -100,6 +100,27 @@ serve(async (req) => {
       return !c.last_activity_date || c.last_activity_date < tenDaysAgo;
     });
 
+    // BD follow-ups overdue: next_followup_date passed AND no touchpoint logged after that date
+    const bdFollowupsOverdue = allClients
+      .filter((c: any) => c.next_followup_date && c.next_followup_date < today)
+      .map((c: any) => {
+        const clientNotes = notes.filter((n: any) => n.client_id === c.id);
+        const lastTouchAfter = clientNotes.find(
+          (n: any) => n.created_at?.split("T")[0] >= c.next_followup_date
+        );
+        if (lastTouchAfter) return null;
+        const daysOverdue = Math.floor(
+          (now.getTime() - new Date(c.next_followup_date).getTime()) / 86400000
+        );
+        return {
+          company: c.company_name,
+          contact: c.contact_name,
+          dueDate: c.next_followup_date,
+          daysOverdue,
+        };
+      })
+      .filter(Boolean);
+
     const recentJobsOpened = allJobs.filter((j: any) => j.date_opened >= fourteenDaysAgo);
 
     // GREEN FLAGS data
@@ -137,6 +158,7 @@ serve(async (req) => {
           job: cj.jobs?.title,
           company: cj.jobs?.clients?.company_name,
         })),
+        bdFollowUpsOverdue: bdFollowupsOverdue,
       },
       amberFlags: {
         jobsNoCVsSent7Days: jobsNoSubmissions.map((j: any) => ({
