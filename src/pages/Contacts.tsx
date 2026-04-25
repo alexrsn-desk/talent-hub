@@ -215,6 +215,11 @@ function ContactFullView({ contact, client, onBack, onDelete, onContactUpdate }:
       updates.first_name = parts[0];
       updates.last_name = parts.slice(1).join(" ") || null;
     }
+    // Clear re-engage data when status leaves Cold
+    if (field === "status" && contact.status === "Cold" && value !== "Cold") {
+      updates.reengage_date = null;
+      updates.reengage_reason = null;
+    }
     await supabase.from("contacts").update(updates).eq("id", contact.id);
     onContactUpdate({ ...contact, ...updates });
   };
