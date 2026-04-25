@@ -805,12 +805,21 @@ export default function CandidatesPage() {
                   <td className="px-4 py-3">
                     <InlineStatusCell
                       value={c.status}
+                      reengageDate={c.reengage_date}
                       candidateId={c.id}
                       onSave={(f, nv, ov) => handleInlineSave(c.id, f, nv, ov)}
                       isEditing={editingCell === cellKey(c.id, "status")}
                       onStartEdit={() => setEditingCell(cellKey(c.id, "status"))}
                       onStopEdit={() => setEditingCell(null)}
                     />
+                    {c.status === "On Hold" && !c.reengage_date && reengageOpenForId !== c.id && (
+                      <button
+                        className="mt-1 text-[10px] text-primary hover:underline flex items-center gap-1"
+                        onClick={(e) => { e.stopPropagation(); setReengageOpenForId(c.id); }}
+                      >
+                        <CalendarClock className="h-3 w-3" /> Set re-engage date
+                      </button>
+                    )}
                   </td>
                    <td className="px-4 py-3">
                      <div className="flex items-center gap-2">
@@ -826,6 +835,23 @@ export default function CandidatesPage() {
                      </div>
                    </td>
                 </tr>
+                {(reengageOpenForId === c.id || (c.status === "On Hold" && c.reengage_date && false)) && (
+                  <tr key={`${c.id}-reengage`} className="bg-muted/10 border-b border-border">
+                    <td colSpan={8} className="px-4 py-3">
+                      <ReengageInlineEditor
+                        date={c.reengage_date}
+                        reason={c.reengage_reason}
+                        autoOpen={!c.reengage_date}
+                        onSave={async (date, reason) => {
+                          await updateCandidate.mutateAsync({ id: c.id, reengage_date: date, reengage_reason: reason } as any);
+                          if (date) setReengageOpenForId(null);
+                          toast.success(date ? "Re-engage date saved" : "Re-engage cleared");
+                        }}
+                      />
+                    </td>
+                  </tr>
+                )}
+                </>
                 );
               })}
             </tbody>
