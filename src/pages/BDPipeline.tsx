@@ -446,45 +446,29 @@ function ClientDetailView({ client, onUpdate, onDelete }: {
         </div>
       </div>
 
-      {/* Next Follow Up */}
-      <div className="rounded-lg border border-border p-4 space-y-2">
+      {/* Next Action */}
+      <div className="rounded-lg border border-border p-4 space-y-3">
         <div className="flex items-center justify-between">
-          <h3 className="text-sm font-medium">Next Follow Up</h3>
-          {followupSaved && (
+          <h3 className="text-sm font-medium">Next Action</h3>
+          {actionSaved && (
             <span className="text-xs text-success flex items-center gap-1">Saved ✓</span>
           )}
         </div>
-        <Input
-          type="date"
-          value={followupDate}
-          onChange={(e) => saveFollowupDate(e.target.value)}
-          className="max-w-xs"
-        />
-        {isOverdue(followupDate) && (
-          <div className="flex items-center gap-1 text-warning text-xs">
-            <AlertTriangle className="h-3 w-3" />
-            <span>Follow up overdue</span>
-          </div>
-        )}
-      </div>
-
-      {/* Next Action */}
-      <div className="rounded-lg border border-border p-4 space-y-3">
-        <h3 className="text-sm font-medium">Next Action</h3>
         <div className="space-y-2">
           <Input
-            placeholder="e.g. Follow up on proposal"
+            placeholder="e.g. Call James re Q2 hiring plan / Send intro deck / Follow up on terms"
             value={nextAction}
-            onChange={(e) => setNextAction(e.target.value)}
+            onChange={(e) => handleActionTextChange(e.target.value)}
+            onBlur={handleActionTextBlur}
           />
           <div className="flex gap-2">
             <Input
               type="date"
               value={dueDate}
-              onChange={(e) => setDueDate(e.target.value)}
+              onChange={(e) => handleDueDateChange(e.target.value)}
+              placeholder="Select date"
               className="flex-1"
             />
-            <Button size="sm" onClick={saveNextAction}>Save</Button>
             {nextAction && dueDate && (
               <a
                 href={buildCalendarUrl(nextAction, dueDate, client.company_name)}
@@ -498,7 +482,7 @@ function ClientDetailView({ client, onUpdate, onDelete }: {
               </a>
             )}
           </div>
-          {isOverdue(client.next_action_due_date) && client.next_action && (
+          {isOverdue(dueDate) && nextAction && (
             <div className="flex items-center gap-1 text-warning text-xs">
               <AlertTriangle className="h-3 w-3" />
               <span>This action is overdue</span>
