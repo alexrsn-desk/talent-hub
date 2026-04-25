@@ -233,9 +233,12 @@ export default function BDPipelinePage() {
                                   <p className="text-xs text-muted-foreground">
                                     Last: {client.last_activity_date ? formatRelative(client.last_activity_date) : "—"}
                                   </p>
-                                  <p className="text-xs text-muted-foreground">
-                                    Next: {client.next_followup_date ? formatDate(client.next_followup_date) : "—"}
-                                  </p>
+                                  {client.next_action && (
+                                    <p className="text-xs text-muted-foreground truncate">
+                                      Next: {client.next_action}
+                                      {client.next_action_due_date ? ` — ${formatDate(client.next_action_due_date)}` : ""}
+                                    </p>
+                                  )}
                                 </div>
                               </div>
                             )}
