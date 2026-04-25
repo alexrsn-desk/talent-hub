@@ -39,14 +39,26 @@ const stageHeaderColor: Record<string, string> = {
   "Active Client": "text-green-400",
 };
 
-function isOverdue(dueDate: string | null): boolean {
+function isOverdue(dueDate: string | null | undefined): boolean {
   if (!dueDate) return false;
   return new Date(dueDate) < new Date(new Date().toISOString().split("T")[0]);
 }
 
-function formatDate(date: string | null): string {
+function formatDate(date: string | null | undefined): string {
   if (!date) return "—";
   return new Date(date).toLocaleDateString("en-GB", { day: "numeric", month: "short" });
+}
+
+function formatRelative(date: string | null | undefined): string {
+  if (!date) return "—";
+  const today = new Date(new Date().toISOString().split("T")[0]);
+  const d = new Date(date);
+  const diffDays = Math.round((today.getTime() - d.getTime()) / 86400000);
+  if (diffDays === 0) return "today";
+  if (diffDays === 1) return "yesterday";
+  if (diffDays > 0) return `${diffDays} days ago`;
+  if (diffDays === -1) return "tomorrow";
+  return `in ${Math.abs(diffDays)} days`;
 }
 
 function buildCalendarUrl(title: string, date: string, companyName: string): string {
