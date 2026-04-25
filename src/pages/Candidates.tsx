@@ -670,13 +670,26 @@ export default function CandidatesPage() {
                        <span className="font-medium truncate">{c.name}</span>
                      </div>
                      {c.job_title && <p className="text-xs text-muted-foreground truncate">{c.job_title}{c.current_employer ? ` at ${c.current_employer}` : ""}</p>}
-                     <div className="flex items-center gap-2 mt-1 flex-wrap">
-                       <Badge variant="secondary" className={cn("text-[10px]", statusColor[c.status])}>{c.status}</Badge>
-                       {c.location && <span className="text-[10px] text-muted-foreground">{c.location}</span>}
-                       {c.salary_current ? <span className="text-[10px] text-muted-foreground">£{c.salary_current.toLocaleString()}</span> : c.salary_expectation ? <span className="text-[10px] text-muted-foreground">£{Math.round(c.salary_expectation / 1000)}k exp</span> : null}
-                     </div>
-                   </div>
-                 </div>
+                      <div className="flex items-center gap-2 mt-1 flex-wrap">
+                        <Badge variant="secondary" className={cn("text-[10px]", statusColor[c.status])}>{c.status}</Badge>
+                        {c.status === "On Hold" && c.reengage_date && <ReengageBadge date={c.reengage_date} />}
+                        {c.location && <span className="text-[10px] text-muted-foreground">{c.location}</span>}
+                        {c.salary_current ? <span className="text-[10px] text-muted-foreground">£{c.salary_current.toLocaleString()}</span> : c.salary_expectation ? <span className="text-[10px] text-muted-foreground">£{Math.round(c.salary_expectation / 1000)}k exp</span> : null}
+                      </div>
+                    </div>
+                  </div>
+                  {c.status === "On Hold" && (reengageOpenForId === c.id || !c.reengage_date) && (
+                    <ReengageInlineEditor
+                      date={c.reengage_date}
+                      reason={c.reengage_reason}
+                      autoOpen={!c.reengage_date}
+                      onSave={async (date, reason) => {
+                        await updateCandidate.mutateAsync({ id: c.id, reengage_date: date, reengage_reason: reason } as any);
+                        if (date) setReengageOpenForId(null);
+                        toast.success(date ? "Re-engage date saved" : "Re-engage cleared");
+                      }}
+                    />
+                  )}
                  <div className="flex items-center justify-end gap-1 border-t border-border/50 pt-2 -mb-1">
                    <RowPriorityToggle candidate={c} onToggle={handleTogglePriority} />
                    <RowTouchpointButton candidate={c} onOpen={handleOpenTouchpoint} />
