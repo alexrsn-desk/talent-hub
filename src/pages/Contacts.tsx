@@ -15,6 +15,8 @@ import { ClickToEditField } from "@/components/ClickToEditField";
 import { SummaryField } from "@/components/SummaryField";
 import { ConversationPrompts } from "@/components/ConversationPrompts";
 import { ReengageBadge, ReengageInlineEditor, formatReengageDate } from "@/components/ReengageDate";
+import { AddToSequencePanel } from "@/components/AddToSequencePanel";
+import { GitBranch } from "lucide-react";
 import { CalendarClock } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -249,6 +251,16 @@ function ContactFullView({ contact, client, onBack, onDelete, onContactUpdate }:
           <Button size="sm" variant="outline" onClick={() => setTouchpointOpen(true)}>
             <PhoneCall className="h-3.5 w-3.5 mr-1" /> Log Touchpoint
           </Button>
+          <AddToSequencePanel
+            entityType="contact"
+            entityId={contact.id}
+            entityName={contact.name}
+            trigger={
+              <Button size="sm" variant="outline" className="gap-1.5">
+                <GitBranch className="h-3.5 w-3.5" /> Add to Sequence
+              </Button>
+            }
+          />
           <Badge variant="secondary" className={statusColor[contact.status] || ""}>{contact.status}</Badge>
           {contact.status === "Cold" && contact.reengage_date && <ReengageBadge date={contact.reengage_date} />}
           <Button variant="ghost" size="icon" onClick={onDelete}>
