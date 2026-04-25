@@ -720,9 +720,8 @@ export default function CandidatesPage() {
               ) : filtered.map((c, idx) => {
                 const isSelected = selectedIds.has(c.id);
                 return (
-                <>
+                <Fragment key={c.id}>
                 <tr
-                  key={c.id}
                   className={cn(
                     "group border-b border-border hover:bg-muted/20 transition-colors",
                     isSelected && "bg-primary/5"
