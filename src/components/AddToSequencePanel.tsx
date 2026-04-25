@@ -5,7 +5,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { GitBranch, Search, Check, ExternalLink, Zap, UserCircle2 } from "lucide-react";
+import { GitBranch, Search, Check, ExternalLink, Zap, UserCircle2, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import {
