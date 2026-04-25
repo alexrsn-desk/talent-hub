@@ -551,6 +551,16 @@ export default function CandidatesPage() {
         },
       });
     }
+
+    // Auto-open re-engage editor when Hold status is selected
+    if (field === "status" && newValue === "On Hold") {
+      setReengageOpenForId(candidateId);
+    }
+    // Clear re-engage data when leaving Hold
+    if (field === "status" && oldValue === "On Hold" && newValue !== "On Hold") {
+      await updateCandidate.mutateAsync({ id: candidateId, reengage_date: null, reengage_reason: null } as any);
+      setReengageOpenForId(null);
+    }
   }, [updateCandidate]);
 
   const cellKey = (id: string, field: string) => `${id}:${field}`;
