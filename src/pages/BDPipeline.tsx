@@ -204,7 +204,16 @@ export default function BDPipelinePage() {
                                   setDetailOpen(true);
                                 }}
                               >
-                                <p className="text-sm font-medium leading-tight">{client.company_name}</p>
+                                <div className="flex items-start justify-between gap-2">
+                                  <p className="text-sm font-medium leading-tight flex-1">{client.company_name}</p>
+                                  <span
+                                    className="text-sm leading-none flex-shrink-0"
+                                    title={`Heat: ${heatLabel(client.heat)}`}
+                                    aria-label={`Heat: ${heatLabel(client.heat)}`}
+                                  >
+                                    {heatIcon(client.heat)}
+                                  </span>
+                                </div>
                                 {(contactsByClient[client.id]?.length > 0 || client.contact_name) && (
                                   <div className="mt-0.5 space-y-0">
                                     {contactsByClient[client.id]?.length > 0 ? (
