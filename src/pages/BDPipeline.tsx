@@ -205,22 +205,22 @@ export default function BDPipelinePage() {
                                 }}
                               >
                                 <div className="flex items-start justify-between gap-2">
-                                  <p className="text-sm font-medium leading-tight flex-1">{client.company_name}</p>
+                                  <p className="text-sm font-semibold leading-tight flex-1">{client.company_name}</p>
                                   <span
-                                    className="text-sm leading-none flex-shrink-0"
+                                    className="text-sm leading-none flex-shrink-0 opacity-80"
                                     title={`Heat: ${heatLabel(client.heat)}`}
                                     aria-label={`Heat: ${heatLabel(client.heat)}`}
                                   >
                                     {heatIcon(client.heat)}
                                   </span>
                                 </div>
+
                                 {(contactsByClient[client.id]?.length > 0 || client.contact_name) && (
-                                  <div className="mt-0.5 space-y-0">
+                                  <div className="mt-0.5">
                                     {contactsByClient[client.id]?.length > 0 ? (
                                       contactsByClient[client.id].map((contact) => (
-                                        <p key={contact.id} className="text-xs text-muted-foreground flex items-center gap-1">
-                                          <Users className="h-2.5 w-2.5 flex-shrink-0" />
-                                          {contact.name}{contact.job_title ? ` · ${contact.job_title}` : ""}
+                                        <p key={contact.id} className="text-xs text-muted-foreground">
+                                          {contact.name}
                                         </p>
                                       ))
                                     ) : client.contact_name ? (
@@ -236,24 +236,6 @@ export default function BDPipelinePage() {
                                   <p className="text-xs text-muted-foreground">
                                     Next: {client.next_followup_date ? formatDate(client.next_followup_date) : "—"}
                                   </p>
-
-                                  {client.next_action && (
-                                    <div className={`flex items-start gap-1 pt-1 text-xs ${
-                                      isOverdue(client.next_action_due_date)
-                                        ? "text-warning"
-                                        : "text-muted-foreground"
-                                    }`}>
-                                      {isOverdue(client.next_action_due_date) && (
-                                        <AlertTriangle className="h-3 w-3 flex-shrink-0 mt-0.5" />
-                                      )}
-                                      <span className="line-clamp-2 flex-1">
-                                        {client.next_action}
-                                        {client.next_action_due_date && (
-                                          <span className="ml-1 opacity-70">· {formatDate(client.next_action_due_date)}</span>
-                                        )}
-                                      </span>
-                                    </div>
-                                  )}
                                 </div>
                               </div>
                             )}
