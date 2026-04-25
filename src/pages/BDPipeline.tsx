@@ -400,6 +400,8 @@ function ClientDetailView({ client, onUpdate, onDelete }: {
         </div>
       </div>
 
+      <ActiveSequencesSection entityType="client" entityId={client.id} entityName={client.company_name} />
+
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 text-sm">
         <div><span className="text-muted-foreground">Email:</span> {client.email || "—"}</div>
         <div><span className="text-muted-foreground">Phone:</span> {client.phone || "—"}</div>
