@@ -5,7 +5,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { GitBranch, Search, Check, ExternalLink, Zap, UserCircle2 } from "lucide-react";
+import { GitBranch, Search, Check, ExternalLink, Zap, UserCircle2, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import {
@@ -70,6 +70,33 @@ export function AddToSequencePanel({ candidateId, candidateName, entityType, ent
 
   const autoSeqs = filtered.filter((s) => s.type === "auto");
   const personalSeqs = filtered.filter((s) => s.type !== "auto");
+
+  // Suggested sequence based on entity type — match first active sequence whose
+  // name corresponds to the recommended template for this kind of person.
+  const suggestionRules: Record<EntityType, { primary: string[]; reason: string }> = {
+    candidate: {
+      primary: ["warm candidate re-engagement", "warm candidate"],
+      reason: "Best fit for candidates you want to keep warm.",
+    },
+    contact: {
+      primary: ["warm senior contact", "bd nurture"],
+      reason: "Ideal for nurturing a senior contact at a prospect company.",
+    },
+    client: {
+      primary: ["post-placement client nurture", "lapsed client reconnect"],
+      reason: "Designed to keep clients engaged after a placement.",
+    },
+  };
+  const rules = suggestionRules[resolvedType];
+  const suggested = useMemo(() => {
+    if (query) return null; // hide suggestion while user is searching
+    const active = sequences.filter((s) => s.status === "active");
+    for (const needle of rules.primary) {
+      const match = active.find((s) => s.name.toLowerCase().includes(needle));
+      if (match) return match;
+    }
+    return null;
+  }, [sequences, rules, query]);
 
   const handleAdd = async (seqId: string, seqName: string) => {
     if (!resolvedId) return;
@@ -146,6 +173,35 @@ export function AddToSequencePanel({ candidateId, candidateName, entityType, ent
             </div>
           ) : (
             <>
+              {suggested && (
+                <div className="border-b border-border/50">
+                  <div className="px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wide flex items-center gap-1.5 bg-muted/20 text-violet-400">
+                    <Sparkles className="h-3 w-3" /> Suggested for {resolvedType}
+                  </div>
+                  <button
+                    className={cn(
+                      "w-full text-left px-3 py-2 text-sm hover:bg-muted/40 transition-colors disabled:cursor-not-allowed",
+                      addedId === suggested.id && "bg-green-500/10"
+                    )}
+                    onClick={() => handleAdd(suggested.id, suggested.name)}
+                    disabled={enroll.isPending || addedId === suggested.id}
+                  >
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="min-w-0 flex-1">
+                        <p className="font-medium text-foreground truncate">{suggested.name}</p>
+                        <p className="text-[11px] text-muted-foreground">{rules.reason}</p>
+                      </div>
+                      {addedId === suggested.id ? (
+                        <Check className="h-4 w-4 text-green-500 shrink-0" />
+                      ) : (
+                        <Badge variant="outline" className="text-[10px] shrink-0 border-violet-500/40 text-violet-400">
+                          Suggested
+                        </Badge>
+                      )}
+                    </div>
+                  </button>
+                </div>
+              )}
               <SequenceSection
                 title="Auto Sequences"
                 icon={<Zap className="h-3 w-3" />}

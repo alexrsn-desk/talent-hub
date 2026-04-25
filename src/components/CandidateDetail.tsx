@@ -381,7 +381,7 @@ export function CandidateDetail({ candidate, onUpdate, onDelete }: Props) {
       )}
 
       <TagsSection entityType="candidate" entityId={candidate.id} />
-      <ActiveSequencesSection candidateId={candidate.id} candidateName={candidate.name} />
+      <ActiveSequencesSection entityType="candidate" entityId={candidate.id} entityName={candidate.name} />
       <CandidateJobLinks candidateId={candidate.id} />
       <ProfileTabs entityType="candidate" entityId={candidate.id} />
       <LogTouchpointModal open={touchpointOpen} onOpenChange={setTouchpointOpen} entityType="candidate" entityId={candidate.id} entityName={candidate.name} />

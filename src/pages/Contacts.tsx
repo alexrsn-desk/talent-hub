@@ -16,6 +16,7 @@ import { SummaryField } from "@/components/SummaryField";
 import { ConversationPrompts } from "@/components/ConversationPrompts";
 import { ReengageBadge, ReengageInlineEditor, formatReengageDate } from "@/components/ReengageDate";
 import { AddToSequencePanel } from "@/components/AddToSequencePanel";
+import { ActiveSequencesSection } from "@/components/ActiveSequencesSection";
 import { GitBranch } from "lucide-react";
 import { CalendarClock } from "lucide-react";
 import { toast } from "sonner";
@@ -268,6 +269,8 @@ function ContactFullView({ contact, client, onBack, onDelete, onContactUpdate }:
           </Button>
         </div>
       </div>
+
+      <ActiveSequencesSection entityType="contact" entityId={contact.id} entityName={contact.name} />
 
       {/* Cold Re-engage Banner */}
       {contact.status === "Cold" && (

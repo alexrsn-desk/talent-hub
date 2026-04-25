@@ -13,6 +13,7 @@ import { NotesSection } from "@/components/NotesSection";
 import { BDTipsButton } from "@/components/BDTipsPanel";
 import { Calendar as CalendarIcon, AlertTriangle, Plus, Trash2, ExternalLink, Users, CalendarPlus, Info, GitBranch } from "lucide-react";
 import { AddToSequencePanel } from "@/components/AddToSequencePanel";
+import { ActiveSequencesSection } from "@/components/ActiveSequencesSection";
 
 const BD_STAGES = [
   "Target",
@@ -398,6 +399,8 @@ function ClientDetailView({ client, onUpdate, onDelete }: {
           </Button>
         </div>
       </div>
+
+      <ActiveSequencesSection entityType="client" entityId={client.id} entityName={client.company_name} />
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 text-sm">
         <div><span className="text-muted-foreground">Email:</span> {client.email || "—"}</div>

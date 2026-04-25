@@ -199,6 +199,41 @@ export function useCandidateEnrollments(candidateId: string | null) {
   });
 }
 
+/**
+ * Active enrollments for any entity type (candidate / contact / client).
+ * Returns the same shape as useCandidateEnrollments so the same UI can render it.
+ */
+export function useEntityEnrollments(entityType: EntityType | null, entityId: string | null) {
+  return useQuery({
+    queryKey: ["entity_enrollments", entityType, entityId],
+    enabled: !!entityType && !!entityId,
+    queryFn: async (): Promise<CandidateEnrollment[]> => {
+      const column =
+        entityType === "candidate" ? "candidate_id" :
+        entityType === "client" ? "client_id" : "contact_id";
+      const { data, error } = await supabase
+        .from("sequence_enrollments")
+        .select("*, sequences(id,name,type)")
+        .eq(column, entityId!)
+        .order("created_at", { ascending: false });
+      if (error) throw error;
+
+      const enrollments = (data ?? []) as any[];
+      const seqIds = Array.from(new Set(enrollments.map((e) => e.sequence_id)));
+      if (seqIds.length === 0) return [];
+      const { data: stepCounts } = await supabase
+        .from("sequence_steps")
+        .select("sequence_id")
+        .in("sequence_id", seqIds);
+      const counts = new Map<string, number>();
+      (stepCounts ?? []).forEach((s: any) => {
+        counts.set(s.sequence_id, (counts.get(s.sequence_id) ?? 0) + 1);
+      });
+      return enrollments.map((e) => ({ ...e, total_steps: counts.get(e.sequence_id) ?? 0 }));
+    },
+  });
+}
+
 export function useSequenceEnrollmentCounts() {
   return useQuery({
     queryKey: ["sequence_enrollment_counts"],
@@ -241,7 +276,9 @@ export function useRemoveEnrollment() {
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["candidate_enrollments"] });
+      qc.invalidateQueries({ queryKey: ["entity_enrollments"] });
       qc.invalidateQueries({ queryKey: ["sequence_enrollment_counts"] });
+      qc.invalidateQueries({ queryKey: ["personal_sequence_steps_due"] });
     },
   });
 }
@@ -363,6 +400,7 @@ export function useEnrollEntity() {
       qc.invalidateQueries({ queryKey: ["personal_sequence_steps_due"] });
       qc.invalidateQueries({ queryKey: ["sequence_enrollment_counts"] });
       qc.invalidateQueries({ queryKey: ["candidate_enrollments"] });
+      qc.invalidateQueries({ queryKey: ["entity_enrollments"] });
     },
   });
 }
@@ -586,7 +624,11 @@ export function usePauseEnrollment() {
         .update({ status: "paused", paused_at: new Date().toISOString() })
         .eq("id", enrollment_id);
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["personal_sequence_steps_due"] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["personal_sequence_steps_due"] });
+      qc.invalidateQueries({ queryKey: ["entity_enrollments"] });
+      qc.invalidateQueries({ queryKey: ["candidate_enrollments"] });
+    },
   });
 }
 
@@ -599,7 +641,11 @@ export function useResumeEnrollment() {
         .update({ status: "active", paused_at: null })
         .eq("id", enrollment_id);
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["personal_sequence_steps_due"] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["personal_sequence_steps_due"] });
+      qc.invalidateQueries({ queryKey: ["entity_enrollments"] });
+      qc.invalidateQueries({ queryKey: ["candidate_enrollments"] });
+    },
   });
 }
 
