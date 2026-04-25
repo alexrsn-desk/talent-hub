@@ -338,6 +338,28 @@ function ClientDetailView({ client, onUpdate, onDelete }: {
         )}
       </div>
 
+      {/* Next Follow Up */}
+      <div className="rounded-lg border border-border p-4 space-y-2">
+        <div className="flex items-center justify-between">
+          <h3 className="text-sm font-medium">Next Follow Up</h3>
+          {followupSaved && (
+            <span className="text-xs text-success flex items-center gap-1">Saved ✓</span>
+          )}
+        </div>
+        <Input
+          type="date"
+          value={followupDate}
+          onChange={(e) => saveFollowupDate(e.target.value)}
+          className="max-w-xs"
+        />
+        {isOverdue(followupDate) && (
+          <div className="flex items-center gap-1 text-warning text-xs">
+            <AlertTriangle className="h-3 w-3" />
+            <span>Follow up overdue</span>
+          </div>
+        )}
+      </div>
+
       {/* Next Action */}
       <div className="rounded-lg border border-border p-4 space-y-3">
         <h3 className="text-sm font-medium">Next Action</h3>
