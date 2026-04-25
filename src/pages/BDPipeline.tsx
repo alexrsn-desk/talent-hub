@@ -203,16 +203,16 @@ export default function BDPipelinePage() {
                                   </div>
                                 )}
 
-                                <div className="mt-2 space-y-1">
-                                  {client.last_activity_date && (
-                                    <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                                      <CalendarIcon className="h-3 w-3" />
-                                      <span>Last: {formatDate(client.last_activity_date)}</span>
-                                    </div>
-                                  )}
+                                <div className="mt-2 space-y-0.5">
+                                  <p className="text-xs text-muted-foreground">
+                                    Last: {client.last_activity_date ? formatRelative(client.last_activity_date) : "—"}
+                                  </p>
+                                  <p className="text-xs text-muted-foreground">
+                                    Next: {client.next_followup_date ? formatDate(client.next_followup_date) : "—"}
+                                  </p>
 
                                   {client.next_action && (
-                                    <div className={`flex items-start gap-1 text-xs ${
+                                    <div className={`flex items-start gap-1 pt-1 text-xs ${
                                       isOverdue(client.next_action_due_date)
                                         ? "text-warning"
                                         : "text-muted-foreground"
@@ -226,18 +226,6 @@ export default function BDPipelinePage() {
                                           <span className="ml-1 opacity-70">· {formatDate(client.next_action_due_date)}</span>
                                         )}
                                       </span>
-                                      {client.next_action_due_date && (
-                                        <a
-                                          href={buildCalendarUrl(client.next_action, client.next_action_due_date, client.company_name)}
-                                          target="_blank"
-                                          rel="noopener noreferrer"
-                                          onClick={(e) => e.stopPropagation()}
-                                          className="flex-shrink-0 hover:text-primary transition-colors"
-                                          title="Add to Google Calendar"
-                                        >
-                                          <CalendarPlus className="h-3 w-3" />
-                                        </a>
-                                      )}
                                     </div>
                                   )}
                                 </div>
