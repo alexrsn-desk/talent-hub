@@ -513,6 +513,8 @@ export type Contact = {
   mobile_phone: string | null;
   direct_phone: string | null;
   summary?: string | null;
+  reengage_date?: string | null;
+  reengage_reason?: string | null;
   created_at: string;
 };
 
