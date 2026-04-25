@@ -96,7 +96,6 @@ export function PersonalSequencesTab() {
   const { data: steps = [], isLoading } = usePersonalSequenceStepsDue();
   const { data: templates = [] } = useSequenceTemplates();
   const personalTemplates = templates.filter((t) => PERSONAL_TEMPLATE_NAMES.includes(t.name));
-  const customBuilderOpen = useState(false);
 
   const buckets = useMemo(() => {
     const acc = { overdue: [] as PersonalStepDue[], today: [] as PersonalStepDue[], thisWeek: [] as PersonalStepDue[], upcoming: [] as PersonalStepDue[] };
