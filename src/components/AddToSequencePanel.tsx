@@ -71,6 +71,33 @@ export function AddToSequencePanel({ candidateId, candidateName, entityType, ent
   const autoSeqs = filtered.filter((s) => s.type === "auto");
   const personalSeqs = filtered.filter((s) => s.type !== "auto");
 
+  // Suggested sequence based on entity type — match first active sequence whose
+  // name corresponds to the recommended template for this kind of person.
+  const suggestionRules: Record<EntityType, { primary: string[]; reason: string }> = {
+    candidate: {
+      primary: ["warm candidate re-engagement", "warm candidate"],
+      reason: "Best fit for candidates you want to keep warm.",
+    },
+    contact: {
+      primary: ["warm senior contact", "bd nurture"],
+      reason: "Ideal for nurturing a senior contact at a prospect company.",
+    },
+    client: {
+      primary: ["post-placement client nurture", "lapsed client reconnect"],
+      reason: "Designed to keep clients engaged after a placement.",
+    },
+  };
+  const rules = suggestionRules[resolvedType];
+  const suggested = useMemo(() => {
+    if (query) return null; // hide suggestion while user is searching
+    const active = sequences.filter((s) => s.status === "active");
+    for (const needle of rules.primary) {
+      const match = active.find((s) => s.name.toLowerCase().includes(needle));
+      if (match) return match;
+    }
+    return null;
+  }, [sequences, rules, query]);
+
   const handleAdd = async (seqId: string, seqName: string) => {
     if (!resolvedId) return;
     try {
