@@ -184,7 +184,10 @@ export default function ContactsPage() {
                   <td className="px-4 py-3 text-muted-foreground">{clientMap[c.client_id]?.company_name || "—"}</td>
                   <td className="px-4 py-3 text-muted-foreground">{c.email || "—"}</td>
                   <td className="px-4 py-3">
-                    <Badge variant="secondary" className={statusColor[c.status] || ""}>{c.status}</Badge>
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      <Badge variant="secondary" className={statusColor[c.status] || ""}>{c.status}</Badge>
+                      {c.status === "Cold" && c.reengage_date && <ReengageBadge date={c.reengage_date} />}
+                    </div>
                   </td>
                 </tr>
               ))}
