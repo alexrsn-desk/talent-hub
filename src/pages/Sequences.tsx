@@ -21,6 +21,7 @@ import {
   type Sequence,
 } from "@/hooks/use-sequences";
 import { useCandidates, useJobs } from "@/hooks/use-data";
+import { PersonalSequencesTab } from "@/components/PersonalSequencesTab";
 
 const channelIcon: Record<string, typeof Mail> = {
   Email: Mail,
@@ -54,7 +55,12 @@ export default function SequencesPage() {
         <TabsList>
           <TabsTrigger value="my-sequences">My Sequences ({sequences.length})</TabsTrigger>
           <TabsTrigger value="templates">Templates ({templates.length})</TabsTrigger>
+          <TabsTrigger value="personal">Personal Sequences</TabsTrigger>
         </TabsList>
+
+        <TabsContent value="personal" className="space-y-3">
+          <PersonalSequencesTab />
+        </TabsContent>
 
         <TabsContent value="my-sequences" className="space-y-3">
           {sequences.length === 0 ? (
