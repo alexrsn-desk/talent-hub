@@ -459,6 +459,7 @@ export type Database = {
           contact_name: string | null
           created_at: string
           email: string | null
+          heat: string
           id: string
           job_title: string | null
           last_activity_date: string | null
@@ -479,6 +480,7 @@ export type Database = {
           contact_name?: string | null
           created_at?: string
           email?: string | null
+          heat?: string
           id?: string
           job_title?: string | null
           last_activity_date?: string | null
@@ -499,6 +501,7 @@ export type Database = {
           contact_name?: string | null
           created_at?: string
           email?: string | null
+          heat?: string
           id?: string
           job_title?: string | null
           last_activity_date?: string | null
