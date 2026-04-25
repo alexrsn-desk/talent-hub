@@ -45,7 +45,7 @@ export type Client = {
   last_activity_date: string | null;
   next_action: string | null;
   next_action_due_date: string | null;
-  next_followup_date: string | null;
+  next_followup_date?: string | null;
   created_at: string;
   updated_at: string;
 };
