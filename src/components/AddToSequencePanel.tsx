@@ -173,6 +173,35 @@ export function AddToSequencePanel({ candidateId, candidateName, entityType, ent
             </div>
           ) : (
             <>
+              {suggested && (
+                <div className="border-b border-border/50">
+                  <div className="px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wide flex items-center gap-1.5 bg-muted/20 text-violet-400">
+                    <Sparkles className="h-3 w-3" /> Suggested for {resolvedType}
+                  </div>
+                  <button
+                    className={cn(
+                      "w-full text-left px-3 py-2 text-sm hover:bg-muted/40 transition-colors disabled:cursor-not-allowed",
+                      addedId === suggested.id && "bg-green-500/10"
+                    )}
+                    onClick={() => handleAdd(suggested.id, suggested.name)}
+                    disabled={enroll.isPending || addedId === suggested.id}
+                  >
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="min-w-0 flex-1">
+                        <p className="font-medium text-foreground truncate">{suggested.name}</p>
+                        <p className="text-[11px] text-muted-foreground">{rules.reason}</p>
+                      </div>
+                      {addedId === suggested.id ? (
+                        <Check className="h-4 w-4 text-green-500 shrink-0" />
+                      ) : (
+                        <Badge variant="outline" className="text-[10px] shrink-0 border-violet-500/40 text-violet-400">
+                          Suggested
+                        </Badge>
+                      )}
+                    </div>
+                  </button>
+                </div>
+              )}
               <SequenceSection
                 title="Auto Sequences"
                 icon={<Zap className="h-3 w-3" />}
