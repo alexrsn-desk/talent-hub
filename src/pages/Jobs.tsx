@@ -137,8 +137,9 @@ export function JobFullView({ job, onBack, onUpdate, onDelete, backLabel }: {
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-3">
-        <Button variant="ghost" size="icon" onClick={onBack}>
+        <Button variant="ghost" size="sm" onClick={onBack} className="gap-1">
           <ArrowLeft className="h-4 w-4" />
+          {backLabel ? <span className="text-sm">Back to {backLabel}</span> : null}
         </Button>
         <div className="flex-1">
           <h1 className="text-xl font-semibold">{job.title}</h1>
