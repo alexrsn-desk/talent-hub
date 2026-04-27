@@ -305,9 +305,6 @@ function ClientFullView({ client, onBack, onUpdate, onDelete }: {
     );
   }
 
-
-  const clientJobs = allJobs.filter(j => j.client_id === client.id);
-
   const handleFieldSave = async (field: string, value: string) => {
     await onUpdate({ [field]: value || null } as any);
   };
