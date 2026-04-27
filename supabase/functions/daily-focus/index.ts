@@ -97,6 +97,15 @@ serve(async (req) => {
       return !lastNote || lastNote < new Date(now.getTime() - 5 * 86400000).toISOString();
     });
 
+    // In-play pipeline analysis: active = Longlist..Offer (not Placed/Rejected/AI Suggested)
+    const ACTIVE_STAGES = ["Longlist","Contact","Screening","Shortlist","Submitted","Client Review","First Interview","Second Interview","Offer"];
+    const jobsInPlay = openJobs.map((j: any) => {
+      const active = cjs.filter((cj: any) => cj.job_id === j.id && ACTIVE_STAGES.includes(cj.stage));
+      return { title: j.title, company: j.clients?.company_name, count: active.length };
+    });
+    const jobsNoPipeline = jobsInPlay.filter((j: any) => j.count === 0);
+    const jobsThinPipeline = jobsInPlay.filter((j: any) => j.count >= 1 && j.count <= 2);
+
     const bdProspects = allClients.filter((c: any) =>
       ["Target", "Approached", "In Dialogue"].includes(c.status)
     );
@@ -197,6 +206,7 @@ serve(async (req) => {
         bdFollowUpsOverdue: bdFollowupsOverdue,
         reengageCandidatesDue,
         reengageContactsDue,
+        jobsNoActivePipeline: jobsNoPipeline,
       },
       amberFlags: {
         jobsNoCVsSent7Days: jobsNoSubmissions.map((j: any) => ({
@@ -215,6 +225,7 @@ serve(async (req) => {
         })),
         totalBDProspects: bdProspects.length,
         noNewJobsIn14Days: recentJobsOpened.length === 0,
+        jobsThinPipeline: jobsThinPipeline,
       },
       greenFlags: {
         longlistNotContacted: longlistNotContacted.map((cj: any) => ({

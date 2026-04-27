@@ -4,7 +4,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Search, Trash2, ArrowLeft } from "lucide-react";
-import { useJobs, useUpdateJob, useDeleteJob, type Job } from "@/hooks/use-data";
+import { useJobs, useUpdateJob, useDeleteJob, useCandidateJobs, type Job } from "@/hooks/use-data";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { NotesSection } from "@/components/NotesSection";
 import { JobPipelineBoard } from "@/components/JobPipelineBoard";
 import { AddJobDialog } from "@/components/AddJobDialog";
@@ -27,6 +28,7 @@ export default function JobsPage() {
   const { data: jobs = [], isLoading } = useJobs();
   const updateJob = useUpdateJob();
   const deleteJob = useDeleteJob();
+  const { data: allCandidateJobs = [] } = useCandidateJobs();
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [selectedJob, setSelectedJob] = useState<Job | null>(null);
@@ -44,6 +46,19 @@ export default function JobsPage() {
     if (min && max) return `${fmt(min)} – ${fmt(max)}`;
     return min ? fmt(min) : fmt(max!);
   };
+
+  const ACTIVE_STAGES = ["Longlist", "Contact", "Screening", "Shortlist", "Submitted", "Client Review", "First Interview", "Second Interview", "Offer"];
+  const getInPlayBreakdown = (jobId: string) => {
+    const cjs = allCandidateJobs.filter((cj: any) => cj.job_id === jobId && ACTIVE_STAGES.includes(cj.stage));
+    const breakdown: Record<string, number> = {};
+    ACTIVE_STAGES.forEach(s => {
+      const c = cjs.filter((cj: any) => cj.stage === s).length;
+      if (c > 0) breakdown[s] = c;
+    });
+    return { total: cjs.length, breakdown };
+  };
+
+  const inPlayColor = (n: number) => n === 0 ? "text-red-400" : n <= 2 ? "text-yellow-400" : "text-green-400";
 
   if (selectedJob) {
     return (
@@ -84,31 +99,53 @@ export default function JobsPage() {
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-border bg-muted/30">
-                <th className="text-left px-4 py-3 font-medium text-muted-foreground">Title</th>
+                <th className="text-left px-4 py-3 font-medium text-muted-foreground">Job Title</th>
                 <th className="text-left px-4 py-3 font-medium text-muted-foreground">Client</th>
-                <th className="text-left px-4 py-3 font-medium text-muted-foreground">Location</th>
-                <th className="text-left px-4 py-3 font-medium text-muted-foreground">Salary</th>
-                <th className="text-left px-4 py-3 font-medium text-muted-foreground">Type</th>
                 <th className="text-left px-4 py-3 font-medium text-muted-foreground">Status</th>
-                <th className="text-left px-4 py-3 font-medium text-muted-foreground">Fee</th>
+                <th className="text-left px-4 py-3 font-medium text-muted-foreground">In Play</th>
+                <th className="text-left px-4 py-3 font-medium text-muted-foreground">Date Opened</th>
+                <th className="text-left px-4 py-3 font-medium text-muted-foreground">Salary</th>
+                <th className="text-left px-4 py-3 font-medium text-muted-foreground">Location</th>
               </tr>
             </thead>
             <tbody>
               {filtered.length === 0 ? (
                 <tr><td colSpan={7} className="px-4 py-8 text-center text-muted-foreground">No jobs found</td></tr>
-              ) : filtered.map(j => (
+              ) : filtered.map(j => {
+                const inPlay = getInPlayBreakdown(j.id);
+                return (
                 <tr key={j.id} className="border-b border-border hover:bg-muted/20 cursor-pointer transition-colors" onClick={() => setSelectedJob(j)}>
                   <td className="px-4 py-3 font-medium">{j.title}</td>
                   <td className="px-4 py-3 text-muted-foreground">{(j.clients as any)?.company_name || "—"}</td>
-                  <td className="px-4 py-3 text-muted-foreground">{j.location || "—"}</td>
-                  <td className="px-4 py-3 text-muted-foreground">{formatSalary(j.salary_min, j.salary_max)}</td>
-                  <td className="px-4 py-3 text-muted-foreground">{j.job_type}</td>
                   <td className="px-4 py-3"><Badge variant="secondary" className={statusColor[j.status]}>{j.status}</Badge></td>
-                  <td className="px-4 py-3 text-muted-foreground">
-                    {j.fee_value ? (j.fee_type === "Percentage" ? `${j.fee_value}%` : `£${j.fee_value.toLocaleString()}`) : "—"}
+                  <td className="px-4 py-3" onClick={(e) => { e.stopPropagation(); setSelectedJob(j); }}>
+                    <TooltipProvider delayDuration={150}>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <span className={`font-semibold tabular-nums ${inPlayColor(inPlay.total)} hover:underline cursor-pointer`}>
+                            {inPlay.total}
+                          </span>
+                        </TooltipTrigger>
+                        <TooltipContent side="right">
+                          {inPlay.total === 0 ? (
+                            <div className="text-xs">No active candidates</div>
+                          ) : (
+                            <div className="text-xs space-y-0.5">
+                              {Object.entries(inPlay.breakdown).map(([s, n]) => (
+                                <div key={s} className="flex justify-between gap-3"><span>{s}:</span><span className="tabular-nums">{n}</span></div>
+                              ))}
+                            </div>
+                          )}
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
                   </td>
+                  <td className="px-4 py-3 text-muted-foreground">{j.date_opened ? new Date(j.date_opened).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" }) : "—"}</td>
+                  <td className="px-4 py-3 text-muted-foreground">{formatSalary(j.salary_min, j.salary_max)}</td>
+                  <td className="px-4 py-3 text-muted-foreground">{j.location || "—"}</td>
                 </tr>
-              ))}
+                );
+              })}
             </tbody>
           </table>
         </div>
