@@ -55,6 +55,15 @@ function getMonday(d: Date) {
   return date;
 }
 
+// Format a Date as YYYY-MM-DD in LOCAL time (NOT UTC) so timezone offsets
+// don't shift the week boundary backwards.
+function toLocalISODate(d: Date) {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+}
+
 function formatDateShort(d: string) {
   return new Date(d + "T00:00:00").toLocaleDateString("en-GB", { day: "numeric", month: "short" });
 }
