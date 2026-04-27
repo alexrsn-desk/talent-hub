@@ -433,19 +433,75 @@ function ClientFullView({ client, onBack, onUpdate, onDelete }: {
                     <th className="text-left px-4 py-2 font-medium text-muted-foreground">Email</th>
                     <th className="text-left px-4 py-2 font-medium text-muted-foreground">Phone</th>
                     <th className="text-left px-4 py-2 font-medium text-muted-foreground">Status</th>
+                    <th className="text-right px-4 py-2 font-medium text-muted-foreground">Actions</th>
                   </tr>
                 </thead>
                 <tbody>
                   {contacts.map(ct => (
-                    <tr key={ct.id} className="border-b border-border">
-                      <td className="px-4 py-2 font-medium">{ct.name}</td>
+                    <tr
+                      key={ct.id}
+                      className="border-b border-border hover:bg-muted/20 cursor-pointer transition-colors"
+                      onClick={() => setOpenContact(ct)}
+                    >
+                      <td className="px-4 py-2 font-medium">
+                        <span className="hover:underline">{ct.name}</span>
+                      </td>
                       <td className="px-4 py-2 text-muted-foreground">{ct.job_title || "—"}</td>
-                      <td className="px-4 py-2 text-muted-foreground">{ct.email || "—"}</td>
-                      <td className="px-4 py-2 text-muted-foreground">{ct.phone || "—"}</td>
+                      <td className="px-4 py-2 text-muted-foreground">
+                        {ct.email ? (
+                          <a href={`mailto:${ct.email}`} className="hover:underline" onClick={(e) => e.stopPropagation()}>
+                            {ct.email}
+                          </a>
+                        ) : "—"}
+                      </td>
+                      <td className="px-4 py-2 text-muted-foreground">
+                        {ct.phone ? (
+                          <a href={`tel:${ct.phone}`} className="hover:underline" onClick={(e) => e.stopPropagation()}>
+                            {ct.phone}
+                          </a>
+                        ) : "—"}
+                      </td>
                       <td className="px-4 py-2">
                         <Badge variant="secondary" className="text-xs">
                           {(ct as any).status || "Active"}
                         </Badge>
+                      </td>
+                      <td className="px-4 py-2">
+                        <div className="flex items-center justify-end gap-1" onClick={(e) => e.stopPropagation()}>
+                          {ct.email && (
+                            <a href={`mailto:${ct.email}`} title="Email">
+                              <Button size="icon" variant="ghost" className="h-7 w-7">
+                                <Mail className="h-3.5 w-3.5" />
+                              </Button>
+                            </a>
+                          )}
+                          {ct.phone && (
+                            <a href={`tel:${ct.phone}`} title="Call">
+                              <Button size="icon" variant="ghost" className="h-7 w-7">
+                                <PhoneCall className="h-3.5 w-3.5" />
+                              </Button>
+                            </a>
+                          )}
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            className="h-7 w-7"
+                            title="Log touchpoint"
+                            onClick={() => { setTouchpointContact(ct); setTouchpointOpen(true); }}
+                          >
+                            <PhoneCall className="h-3.5 w-3.5 text-primary" />
+                          </Button>
+                          <AddToSequencePanel
+                            entityType="contact"
+                            entityId={ct.id}
+                            entityName={ct.name}
+                            trigger={
+                              <Button size="icon" variant="ghost" className="h-7 w-7" title="Add to sequence">
+                                <GitBranch className="h-3.5 w-3.5" />
+                              </Button>
+                            }
+                          />
+                        </div>
                       </td>
                     </tr>
                   ))}
