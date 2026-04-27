@@ -163,12 +163,14 @@ export default function WeeklyIntel() {
   const weDate = targetFriday.toISOString().slice(0, 10);
 
   const { data: savedSummary, isLoading } = useQuery({
-    queryKey: ["weekly-summary", wsDate],
+    queryKey: ["weekly-summary", wsDate, user?.id],
+    enabled: !!user?.id,
     queryFn: async () => {
       const { data } = await supabase
         .from("weekly_summaries" as any)
         .select("*")
         .eq("week_start", wsDate)
+        .eq("user_id", user!.id)
         .maybeSingle();
       return (data as unknown as { summary: WeeklySummary; week_start: string; week_end: string }) || null;
     },
@@ -183,14 +185,22 @@ export default function WeeklyIntel() {
       if (data?.error) throw new Error(data.error);
       return data;
     },
-    onSuccess: () => {
-      toast.success("Weekly summary generated");
-      qc.invalidateQueries({ queryKey: ["weekly-summary", wsDate] });
+    onSuccess: (data: any) => {
+      if (data?.dataAvailable === false) {
+        toast.message("Summary generated", {
+          description: "No notes, calls or pipeline activity in the last 7 days to analyse.",
+        });
+      } else {
+        toast.success("Weekly summary generated");
+      }
+      qc.invalidateQueries({ queryKey: ["weekly-summary", wsDate, user?.id] });
     },
     onError: (e: any) => toast.error(e.message || "Failed to generate summary"),
   });
 
-  const summary: WeeklySummary | null = savedSummary?.summary as WeeklySummary | null;
+  const summary: (WeeklySummary & { meta?: { dataAvailable: boolean; dataPoints: number } }) | null =
+    (savedSummary?.summary as any) || null;
+  const dataAvailable = summary?.meta?.dataAvailable !== false;
 
   const copyFullSummary = () => {
     if (!summary) return;
@@ -280,6 +290,19 @@ ${summary.contentSuggestions.map((s, i) => `${i + 1}. [${s.format}] ${s.headline
 
       {summary && (
         <>
+          {!dataAvailable && (
+            <Card className="border-amber-500/30 bg-amber-500/5">
+              <CardContent className="py-4 flex items-start gap-3">
+                <FileText className="h-4 w-4 text-amber-400 mt-0.5 shrink-0" />
+                <div className="text-sm">
+                  <p className="font-medium text-amber-300 mb-1">Not enough data this week</p>
+                  <p className="text-xs text-muted-foreground">
+                    No notes, calls, touchpoints or pipeline movement were recorded in the last 7 days, so there's nothing to analyse. Log activity through the week — every call, meeting and touchpoint — and re-run this summary on Friday for a useful brief.
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
+          )}
           {/* Performance */}
           <Card>
             <CardHeader className="pb-3">
