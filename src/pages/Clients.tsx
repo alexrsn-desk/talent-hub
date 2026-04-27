@@ -517,13 +517,7 @@ function ClientFullView({ client, onBack, onUpdate, onDelete }: {
           ) : (
             <div className="space-y-2">
               {clientJobs.map(j => (
-                <div key={j.id} className="flex items-center justify-between rounded-md border border-border px-3 py-2 text-sm">
-                  <div>
-                    <span className="font-medium">{j.title}</span>
-                    <span className="text-muted-foreground ml-2">{j.job_type} · {j.location || "Remote"}</span>
-                  </div>
-                  <Badge variant="secondary" className={j.status === "Open" ? "bg-success/20 text-green-400" : ""}>{j.status}</Badge>
-                </div>
+                <ClientJobRow key={j.id} job={j} onOpen={() => setOpenJob(j)} />
               ))}
             </div>
           )}
