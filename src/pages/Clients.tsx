@@ -6,8 +6,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { Plus, Search, ExternalLink, Trash2, PhoneCall, Globe, ArrowLeft } from "lucide-react";
-import { useClients, useCreateClient, useUpdateClient, useDeleteClient, useContacts, useCreateContact, useCreateNote, useJobs, type Client, type Contact } from "@/hooks/use-data";
+import { Plus, Search, ExternalLink, Trash2, PhoneCall, Globe, ArrowLeft, Mail, GitBranch, ChevronRight } from "lucide-react";
+import {
+  useClients, useCreateClient, useUpdateClient, useDeleteClient,
+  useContacts, useCreateContact, useDeleteContact, useCreateNote,
+  useJobs, useUpdateJob, useDeleteJob, useCandidateJobs,
+  type Client, type Contact, type Job,
+} from "@/hooks/use-data";
 import { Textarea } from "@/components/ui/textarea";
 import { ProfileTabs } from "@/components/ProfileTabs";
 import { LogTouchpointModal } from "@/components/LogTouchpointModal";
@@ -16,6 +21,9 @@ import { CallPrepButton } from "@/components/CallPrep";
 import { ClickToEditField } from "@/components/ClickToEditField";
 import { SummaryField } from "@/components/SummaryField";
 import { ConversationPrompts } from "@/components/ConversationPrompts";
+import { AddToSequencePanel } from "@/components/AddToSequencePanel";
+import { ContactFullView } from "@/pages/Contacts";
+import { JobFullView } from "@/pages/Jobs";
 import { toast } from "sonner";
 
 const STATUSES = ["Active", "Warm", "Cold", "Target"] as const;
