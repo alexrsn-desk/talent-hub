@@ -28,6 +28,7 @@ export default function JobsPage() {
   const { data: jobs = [], isLoading } = useJobs();
   const updateJob = useUpdateJob();
   const deleteJob = useDeleteJob();
+  const { data: allCandidateJobs = [] } = useCandidateJobs();
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [selectedJob, setSelectedJob] = useState<Job | null>(null);
@@ -45,6 +46,19 @@ export default function JobsPage() {
     if (min && max) return `${fmt(min)} – ${fmt(max)}`;
     return min ? fmt(min) : fmt(max!);
   };
+
+  const ACTIVE_STAGES = ["Longlist", "Contact", "Screening", "Shortlist", "Submitted", "Client Review", "First Interview", "Second Interview", "Offer"];
+  const getInPlayBreakdown = (jobId: string) => {
+    const cjs = allCandidateJobs.filter((cj: any) => cj.job_id === jobId && ACTIVE_STAGES.includes(cj.stage));
+    const breakdown: Record<string, number> = {};
+    ACTIVE_STAGES.forEach(s => {
+      const c = cjs.filter((cj: any) => cj.stage === s).length;
+      if (c > 0) breakdown[s] = c;
+    });
+    return { total: cjs.length, breakdown };
+  };
+
+  const inPlayColor = (n: number) => n === 0 ? "text-red-400" : n <= 2 ? "text-yellow-400" : "text-green-400";
 
   if (selectedJob) {
     return (
