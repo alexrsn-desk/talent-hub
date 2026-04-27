@@ -258,8 +258,53 @@ function ClientFullView({ client, onBack, onUpdate, onDelete }: {
   const { data: contacts = [] } = useContacts(client.id);
   const { data: allJobs = [] } = useJobs();
   const createContact = useCreateContact();
+  const deleteContact = useDeleteContact();
+  const updateJob = useUpdateJob();
+  const deleteJob = useDeleteJob();
   const [touchpointOpen, setTouchpointOpen] = useState(false);
+  const [touchpointContact, setTouchpointContact] = useState<Contact | null>(null);
   const [addingContact, setAddingContact] = useState(false);
+  const [openContact, setOpenContact] = useState<Contact | null>(null);
+  const [openJob, setOpenJob] = useState<Job | null>(null);
+
+  const clientJobs = allJobs.filter(j => j.client_id === client.id);
+
+  // Sub-view: Contact opened from inside this client
+  if (openContact) {
+    return (
+      <ContactFullView
+        contact={openContact}
+        client={client}
+        backLabel={client.company_name}
+        onBack={() => setOpenContact(null)}
+        onDelete={async () => {
+          await deleteContact.mutateAsync(openContact.id);
+          setOpenContact(null);
+        }}
+        onContactUpdate={(updated) => setOpenContact(updated)}
+      />
+    );
+  }
+
+  // Sub-view: Job opened from inside this client
+  if (openJob) {
+    return (
+      <JobFullView
+        job={openJob}
+        backLabel={client.company_name}
+        onBack={() => setOpenJob(null)}
+        onUpdate={async (updates) => {
+          await updateJob.mutateAsync({ id: openJob.id, ...updates });
+          setOpenJob({ ...openJob, ...updates });
+        }}
+        onDelete={async () => {
+          await deleteJob.mutateAsync(openJob.id);
+          setOpenJob(null);
+        }}
+      />
+    );
+  }
+
 
   const clientJobs = allJobs.filter(j => j.client_id === client.id);
 
