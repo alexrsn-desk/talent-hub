@@ -19,8 +19,10 @@ serve(async (req) => {
 
     const sb = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
-    // Determine week boundaries (Mon-Fri of current or requested week)
     const body = req.method === "POST" ? await req.json().catch(() => ({})) : {};
+
+    // Determine the "week" we're generating for (used as the storage key).
+    // Default: the Mon-Fri window containing the supplied week_end (or today).
     const now = new Date();
     const weekEnd = body.week_end ? new Date(body.week_end) : now;
     const dayOfWeek = weekEnd.getDay();
@@ -28,103 +30,200 @@ serve(async (req) => {
     const weekStart = new Date(weekEnd);
     weekStart.setDate(weekEnd.getDate() - mondayOffset);
     weekStart.setHours(0, 0, 0, 0);
+    const weekFriday = new Date(weekStart);
+    weekFriday.setDate(weekStart.getDate() + 4);
+    weekFriday.setHours(23, 59, 59, 999);
 
-    const wsISO = weekStart.toISOString();
-    const weISO = weekEnd.toISOString();
-    const wsDate = wsISO.slice(0, 10);
-    const weDate = weISO.slice(0, 10);
+    const wsDate = weekStart.toISOString().slice(0, 10);
+    const weDate = weekFriday.toISOString().slice(0, 10);
 
-    // Fetch this week's notes (calls, meetings, emails etc)
-    const { data: thisWeekNotes } = await sb
+    // For DATA fetch we use a rolling 7-day window ending at weekFriday.
+    // This catches activity that happened over the weekend or just before
+    // the requested week, which is what a recruiter actually wants
+    // reflected in their weekly intelligence brief.
+    const dataWindowEnd = weekFriday > now ? now : weekFriday;
+    const dataWindowStart = new Date(dataWindowEnd);
+    dataWindowStart.setDate(dataWindowEnd.getDate() - 6);
+    dataWindowStart.setHours(0, 0, 0, 0);
+
+    const dwsISO = dataWindowStart.toISOString();
+    const dweISO = dataWindowEnd.toISOString();
+
+    // Previous 7-day window for trend comparison
+    const prevWindowEnd = new Date(dataWindowStart);
+    prevWindowEnd.setDate(prevWindowEnd.getDate() - 1);
+    prevWindowEnd.setHours(23, 59, 59, 999);
+    const prevWindowStart = new Date(prevWindowEnd);
+    prevWindowStart.setDate(prevWindowEnd.getDate() - 6);
+    prevWindowStart.setHours(0, 0, 0, 0);
+
+    console.log("weekly-summary: window", {
+      wsDate, weDate,
+      dataWindow: [dwsISO, dweISO],
+      prevWindow: [prevWindowStart.toISOString(), prevWindowEnd.toISOString()],
+      user_id: body.user_id ?? null,
+    });
+
+    // Fetch this period's notes (calls, meetings, emails, etc) — include transcripts
+    const { data: thisPeriodNotes, error: notesErr } = await sb
       .from("notes")
-      .select("*, candidates(name), clients(company_name)")
-      .gte("created_at", wsISO)
-      .lte("created_at", weISO)
+      .select("id, activity_type, content, outcome, transcript, duration, created_at, candidates(name), clients(company_name)")
+      .gte("created_at", dwsISO)
+      .lte("created_at", dweISO)
       .order("created_at", { ascending: false });
+    if (notesErr) console.error("notes fetch error:", notesErr);
 
-    // Fetch previous week's notes for comparison
-    const prevWeekEnd = new Date(weekStart);
-    prevWeekEnd.setDate(prevWeekEnd.getDate() - 1);
-    const prevWeekStart = new Date(prevWeekEnd);
-    prevWeekStart.setDate(prevWeekEnd.getDate() - 6);
-    const { data: prevWeekNotes } = await sb
+    const { data: prevPeriodNotes } = await sb
       .from("notes")
       .select("id, activity_type")
-      .gte("created_at", prevWeekStart.toISOString())
-      .lte("created_at", prevWeekEnd.toISOString());
+      .gte("created_at", prevWindowStart.toISOString())
+      .lte("created_at", prevWindowEnd.toISOString());
 
-    // Fetch activity log for stage changes, CVs sent, jobs created
-    const { data: thisWeekActivity } = await sb
+    const { data: thisPeriodActivity } = await sb
       .from("activity_log")
       .select("*")
-      .gte("created_at", wsISO)
-      .lte("created_at", weISO);
+      .gte("created_at", dwsISO)
+      .lte("created_at", dweISO);
 
-    const { data: prevWeekActivity } = await sb
+    const { data: prevPeriodActivity } = await sb
       .from("activity_log")
       .select("id, action_type")
-      .gte("created_at", prevWeekStart.toISOString())
-      .lte("created_at", prevWeekEnd.toISOString());
+      .gte("created_at", prevWindowStart.toISOString())
+      .lte("created_at", prevWindowEnd.toISOString());
 
-    // Fetch candidate_jobs that changed this week
     const { data: candidateJobs } = await sb
       .from("candidate_jobs")
       .select("*, candidates(name), jobs(title, clients(company_name))")
-      .gte("created_at", wsISO)
-      .lte("created_at", weISO);
+      .gte("created_at", dwsISO)
+      .lte("created_at", dweISO);
 
-    // Compute raw stats
-    const notes = thisWeekNotes || [];
-    const prevNotes = prevWeekNotes || [];
-    const activity = thisWeekActivity || [];
-    const prevActivity = prevWeekActivity || [];
+    const notes = thisPeriodNotes || [];
+    const prevNotes = prevPeriodNotes || [];
+    const activity = thisPeriodActivity || [];
+    const prevActivity = prevPeriodActivity || [];
 
-    const callsThisWeek = notes.filter(n => n.activity_type === "Call").length;
-    const callsPrevWeek = prevNotes.filter(n => n.activity_type === "Call").length;
-    const meetingsThisWeek = notes.filter(n => n.activity_type === "Meeting").length;
-    const meetingsPrevWeek = prevNotes.filter(n => n.activity_type === "Meeting").length;
-    const cvsSent = activity.filter(a => a.action_type === "cv_sent").length;
-    const cvsSentPrev = prevActivity.filter(a => a.action_type === "cv_sent").length;
-    const newJobs = activity.filter(a => a.action_type === "job_created").length;
-    const newJobsPrev = prevActivity.filter(a => a.action_type === "job_created").length;
-    const stageChanges = activity.filter(a => a.action_type === "stage_change");
-    const placements = stageChanges.filter(a => {
-      const meta = a.metadata as any;
-      return meta?.stage_to === "Placed";
+    const callsThisWeek = notes.filter((n) => n.activity_type === "Call").length;
+    const callsPrevWeek = prevNotes.filter((n) => n.activity_type === "Call").length;
+    const meetingsThisWeek = notes.filter((n) => n.activity_type === "Meeting").length;
+    const meetingsPrevWeek = prevNotes.filter((n) => n.activity_type === "Meeting").length;
+    const cvsSent = activity.filter((a) => a.action_type === "cv_sent").length;
+    const cvsSentPrev = prevActivity.filter((a) => a.action_type === "cv_sent").length;
+    const newJobs = activity.filter((a) => a.action_type === "job_created").length;
+    const newJobsPrev = prevActivity.filter((a) => a.action_type === "job_created").length;
+    const stageChanges = activity.filter((a) => a.action_type === "stage_change");
+    const placements = stageChanges.filter((a) => (a.metadata as any)?.stage_to === "Placed");
+    const offers = stageChanges.filter((a) => (a.metadata as any)?.stage_to === "Offer");
+    const touchpoints = activity.filter((a) => a.action_type === "touchpoint_logged");
+
+    const totalDataPoints =
+      notes.length + activity.length + (candidateJobs?.length || 0);
+
+    console.log("weekly-summary: data snapshot", {
+      notes: notes.length,
+      withTranscripts: notes.filter((n) => n.transcript).length,
+      activity: activity.length,
+      stageChanges: stageChanges.length,
+      candidateJobs: candidateJobs?.length || 0,
+      totalDataPoints,
     });
-    const offers = stageChanges.filter(a => {
-      const meta = a.metadata as any;
-      return meta?.stage_to === "Offer";
-    });
 
-    // Build conversation content for AI analysis
-    const callAndMeetingNotes = notes
-      .filter(n => ["Call", "Meeting", "Email", "WhatsApp", "LinkedIn Message"].includes(n.activity_type))
-      .map(n => ({
-        type: n.activity_type,
-        entity: n.candidate_id ? `Candidate` : `Client`,
-        content: n.content,
-        outcome: n.outcome,
-      }));
+    // If there's truly nothing to summarize, return an explicit empty
+    // response instead of asking the AI to invent generic platitudes.
+    if (totalDataPoints === 0) {
+      const emptySummary = {
+        performance: {
+          calls: { count: 0, prevWeek: callsPrevWeek, trend: "same" },
+          meetings: { count: 0, prevWeek: meetingsPrevWeek, trend: "same" },
+          cvsSent: { count: 0, prevWeek: cvsSentPrev, trend: "same" },
+          newJobs: { count: 0, prevWeek: newJobsPrev, trend: "same" },
+          placements: 0,
+          nearClose: 0,
+          weekHighlight:
+            "No notes, calls, touchpoints or pipeline movement recorded in the last 7 days. Log activity through the week and re-run this summary on Friday.",
+        },
+        marketIntel: {
+          candidateThemes: [],
+          clientThemes: [],
+          hotSkills: [],
+          salaryInsights: [],
+        },
+        pipeline: {
+          movedForward: [],
+          goneQuiet: [],
+          mondayPriorities: [
+            "Log every call, meeting and touchpoint as they happen so this brief has something to analyse.",
+          ],
+        },
+        contentSuggestions: [],
+        meta: { dataAvailable: false, dataPoints: 0 },
+      };
+
+      const { error: upsertErr } = await sb.from("weekly_summaries").upsert(
+        {
+          user_id: body.user_id || null,
+          week_start: wsDate,
+          week_end: weDate,
+          summary: emptySummary,
+        },
+        { onConflict: "user_id,week_start" },
+      );
+      if (upsertErr) console.error("Upsert error (empty):", upsertErr);
+
+      return new Response(
+        JSON.stringify({
+          summary: emptySummary,
+          week_start: wsDate,
+          week_end: weDate,
+          dataAvailable: false,
+        }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
+    }
+
+    // Build the conversation content for AI analysis. Include transcripts
+    // (truncated) when present — these are the richest source of intel.
+    const conversationContent = notes
+      .filter((n) =>
+        ["Call", "Meeting", "Email", "WhatsApp", "LinkedIn Message", "Note"].includes(
+          n.activity_type,
+        ),
+      )
+      .map((n) => {
+        const entity =
+          (n as any).candidates?.name || (n as any).clients?.company_name || "Unknown";
+        const transcript = n.transcript
+          ? `\n   TRANSCRIPT: ${String(n.transcript).slice(0, 1500)}`
+          : "";
+        return {
+          type: n.activity_type,
+          entity,
+          content: n.content || "",
+          outcome: n.outcome || "",
+          transcript,
+        };
+      });
 
     const statsSnapshot = {
-      week: `${wsDate} to ${weDate}`,
+      window: `${dwsISO.slice(0, 10)} to ${dweISO.slice(0, 10)}`,
       calls: { thisWeek: callsThisWeek, prevWeek: callsPrevWeek },
       meetings: { thisWeek: meetingsThisWeek, prevWeek: meetingsPrevWeek },
       cvsSent: { thisWeek: cvsSent, prevWeek: cvsSentPrev },
       newJobs: { thisWeek: newJobs, prevWeek: newJobsPrev },
       placements: placements.length,
       offersExtended: offers.length,
+      touchpoints: touchpoints.length,
       totalStageChanges: stageChanges.length,
       totalNotes: notes.length,
+      notesWithTranscripts: notes.filter((n) => n.transcript).length,
     };
 
     const systemPrompt = `You are an expert recruitment business analyst. You produce weekly intelligence summaries for a solo recruiter.
 
 IMPORTANT RULES:
+- Base every insight on the data provided. Do NOT invent facts.
 - NEVER include real candidate or client names in content suggestions — fully anonymised insights only.
 - Be direct, practical, market-informed. No generic advice.
-- Use the recruiter's data to surface genuine patterns and actionable insights.
+- If a section has no supporting data, return an empty array rather than filler text.
 - Write content suggestions in a direct, first-person recruiter voice.
 
 Return ONLY valid JSON with this exact structure:
@@ -150,29 +249,32 @@ Return ONLY valid JSON with this exact structure:
     "mondayPriorities": ["string"]
   },
   "contentSuggestions": [
-    {
-      "headline": "string",
-      "insight": "string",
-      "format": "LinkedIn post"|"short article"|"poll"
-    }
+    { "headline": "string", "insight": "string", "format": "LinkedIn post"|"short article"|"poll" }
   ]
 }`;
 
-    const userPrompt = `Here is my recruitment desk data for the week of ${wsDate} to ${weDate}:
+    const userPrompt = `Here is my recruitment desk data for the rolling 7-day window ${dwsISO.slice(0, 10)} to ${dweISO.slice(0, 10)}:
 
 ## Raw Stats
 ${JSON.stringify(statsSnapshot, null, 2)}
 
-## Conversations This Week (${callAndMeetingNotes.length} total touchpoints)
-${callAndMeetingNotes.map((n, i) => `${i + 1}. [${n.type}] ${n.entity}: ${n.content}${n.outcome ? ` (Outcome: ${n.outcome})` : ""}`).join("\n")}
+## Conversations & Notes (${conversationContent.length} touchpoints)
+${conversationContent
+  .map(
+    (n, i) =>
+      `${i + 1}. [${n.type}] ${n.entity}: ${n.content}${n.outcome ? ` (Outcome: ${n.outcome})` : ""}${n.transcript}`,
+  )
+  .join("\n")}
 
-## Stage Changes This Week
-${stageChanges.map(a => {
-  const m = a.metadata as any;
-  return `- ${m?.stage_from || "?"} → ${m?.stage_to || "?"}`;
-}).join("\n") || "None"}
+## Stage Changes
+${stageChanges
+  .map((a) => {
+    const m = a.metadata as any;
+    return `- ${m?.stage_from || "?"} → ${m?.stage_to || "?"}`;
+  })
+  .join("\n") || "None"}
 
-Analyse all of this and generate my Weekly Intelligence Summary. Remember — no real names in content suggestions.`;
+Analyse all of this and generate my Weekly Intelligence Summary. No real names in content suggestions.`;
 
     const aiRes = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
@@ -186,19 +288,27 @@ Analyse all of this and generate my Weekly Intelligence Summary. Remember — no
           { role: "system", content: systemPrompt },
           { role: "user", content: userPrompt },
         ],
+        max_tokens: 4096,
       }),
     });
 
     if (!aiRes.ok) {
       if (aiRes.status === 429) {
         return new Response(JSON.stringify({ error: "Rate limited — try again shortly." }), {
-          status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" },
+          status: 429,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
       if (aiRes.status === 402) {
-        return new Response(JSON.stringify({ error: "AI credits exhausted. Top up in Settings > Workspace > Usage." }), {
-          status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
+        return new Response(
+          JSON.stringify({
+            error: "AI credits exhausted. Top up in Settings > Workspace > Usage.",
+          }),
+          {
+            status: 402,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          },
+        );
       }
       const errText = await aiRes.text();
       console.error("AI error:", aiRes.status, errText);
@@ -206,20 +316,26 @@ Analyse all of this and generate my Weekly Intelligence Summary. Remember — no
     }
 
     const aiData = await aiRes.json();
-    let content = aiData.choices?.[0]?.message?.content || "";
+    const finishReason = aiData.choices?.[0]?.finish_reason;
+    let content: string = aiData.choices?.[0]?.message?.content || "";
+    console.log("weekly-summary: AI response", {
+      finishReason,
+      contentLength: content.length,
+      usage: aiData.usage,
+    });
 
-    // Strip markdown code fences if present
     content = content.replace(/```json\n?/g, "").replace(/```\n?/g, "").trim();
 
     let summary;
     try {
       summary = JSON.parse(content);
-    } catch {
-      console.error("Failed to parse AI response:", content);
+    } catch (e) {
+      console.error("Failed to parse AI response:", content.slice(0, 500));
       throw new Error("AI returned invalid JSON");
     }
 
-    // Upsert into weekly_summaries
+    summary.meta = { dataAvailable: true, dataPoints: totalDataPoints };
+
     const { error: upsertErr } = await sb.from("weekly_summaries").upsert(
       {
         user_id: body.user_id || null,
@@ -227,20 +343,20 @@ Analyse all of this and generate my Weekly Intelligence Summary. Remember — no
         week_end: weDate,
         summary,
       },
-      { onConflict: "user_id,week_start" }
+      { onConflict: "user_id,week_start" },
     );
 
-    if (upsertErr) {
-      console.error("Upsert error:", upsertErr);
-    }
+    if (upsertErr) console.error("Upsert error:", upsertErr);
 
-    return new Response(JSON.stringify({ summary, week_start: wsDate, week_end: weDate }), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    return new Response(
+      JSON.stringify({ summary, week_start: wsDate, week_end: weDate, dataAvailable: true }),
+      { headers: { ...corsHeaders, "Content-Type": "application/json" } },
+    );
   } catch (e) {
     console.error("weekly-summary error:", e);
-    return new Response(JSON.stringify({ error: e instanceof Error ? e.message : "Unknown error" }), {
-      status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    return new Response(
+      JSON.stringify({ error: e instanceof Error ? e.message : "Unknown error" }),
+      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+    );
   }
 });
