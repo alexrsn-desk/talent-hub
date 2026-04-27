@@ -202,12 +202,13 @@ export default function ContactsPage() {
   );
 }
 
-function ContactFullView({ contact, client, onBack, onDelete, onContactUpdate }: {
+export function ContactFullView({ contact, client, onBack, onDelete, onContactUpdate, backLabel }: {
   contact: Contact;
   client: Client | null;
   onBack: () => void;
   onDelete: () => Promise<void>;
   onContactUpdate: (updated: Contact) => void;
+  backLabel?: string;
 }) {
   const [touchpointOpen, setTouchpointOpen] = useState(false);
 
