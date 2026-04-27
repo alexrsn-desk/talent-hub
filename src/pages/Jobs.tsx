@@ -117,11 +117,12 @@ export default function JobsPage() {
   );
 }
 
-function JobFullView({ job, onBack, onUpdate, onDelete }: {
+export function JobFullView({ job, onBack, onUpdate, onDelete, backLabel }: {
   job: Job;
   onBack: () => void;
   onUpdate: (u: Partial<Job>) => Promise<void>;
   onDelete: () => Promise<void>;
+  backLabel?: string;
 }) {
   const handleFieldSave = async (field: string, value: string) => {
     const updates: any = {};
