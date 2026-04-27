@@ -206,6 +206,7 @@ serve(async (req) => {
         bdFollowUpsOverdue: bdFollowupsOverdue,
         reengageCandidatesDue,
         reengageContactsDue,
+        jobsNoActivePipeline: jobsNoPipeline,
       },
       amberFlags: {
         jobsNoCVsSent7Days: jobsNoSubmissions.map((j: any) => ({
