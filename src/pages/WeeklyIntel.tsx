@@ -286,13 +286,46 @@ ${summary.contentSuggestions.map((s, i) => `${i + 1}. [${s.format}] ${s.headline
         </div>
       </div>
 
-      {isLoading && (
+      {queryError && (
+        <Card className="border-red-500/30 bg-red-500/5">
+          <CardContent className="py-4 text-sm text-red-300">
+            Failed to load saved summary: {(queryError as any)?.message || "Unknown error"}
+          </CardContent>
+        </Card>
+      )}
+
+      {generateMutation.isPending && (
+        <Card className="border-primary/30 bg-primary/5">
+          <CardContent className="py-8 flex flex-col items-center text-center gap-3">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            <div>
+              <p className="text-sm font-medium">Generating weekly intelligence…</p>
+              <p className="text-xs text-muted-foreground mt-1">
+                Analysing notes, calls, touchpoints and pipeline movement for {formatDateShort(wsDate)} – {formatDateShort(weDate)}. This usually takes 10–20 seconds.
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {generateMutation.isError && !generateMutation.isPending && (
+        <Card className="border-red-500/30 bg-red-500/5">
+          <CardContent className="py-4 text-sm text-red-300">
+            <p className="font-medium mb-1">Generation failed</p>
+            <p className="text-xs">
+              {(generateMutation.error as any)?.message || "Unknown error — try again or check the function logs."}
+            </p>
+          </CardContent>
+        </Card>
+      )}
+
+      {isLoading && !generateMutation.isPending && (
         <div className="flex justify-center py-12">
           <Loader2 className="h-6 w-6 animate-spin text-primary" />
         </div>
       )}
 
-      {!isLoading && !summary && (
+      {!isLoading && !summary && !generateMutation.isPending && (
         <Card>
           <CardContent className="py-12 text-center">
             <Brain className="h-10 w-10 text-muted-foreground mx-auto mb-3" />
