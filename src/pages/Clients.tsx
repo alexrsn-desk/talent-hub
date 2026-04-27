@@ -6,8 +6,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { Plus, Search, ExternalLink, Trash2, PhoneCall, Globe, ArrowLeft } from "lucide-react";
-import { useClients, useCreateClient, useUpdateClient, useDeleteClient, useContacts, useCreateContact, useCreateNote, useJobs, type Client, type Contact } from "@/hooks/use-data";
+import { Plus, Search, ExternalLink, Trash2, PhoneCall, Globe, ArrowLeft, Mail, GitBranch, ChevronRight } from "lucide-react";
+import {
+  useClients, useCreateClient, useUpdateClient, useDeleteClient,
+  useContacts, useCreateContact, useDeleteContact, useCreateNote,
+  useJobs, useUpdateJob, useDeleteJob, useCandidateJobs,
+  type Client, type Contact, type Job,
+} from "@/hooks/use-data";
 import { Textarea } from "@/components/ui/textarea";
 import { ProfileTabs } from "@/components/ProfileTabs";
 import { LogTouchpointModal } from "@/components/LogTouchpointModal";
@@ -16,6 +21,9 @@ import { CallPrepButton } from "@/components/CallPrep";
 import { ClickToEditField } from "@/components/ClickToEditField";
 import { SummaryField } from "@/components/SummaryField";
 import { ConversationPrompts } from "@/components/ConversationPrompts";
+import { AddToSequencePanel } from "@/components/AddToSequencePanel";
+import { ContactFullView } from "@/pages/Contacts";
+import { JobFullView } from "@/pages/Jobs";
 import { toast } from "sonner";
 
 const STATUSES = ["Active", "Warm", "Cold", "Target"] as const;
@@ -250,10 +258,52 @@ function ClientFullView({ client, onBack, onUpdate, onDelete }: {
   const { data: contacts = [] } = useContacts(client.id);
   const { data: allJobs = [] } = useJobs();
   const createContact = useCreateContact();
+  const deleteContact = useDeleteContact();
+  const updateJob = useUpdateJob();
+  const deleteJob = useDeleteJob();
   const [touchpointOpen, setTouchpointOpen] = useState(false);
+  const [touchpointContact, setTouchpointContact] = useState<Contact | null>(null);
   const [addingContact, setAddingContact] = useState(false);
+  const [openContact, setOpenContact] = useState<Contact | null>(null);
+  const [openJob, setOpenJob] = useState<Job | null>(null);
 
   const clientJobs = allJobs.filter(j => j.client_id === client.id);
+
+  // Sub-view: Contact opened from inside this client
+  if (openContact) {
+    return (
+      <ContactFullView
+        contact={openContact}
+        client={client}
+        backLabel={client.company_name}
+        onBack={() => setOpenContact(null)}
+        onDelete={async () => {
+          await deleteContact.mutateAsync(openContact.id);
+          setOpenContact(null);
+        }}
+        onContactUpdate={(updated) => setOpenContact(updated)}
+      />
+    );
+  }
+
+  // Sub-view: Job opened from inside this client
+  if (openJob) {
+    return (
+      <JobFullView
+        job={openJob}
+        backLabel={client.company_name}
+        onBack={() => setOpenJob(null)}
+        onUpdate={async (updates) => {
+          await updateJob.mutateAsync({ id: openJob.id, ...updates });
+          setOpenJob({ ...openJob, ...updates });
+        }}
+        onDelete={async () => {
+          await deleteJob.mutateAsync(openJob.id);
+          setOpenJob(null);
+        }}
+      />
+    );
+  }
 
   const handleFieldSave = async (field: string, value: string) => {
     await onUpdate({ [field]: value || null } as any);
@@ -383,19 +433,75 @@ function ClientFullView({ client, onBack, onUpdate, onDelete }: {
                     <th className="text-left px-4 py-2 font-medium text-muted-foreground">Email</th>
                     <th className="text-left px-4 py-2 font-medium text-muted-foreground">Phone</th>
                     <th className="text-left px-4 py-2 font-medium text-muted-foreground">Status</th>
+                    <th className="text-right px-4 py-2 font-medium text-muted-foreground">Actions</th>
                   </tr>
                 </thead>
                 <tbody>
                   {contacts.map(ct => (
-                    <tr key={ct.id} className="border-b border-border">
-                      <td className="px-4 py-2 font-medium">{ct.name}</td>
+                    <tr
+                      key={ct.id}
+                      className="border-b border-border hover:bg-muted/20 cursor-pointer transition-colors"
+                      onClick={() => setOpenContact(ct)}
+                    >
+                      <td className="px-4 py-2 font-medium">
+                        <span className="hover:underline">{ct.name}</span>
+                      </td>
                       <td className="px-4 py-2 text-muted-foreground">{ct.job_title || "—"}</td>
-                      <td className="px-4 py-2 text-muted-foreground">{ct.email || "—"}</td>
-                      <td className="px-4 py-2 text-muted-foreground">{ct.phone || "—"}</td>
+                      <td className="px-4 py-2 text-muted-foreground">
+                        {ct.email ? (
+                          <a href={`mailto:${ct.email}`} className="hover:underline" onClick={(e) => e.stopPropagation()}>
+                            {ct.email}
+                          </a>
+                        ) : "—"}
+                      </td>
+                      <td className="px-4 py-2 text-muted-foreground">
+                        {ct.phone ? (
+                          <a href={`tel:${ct.phone}`} className="hover:underline" onClick={(e) => e.stopPropagation()}>
+                            {ct.phone}
+                          </a>
+                        ) : "—"}
+                      </td>
                       <td className="px-4 py-2">
                         <Badge variant="secondary" className="text-xs">
                           {(ct as any).status || "Active"}
                         </Badge>
+                      </td>
+                      <td className="px-4 py-2">
+                        <div className="flex items-center justify-end gap-1" onClick={(e) => e.stopPropagation()}>
+                          {ct.email && (
+                            <a href={`mailto:${ct.email}`} title="Email">
+                              <Button size="icon" variant="ghost" className="h-7 w-7">
+                                <Mail className="h-3.5 w-3.5" />
+                              </Button>
+                            </a>
+                          )}
+                          {ct.phone && (
+                            <a href={`tel:${ct.phone}`} title="Call">
+                              <Button size="icon" variant="ghost" className="h-7 w-7">
+                                <PhoneCall className="h-3.5 w-3.5" />
+                              </Button>
+                            </a>
+                          )}
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            className="h-7 w-7"
+                            title="Log touchpoint"
+                            onClick={() => { setTouchpointContact(ct); setTouchpointOpen(true); }}
+                          >
+                            <PhoneCall className="h-3.5 w-3.5 text-primary" />
+                          </Button>
+                          <AddToSequencePanel
+                            entityType="contact"
+                            entityId={ct.id}
+                            entityName={ct.name}
+                            trigger={
+                              <Button size="icon" variant="ghost" className="h-7 w-7" title="Add to sequence">
+                                <GitBranch className="h-3.5 w-3.5" />
+                              </Button>
+                            }
+                          />
+                        </div>
                       </td>
                     </tr>
                   ))}
@@ -411,13 +517,7 @@ function ClientFullView({ client, onBack, onUpdate, onDelete }: {
           ) : (
             <div className="space-y-2">
               {clientJobs.map(j => (
-                <div key={j.id} className="flex items-center justify-between rounded-md border border-border px-3 py-2 text-sm">
-                  <div>
-                    <span className="font-medium">{j.title}</span>
-                    <span className="text-muted-foreground ml-2">{j.job_type} · {j.location || "Remote"}</span>
-                  </div>
-                  <Badge variant="secondary" className={j.status === "Open" ? "bg-success/20 text-green-400" : ""}>{j.status}</Badge>
-                </div>
+                <ClientJobRow key={j.id} job={j} onOpen={() => setOpenJob(j)} />
               ))}
             </div>
           )}
@@ -432,11 +532,73 @@ function ClientFullView({ client, onBack, onUpdate, onDelete }: {
 
       <LogTouchpointModal
         open={touchpointOpen}
-        onOpenChange={setTouchpointOpen}
+        onOpenChange={(open) => { setTouchpointOpen(open); if (!open) setTouchpointContact(null); }}
         entityType="client"
         entityId={client.id}
-        entityName={client.company_name}
+        entityName={touchpointContact ? `${touchpointContact.name} (${client.company_name})` : client.company_name}
       />
     </div>
+  );
+}
+
+const jobStatusColor: Record<string, string> = {
+  Open: "bg-success/20 text-green-400",
+  "On Hold": "bg-yellow-500/20 text-yellow-400",
+  Filled: "bg-primary/20 text-primary",
+  Cancelled: "bg-destructive/20 text-red-400",
+};
+
+function ClientJobRow({ job, onOpen }: { job: Job; onOpen: () => void }) {
+  const { data: links = [] } = useCandidateJobs(undefined, job.id);
+  const total = links.length;
+
+  // Stage counts grouped by macro stage
+  const stageGroups: { label: string; stages: string[] }[] = [
+    { label: "Longlist", stages: ["AI Suggested", "Longlist", "Contact"] },
+    { label: "Screening", stages: ["Screening"] },
+    { label: "Shortlist", stages: ["Shortlist", "Submitted", "Client Review"] },
+    { label: "Interview", stages: ["First Interview", "Second Interview"] },
+    { label: "Offer", stages: ["Offer"] },
+    { label: "Placed", stages: ["Placed"] },
+  ];
+
+  const counts = stageGroups
+    .map(g => ({ label: g.label, count: links.filter(l => g.stages.includes((l as any).stage)).length }))
+    .filter(g => g.count > 0);
+
+  const opened = job.created_at
+    ? new Date(job.created_at).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })
+    : "—";
+
+  return (
+    <button
+      onClick={onOpen}
+      className="w-full text-left rounded-md border border-border px-3 py-2.5 text-sm hover:bg-muted/20 hover:border-primary/40 transition-colors group"
+    >
+      <div className="flex items-center justify-between gap-3">
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="font-medium group-hover:underline">{job.title}</span>
+            <Badge variant="secondary" className={`text-xs ${jobStatusColor[job.status] || ""}`}>{job.status}</Badge>
+            <span className="text-xs text-muted-foreground">{job.job_type} · {job.location || "Remote"}</span>
+          </div>
+          <div className="flex items-center gap-3 text-xs text-muted-foreground mt-1">
+            <span>Opened {opened}</span>
+            <span>·</span>
+            <span>{total} {total === 1 ? "candidate" : "candidates"} in pipeline</span>
+          </div>
+          {counts.length > 0 && (
+            <div className="flex items-center gap-1.5 mt-1.5 flex-wrap">
+              {counts.map(c => (
+                <span key={c.label} className="text-[10px] px-1.5 py-0.5 rounded bg-muted/60 text-muted-foreground">
+                  {c.label}: <span className="text-foreground font-medium">{c.count}</span>
+                </span>
+              ))}
+            </div>
+          )}
+        </div>
+        <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0 group-hover:text-foreground transition-colors" />
+      </div>
+    </button>
   );
 }
