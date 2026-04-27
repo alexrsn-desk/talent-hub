@@ -225,6 +225,7 @@ serve(async (req) => {
         })),
         totalBDProspects: bdProspects.length,
         noNewJobsIn14Days: recentJobsOpened.length === 0,
+        jobsThinPipeline: jobsThinPipeline,
       },
       greenFlags: {
         longlistNotContacted: longlistNotContacted.map((cj: any) => ({
