@@ -165,44 +165,54 @@ export default function WeeklyIntel() {
   const currentMonday = getMonday(new Date());
   const targetMonday = new Date(currentMonday);
   targetMonday.setDate(currentMonday.getDate() + weekOffset * 7);
+  const targetSunday = new Date(targetMonday);
+  targetSunday.setDate(targetMonday.getDate() + 6);
   const targetFriday = new Date(targetMonday);
   targetFriday.setDate(targetMonday.getDate() + 4);
 
-  const wsDate = targetMonday.toISOString().slice(0, 10);
-  const weDate = targetFriday.toISOString().slice(0, 10);
+  // Use LOCAL date formatting (not toISOString) so timezone offsets don't
+  // shift the week boundary backwards by a day.
+  const wsDate = toLocalISODate(targetMonday);
+  // Display the full Mon-Sun calendar week so the header matches the data window.
+  const weDate = toLocalISODate(targetSunday);
 
-  const { data: savedSummary, isLoading } = useQuery({
+  const { data: savedSummary, isLoading, error: queryError } = useQuery({
     queryKey: ["weekly-summary", wsDate, user?.id],
     enabled: !!user?.id,
     queryFn: async () => {
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from("weekly_summaries" as any)
         .select("*")
         .eq("week_start", wsDate)
         .eq("user_id", user!.id)
         .maybeSingle();
+      if (error) throw error;
       return (data as unknown as { summary: WeeklySummary; week_start: string; week_end: string }) || null;
     },
   });
 
   const generateMutation = useMutation({
     mutationFn: async () => {
+      // Send the Sunday end-of-week so the backend's window calculation
+      // unambiguously resolves to the same Mon-Sun the UI is showing.
       const { data, error } = await supabase.functions.invoke("weekly-summary", {
-        body: { user_id: user?.id, week_end: targetFriday.toISOString() },
+        body: { user_id: user?.id, week_end: targetSunday.toISOString() },
       });
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
       return data;
     },
-    onSuccess: (data: any) => {
+    onSuccess: async (data: any) => {
       if (data?.dataAvailable === false) {
         toast.message("Summary generated", {
-          description: "No notes, calls or pipeline activity in the last 7 days to analyse.",
+          description: "No notes, calls or pipeline activity this week to analyse.",
         });
       } else {
-        toast.success("Weekly summary generated");
+        toast.success(`Weekly summary generated — ${data?.summary?.meta?.dataPoints ?? ""} data points analysed`);
       }
-      qc.invalidateQueries({ queryKey: ["weekly-summary", wsDate, user?.id] });
+      // Refetch so the UI updates with the freshly-saved summary.
+      await qc.invalidateQueries({ queryKey: ["weekly-summary", wsDate, user?.id] });
+      await qc.refetchQueries({ queryKey: ["weekly-summary", wsDate, user?.id] });
     },
     onError: (e: any) => toast.error(e.message || "Failed to generate summary"),
   });
