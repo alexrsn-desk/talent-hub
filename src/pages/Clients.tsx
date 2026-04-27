@@ -532,11 +532,73 @@ function ClientFullView({ client, onBack, onUpdate, onDelete }: {
 
       <LogTouchpointModal
         open={touchpointOpen}
-        onOpenChange={setTouchpointOpen}
+        onOpenChange={(open) => { setTouchpointOpen(open); if (!open) setTouchpointContact(null); }}
         entityType="client"
         entityId={client.id}
-        entityName={client.company_name}
+        entityName={touchpointContact ? `${touchpointContact.name} (${client.company_name})` : client.company_name}
       />
     </div>
+  );
+}
+
+const jobStatusColor: Record<string, string> = {
+  Open: "bg-success/20 text-green-400",
+  "On Hold": "bg-yellow-500/20 text-yellow-400",
+  Filled: "bg-primary/20 text-primary",
+  Cancelled: "bg-destructive/20 text-red-400",
+};
+
+function ClientJobRow({ job, onOpen }: { job: Job; onOpen: () => void }) {
+  const { data: links = [] } = useCandidateJobs(undefined, job.id);
+  const total = links.length;
+
+  // Stage counts grouped by macro stage
+  const stageGroups: { label: string; stages: string[] }[] = [
+    { label: "Longlist", stages: ["AI Suggested", "Longlist", "Contact"] },
+    { label: "Screening", stages: ["Screening"] },
+    { label: "Shortlist", stages: ["Shortlist", "Submitted", "Client Review"] },
+    { label: "Interview", stages: ["First Interview", "Second Interview"] },
+    { label: "Offer", stages: ["Offer"] },
+    { label: "Placed", stages: ["Placed"] },
+  ];
+
+  const counts = stageGroups
+    .map(g => ({ label: g.label, count: links.filter(l => g.stages.includes((l as any).stage)).length }))
+    .filter(g => g.count > 0);
+
+  const opened = job.created_at
+    ? new Date(job.created_at).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })
+    : "—";
+
+  return (
+    <button
+      onClick={onOpen}
+      className="w-full text-left rounded-md border border-border px-3 py-2.5 text-sm hover:bg-muted/20 hover:border-primary/40 transition-colors group"
+    >
+      <div className="flex items-center justify-between gap-3">
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="font-medium group-hover:underline">{job.title}</span>
+            <Badge variant="secondary" className={`text-xs ${jobStatusColor[job.status] || ""}`}>{job.status}</Badge>
+            <span className="text-xs text-muted-foreground">{job.job_type} · {job.location || "Remote"}</span>
+          </div>
+          <div className="flex items-center gap-3 text-xs text-muted-foreground mt-1">
+            <span>Opened {opened}</span>
+            <span>·</span>
+            <span>{total} {total === 1 ? "candidate" : "candidates"} in pipeline</span>
+          </div>
+          {counts.length > 0 && (
+            <div className="flex items-center gap-1.5 mt-1.5 flex-wrap">
+              {counts.map(c => (
+                <span key={c.label} className="text-[10px] px-1.5 py-0.5 rounded bg-muted/60 text-muted-foreground">
+                  {c.label}: <span className="text-foreground font-medium">{c.count}</span>
+                </span>
+              ))}
+            </div>
+          )}
+        </div>
+        <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0 group-hover:text-foreground transition-colors" />
+      </div>
+    </button>
   );
 }
