@@ -290,6 +290,19 @@ ${summary.contentSuggestions.map((s, i) => `${i + 1}. [${s.format}] ${s.headline
 
       {summary && (
         <>
+          {!dataAvailable && (
+            <Card className="border-amber-500/30 bg-amber-500/5">
+              <CardContent className="py-4 flex items-start gap-3">
+                <FileText className="h-4 w-4 text-amber-400 mt-0.5 shrink-0" />
+                <div className="text-sm">
+                  <p className="font-medium text-amber-300 mb-1">Not enough data this week</p>
+                  <p className="text-xs text-muted-foreground">
+                    No notes, calls, touchpoints or pipeline movement were recorded in the last 7 days, so there's nothing to analyse. Log activity through the week — every call, meeting and touchpoint — and re-run this summary on Friday for a useful brief.
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
+          )}
           {/* Performance */}
           <Card>
             <CardHeader className="pb-3">
