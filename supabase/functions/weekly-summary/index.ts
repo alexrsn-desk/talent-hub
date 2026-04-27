@@ -37,22 +37,22 @@ serve(async (req) => {
     const wsDate = weekStart.toISOString().slice(0, 10);
     const weDate = weekFriday.toISOString().slice(0, 10);
 
-    // For DATA fetch we use a rolling 7-day window ending at weekFriday.
-    // This catches activity that happened over the weekend or just before
-    // the requested week, which is what a recruiter actually wants
-    // reflected in their weekly intelligence brief.
-    const dataWindowEnd = weekFriday > now ? now : weekFriday;
-    const dataWindowStart = new Date(dataWindowEnd);
-    dataWindowStart.setDate(dataWindowEnd.getDate() - 6);
-    dataWindowStart.setHours(0, 0, 0, 0);
+    // For DATA fetch we use the full Mon-Sun calendar week so weekend
+    // activity is captured. For the current/future week we cap the end at
+    // "now" so we summarize everything up to this moment.
+    const weekSunday = new Date(weekStart);
+    weekSunday.setDate(weekStart.getDate() + 6);
+    weekSunday.setHours(23, 59, 59, 999);
+
+    const dataWindowEnd = weekSunday > now ? now : weekSunday;
+    const dataWindowStart = new Date(weekStart);
 
     const dwsISO = dataWindowStart.toISOString();
     const dweISO = dataWindowEnd.toISOString();
 
-    // Previous 7-day window for trend comparison
-    const prevWindowEnd = new Date(dataWindowStart);
-    prevWindowEnd.setDate(prevWindowEnd.getDate() - 1);
-    prevWindowEnd.setHours(23, 59, 59, 999);
+    // Previous calendar week for trend comparison
+    const prevWindowEnd = new Date(weekStart);
+    prevWindowEnd.setMilliseconds(prevWindowEnd.getMilliseconds() - 1);
     const prevWindowStart = new Date(prevWindowEnd);
     prevWindowStart.setDate(prevWindowEnd.getDate() - 6);
     prevWindowStart.setHours(0, 0, 0, 0);
