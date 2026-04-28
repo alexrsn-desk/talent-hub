@@ -5,6 +5,7 @@ import { useAllUnactionedSignals } from "@/hooks/use-signals";
 import { SignalBox } from "@/components/SignalBox";
 import { PriorityCandidatesSection } from "@/components/PriorityFlag";
 import { TodoList } from "@/components/TodoList";
+import { OfferBackupActions } from "@/components/OfferBackupActions";
 
 const activityIcon: Record<string, typeof FileText> = {
   Note: FileText,
@@ -140,6 +141,9 @@ export default function DashboardPage() {
 
       {/* AI Daily Focus */}
       <DailyFocus />
+
+      {/* Offer-stage backup alerts */}
+      <OfferBackupActions />
 
       {/* Priority Candidates */}
       <PriorityCandidatesSection candidates={allCandidates} />
