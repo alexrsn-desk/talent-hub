@@ -5,7 +5,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { BriefcaseBusiness, Mail, ClipboardList, Tag, Download, X, ChevronUp, Check, MoreHorizontal, RefreshCw } from "lucide-react";
+import { BriefcaseBusiness, Mail, ClipboardList, Tag, Download, X, ChevronUp, Check, MoreHorizontal, RefreshCw, Send } from "lucide-react";
+import { SendCheckinPanel } from "@/components/SendCheckinPanel";
 import { useJobs, useCreateCandidateJob, useCreateNote, useUpdateCandidate, type Candidate } from "@/hooks/use-data";
 import { useAddCandidateTag, useTagDefinitions, TAG_CATEGORIES } from "@/hooks/use-tags";
 import { logActivity } from "@/lib/activity-log";
@@ -34,6 +35,7 @@ export function CandidateBulkActionBar({ selected, onClear }: BulkActionBarProps
 
       <div className="flex items-center gap-2">
         <AddToJobAction selected={selected} />
+        {!isMobile && <SendCheckinAction selected={selected} />}
         {!isMobile && <AddToSequenceAction selected={selected} />}
         {!isMobile && <SendEmailAction selected={selected} />}
         {!isMobile && <LogTouchpointAction selected={selected} />}
@@ -139,6 +141,26 @@ function AddToSequenceAction({ selected }: { selected: Candidate[] }) {
     <ActionButton onClick={() => toast.info("Sequences coming soon")}>
       <RefreshCw className="h-4 w-4 mr-1" /> Add to Sequence
     </ActionButton>
+  );
+}
+
+// --- Send Check-in (AI-drafted, multi-select) ---
+function SendCheckinAction({ selected }: { selected: Candidate[] }) {
+  const [open, setOpen] = useState(false);
+  const eligible = selected.filter((c) => c.email && c.status !== "Do Not Contact");
+  return (
+    <>
+      <ActionButton onClick={() => {
+        if (eligible.length === 0) {
+          toast.error("None of the selected candidates have an email address.");
+          return;
+        }
+        setOpen(true);
+      }}>
+        <Send className="h-4 w-4 mr-1" /> Send Check-in
+      </ActionButton>
+      {open && <SendCheckinPanel open={open} onOpenChange={setOpen} candidates={selected} />}
+    </>
   );
 }
 
