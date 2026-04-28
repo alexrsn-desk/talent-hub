@@ -238,10 +238,11 @@ export function JobPipelineBoard({ job }: { job: Job }) {
       ))}
 
       <DragDropContext onDragEnd={handleDragEnd}>
-        <div className="flex gap-3 overflow-x-auto pb-4" style={{ minHeight: 320 }}>
+        <div id={`pipeline-board-${job.id}`} className="flex gap-3 overflow-x-auto pb-4" style={{ minHeight: 320 }}>
           {PIPELINE_STAGES.map((stage) => (
             <div
               key={stage}
+              id={`pipeline-col-${stage}-${job.id}`}
               className={`flex-shrink-0 w-56 rounded-lg border border-border bg-muted/20 border-t-2 ${stageBorder[stage]}`}
             >
               <div className="px-3 py-2 border-b border-border flex items-center justify-between">
