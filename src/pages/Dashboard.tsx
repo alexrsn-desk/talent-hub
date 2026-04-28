@@ -29,21 +29,7 @@ const activityColor: Record<string, string> = {
   "Follow-up": "text-orange-400",
 };
 
-function getGreeting() {
-  const hour = new Date().getHours();
-  if (hour < 12) return "Good morning";
-  if (hour < 17) return "Good afternoon";
-  return "Good evening";
-}
 
-function formatDate() {
-  return new Date().toLocaleDateString("en-GB", {
-    weekday: "long",
-    day: "numeric",
-    month: "long",
-    year: "numeric",
-  });
-}
 
 export default function DashboardPage() {
   const { data: jobs = [] } = useJobs();
