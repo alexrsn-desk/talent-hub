@@ -1,11 +1,12 @@
-import { useJobs, useTodayFollowUps, useOverdueFollowUps, useTodayInterviews, useCandidateJobs, useCandidates } from "@/hooks/use-data";
-import { AlertTriangle, Phone, Mail, Globe, FileText, Smartphone, MessageCircle, MessageSquare, Sun, Clock, CalendarCheck, Star, Users, Lightbulb } from "lucide-react";
+import { useJobs, useTodayFollowUps, useCandidateJobs, useCandidates } from "@/hooks/use-data";
+import { AlertTriangle, Phone, Mail, Globe, FileText, Smartphone, MessageCircle, MessageSquare, Users } from "lucide-react";
 import { DailyFocus } from "@/components/DailyFocus";
 import { useAllUnactionedSignals } from "@/hooks/use-signals";
 import { SignalBox } from "@/components/SignalBox";
 import { PriorityCandidatesSection } from "@/components/PriorityFlag";
 import { TodoList } from "@/components/TodoList";
 import { OfferBackupActions } from "@/components/OfferBackupActions";
+import { DashboardHeadline } from "@/components/DashboardHeadline";
 
 const activityIcon: Record<string, typeof FileText> = {
   Note: FileText,
