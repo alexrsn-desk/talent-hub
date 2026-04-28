@@ -16,6 +16,7 @@ import { useScreeningNote } from "@/hooks/use-screening-notes";
 import { toast } from "sonner";
 import { InterviewSlotPicker } from "@/components/InterviewSlotPicker";
 import { logActivity } from "@/lib/activity-log";
+import { OfferBackupSignal } from "@/components/OfferBackupSignal";
 
 // ============================================================================
 // Stage definitions — reflects real recruitment workflow
@@ -215,11 +216,33 @@ export function JobPipelineBoard({ job }: { job: Job }) {
         </p>
       </div>
 
+      {/* Offer-stage backup signals — one per candidate at Offer */}
+      {(stageMap["Offer"] || []).map((cj) => (
+        <OfferBackupSignal
+          key={`backup-${cj.id}`}
+          job={job}
+          offerCandidateJob={cj}
+          candidateJobs={candidateJobs}
+          onViewPipeline={() => {
+            // Already inside the pipeline view — scroll board into view
+            document.getElementById(`pipeline-board-${job.id}`)?.scrollIntoView({ behavior: "smooth", block: "start" });
+          }}
+          onFindBackups={() => {
+            document.getElementById(`pipeline-col-AI Suggested-${job.id}`)?.scrollIntoView({
+              behavior: "smooth",
+              inline: "start",
+              block: "nearest",
+            });
+          }}
+        />
+      ))}
+
       <DragDropContext onDragEnd={handleDragEnd}>
-        <div className="flex gap-3 overflow-x-auto pb-4" style={{ minHeight: 320 }}>
+        <div id={`pipeline-board-${job.id}`} className="flex gap-3 overflow-x-auto pb-4" style={{ minHeight: 320 }}>
           {PIPELINE_STAGES.map((stage) => (
             <div
               key={stage}
+              id={`pipeline-col-${stage}-${job.id}`}
               className={`flex-shrink-0 w-56 rounded-lg border border-border bg-muted/20 border-t-2 ${stageBorder[stage]}`}
             >
               <div className="px-3 py-2 border-b border-border flex items-center justify-between">

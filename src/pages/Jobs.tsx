@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -32,6 +33,20 @@ export default function JobsPage() {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [selectedJob, setSelectedJob] = useState<Job | null>(null);
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  // Auto-open job from ?jobId= query param (e.g. from dashboard offer-backup alerts)
+  useEffect(() => {
+    const jobId = searchParams.get("jobId");
+    if (jobId && !selectedJob) {
+      const j = jobs.find((x) => x.id === jobId);
+      if (j) {
+        setSelectedJob(j);
+        searchParams.delete("jobId");
+        setSearchParams(searchParams, { replace: true });
+      }
+    }
+  }, [jobs, searchParams, selectedJob, setSearchParams]);
 
   const filtered = jobs.filter((j) => {
     const matchesSearch = j.title.toLowerCase().includes(search.toLowerCase()) ||
