@@ -408,6 +408,7 @@ function ExportAction({ selected }: { selected: Candidate[] }) {
 function MobileMoreActions({ selected, onClose }: { selected: Candidate[]; onClose: () => void }) {
   return (
     <div className="space-y-0.5">
+      <SendCheckinAction selected={selected} />
       <SendEmailAction selected={selected} />
       <LogTouchpointAction selected={selected} />
       <UpdateStatusAction selected={selected} />
