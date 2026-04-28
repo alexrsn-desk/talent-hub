@@ -17,7 +17,8 @@ import { TagsSection } from "@/components/TagsSection";
 import { ActiveSequencesSection } from "@/components/ActiveSequencesSection";
 import { AddToSequencePanel } from "@/components/AddToSequencePanel";
 import { ReengageInlineEditor, formatReengageDate } from "@/components/ReengageDate";
-import { GitBranch, CalendarClock } from "lucide-react";
+import { GitBranch, CalendarClock, Send } from "lucide-react";
+import { SendCheckinPanel } from "@/components/SendCheckinPanel";
 import { Label } from "@/components/ui/label";
 import { logActivity } from "@/lib/activity-log";
 import { supabase } from "@/integrations/supabase/client";
@@ -60,6 +61,7 @@ export function CandidateDetail({ candidate, onUpdate, onDelete }: Props) {
   const [touchpointOpen, setTouchpointOpen] = useState(false);
   const [editing, setEditing] = useState(false);
   const [discardOpen, setDiscardOpen] = useState(false);
+  const [checkinOpen, setCheckinOpen] = useState(false);
   const updateCandidate = useUpdateCandidate();
 
   const [form, setForm] = useState(() => ({
@@ -287,6 +289,33 @@ export function CandidateDetail({ candidate, onUpdate, onDelete }: Props) {
                   }
                 />
               )}
+              {isDNC ? (
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <span>
+                      <Button size="sm" variant="outline" className="gap-1.5 opacity-50" disabled>
+                        <Send className="h-3.5 w-3.5" /> Send Check-in
+                      </Button>
+                    </span>
+                  </TooltipTrigger>
+                  <TooltipContent className="text-xs">Cannot send — Do Not Contact status</TooltipContent>
+                </Tooltip>
+              ) : !candidate.email ? (
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <span>
+                      <Button size="sm" variant="outline" className="gap-1.5 opacity-50" disabled>
+                        <Send className="h-3.5 w-3.5" /> Send Check-in
+                      </Button>
+                    </span>
+                  </TooltipTrigger>
+                  <TooltipContent className="text-xs">No email on file</TooltipContent>
+                </Tooltip>
+              ) : (
+                <Button size="sm" variant="outline" className="gap-1.5" onClick={() => setCheckinOpen(true)}>
+                  <Send className="h-3.5 w-3.5" /> Send Check-in
+                </Button>
+              )}
               <Button variant="ghost" size="icon" onClick={onDelete}><Trash2 className="h-4 w-4 text-destructive" /></Button>
             </>
           )}
@@ -385,6 +414,7 @@ export function CandidateDetail({ candidate, onUpdate, onDelete }: Props) {
       <CandidateJobLinks candidateId={candidate.id} />
       <ProfileTabs entityType="candidate" entityId={candidate.id} />
       <LogTouchpointModal open={touchpointOpen} onOpenChange={setTouchpointOpen} entityType="candidate" entityId={candidate.id} entityName={candidate.name} />
+      <SendCheckinPanel open={checkinOpen} onOpenChange={setCheckinOpen} candidates={[candidate]} />
 
       <AlertDialog open={discardOpen} onOpenChange={setDiscardOpen}>
         <AlertDialogContent>
