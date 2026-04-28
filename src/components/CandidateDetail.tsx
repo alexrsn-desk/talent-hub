@@ -414,6 +414,7 @@ export function CandidateDetail({ candidate, onUpdate, onDelete }: Props) {
       <CandidateJobLinks candidateId={candidate.id} />
       <ProfileTabs entityType="candidate" entityId={candidate.id} />
       <LogTouchpointModal open={touchpointOpen} onOpenChange={setTouchpointOpen} entityType="candidate" entityId={candidate.id} entityName={candidate.name} />
+      <SendCheckinPanel open={checkinOpen} onOpenChange={setCheckinOpen} candidates={[candidate]} />
 
       <AlertDialog open={discardOpen} onOpenChange={setDiscardOpen}>
         <AlertDialogContent>
