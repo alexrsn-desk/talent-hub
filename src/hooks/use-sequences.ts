@@ -571,9 +571,11 @@ export function useLogStepDone() {
       await supabase.from("sequence_enrollments").update(enrollUpdate).eq("id", input.enrollment_id);
 
       // 3. log touchpoint on entity
+      const { data: { user } } = await supabase.auth.getUser();
       const noteRow: any = {
         activity_type: channel,
         content: `${input.sequence_name} — Step ${input.step_number} completed${input.note ? `: ${input.note}` : ""}`,
+        owner_user_id: user?.id,
       };
       if (input.entity_type === "candidate") noteRow.candidate_id = input.entity_id;
       if (input.entity_type === "client") noteRow.client_id = input.entity_id;

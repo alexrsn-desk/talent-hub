@@ -39,9 +39,10 @@ export function useCreateTodo() {
         .order("position", { ascending: false })
         .limit(1);
       const maxPos = (existing as any)?.[0]?.position ?? -1;
+      const { data: { user } } = await supabase.auth.getUser();
       const { error } = await supabase
         .from("todo_tasks" as any)
-        .insert({ ...task, position: maxPos + 1 } as any);
+        .insert({ ...task, position: maxPos + 1, owner_user_id: user?.id, user_id: user?.id } as any);
       if (error) throw error;
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ["todo-tasks"] }),

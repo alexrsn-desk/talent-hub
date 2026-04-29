@@ -165,6 +165,7 @@ export type Database = {
           id: string
           interview_date: string | null
           job_id: string
+          owner_user_id: string | null
           rejection_reason: string | null
           source: string
           stage: string
@@ -176,6 +177,7 @@ export type Database = {
           id?: string
           interview_date?: string | null
           job_id: string
+          owner_user_id?: string | null
           rejection_reason?: string | null
           source?: string
           stage?: string
@@ -187,6 +189,7 @@ export type Database = {
           id?: string
           interview_date?: string | null
           job_id?: string
+          owner_user_id?: string | null
           rejection_reason?: string | null
           source?: string
           stage?: string
@@ -300,6 +303,7 @@ export type Database = {
           location: string | null
           name: string
           notice_period: string | null
+          owner_user_id: string | null
           phone: string | null
           priority_flag: boolean
           priority_flagged_at: string | null
@@ -327,6 +331,7 @@ export type Database = {
           location?: string | null
           name: string
           notice_period?: string | null
+          owner_user_id?: string | null
           phone?: string | null
           priority_flag?: boolean
           priority_flagged_at?: string | null
@@ -354,6 +359,7 @@ export type Database = {
           location?: string | null
           name?: string
           notice_period?: string | null
+          owner_user_id?: string | null
           phone?: string | null
           priority_flag?: boolean
           priority_flagged_at?: string | null
@@ -486,6 +492,7 @@ export type Database = {
           next_action: string | null
           next_action_due_date: string | null
           next_followup_date: string | null
+          owner_user_id: string | null
           phone: string | null
           sector: string | null
           status: string
@@ -507,6 +514,7 @@ export type Database = {
           next_action?: string | null
           next_action_due_date?: string | null
           next_followup_date?: string | null
+          owner_user_id?: string | null
           phone?: string | null
           sector?: string | null
           status?: string
@@ -528,6 +536,7 @@ export type Database = {
           next_action?: string | null
           next_action_due_date?: string | null
           next_followup_date?: string | null
+          owner_user_id?: string | null
           phone?: string | null
           sector?: string | null
           status?: string
@@ -725,6 +734,7 @@ export type Database = {
           id: string
           job_type: string
           location: string | null
+          owner_user_id: string | null
           salary_max: number | null
           salary_min: number | null
           status: string
@@ -740,6 +750,7 @@ export type Database = {
           id?: string
           job_type?: string
           location?: string | null
+          owner_user_id?: string | null
           salary_max?: number | null
           salary_min?: number | null
           status?: string
@@ -755,6 +766,7 @@ export type Database = {
           id?: string
           job_type?: string
           location?: string | null
+          owner_user_id?: string | null
           salary_max?: number | null
           salary_min?: number | null
           status?: string
@@ -783,6 +795,7 @@ export type Database = {
           id: string
           job_id: string | null
           outcome: string | null
+          owner_user_id: string | null
           transcript: string | null
         }
         Insert: {
@@ -796,6 +809,7 @@ export type Database = {
           id?: string
           job_id?: string | null
           outcome?: string | null
+          owner_user_id?: string | null
           transcript?: string | null
         }
         Update: {
@@ -809,6 +823,7 @@ export type Database = {
           id?: string
           job_id?: string | null
           outcome?: string | null
+          owner_user_id?: string | null
           transcript?: string | null
         }
         Relationships: [
@@ -1285,6 +1300,78 @@ export type Database = {
         }
         Relationships: []
       }
+      team_invites: {
+        Row: {
+          code: string
+          created_at: string
+          email: string | null
+          expires_at: string
+          id: string
+          manager_user_id: string
+          name: string | null
+          used_at: string | null
+          used_by_user_id: string | null
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          email?: string | null
+          expires_at?: string
+          id?: string
+          manager_user_id: string
+          name?: string | null
+          used_at?: string | null
+          used_by_user_id?: string | null
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          email?: string | null
+          expires_at?: string
+          id?: string
+          manager_user_id?: string
+          name?: string | null
+          used_at?: string | null
+          used_by_user_id?: string | null
+        }
+        Relationships: []
+      }
+      team_members: {
+        Row: {
+          active: boolean
+          created_at: string
+          email: string | null
+          id: string
+          joined_date: string | null
+          manager_user_id: string
+          member_user_id: string | null
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          email?: string | null
+          id?: string
+          joined_date?: string | null
+          manager_user_id: string
+          member_user_id?: string | null
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          email?: string | null
+          id?: string
+          joined_date?: string | null
+          manager_user_id?: string
+          member_user_id?: string | null
+          name?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       todo_tasks: {
         Row: {
           completed: boolean
@@ -1292,6 +1379,7 @@ export type Database = {
           created_at: string
           due_date: string | null
           id: string
+          owner_user_id: string | null
           position: number
           priority: string
           recurrence: string | null
@@ -1304,6 +1392,7 @@ export type Database = {
           created_at?: string
           due_date?: string | null
           id?: string
+          owner_user_id?: string | null
           position?: number
           priority?: string
           recurrence?: string | null
@@ -1316,6 +1405,7 @@ export type Database = {
           created_at?: string
           due_date?: string | null
           id?: string
+          owner_user_id?: string | null
           position?: number
           priority?: string
           recurrence?: string | null
@@ -1389,6 +1479,27 @@ export type Database = {
           status?: string
           trial_ends_at?: string | null
           updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      user_roles: {
+        Row: {
+          created_at: string
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
           user_id?: string
         }
         Relationships: []
@@ -1503,10 +1614,17 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      can_access_owner: { Args: { _owner: string }; Returns: boolean }
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
     }
     Enums: {
-      [_ in never]: never
+      app_role: "manager" | "consultant" | "solo"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -1633,6 +1751,8 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      app_role: ["manager", "consultant", "solo"],
+    },
   },
 } as const

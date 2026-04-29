@@ -270,7 +270,8 @@ export function MigrationAssistant({ initialUnmatchedJobs, onComplete, showLater
 
     let clientId = selectedClient;
     if (creatingClient && newClientName.trim()) {
-      const { data, error } = await supabase.from("clients").insert({ company_name: newClientName.trim() }).select("id").single();
+      const { data: { user } } = await supabase.auth.getUser();
+      const { data, error } = await supabase.from("clients").insert({ company_name: newClientName.trim(), owner_user_id: user?.id } as any).select("id").single();
       if (error) { toast.error(error.message); setProcessing(false); return; }
       clientId = data.id;
       setAllClients(prev => [...prev, { id: data.id, company_name: newClientName.trim() }]);
@@ -303,11 +304,13 @@ export function MigrationAssistant({ initialUnmatchedJobs, onComplete, showLater
       await supabase.from("notes").delete().eq("id", n.id);
     }
     if (editedNotes.trim()) {
+      const { data: { user } } = await supabase.auth.getUser();
       await supabase.from("notes").insert({
         candidate_id: c.id,
         content: editedNotes.trim(),
         activity_type: "Note",
-      });
+        owner_user_id: user?.id,
+      } as any);
     }
 
     toast.success("Notes updated");
@@ -358,10 +361,12 @@ export function MigrationAssistant({ initialUnmatchedJobs, onComplete, showLater
     setProcessing(true);
 
     if (selectedJob) {
+      const { data: { user } } = await supabase.auth.getUser();
       const { error } = await supabase.from("candidate_jobs").insert({
         candidate_id: c.id,
         job_id: selectedJob,
-      });
+        owner_user_id: user?.id,
+      } as any);
       if (error) { toast.error(error.message); setProcessing(false); return; }
       toast.success("Candidate linked to job");
     }
