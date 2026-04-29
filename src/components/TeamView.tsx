@@ -199,7 +199,7 @@ export function TeamView() {
 
 function ConsultantCard({ stats }: { stats: MemberStats }) {
   const [open, setOpen] = useState(false);
-  const isUrgent = stats.offerNoBackup > 0 || stats.overdueTodos > 0;
+  const isUrgent = stats.offerNoBackup > 0 || stats.overdueTodos > 0 || stats.atRiskJobs > 0;
 
   return (
     <div
@@ -229,6 +229,11 @@ function ConsultantCard({ stats }: { stats: MemberStats }) {
               <span className="inline-flex items-center gap-1">
                 <CheckSquare className="h-3 w-3" /> {stats.overdueTodos} overdue
               </span>
+              {stats.atRiskJobs > 0 && (
+                <span className="inline-flex items-center gap-1 text-red-400">
+                  <Target className="h-3 w-3" /> {stats.atRiskJobs} at risk
+                </span>
+              )}
             </div>
           </div>
         </div>
@@ -241,19 +246,33 @@ function ConsultantCard({ stats }: { stats: MemberStats }) {
       </button>
 
       {open && (
-        <div className="border-t border-border p-3 grid grid-cols-2 sm:grid-cols-4 gap-3 text-sm">
-          <Stat label="Open jobs" value={stats.openJobs} />
-          <Stat label="Active candidates" value={stats.candidates} />
-          <Stat
-            label="Offer no backup"
-            value={stats.offerNoBackup}
-            tone={stats.offerNoBackup > 0 ? "destructive" : "default"}
-          />
-          <Stat
-            label="Overdue todos"
-            value={stats.overdueTodos}
-            tone={stats.overdueTodos > 0 ? "warn" : "default"}
-          />
+        <div className="border-t border-border p-3 space-y-3">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-sm">
+            <Stat label="Open jobs" value={stats.openJobs} />
+            <Stat label="Active candidates" value={stats.candidates} />
+            <Stat
+              label="Offer no backup"
+              value={stats.offerNoBackup}
+              tone={stats.offerNoBackup > 0 ? "destructive" : "default"}
+            />
+            <Stat
+              label="Jobs under 40%"
+              value={stats.atRiskJobs}
+              tone={stats.atRiskJobs > 0 ? "destructive" : "default"}
+            />
+          </div>
+          {stats.weakestJob && (
+            <div className="rounded-md border border-border bg-muted/20 p-2.5 text-xs">
+              <div className="font-medium">
+                Weakest role:{" "}
+                <span className="text-red-400 tabular-nums">{stats.weakestJob.score}%</span>{" "}
+                {stats.weakestJob.client} · {stats.weakestJob.title}
+              </div>
+              <div className="text-muted-foreground mt-0.5">
+                Coaching prompt: {stats.weakestJob.action}
+              </div>
+            </div>
+          )}
         </div>
       )}
     </div>
