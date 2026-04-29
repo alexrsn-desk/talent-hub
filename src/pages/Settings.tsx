@@ -18,6 +18,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { SignalConfigurationSection } from "@/components/SignalConfiguration";
 import { TeamSection } from "@/components/TeamSection";
 import { JoinTeamButton } from "@/components/JoinTeamButton";
+import { DecaySettingsSection } from "@/components/DecaySettingsSection";
 
 const NICHES = [
   "Tech/Digital", "Sales/Commercial", "Finance", "Legal",
