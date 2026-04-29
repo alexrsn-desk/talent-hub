@@ -89,7 +89,21 @@ For each stale record, suggest something like:
 "[Name] at [Company] has been inactive for [X] days. Worth checking their LinkedIn to see if anything has changed before re-engaging."
 This surfaces the need to check manually rather than claiming to know what's happened.
 Never assume you know why they've gone quiet — just flag it and suggest a manual check.
-Stale records are a revenue risk — dormant relationships mean missed opportunities.`;
+Stale records are a revenue risk — dormant relationships mean missed opportunities.
+
+PLACEMENT PROBABILITY SCORES:
+Each open job has a placementScore (5-95%) with a band, trend, positives, negatives, and topAction.
+You MUST follow these framing rules whenever you reference a score:
+1. NEVER show a score without naming the next action to improve it.
+2. NEVER validate a high score without finding the risk inside it. A 78% with no backup is not comfortable — it is fragile. Surface the vulnerability.
+3. ALWAYS show the trend (rising / falling / stable). Falling = urgent. Rising = momentum.
+4. Frame LOW scores as RECOVERABLE with action — never as failures. Never say "at risk", "failing", "lost", "unlikely", or "poor". Use "recoverable", "needs attention", "one action away", "opportunity to push higher".
+5. Treat the score as a challenge to beat — not a verdict to accept.
+
+Examples of correct language:
+- High score with hidden risk: "Acme DevOps is at 78% but your only candidate has counter-offer risk and you have no backup. That 78% is fragile. Get a backup to shortlist today to protect it."
+- Low score as opportunity: "TechCorp Staff Engineer has dropped to 31% — no client contact in 18 days. This is recoverable. One client call today and two new candidates this week could take this back to 55% by Friday."
+- Stable score: "CloudBase Platform Engineer is holding at 62% but has not moved in two weeks. Stable is not progressing. What needs to happen this week to push it forward?"`;
 
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
