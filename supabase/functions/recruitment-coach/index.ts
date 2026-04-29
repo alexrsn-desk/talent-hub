@@ -100,6 +100,14 @@ You MUST follow these framing rules whenever you reference a score:
 4. Frame LOW scores as RECOVERABLE with action — never as failures. Never say "at risk", "failing", "lost", "unlikely", or "poor". Use "recoverable", "needs attention", "one action away", "opportunity to push higher".
 5. Treat the score as a challenge to beat — not a verdict to accept.
 
+RELATIONSHIP DECAY ALERTS:
+You will receive a list of surfaced relationship decay alerts in deskData.decayAlerts. Each one ALREADY contains a genuine, specific reason to make contact (matching candidates, previous conversation context, market intel, candidate intel, or a BD signal). 
+You MUST follow these rules:
+1. NEVER tell the recruiter to contact someone just because it has been a long time. That is noise.
+2. ONLY mention a decay alert when surfaced reason exists, and ALWAYS lead with that reason — not with the day count.
+3. Frame contact as adding value, not catching up. Example: "Good time to call James Brown at Acme — you have three strong DevOps candidates and he mentioned Q2 hiring plans on your last call. That is a genuine reason to reach out, not just a check-in."
+4. Never write a brief item like "you haven't spoken to X in 47 days — worth a check-in." If there is no surfaced reason, stay silent on that relationship.
+
 Examples of correct language:
 - High score with hidden risk: "Acme DevOps is at 78% but your only candidate has counter-offer risk and you have no backup. That 78% is fragile. Get a backup to shortlist today to protect it."
 - Low score as opportunity: "TechCorp Staff Engineer has dropped to 31% — no client contact in 18 days. This is recoverable. One client call today and two new candidates this week could take this back to 55% by Friday."
@@ -143,6 +151,8 @@ serve(async (req) => {
       { data: unactionedSignals },
       { data: priorityCandidates },
       { data: scoreHistory },
+      { data: decayAlerts },
+      { data: contactsList },
     ] = await Promise.all([
       sb.from("candidate_jobs").select("*, candidates(*), jobs(*, clients(*))"),
       sb.from("jobs").select("*, clients(*)"),
@@ -155,6 +165,8 @@ serve(async (req) => {
       sb.from("call_signals").select("*, notes:note_id(*, candidates(*), clients(*))").eq("status", "unactioned").order("created_at", { ascending: false }).limit(50),
       sb.from("candidates").select("*").eq("priority_flag", true),
       sb.from("job_score_history").select("job_id, score, snapshot_date").order("snapshot_date", { ascending: false }),
+      sb.from("decay_alerts").select("*").in("status", ["due", "at_risk", "critical"]).not("reason", "is", null),
+      sb.from("contacts").select("id,name,client_id"),
     ]);
 
     const cjs = candidateJobs || [];
@@ -380,6 +392,32 @@ serve(async (req) => {
           };
         }),
       staleRecords: staleClients,
+      decayAlerts: (decayAlerts || []).map((a: any) => {
+        const today = new Date().toISOString().split("T")[0];
+        if (a.snoozed_until && a.snoozed_until > today) return null;
+        let name = "Unknown";
+        let company: string | null = null;
+        if (a.entity_type === "client") {
+          const c = allClients.find((x: any) => x.id === a.entity_id);
+          name = c?.contact_name || c?.company_name || "Unknown";
+          company = c?.company_name || null;
+        } else {
+          const ct = (contactsList || []).find((x: any) => x.id === a.entity_id);
+          const c = ct ? allClients.find((x: any) => x.id === ct.client_id) : null;
+          name = ct?.name || "Unknown";
+          company = c?.company_name || null;
+        }
+        return {
+          name, company,
+          status: a.status,
+          daysSinceContact: a.days_since_contact,
+          relationshipKind: a.relationship_kind,
+          reason: a.reason,
+          reasonSource: a.reason_source,
+          suggestedApproach: a.suggested_approach,
+          channelSuggestion: a.channel_suggestion,
+        };
+      }).filter(Boolean),
     };
 
     const recruiterContext = profile ? `

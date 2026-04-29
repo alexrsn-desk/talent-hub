@@ -11,6 +11,7 @@ import { DashboardHeadline } from "@/components/DashboardHeadline";
 import { TeamView } from "@/components/TeamView";
 import { useIsManager } from "@/hooks/use-team";
 import { NeedsAttentionSection } from "@/components/NeedsAttentionSection";
+import { DecayAlertsSection } from "@/components/DecayAlertsSection";
 
 const activityIcon: Record<string, typeof FileText> = {
   Note: FileText,
@@ -92,6 +93,9 @@ export default function DashboardPage() {
 
           {/* Jobs needing attention based on placement probability */}
           <NeedsAttentionSection />
+
+          {/* Relationship decay alerts — only surfaces when AI finds a genuine reason */}
+          <DecayAlertsSection />
 
       {/* 2. AI ACTIONS */}
       <DailyFocus />
