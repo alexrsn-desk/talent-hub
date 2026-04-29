@@ -82,6 +82,7 @@ function useTeamStats(memberIds: string[]) {
           overdueTodos,
           recentActivity: 0,
           urgencyScore: offerNoBackup * 3 + overdueTodos,
+          atRiskJobs: 0,
         } as MemberStats;
       });
     },
