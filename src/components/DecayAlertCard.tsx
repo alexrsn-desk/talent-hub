@@ -17,6 +17,8 @@ interface Props {
   alert: DecayAlert;
   entityName: string;
   company?: string | null;
+  /** For contact-type alerts, the parent client id so we can log a touchpoint */
+  clientId?: string | null;
   compact?: boolean;
 }
 
