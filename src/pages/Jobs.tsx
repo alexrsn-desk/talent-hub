@@ -13,7 +13,7 @@ import { AddJobDialog } from "@/components/AddJobDialog";
 import { ClickToEditField } from "@/components/ClickToEditField";
 import { TagsSection } from "@/components/TagsSection";
 import { CandidateMatching } from "@/components/CandidateMatching";
-import { usePlacementScores } from "@/hooks/use-placement-scores";
+import { usePlacementScores, usePlacementScoreFor } from "@/hooks/use-placement-scores";
 import { PlacementScoreBadge } from "@/components/PlacementScoreBadge";
 import { PlacementScorePanel } from "@/components/PlacementScorePanel";
 
