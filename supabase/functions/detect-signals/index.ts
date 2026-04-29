@@ -7,36 +7,43 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-const SIGNAL_PROMPT = `You are an expert recruitment consultant reviewing new information just added to a recruitment CRM. Identify two types of signals:
+const SIGNAL_PROMPT = `You are an expert recruitment consultant reviewing new information just added to a recruitment CRM.
+
+CRITICAL CONFIDENCE RULE:
+Only fire a signal when there is CLEAR, EXPLICIT evidence in the note or transcript. Do NOT fire signals based on vague hints, implications, or guesses. If a signal is not obvious from a direct quote, do NOT include it. False positives are worse than missed signals — be conservative.
+
+Identify two types of signals:
 
 TYPE 1 — OPPORTUNITIES:
-Hidden signals the recruiter may have missed.
-
 HIRING SIGNALS: Company growth, funding rounds, new leadership, team expansion, technology changes, dissatisfaction with current recruitment partners.
 CANDIDATE SIGNALS: Company instability, acquisition, restructuring, colleagues also looking, lack of pay reviews, unhappy team, manager changes.
 REFERRAL OPPORTUNITIES: Colleagues or contacts mentioned who might be candidates or clients.
 BD LEADS: Company names mentioned that could be a new business target.
 
 TYPE 2 — MISSING ACTIONS:
-Things the recruiter should have done but hasn't. Check for:
-- A specific day, date or timeframe mentioned (Monday, next week, end of month, after the weekend) with no follow up date set on the record
+- A specific day/date/timeframe mentioned with no follow up date set
 - A commitment made by either party with no next action logged
-- A candidate or client expressing clear intent (I will call you, I want to progress, let me think about it) with no follow up captured
-- An interview or meeting referenced with no date logged in the system
-- A salary figure or requirement mentioned that differs from what is on the record
+- A candidate or client expressing clear intent with no follow up captured
+- An interview or meeting referenced with no date logged
+- A salary figure mentioned that differs from what is on the record
 
-For each signal found:
-- State the signal_category: exactly "opportunity" or "missing_action"
-- State the signal_type: for opportunities use exactly one of "Hiring Signal", "Candidate Signal", "Referral Opportunity", "BD Lead". For missing actions use exactly one of "Missing Follow-up", "Missing Next Action", "Missing Interview Date", "Salary Mismatch", "Missing Commitment"
-- Quote the exact phrase that triggered it (under 10 words) as trigger_phrase
-- Explain why it matters in one sentence as explanation
-- Suggest one specific action as suggested_action
-- For missing actions, if a date/day was mentioned, include it as suggested_date (ISO format or day name). Otherwise omit.
+For each signal, provide:
+- signal_category: exactly "opportunity" or "missing_action"
+- signal_type: opportunities → "Hiring Signal" | "Candidate Signal" | "Referral Opportunity" | "BD Lead". missing_action → "Missing Follow-up" | "Missing Next Action" | "Missing Interview Date" | "Salary Mismatch" | "Missing Commitment"
+- trigger_phrase: exact quote (under 10 words)
+- explanation: one sentence why it matters
+- suggested_action: one specific action
+- suggested_date: optional ISO date or day name
+- confidence: "high" (direct explicit quote, unambiguous) | "medium" (clear but needs interpretation) | "low" (implied — usually skip these entirely)
+- priority_score: 1-10 integer based on revenue/urgency impact:
+    * 8-10 = Revenue at risk (counter offer, candidate going quiet at offer stage, deal at risk)
+    * 5-7  = Pipeline/BD opportunity (hiring signal, BD lead, no feedback, candidate signal)
+    * 1-3  = Admin/info (missing salary, missing notice period, profile gaps)
 
-If no signals found, return an empty array — do not invent signals that are not there.
+If no clear signals, return empty array. Do NOT invent signals.
 
-Return ONLY valid JSON in this format:
-{"signals": [{"signal_category": "...", "signal_type": "...", "trigger_phrase": "...", "explanation": "...", "suggested_action": "...", "suggested_date": "..."}]}`;
+Return ONLY valid JSON:
+{"signals": [{"signal_category":"...","signal_type":"...","trigger_phrase":"...","explanation":"...","suggested_action":"...","suggested_date":"...","confidence":"high","priority_score":8}]}`;
 
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
@@ -75,7 +82,6 @@ serve(async (req) => {
       transcript = note.transcript || note.content || "";
       contactName = note.candidates?.name || note.clients?.company_name || "Unknown";
 
-      // Add record context (follow-up date, etc.)
       const parts: string[] = [];
       if (note.follow_up_date) parts.push(`Follow-up date already set: ${note.follow_up_date}`);
       if (note.outcome) parts.push(`Outcome: ${note.outcome}`);
@@ -137,19 +143,39 @@ serve(async (req) => {
 
     const signals = parsed.signals || [];
 
+    // Compute fallback priority score by category if AI omitted
+    const fallbackPriority = (s: any): number => {
+      const t = (s.signal_type || "").toLowerCase();
+      if (t.includes("counter") || t.includes("offer")) return 9;
+      if (t.includes("hiring") || t.includes("bd")) return 6;
+      if (t.includes("candidate")) return 6;
+      if (t.includes("referral")) return 5;
+      if (t.includes("missing salary") || t.includes("profile")) return 2;
+      if (s.signal_category === "missing_action") return 5;
+      return 4;
+    };
+
     if (signals.length > 0 && resolvedNoteId) {
       await sb.from("call_signals").delete().eq("note_id", resolvedNoteId);
 
-      const rows = signals.map((s: any) => ({
-        note_id: resolvedNoteId,
-        signal_type: s.signal_type,
-        signal_category: s.signal_category || "opportunity",
-        trigger_phrase: s.trigger_phrase,
-        explanation: s.explanation,
-        suggested_action: s.suggested_action,
-        suggested_date: s.suggested_date || null,
-        status: "unactioned",
-      }));
+      const rows = signals.map((s: any) => {
+        const conf = ["high", "medium", "low"].includes(s.confidence) ? s.confidence : "medium";
+        const score = Number.isFinite(s.priority_score)
+          ? Math.max(1, Math.min(10, Math.round(s.priority_score)))
+          : fallbackPriority(s);
+        return {
+          note_id: resolvedNoteId,
+          signal_type: s.signal_type,
+          signal_category: s.signal_category || "opportunity",
+          trigger_phrase: s.trigger_phrase,
+          explanation: s.explanation,
+          suggested_action: s.suggested_action,
+          suggested_date: s.suggested_date || null,
+          status: "unactioned",
+          confidence: conf,
+          priority_score: score,
+        };
+      });
 
       const { error: insertErr } = await sb.from("call_signals").insert(rows);
       if (insertErr) console.error("Insert signals error:", insertErr);

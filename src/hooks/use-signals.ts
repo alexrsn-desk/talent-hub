@@ -14,6 +14,10 @@ export type CallSignal = {
   feedback_rating: string | null;
   feedback_at: string | null;
   created_at: string;
+  confidence?: "high" | "medium" | "low";
+  priority_score?: number;
+  first_shown_date?: string;
+  days_unactioned?: number;
 };
 
 export function useSignalsForNote(noteId: string | undefined) {
