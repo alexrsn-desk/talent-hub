@@ -21,6 +21,7 @@ import { GitBranch } from "lucide-react";
 import { CalendarClock } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { EntityDecayAlert } from "@/components/EntityDecayAlert";
 
 const CONTACT_STATUSES = ["Active", "Warm", "Cold", "Left Company"] as const;
 
