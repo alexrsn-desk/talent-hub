@@ -142,6 +142,7 @@ serve(async (req) => {
       { data: profiles },
       { data: unactionedSignals },
       { data: priorityCandidates },
+      { data: scoreHistory },
     ] = await Promise.all([
       sb.from("candidate_jobs").select("*, candidates(*), jobs(*, clients(*))"),
       sb.from("jobs").select("*, clients(*)"),
@@ -153,6 +154,7 @@ serve(async (req) => {
       sb.from("recruiter_profiles").select("*").limit(1),
       sb.from("call_signals").select("*, notes:note_id(*, candidates(*), clients(*))").eq("status", "unactioned").order("created_at", { ascending: false }).limit(50),
       sb.from("candidates").select("*").eq("priority_flag", true),
+      sb.from("job_score_history").select("job_id, score, snapshot_date").order("snapshot_date", { ascending: false }),
     ]);
 
     const cjs = candidateJobs || [];
