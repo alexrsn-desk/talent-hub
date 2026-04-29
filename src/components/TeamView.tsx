@@ -99,16 +99,43 @@ export function TeamView() {
   const memberIds = activeMembers.map((m) => m.member_user_id!) as string[];
   const { data: rawStats = [], isLoading: loadingStats } = useTeamStats(memberIds);
 
+  const { data: allJobs = [] } = useJobs();
+  const placementScores = usePlacementScores();
+
   const stats: MemberStats[] = useMemo(() => {
     return rawStats
       .map((s) => {
         const m = activeMembers.find((x) => x.member_user_id === s.member_user_id);
-        return { ...s, name: m?.name || "Team member" };
+        // Per-member placement-score breakdown
+        const memberOpenJobs = allJobs.filter(
+          (j) => (j as any).owner_user_id === s.member_user_id && j.status === "Open",
+        );
+        const scored = memberOpenJobs
+          .map((j) => ({ job: j, score: placementScores.get(j.id) }))
+          .filter((x) => x.score);
+        const atRiskJobs = scored.filter((x) => x.score!.score < 40).length;
+        const weakest = scored.sort((a, b) => a.score!.score - b.score!.score)[0];
+        return {
+          ...s,
+          name: m?.name || "Team member",
+          atRiskJobs,
+          weakestJob: weakest
+            ? {
+                title: weakest.job.title,
+                client: (weakest.job as any).clients?.company_name || "—",
+                score: weakest.score!.score,
+                action: weakest.score!.topAction,
+              }
+            : undefined,
+        };
       })
-      .sort((a, b) => b.urgencyScore - a.urgencyScore);
-  }, [rawStats, activeMembers]);
+      .sort((a, b) => b.urgencyScore + b.atRiskJobs - (a.urgencyScore + a.atRiskJobs));
+  }, [rawStats, activeMembers, allJobs, placementScores]);
 
-  const totalUrgent = stats.reduce((sum, s) => sum + s.offerNoBackup + s.overdueTodos, 0);
+  const totalUrgent = stats.reduce(
+    (sum, s) => sum + s.offerNoBackup + s.overdueTodos + s.atRiskJobs,
+    0,
+  );
   const greeting = (() => {
     const h = new Date().getHours();
     if (h < 12) return "Good morning";
