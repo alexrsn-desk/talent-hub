@@ -16,6 +16,8 @@ import { ScreeningTemplateSettings } from "@/components/ScreeningTemplateSetting
 import { WebhookSettingsSection } from "@/components/WebhookSettings";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { SignalConfigurationSection } from "@/components/SignalConfiguration";
+import { TeamSection } from "@/components/TeamSection";
+import { JoinTeamButton } from "@/components/JoinTeamButton";
 
 const NICHES = [
   "Tech/Digital", "Sales/Commercial", "Finance", "Legal",
@@ -293,10 +295,16 @@ export default function SettingsPage() {
           {saving ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <Save className="h-4 w-4 mr-1" />}
           Save changes
         </Button>
-        <Button variant="ghost" size="sm" onClick={signOut} className="text-muted-foreground">
-          Sign out
-        </Button>
+        <div className="flex items-center gap-2">
+          <JoinTeamButton />
+          <Button variant="ghost" size="sm" onClick={signOut} className="text-muted-foreground">
+            Sign out
+          </Button>
+        </div>
       </div>
+
+      {/* Team management */}
+      <TeamSection />
       {/* Data Import */}
       <div className="pt-6 border-t border-border">
         <Tabs defaultValue="import">
