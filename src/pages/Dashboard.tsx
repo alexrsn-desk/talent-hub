@@ -94,6 +94,9 @@ export default function DashboardPage() {
           {/* Jobs needing attention based on placement probability */}
           <NeedsAttentionSection />
 
+          {/* Relationship decay alerts — only surfaces when AI finds a genuine reason */}
+          <DecayAlertsSection />
+
       {/* 2. AI ACTIONS */}
       <DailyFocus />
       <OfferBackupActions />
