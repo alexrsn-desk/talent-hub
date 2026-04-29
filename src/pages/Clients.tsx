@@ -328,6 +328,13 @@ function ClientFullView({ client, onBack, onUpdate, onDelete }: {
 
   return (
     <div className="space-y-6">
+      <EntityDecayAlert
+        entityType="client"
+        entityId={client.id}
+        entityName={client.contact_name || client.company_name}
+        company={client.company_name}
+        clientId={client.id}
+      />
       <div className="flex items-center gap-3">
         <Button variant="ghost" size="icon" onClick={onBack}>
           <ArrowLeft className="h-4 w-4" />
