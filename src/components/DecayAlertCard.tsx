@@ -183,11 +183,9 @@ export function DecayAlertCard({ alert, entityName, company, clientId, compact }
           setLogOpen(o);
           if (!o) resolve.mutate(alert.id);
         }}
-        entityType={alert.entity_type === "client" ? "client" : "client" /* contacts roll up to client notes */}
+        entityType="client"
         entityId={
-          alert.entity_type === "client"
-            ? alert.entity_id
-            : (alert as any).client_id || alert.entity_id
+          alert.entity_type === "client" ? alert.entity_id : (clientId || alert.entity_id)
         }
         entityName={entityName}
       />
