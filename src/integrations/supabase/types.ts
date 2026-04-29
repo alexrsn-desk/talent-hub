@@ -1615,6 +1615,7 @@ export type Database = {
     }
     Functions: {
       can_access_owner: { Args: { _owner: string }; Returns: boolean }
+      claim_team_invite: { Args: { _code: string }; Returns: string }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
