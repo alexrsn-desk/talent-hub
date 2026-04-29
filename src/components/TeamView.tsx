@@ -3,7 +3,9 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useTeamMembers } from "@/hooks/use-team";
-import { ChevronDown, ChevronRight, AlertTriangle, Briefcase, Users, CheckSquare, Loader2 } from "lucide-react";
+import { ChevronDown, ChevronRight, AlertTriangle, Briefcase, Users, CheckSquare, Loader2, Target } from "lucide-react";
+import { usePlacementScores } from "@/hooks/use-placement-scores";
+import { useJobs } from "@/hooks/use-data";
 
 type MemberStats = {
   member_user_id: string;
@@ -14,6 +16,8 @@ type MemberStats = {
   overdueTodos: number;
   recentActivity: number;
   urgencyScore: number;
+  atRiskJobs: number;
+  weakestJob?: { title: string; client: string; score: number; action: string };
 };
 
 function useTeamStats(memberIds: string[]) {
