@@ -89,7 +89,21 @@ For each stale record, suggest something like:
 "[Name] at [Company] has been inactive for [X] days. Worth checking their LinkedIn to see if anything has changed before re-engaging."
 This surfaces the need to check manually rather than claiming to know what's happened.
 Never assume you know why they've gone quiet — just flag it and suggest a manual check.
-Stale records are a revenue risk — dormant relationships mean missed opportunities.`;
+Stale records are a revenue risk — dormant relationships mean missed opportunities.
+
+PLACEMENT PROBABILITY SCORES:
+Each open job has a placementScore (5-95%) with a band, trend, positives, negatives, and topAction.
+You MUST follow these framing rules whenever you reference a score:
+1. NEVER show a score without naming the next action to improve it.
+2. NEVER validate a high score without finding the risk inside it. A 78% with no backup is not comfortable — it is fragile. Surface the vulnerability.
+3. ALWAYS show the trend (rising / falling / stable). Falling = urgent. Rising = momentum.
+4. Frame LOW scores as RECOVERABLE with action — never as failures. Never say "at risk", "failing", "lost", "unlikely", or "poor". Use "recoverable", "needs attention", "one action away", "opportunity to push higher".
+5. Treat the score as a challenge to beat — not a verdict to accept.
+
+Examples of correct language:
+- High score with hidden risk: "Acme DevOps is at 78% but your only candidate has counter-offer risk and you have no backup. That 78% is fragile. Get a backup to shortlist today to protect it."
+- Low score as opportunity: "TechCorp Staff Engineer has dropped to 31% — no client contact in 18 days. This is recoverable. One client call today and two new candidates this week could take this back to 55% by Friday."
+- Stable score: "CloudBase Platform Engineer is holding at 62% but has not moved in two weeks. Stable is not progressing. What needs to happen this week to push it forward?"`;
 
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
@@ -128,6 +142,7 @@ serve(async (req) => {
       { data: profiles },
       { data: unactionedSignals },
       { data: priorityCandidates },
+      { data: scoreHistory },
     ] = await Promise.all([
       sb.from("candidate_jobs").select("*, candidates(*), jobs(*, clients(*))"),
       sb.from("jobs").select("*, clients(*)"),
@@ -139,6 +154,7 @@ serve(async (req) => {
       sb.from("recruiter_profiles").select("*").limit(1),
       sb.from("call_signals").select("*, notes:note_id(*, candidates(*), clients(*))").eq("status", "unactioned").order("created_at", { ascending: false }).limit(50),
       sb.from("candidates").select("*").eq("priority_flag", true),
+      sb.from("job_score_history").select("job_id, score, snapshot_date").order("snapshot_date", { ascending: false }),
     ]);
 
     const cjs = candidateJobs || [];
@@ -179,6 +195,69 @@ serve(async (req) => {
       })
       .filter(Boolean);
 
+    // Placement Probability Score (mirrors src/lib/placement-score.ts logic)
+    const ACTIVE_BACKUP = new Set(["Screening", "Shortlist", "Submitted", "Client Review"]);
+    const INTERVIEW_SET = new Set(["First Interview", "Second Interview", "Client Review"]);
+    const ACTIVE_STAGES = ["Longlist", "Screening", "Shortlist", "Submitted", "Client Review", "First Interview", "Second Interview", "Offer"];
+    const sevenDaysAgoDate = new Date(nowMs - 7 * dayMs);
+
+    const computeScore = (job: any) => {
+      const jobCjs = cjs.filter((cj: any) => cj.job_id === job.id);
+      const positives: { label: string; points: number }[] = [];
+      const negatives: { label: string; points: number; action: string }[] = [];
+      let raw = 50;
+
+      const hasOffer = jobCjs.some((cj: any) => cj.stage === "Offer");
+      const hasInterview = jobCjs.some((cj: any) => INTERVIEW_SET.has(cj.stage));
+      const hasShortlist = jobCjs.some((cj: any) => cj.stage === "Shortlist");
+      const inPlay = jobCjs.filter((cj: any) => ACTIVE_STAGES.includes(cj.stage));
+      const backupCount = jobCjs.filter((cj: any) => ACTIVE_BACKUP.has(cj.stage)).length;
+
+      if (hasOffer) { raw += 35; positives.push({ label: "Candidate at offer stage", points: 35 }); }
+      else if (hasInterview) { raw += 20; positives.push({ label: "Candidate at interview stage", points: 20 }); }
+      else if (hasShortlist) { raw += 10; positives.push({ label: "Candidate at shortlist stage", points: 10 }); }
+
+      if (inPlay.length >= 2) { raw += 5; positives.push({ label: `${inPlay.length} candidates in pipeline`, points: 5 }); }
+      if ((hasOffer || hasInterview) && backupCount >= (hasOffer ? 1 : 2)) { raw += 10; positives.push({ label: "Backup at screening or above", points: 10 }); }
+
+      if (inPlay.length === 0) { raw -= 30; negatives.push({ label: "No candidates in pipeline", points: -30, action: "Source 3 candidates this week to rebuild the pipeline" }); }
+      else if (inPlay.length === 1 && !hasOffer && !hasInterview) { raw -= 10; negatives.push({ label: "Only one candidate, no backups", points: -10, action: "Add 2 backup candidates at shortlist this week" }); }
+      else if ((hasOffer || hasInterview) && backupCount === 0) { raw -= 10; negatives.push({ label: "No backup at shortlist or above", points: -10, action: "Add a backup candidate to shortlist today to protect the offer" }); }
+
+      const clientNotes = notes.filter((n: any) => n.client_id === job.client_id);
+      const lastTouchMs = clientNotes[0]?.created_at ? new Date(clientNotes[0].created_at).getTime() : 0;
+      const daysSinceClient = lastTouchMs ? Math.floor((nowMs - lastTouchMs) / dayMs) : 999;
+      if (daysSinceClient <= 7) { raw += 10; positives.push({ label: "Client contacted this week", points: 10 }); }
+      else if (daysSinceClient >= 14) { raw -= 15; negatives.push({ label: `No client contact in ${daysSinceClient} days`, points: -15, action: "Call the client today for an update on the role" }); }
+
+      const weeksOpen = (nowMs - new Date(job.date_opened).getTime()) / (dayMs * 7);
+      if (weeksOpen < 4) { raw += 5; positives.push({ label: "Role opened recently", points: 5 }); }
+      else if (weeksOpen > 8) { raw -= 10; negatives.push({ label: `Role open ${Math.round(weeksOpen)} weeks`, points: -10, action: "Refresh the client brief this week to prevent further decline" }); }
+
+      if (job.clients?.status === "Active") { raw += 5; positives.push({ label: "Client is Active", points: 5 }); }
+
+      if (job.status === "On Hold") { raw -= 20; negatives.push({ label: "Role on hold", points: -20, action: "Call the client this week to confirm the role is still live" }); }
+
+      const score = Math.max(5, Math.min(95, Math.round(raw)));
+      const band = score >= 70 ? "green" : score >= 40 ? "amber" : "red";
+
+      const history = (scoreHistory || []).filter((h: any) => h.job_id === job.id);
+      const target = history.find((h: any) => new Date(h.snapshot_date) <= sevenDaysAgoDate) || history[history.length - 1];
+      const previous = target?.score ?? null;
+      const trendDelta = previous !== null ? score - previous : 0;
+      const trend = trendDelta >= 3 ? "up" : trendDelta <= -3 ? "down" : "flat";
+
+      let topAction = "";
+      if (negatives.length > 0) topAction = [...negatives].sort((a, b) => a.points - b.points)[0].action;
+      else if (band === "green") {
+        if (backupCount === 0 && (hasOffer || hasInterview)) topAction = "Add a backup candidate to protect this score";
+        else if (daysSinceClient > 5) topAction = "Touch base with the client to lock the placement in";
+        else topAction = "Push to next stage this week — momentum is everything";
+      } else topAction = "One action this week could push this higher";
+
+      return { score, band, trend, trendDelta, positives, negatives, topAction };
+    };
+
     // Build a concise desk snapshot
     const deskData = {
       currentTime: `${dayOfWeek}, ${today} at ${timeStr} (${timeOfDay})`,
@@ -194,6 +273,7 @@ serve(async (req) => {
           fee: j.fee_value ? `${j.fee_value}%` : null,
           dateOpened: j.date_opened,
           status: j.status,
+          placementScore: computeScore(j),
           pipeline: {
             longlist: jobCjs.filter((cj: any) => cj.stage === "Longlist").map((cj: any) => cj.candidates?.name),
             shortlist: jobCjs.filter((cj: any) => cj.stage === "Shortlist").map((cj: any) => cj.candidates?.name),

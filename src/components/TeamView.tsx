@@ -3,7 +3,9 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useTeamMembers } from "@/hooks/use-team";
-import { ChevronDown, ChevronRight, AlertTriangle, Briefcase, Users, CheckSquare, Loader2 } from "lucide-react";
+import { ChevronDown, ChevronRight, AlertTriangle, Briefcase, Users, CheckSquare, Loader2, Target } from "lucide-react";
+import { usePlacementScores } from "@/hooks/use-placement-scores";
+import { useJobs } from "@/hooks/use-data";
 
 type MemberStats = {
   member_user_id: string;
@@ -14,6 +16,8 @@ type MemberStats = {
   overdueTodos: number;
   recentActivity: number;
   urgencyScore: number;
+  atRiskJobs: number;
+  weakestJob?: { title: string; client: string; score: number; action: string };
 };
 
 function useTeamStats(memberIds: string[]) {
@@ -78,6 +82,7 @@ function useTeamStats(memberIds: string[]) {
           overdueTodos,
           recentActivity: 0,
           urgencyScore: offerNoBackup * 3 + overdueTodos,
+          atRiskJobs: 0,
         } as MemberStats;
       });
     },
@@ -94,16 +99,43 @@ export function TeamView() {
   const memberIds = activeMembers.map((m) => m.member_user_id!) as string[];
   const { data: rawStats = [], isLoading: loadingStats } = useTeamStats(memberIds);
 
+  const { data: allJobs = [] } = useJobs();
+  const placementScores = usePlacementScores();
+
   const stats: MemberStats[] = useMemo(() => {
     return rawStats
       .map((s) => {
         const m = activeMembers.find((x) => x.member_user_id === s.member_user_id);
-        return { ...s, name: m?.name || "Team member" };
+        // Per-member placement-score breakdown
+        const memberOpenJobs = allJobs.filter(
+          (j) => (j as any).owner_user_id === s.member_user_id && j.status === "Open",
+        );
+        const scored = memberOpenJobs
+          .map((j) => ({ job: j, score: placementScores.get(j.id) }))
+          .filter((x) => x.score);
+        const atRiskJobs = scored.filter((x) => x.score!.score < 40).length;
+        const weakest = scored.sort((a, b) => a.score!.score - b.score!.score)[0];
+        return {
+          ...s,
+          name: m?.name || "Team member",
+          atRiskJobs,
+          weakestJob: weakest
+            ? {
+                title: weakest.job.title,
+                client: (weakest.job as any).clients?.company_name || "—",
+                score: weakest.score!.score,
+                action: weakest.score!.topAction,
+              }
+            : undefined,
+        };
       })
-      .sort((a, b) => b.urgencyScore - a.urgencyScore);
-  }, [rawStats, activeMembers]);
+      .sort((a, b) => b.urgencyScore + b.atRiskJobs - (a.urgencyScore + a.atRiskJobs));
+  }, [rawStats, activeMembers, allJobs, placementScores]);
 
-  const totalUrgent = stats.reduce((sum, s) => sum + s.offerNoBackup + s.overdueTodos, 0);
+  const totalUrgent = stats.reduce(
+    (sum, s) => sum + s.offerNoBackup + s.overdueTodos + s.atRiskJobs,
+    0,
+  );
   const greeting = (() => {
     const h = new Date().getHours();
     if (h < 12) return "Good morning";
@@ -167,7 +199,7 @@ export function TeamView() {
 
 function ConsultantCard({ stats }: { stats: MemberStats }) {
   const [open, setOpen] = useState(false);
-  const isUrgent = stats.offerNoBackup > 0 || stats.overdueTodos > 0;
+  const isUrgent = stats.offerNoBackup > 0 || stats.overdueTodos > 0 || stats.atRiskJobs > 0;
 
   return (
     <div
@@ -197,6 +229,11 @@ function ConsultantCard({ stats }: { stats: MemberStats }) {
               <span className="inline-flex items-center gap-1">
                 <CheckSquare className="h-3 w-3" /> {stats.overdueTodos} overdue
               </span>
+              {stats.atRiskJobs > 0 && (
+                <span className="inline-flex items-center gap-1 text-red-400">
+                  <Target className="h-3 w-3" /> {stats.atRiskJobs} at risk
+                </span>
+              )}
             </div>
           </div>
         </div>
@@ -209,19 +246,33 @@ function ConsultantCard({ stats }: { stats: MemberStats }) {
       </button>
 
       {open && (
-        <div className="border-t border-border p-3 grid grid-cols-2 sm:grid-cols-4 gap-3 text-sm">
-          <Stat label="Open jobs" value={stats.openJobs} />
-          <Stat label="Active candidates" value={stats.candidates} />
-          <Stat
-            label="Offer no backup"
-            value={stats.offerNoBackup}
-            tone={stats.offerNoBackup > 0 ? "destructive" : "default"}
-          />
-          <Stat
-            label="Overdue todos"
-            value={stats.overdueTodos}
-            tone={stats.overdueTodos > 0 ? "warn" : "default"}
-          />
+        <div className="border-t border-border p-3 space-y-3">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-sm">
+            <Stat label="Open jobs" value={stats.openJobs} />
+            <Stat label="Active candidates" value={stats.candidates} />
+            <Stat
+              label="Offer no backup"
+              value={stats.offerNoBackup}
+              tone={stats.offerNoBackup > 0 ? "destructive" : "default"}
+            />
+            <Stat
+              label="Jobs under 40%"
+              value={stats.atRiskJobs}
+              tone={stats.atRiskJobs > 0 ? "destructive" : "default"}
+            />
+          </div>
+          {stats.weakestJob && (
+            <div className="rounded-md border border-border bg-muted/20 p-2.5 text-xs">
+              <div className="font-medium">
+                Weakest role:{" "}
+                <span className="text-red-400 tabular-nums">{stats.weakestJob.score}%</span>{" "}
+                {stats.weakestJob.client} · {stats.weakestJob.title}
+              </div>
+              <div className="text-muted-foreground mt-0.5">
+                Coaching prompt: {stats.weakestJob.action}
+              </div>
+            </div>
+          )}
         </div>
       )}
     </div>

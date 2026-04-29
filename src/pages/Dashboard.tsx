@@ -10,6 +10,7 @@ import { OfferBackupActions } from "@/components/OfferBackupActions";
 import { DashboardHeadline } from "@/components/DashboardHeadline";
 import { TeamView } from "@/components/TeamView";
 import { useIsManager } from "@/hooks/use-team";
+import { NeedsAttentionSection } from "@/components/NeedsAttentionSection";
 
 const activityIcon: Record<string, typeof FileText> = {
   Note: FileText,
@@ -88,6 +89,9 @@ export default function DashboardPage() {
         <>
           {/* 1. HEADLINE BRIEF — first thing every time */}
           <DashboardHeadline />
+
+          {/* Jobs needing attention based on placement probability */}
+          <NeedsAttentionSection />
 
       {/* 2. AI ACTIONS */}
       <DailyFocus />

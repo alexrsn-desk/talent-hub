@@ -13,6 +13,9 @@ import { AddJobDialog } from "@/components/AddJobDialog";
 import { ClickToEditField } from "@/components/ClickToEditField";
 import { TagsSection } from "@/components/TagsSection";
 import { CandidateMatching } from "@/components/CandidateMatching";
+import { usePlacementScores, usePlacementScoreFor } from "@/hooks/use-placement-scores";
+import { PlacementScoreBadge } from "@/components/PlacementScoreBadge";
+import { PlacementScorePanel } from "@/components/PlacementScorePanel";
 
 const JOB_STATUSES = ["Open", "On Hold", "Filled", "Cancelled"] as const;
 const JOB_TYPES = ["Perm", "Contract"] as const;
@@ -30,6 +33,7 @@ export default function JobsPage() {
   const updateJob = useUpdateJob();
   const deleteJob = useDeleteJob();
   const { data: allCandidateJobs = [] } = useCandidateJobs();
+  const placementScores = usePlacementScores();
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [selectedJob, setSelectedJob] = useState<Job | null>(null);
@@ -117,6 +121,7 @@ export default function JobsPage() {
                 <th className="text-left px-4 py-3 font-medium text-muted-foreground">Job Title</th>
                 <th className="text-left px-4 py-3 font-medium text-muted-foreground">Client</th>
                 <th className="text-left px-4 py-3 font-medium text-muted-foreground">Status</th>
+                <th className="text-left px-4 py-3 font-medium text-muted-foreground w-[260px]">Placement Score</th>
                 <th className="text-left px-4 py-3 font-medium text-muted-foreground">In Play</th>
                 <th className="text-left px-4 py-3 font-medium text-muted-foreground">Date Opened</th>
                 <th className="text-left px-4 py-3 font-medium text-muted-foreground">Salary</th>
@@ -125,14 +130,18 @@ export default function JobsPage() {
             </thead>
             <tbody>
               {filtered.length === 0 ? (
-                <tr><td colSpan={7} className="px-4 py-8 text-center text-muted-foreground">No jobs found</td></tr>
+                <tr><td colSpan={8} className="px-4 py-8 text-center text-muted-foreground">No jobs found</td></tr>
               ) : filtered.map(j => {
                 const inPlay = getInPlayBreakdown(j.id);
+                const score = placementScores.get(j.id);
                 return (
                 <tr key={j.id} className="border-b border-border hover:bg-muted/20 cursor-pointer transition-colors" onClick={() => setSelectedJob(j)}>
                   <td className="px-4 py-3 font-medium">{j.title}</td>
                   <td className="px-4 py-3 text-muted-foreground">{(j.clients as any)?.company_name || "—"}</td>
                   <td className="px-4 py-3"><Badge variant="secondary" className={statusColor[j.status]}>{j.status}</Badge></td>
+                  <td className="px-4 py-3">
+                    {score ? <PlacementScoreBadge score={score} /> : <span className="text-xs text-muted-foreground">—</span>}
+                  </td>
                   <td className="px-4 py-3" onClick={(e) => { e.stopPropagation(); setSelectedJob(j); }}>
                     <TooltipProvider delayDuration={150}>
                       <Tooltip>
@@ -176,6 +185,7 @@ export function JobFullView({ job, onBack, onUpdate, onDelete, backLabel }: {
   onDelete: () => Promise<void>;
   backLabel?: string;
 }) {
+  const placementScore = usePlacementScoreFor(job.id);
   const handleFieldSave = async (field: string, value: string) => {
     const updates: any = {};
     if (field === "salary_min" || field === "salary_max" || field === "fee_value") {
@@ -204,6 +214,8 @@ export function JobFullView({ job, onBack, onUpdate, onDelete, backLabel }: {
           <Trash2 className="h-4 w-4 text-destructive" />
         </Button>
       </div>
+
+      {placementScore && <PlacementScorePanel score={placementScore} />}
 
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-sm rounded-lg border border-border p-4">
         <ClickToEditField label="Title" value={job.title} field="title" layout="stacked" onSave={(v) => handleFieldSave("title", v)} entityType="job" entityId={job.id} />
