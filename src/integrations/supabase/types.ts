@@ -688,6 +688,39 @@ export type Database = {
           },
         ]
       }
+      job_score_history: {
+        Row: {
+          created_at: string
+          id: string
+          job_id: string
+          negatives: Json
+          owner_user_id: string | null
+          positives: Json
+          score: number
+          snapshot_date: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          job_id: string
+          negatives?: Json
+          owner_user_id?: string | null
+          positives?: Json
+          score: number
+          snapshot_date?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          job_id?: string
+          negatives?: Json
+          owner_user_id?: string | null
+          positives?: Json
+          score?: number
+          snapshot_date?: string
+        }
+        Relationships: []
+      }
       job_tags: {
         Row: {
           created_at: string
