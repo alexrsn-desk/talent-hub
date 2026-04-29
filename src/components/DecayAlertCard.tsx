@@ -30,7 +30,7 @@ const SOURCE_LABELS: Record<string, string> = {
   bd_signal: "BD signal",
 };
 
-export function DecayAlertCard({ alert, entityName, company, compact }: Props) {
+export function DecayAlertCard({ alert, entityName, company, clientId, compact }: Props) {
   const meta = decayStatusLabel(alert.status);
   const snooze = useSnoozeDecayAlert();
   const resolve = useResolveDecayAlert();
