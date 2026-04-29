@@ -11,6 +11,7 @@ import { DashboardHeadline } from "@/components/DashboardHeadline";
 import { TeamView } from "@/components/TeamView";
 import { useIsManager } from "@/hooks/use-team";
 import { NeedsAttentionSection } from "@/components/NeedsAttentionSection";
+import { DecayAlertsSection } from "@/components/DecayAlertsSection";
 
 const activityIcon: Record<string, typeof FileText> = {
   Note: FileText,
