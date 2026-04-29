@@ -121,6 +121,7 @@ export default function JobsPage() {
                 <th className="text-left px-4 py-3 font-medium text-muted-foreground">Job Title</th>
                 <th className="text-left px-4 py-3 font-medium text-muted-foreground">Client</th>
                 <th className="text-left px-4 py-3 font-medium text-muted-foreground">Status</th>
+                <th className="text-left px-4 py-3 font-medium text-muted-foreground w-[260px]">Placement Score</th>
                 <th className="text-left px-4 py-3 font-medium text-muted-foreground">In Play</th>
                 <th className="text-left px-4 py-3 font-medium text-muted-foreground">Date Opened</th>
                 <th className="text-left px-4 py-3 font-medium text-muted-foreground">Salary</th>
