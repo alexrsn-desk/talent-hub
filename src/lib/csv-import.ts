@@ -840,10 +840,12 @@ export async function runImportForType(
 
       // Insert notes if present
       if (notesContent && (recordType === "candidates" || recordType === "contacts")) {
+        const { data: { user } } = await supabase.auth.getUser();
         const noteRow: any = {
           content: notesContent,
           activity_type: "Note",
           outcome: `Imported from ${platformLabel}`,
+          owner_user_id: user?.id,
         };
         if (recordType === "candidates") noteRow.candidate_id = inserted.id;
         else if (recordType === "contacts") noteRow.client_id = record.client_id;
