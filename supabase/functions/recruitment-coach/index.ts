@@ -392,6 +392,32 @@ serve(async (req) => {
           };
         }),
       staleRecords: staleClients,
+      decayAlerts: (decayAlerts || []).map((a: any) => {
+        const today = new Date().toISOString().split("T")[0];
+        if (a.snoozed_until && a.snoozed_until > today) return null;
+        let name = "Unknown";
+        let company: string | null = null;
+        if (a.entity_type === "client") {
+          const c = allClients.find((x: any) => x.id === a.entity_id);
+          name = c?.contact_name || c?.company_name || "Unknown";
+          company = c?.company_name || null;
+        } else {
+          const ct = (contactsList || []).find((x: any) => x.id === a.entity_id);
+          const c = ct ? allClients.find((x: any) => x.id === ct.client_id) : null;
+          name = ct?.name || "Unknown";
+          company = c?.company_name || null;
+        }
+        return {
+          name, company,
+          status: a.status,
+          daysSinceContact: a.days_since_contact,
+          relationshipKind: a.relationship_kind,
+          reason: a.reason,
+          reasonSource: a.reason_source,
+          suggestedApproach: a.suggested_approach,
+          channelSuggestion: a.channel_suggestion,
+        };
+      }).filter(Boolean),
     };
 
     const recruiterContext = profile ? `
