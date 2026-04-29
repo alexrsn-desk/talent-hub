@@ -614,6 +614,108 @@ export type Database = {
           },
         ]
       }
+      decay_alerts: {
+        Row: {
+          channel_suggestion: string | null
+          created_at: string
+          days_since_contact: number
+          entity_id: string
+          entity_type: string
+          id: string
+          last_scanned_at: string
+          owner_user_id: string
+          reason: string | null
+          reason_generated_at: string | null
+          reason_source: string | null
+          relationship_kind: string
+          resolved_at: string | null
+          snoozed_until: string | null
+          status: string
+          suggested_approach: string | null
+          surfaced_at: string | null
+          threshold_days: number
+          updated_at: string
+        }
+        Insert: {
+          channel_suggestion?: string | null
+          created_at?: string
+          days_since_contact?: number
+          entity_id: string
+          entity_type: string
+          id?: string
+          last_scanned_at?: string
+          owner_user_id: string
+          reason?: string | null
+          reason_generated_at?: string | null
+          reason_source?: string | null
+          relationship_kind: string
+          resolved_at?: string | null
+          snoozed_until?: string | null
+          status?: string
+          suggested_approach?: string | null
+          surfaced_at?: string | null
+          threshold_days?: number
+          updated_at?: string
+        }
+        Update: {
+          channel_suggestion?: string | null
+          created_at?: string
+          days_since_contact?: number
+          entity_id?: string
+          entity_type?: string
+          id?: string
+          last_scanned_at?: string
+          owner_user_id?: string
+          reason?: string | null
+          reason_generated_at?: string | null
+          reason_source?: string | null
+          relationship_kind?: string
+          resolved_at?: string | null
+          snoozed_until?: string | null
+          status?: string
+          suggested_approach?: string | null
+          surfaced_at?: string | null
+          threshold_days?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      decay_settings: {
+        Row: {
+          created_at: string
+          enabled: boolean
+          id: string
+          threshold_active: number
+          threshold_bd: number
+          threshold_general: number
+          threshold_key: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          enabled?: boolean
+          id?: string
+          threshold_active?: number
+          threshold_bd?: number
+          threshold_general?: number
+          threshold_key?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          enabled?: boolean
+          id?: string
+          threshold_active?: number
+          threshold_bd?: number
+          threshold_general?: number
+          threshold_key?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       import_history: {
         Row: {
           created_at: string
