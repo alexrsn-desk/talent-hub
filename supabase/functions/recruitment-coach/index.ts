@@ -151,6 +151,8 @@ serve(async (req) => {
       { data: unactionedSignals },
       { data: priorityCandidates },
       { data: scoreHistory },
+      { data: decayAlerts },
+      { data: contactsList },
     ] = await Promise.all([
       sb.from("candidate_jobs").select("*, candidates(*), jobs(*, clients(*))"),
       sb.from("jobs").select("*, clients(*)"),
@@ -163,6 +165,8 @@ serve(async (req) => {
       sb.from("call_signals").select("*, notes:note_id(*, candidates(*), clients(*))").eq("status", "unactioned").order("created_at", { ascending: false }).limit(50),
       sb.from("candidates").select("*").eq("priority_flag", true),
       sb.from("job_score_history").select("job_id, score, snapshot_date").order("snapshot_date", { ascending: false }),
+      sb.from("decay_alerts").select("*").in("status", ["due", "at_risk", "critical"]).not("reason", "is", null),
+      sb.from("contacts").select("id,name,client_id"),
     ]);
 
     const cjs = candidateJobs || [];
