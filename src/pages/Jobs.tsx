@@ -130,14 +130,18 @@ export default function JobsPage() {
             </thead>
             <tbody>
               {filtered.length === 0 ? (
-                <tr><td colSpan={7} className="px-4 py-8 text-center text-muted-foreground">No jobs found</td></tr>
+                <tr><td colSpan={8} className="px-4 py-8 text-center text-muted-foreground">No jobs found</td></tr>
               ) : filtered.map(j => {
                 const inPlay = getInPlayBreakdown(j.id);
+                const score = placementScores.get(j.id);
                 return (
                 <tr key={j.id} className="border-b border-border hover:bg-muted/20 cursor-pointer transition-colors" onClick={() => setSelectedJob(j)}>
                   <td className="px-4 py-3 font-medium">{j.title}</td>
                   <td className="px-4 py-3 text-muted-foreground">{(j.clients as any)?.company_name || "—"}</td>
                   <td className="px-4 py-3"><Badge variant="secondary" className={statusColor[j.status]}>{j.status}</Badge></td>
+                  <td className="px-4 py-3">
+                    {score ? <PlacementScoreBadge score={score} /> : <span className="text-xs text-muted-foreground">—</span>}
+                  </td>
                   <td className="px-4 py-3" onClick={(e) => { e.stopPropagation(); setSelectedJob(j); }}>
                     <TooltipProvider delayDuration={150}>
                       <Tooltip>
