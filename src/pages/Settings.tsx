@@ -15,6 +15,7 @@ import { MyPlanSection } from "@/components/MyPlanSection";
 import { ScreeningTemplateSettings } from "@/components/ScreeningTemplateSettings";
 import { WebhookSettingsSection } from "@/components/WebhookSettings";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { SignalConfigurationSection } from "@/components/SignalConfiguration";
 
 const NICHES = [
   "Tech/Digital", "Sales/Commercial", "Finance", "Legal",
@@ -334,6 +335,9 @@ export default function SettingsPage() {
       <div className="pt-6 border-t border-border">
         <MyPlanSection />
       </div>
+
+      {/* Signal Configuration */}
+      <SignalConfigurationSection />
 
       {/* Signal Performance */}
       <SignalPerformanceSection />

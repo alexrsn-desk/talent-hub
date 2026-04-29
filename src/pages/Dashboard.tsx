@@ -2,7 +2,7 @@ import { useJobs, useTodayFollowUps, useCandidateJobs, useCandidates } from "@/h
 import { AlertTriangle, Phone, Mail, Globe, FileText, Smartphone, MessageCircle, MessageSquare, Users } from "lucide-react";
 import { DailyFocus } from "@/components/DailyFocus";
 import { useAllUnactionedSignals } from "@/hooks/use-signals";
-import { SignalBox } from "@/components/SignalBox";
+import { SignalSummary } from "@/components/SignalSummary";
 import { PriorityCandidatesSection } from "@/components/PriorityFlag";
 import { TodoList } from "@/components/TodoList";
 import { OfferBackupActions } from "@/components/OfferBackupActions";
@@ -69,7 +69,7 @@ export default function DashboardPage() {
       <PriorityCandidatesSection candidates={allCandidates} />
 
       {unactionedSignals.length > 0 && (
-        <SignalBox signals={unactionedSignals} />
+        <SignalSummary signals={unactionedSignals} />
       )}
 
 
