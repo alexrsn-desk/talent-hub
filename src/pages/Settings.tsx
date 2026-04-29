@@ -348,6 +348,9 @@ export default function SettingsPage() {
       {/* Signal Configuration */}
       <SignalConfigurationSection />
 
+      {/* Relationship decay alerts */}
+      <DecaySettingsSection />
+
       {/* Signal Performance */}
       <SignalPerformanceSection />
     </div>
