@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useJobs, useTodayFollowUps, useCandidateJobs, useCandidates } from "@/hooks/use-data";
 import { AlertTriangle, Phone, Mail, Globe, FileText, Smartphone, MessageCircle, MessageSquare, Users } from "lucide-react";
 import { DailyFocus } from "@/components/DailyFocus";
@@ -7,6 +8,8 @@ import { PriorityCandidatesSection } from "@/components/PriorityFlag";
 import { TodoList } from "@/components/TodoList";
 import { OfferBackupActions } from "@/components/OfferBackupActions";
 import { DashboardHeadline } from "@/components/DashboardHeadline";
+import { TeamView } from "@/components/TeamView";
+import { useIsManager } from "@/hooks/use-team";
 
 const activityIcon: Record<string, typeof FileText> = {
   Note: FileText,
@@ -32,6 +35,8 @@ const activityColor: Record<string, string> = {
 
 
 export default function DashboardPage() {
+  const isManager = useIsManager();
+  const [view, setView] = useState<"my" | "team">("my");
   const { data: jobs = [] } = useJobs();
   const { data: todayActions = [] } = useTodayFollowUps();
   const { data: allCandidateJobs = [] } = useCandidateJobs();
@@ -55,8 +60,34 @@ export default function DashboardPage() {
 
   return (
     <div className="space-y-6">
-      {/* 1. HEADLINE BRIEF — first thing every time */}
-      <DashboardHeadline />
+      {/* View toggle (managers only) */}
+      {isManager && (
+        <div className="inline-flex rounded-lg border border-border bg-card p-1 text-sm">
+          <button
+            onClick={() => setView("my")}
+            className={`px-3 py-1 rounded-md transition-colors ${
+              view === "my" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            My Desk
+          </button>
+          <button
+            onClick={() => setView("team")}
+            className={`px-3 py-1 rounded-md transition-colors ${
+              view === "team" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            Team View
+          </button>
+        </div>
+      )}
+
+      {isManager && view === "team" ? (
+        <TeamView />
+      ) : (
+        <>
+          {/* 1. HEADLINE BRIEF — first thing every time */}
+          <DashboardHeadline />
 
       {/* 2. AI ACTIONS */}
       <DailyFocus />
