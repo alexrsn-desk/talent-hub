@@ -33,6 +33,7 @@ export default function JobsPage() {
   const updateJob = useUpdateJob();
   const deleteJob = useDeleteJob();
   const { data: allCandidateJobs = [] } = useCandidateJobs();
+  const placementScores = usePlacementScores();
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [selectedJob, setSelectedJob] = useState<Job | null>(null);
