@@ -90,6 +90,9 @@ export default function DashboardPage() {
           {/* 1. HEADLINE BRIEF — first thing every time */}
           <DashboardHeadline />
 
+          {/* Jobs needing attention based on placement probability */}
+          <NeedsAttentionSection />
+
       {/* 2. AI ACTIONS */}
       <DailyFocus />
       <OfferBackupActions />
