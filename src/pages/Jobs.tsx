@@ -185,6 +185,7 @@ export function JobFullView({ job, onBack, onUpdate, onDelete, backLabel }: {
   onDelete: () => Promise<void>;
   backLabel?: string;
 }) {
+  const placementScore = usePlacementScoreFor(job.id);
   const handleFieldSave = async (field: string, value: string) => {
     const updates: any = {};
     if (field === "salary_min" || field === "salary_max" || field === "fee_value") {
