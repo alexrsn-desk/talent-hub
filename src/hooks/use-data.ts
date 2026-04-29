@@ -126,7 +126,8 @@ export function useCreateCandidate() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (candidate: Omit<Candidate, "id" | "created_at" | "updated_at">) => {
-      const { data, error } = await supabase.from("candidates").insert(candidate).select().single();
+      const { data: { user } } = await supabase.auth.getUser();
+      const { data, error } = await supabase.from("candidates").insert({ ...candidate, owner_user_id: user?.id } as any).select().single();
       if (error) throw error;
       await logActivity({ action_type: "candidate_created", candidate_id: data.id, metadata: { name: data.name } });
       return data;
@@ -176,7 +177,8 @@ export function useCreateClient() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (client: Omit<Client, "id" | "created_at" | "updated_at">) => {
-      const { data, error } = await supabase.from("clients").insert(client).select().single();
+      const { data: { user } } = await supabase.auth.getUser();
+      const { data, error } = await supabase.from("clients").insert({ ...client, owner_user_id: user?.id } as any).select().single();
       if (error) throw error;
       await logActivity({ action_type: "client_created", client_id: data.id, metadata: { company_name: data.company_name } });
       return data;
@@ -233,7 +235,8 @@ export function useCreateJob() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (job: Omit<Job, "id" | "created_at" | "updated_at" | "clients">) => {
-      const { data, error } = await supabase.from("jobs").insert(job).select().single();
+      const { data: { user } } = await supabase.auth.getUser();
+      const { data, error } = await supabase.from("jobs").insert({ ...job, owner_user_id: user?.id } as any).select().single();
       if (error) throw error;
       await logActivity({ action_type: "job_created", job_id: data.id, client_id: data.client_id, metadata: { title: data.title } });
       return data;
@@ -287,7 +290,8 @@ export function useCreateCandidateJob() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (link: { candidate_id: string; job_id: string; stage?: string; source?: string }) => {
-      const { data, error } = await supabase.from("candidate_jobs").insert(link as any).select().single();
+      const { data: { user } } = await supabase.auth.getUser();
+      const { data, error } = await supabase.from("candidate_jobs").insert({ ...link, owner_user_id: user?.id } as any).select().single();
       if (error) throw error;
       await logActivity({
         action_type: "candidate_job_linked",
@@ -359,7 +363,8 @@ export function useCreateNote() {
   return useMutation({
     mutationFn: async (note: { content: string; activity_type?: string; outcome?: string; follow_up_date?: string; duration?: number | null; transcript?: string | null; candidate_id?: string; client_id?: string; job_id?: string; source?: string }) => {
       const { source, ...insertNote } = note as any;
-      const { data, error } = await supabase.from("notes").insert(insertNote).select().single();
+      const { data: { user } } = await supabase.auth.getUser();
+      const { data, error } = await supabase.from("notes").insert({ ...insertNote, owner_user_id: user?.id }).select().single();
       if (error) throw error;
       await logActivity({
         action_type: note.activity_type && note.activity_type !== "Note" ? "touchpoint_logged" : "note_created",
