@@ -230,6 +230,13 @@ export function ContactFullView({ contact, client, onBack, onDelete, onContactUp
 
   return (
     <div className="space-y-6">
+      <EntityDecayAlert
+        entityType="contact"
+        entityId={contact.id}
+        entityName={contact.name}
+        company={client?.company_name || null}
+        clientId={contact.client_id}
+      />
       <div className="flex items-center gap-3">
         <Button variant="ghost" size="sm" onClick={onBack} className="gap-1">
           <ArrowLeft className="h-4 w-4" />
