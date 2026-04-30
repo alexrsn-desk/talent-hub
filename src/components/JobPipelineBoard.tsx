@@ -15,6 +15,7 @@ import { ScreeningNotesPanel } from "@/components/ScreeningNotesPanel";
 import { useScreeningNote } from "@/hooks/use-screening-notes";
 import { toast } from "sonner";
 import { InterviewSlotPicker } from "@/components/InterviewSlotPicker";
+import { InterviewDetailsPanel } from "@/components/InterviewDetailsPanel";
 import { logActivity } from "@/lib/activity-log";
 import { OfferBackupSignal } from "@/components/OfferBackupSignal";
 
