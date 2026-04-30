@@ -217,6 +217,9 @@ export function ContactFullView({ contact, client, onBack, onDelete, onContactUp
   backLabel?: string;
 }) {
   const [touchpointOpen, setTouchpointOpen] = useState(false);
+  const [dncOpen, setDncOpen] = useState(false);
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const isDnc = !!(contact as any).do_not_contact;
 
   const handleFieldSave = async (field: string, value: string) => {
     const updates: any = { [field]: value || null };
@@ -236,6 +239,13 @@ export function ContactFullView({ contact, client, onBack, onDelete, onContactUp
 
   return (
     <div className="space-y-6">
+      {isDnc && (
+        <DoNotContactBanner
+          reason={(contact as any).dnc_reason}
+          reasonOther={(contact as any).dnc_reason_other}
+          setAt={(contact as any).dnc_set_at}
+        />
+      )}
       <EntityDecayAlert
         entityType="contact"
         entityId={contact.id}
@@ -279,6 +289,26 @@ export function ContactFullView({ contact, client, onBack, onDelete, onContactUp
           />
           <Badge variant="secondary" className={statusColor[contact.status] || ""}>{contact.status}</Badge>
           {contact.status === "Cold" && contact.reengage_date && <ReengageBadge date={contact.reengage_date} />}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button size="sm" variant="outline" className="gap-1.5" aria-label="Compliance">
+                <ShieldAlert className="h-3.5 w-3.5" /> Compliance
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-56">
+              <DropdownMenuItem onClick={() => setDncOpen(true)}>
+                {isDnc ? "Remove Do Not Contact" : "Mark as Do Not Contact"}
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem
+                className="text-destructive focus:text-destructive"
+                onClick={() => setDeleteOpen(true)}
+                disabled={!!(contact as any).gdpr_deleted}
+              >
+                Request data deletion (GDPR)
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
           <Button variant="ghost" size="icon" onClick={onDelete}>
             <Trash2 className="h-4 w-4 text-destructive" />
           </Button>
