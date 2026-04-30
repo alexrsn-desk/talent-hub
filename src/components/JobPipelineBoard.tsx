@@ -119,6 +119,9 @@ export function JobPipelineBoard({ job }: { job: Job }) {
   const [rejectingCJ, setRejectingCJ] = useState<{ cj: CandidateJob; fromStage: string } | null>(null);
   const [rejectionReason, setRejectionReason] = useState<string>(REJECTION_REASONS[0]);
 
+  // Interview details capture flow — opens after move to First/Second Interview
+  const [interviewPanel, setInterviewPanel] = useState<{ cj: CandidateJob; stage: "First Interview" | "Second Interview" } | null>(null);
+
   const linkedCandidateIds = candidateJobs.map((cj) => cj.candidate_id);
   const availableCandidates = allCandidates.filter((c) => !linkedCandidateIds.includes(c.id));
 
