@@ -1171,6 +1171,161 @@ export type Database = {
         }
         Relationships: []
       }
+      placement_checkins: {
+        Row: {
+          checkin_type: string
+          completed: boolean
+          completed_at: string | null
+          concern_flagged: boolean
+          concern_summary: string | null
+          created_at: string
+          due_date: string
+          id: string
+          notes: string | null
+          owner_user_id: string
+          placement_id: string
+          updated_at: string
+        }
+        Insert: {
+          checkin_type: string
+          completed?: boolean
+          completed_at?: string | null
+          concern_flagged?: boolean
+          concern_summary?: string | null
+          created_at?: string
+          due_date: string
+          id?: string
+          notes?: string | null
+          owner_user_id: string
+          placement_id: string
+          updated_at?: string
+        }
+        Update: {
+          checkin_type?: string
+          completed?: boolean
+          completed_at?: string | null
+          concern_flagged?: boolean
+          concern_summary?: string | null
+          created_at?: string
+          due_date?: string
+          id?: string
+          notes?: string | null
+          owner_user_id?: string
+          placement_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "placement_checkins_placement_id_fkey"
+            columns: ["placement_id"]
+            isOneToOne: false
+            referencedRelation: "placements"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      placements: {
+        Row: {
+          candidate_id: string
+          candidate_job_id: string | null
+          candidate_name_snapshot: string | null
+          client_id: string | null
+          client_name_snapshot: string | null
+          created_at: string
+          fall_through_at: string | null
+          fall_through_reason: string | null
+          fee_amount: number | null
+          fee_percentage: number | null
+          fee_type: string
+          guarantee_expiry_date: string | null
+          guarantee_weeks: number
+          id: string
+          invoice_date: string | null
+          invoice_due_date: string | null
+          invoice_paid: boolean
+          invoice_paid_at: string | null
+          invoice_raised: boolean
+          invoice_raised_at: string | null
+          job_id: string | null
+          job_title_snapshot: string | null
+          notes: string | null
+          offer_accepted_date: string | null
+          owner_user_id: string
+          payment_terms_days: number
+          salary_placed_at: number | null
+          source: string | null
+          start_date: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          candidate_id: string
+          candidate_job_id?: string | null
+          candidate_name_snapshot?: string | null
+          client_id?: string | null
+          client_name_snapshot?: string | null
+          created_at?: string
+          fall_through_at?: string | null
+          fall_through_reason?: string | null
+          fee_amount?: number | null
+          fee_percentage?: number | null
+          fee_type?: string
+          guarantee_expiry_date?: string | null
+          guarantee_weeks?: number
+          id?: string
+          invoice_date?: string | null
+          invoice_due_date?: string | null
+          invoice_paid?: boolean
+          invoice_paid_at?: string | null
+          invoice_raised?: boolean
+          invoice_raised_at?: string | null
+          job_id?: string | null
+          job_title_snapshot?: string | null
+          notes?: string | null
+          offer_accepted_date?: string | null
+          owner_user_id: string
+          payment_terms_days?: number
+          salary_placed_at?: number | null
+          source?: string | null
+          start_date?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          candidate_id?: string
+          candidate_job_id?: string | null
+          candidate_name_snapshot?: string | null
+          client_id?: string | null
+          client_name_snapshot?: string | null
+          created_at?: string
+          fall_through_at?: string | null
+          fall_through_reason?: string | null
+          fee_amount?: number | null
+          fee_percentage?: number | null
+          fee_type?: string
+          guarantee_expiry_date?: string | null
+          guarantee_weeks?: number
+          id?: string
+          invoice_date?: string | null
+          invoice_due_date?: string | null
+          invoice_paid?: boolean
+          invoice_paid_at?: string | null
+          invoice_raised?: boolean
+          invoice_raised_at?: string | null
+          job_id?: string | null
+          job_title_snapshot?: string | null
+          notes?: string | null
+          offer_accepted_date?: string | null
+          owner_user_id?: string
+          payment_terms_days?: number
+          salary_placed_at?: number | null
+          source?: string | null
+          start_date?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       quick_notes: {
         Row: {
           content: string
