@@ -99,6 +99,9 @@ export default function DashboardPage() {
           <QuickNotesSection />
           <NewRecordsSection />
 
+          {/* Active placements — starts, check-ins, guarantee, invoices */}
+          <PlacementsDashboardSection />
+
           {/* Jobs needing attention based on placement probability */}
           <NeedsAttentionSection />
 
