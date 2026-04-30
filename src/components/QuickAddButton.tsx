@@ -1,5 +1,15 @@
-import { useState, useMemo } from "react";
-import { Plus, NotebookPen, Pencil, X, Search, ArrowLeft } from "lucide-react";
+import { useState, useMemo, useRef, useEffect } from "react";
+import { Plus, NotebookPen, Pencil, X, Search, ArrowLeft, Check } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
