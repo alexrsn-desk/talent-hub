@@ -147,19 +147,23 @@ function AddToSequenceAction({ selected }: { selected: Candidate[] }) {
 // --- Send Check-in (AI-drafted, multi-select) ---
 function SendCheckinAction({ selected }: { selected: Candidate[] }) {
   const [open, setOpen] = useState(false);
-  const eligible = selected.filter((c) => c.email && c.status !== "Do Not Contact");
+  const eligible = selected.filter((c) => c.email && c.status !== "Do Not Contact" && !(c as any).do_not_contact);
+  const dncCount = selected.length - selected.filter((c) => c.status !== "Do Not Contact" && !(c as any).do_not_contact).length;
   return (
     <>
       <ActionButton onClick={() => {
         if (eligible.length === 0) {
-          toast.error("None of the selected candidates have an email address.");
+          toast.error("No eligible candidates — Do Not Contact records and those without an email are excluded.");
           return;
+        }
+        if (dncCount > 0) {
+          toast.message(`${dncCount} Do Not Contact record${dncCount === 1 ? "" : "s"} excluded.`);
         }
         setOpen(true);
       }}>
         <Send className="h-4 w-4 mr-1" /> Send Check-in
       </ActionButton>
-      {open && <SendCheckinPanel open={open} onOpenChange={setOpen} candidates={selected} />}
+      {open && <SendCheckinPanel open={open} onOpenChange={setOpen} candidates={eligible} />}
     </>
   );
 }
