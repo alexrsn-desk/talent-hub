@@ -297,6 +297,7 @@ export type Database = {
           email: string | null
           first_name: string | null
           id: string
+          incomplete_profile: boolean
           job_title: string | null
           last_name: string | null
           linkedin_url: string | null
@@ -325,6 +326,7 @@ export type Database = {
           email?: string | null
           first_name?: string | null
           id?: string
+          incomplete_profile?: boolean
           job_title?: string | null
           last_name?: string | null
           linkedin_url?: string | null
@@ -353,6 +355,7 @@ export type Database = {
           email?: string | null
           first_name?: string | null
           id?: string
+          incomplete_profile?: boolean
           job_title?: string | null
           last_name?: string | null
           linkedin_url?: string | null
@@ -485,6 +488,7 @@ export type Database = {
           email: string | null
           heat: string
           id: string
+          incomplete_profile: boolean
           job_title: string | null
           last_activity_date: string | null
           linkedin_url: string | null
@@ -507,6 +511,7 @@ export type Database = {
           email?: string | null
           heat?: string
           id?: string
+          incomplete_profile?: boolean
           job_title?: string | null
           last_activity_date?: string | null
           linkedin_url?: string | null
@@ -529,6 +534,7 @@ export type Database = {
           email?: string | null
           heat?: string
           id?: string
+          incomplete_profile?: boolean
           job_title?: string | null
           last_activity_date?: string | null
           linkedin_url?: string | null
@@ -554,6 +560,7 @@ export type Database = {
           email: string | null
           first_name: string | null
           id: string
+          incomplete_profile: boolean
           job_title: string | null
           last_name: string | null
           linkedin_url: string | null
@@ -573,6 +580,7 @@ export type Database = {
           email?: string | null
           first_name?: string | null
           id?: string
+          incomplete_profile?: boolean
           job_title?: string | null
           last_name?: string | null
           linkedin_url?: string | null
@@ -592,6 +600,7 @@ export type Database = {
           email?: string | null
           first_name?: string | null
           id?: string
+          incomplete_profile?: boolean
           job_title?: string | null
           last_name?: string | null
           linkedin_url?: string | null
@@ -867,6 +876,7 @@ export type Database = {
           fee_type: string | null
           fee_value: number | null
           id: string
+          incomplete_profile: boolean
           job_type: string
           location: string | null
           owner_user_id: string | null
@@ -883,6 +893,7 @@ export type Database = {
           fee_type?: string | null
           fee_value?: number | null
           id?: string
+          incomplete_profile?: boolean
           job_type?: string
           location?: string | null
           owner_user_id?: string | null
@@ -899,6 +910,7 @@ export type Database = {
           fee_type?: string | null
           fee_value?: number | null
           id?: string
+          incomplete_profile?: boolean
           job_type?: string
           location?: string | null
           owner_user_id?: string | null
@@ -1015,6 +1027,36 @@ export type Database = {
           title?: string
           type?: string
           user_id?: string | null
+        }
+        Relationships: []
+      }
+      quick_notes: {
+        Row: {
+          content: string
+          created_at: string
+          id: string
+          owner_user_id: string
+          reviewed_at: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          id?: string
+          owner_user_id: string
+          reviewed_at?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          id?: string
+          owner_user_id?: string
+          reviewed_at?: string | null
+          status?: string
+          updated_at?: string
         }
         Relationships: []
       }
