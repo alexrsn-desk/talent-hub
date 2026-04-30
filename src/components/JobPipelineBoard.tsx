@@ -16,6 +16,7 @@ import { useScreeningNote } from "@/hooks/use-screening-notes";
 import { toast } from "sonner";
 import { InterviewSlotPicker } from "@/components/InterviewSlotPicker";
 import { InterviewDetailsPanel } from "@/components/InterviewDetailsPanel";
+import { OfferManagementPanel } from "@/components/OfferManagementPanel";
 import { logActivity } from "@/lib/activity-log";
 import { OfferBackupSignal } from "@/components/OfferBackupSignal";
 
@@ -121,6 +122,8 @@ export function JobPipelineBoard({ job }: { job: Job }) {
 
   // Interview details capture flow — opens after move to First/Second Interview
   const [interviewPanel, setInterviewPanel] = useState<{ cj: CandidateJob; stage: "First Interview" | "Second Interview" } | null>(null);
+  // Offer management flow — opens after move to Offer
+  const [offerPanel, setOfferPanel] = useState<{ cj: CandidateJob } | null>(null);
 
   const linkedCandidateIds = candidateJobs.map((cj) => cj.candidate_id);
   const availableCandidates = allCandidates.filter((c) => !linkedCandidateIds.includes(c.id));
@@ -163,6 +166,12 @@ export function JobPipelineBoard({ job }: { job: Job }) {
             // Small delay so the auto-create trigger has time to insert the interview row
             setTimeout(() => {
               setInterviewPanel({ cj, stage: toStage as "First Interview" | "Second Interview" });
+            }, 400);
+          }
+          if (toStage === "Offer") {
+            // Small delay so the auto-create trigger has time to insert the offer row
+            setTimeout(() => {
+              setOfferPanel({ cj });
             }, 400);
           }
         },
@@ -416,6 +425,17 @@ export function JobPipelineBoard({ job }: { job: Job }) {
           candidateJobId={interviewPanel.cj.id}
           stage={interviewPanel.stage}
           candidate={interviewPanel.cj.candidates ?? null}
+          job={job as any}
+        />
+      )}
+
+      {/* Offer management — opens after move to Offer */}
+      {offerPanel && (
+        <OfferManagementPanel
+          open={!!offerPanel}
+          onOpenChange={(o) => !o && setOfferPanel(null)}
+          candidateJobId={offerPanel.cj.id}
+          candidate={offerPanel.cj.candidates ?? null}
           job={job as any}
         />
       )}
