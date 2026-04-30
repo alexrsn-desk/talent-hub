@@ -45,7 +45,8 @@ const SECTORS = ["Tech", "Finance", "Healthcare", "Retail", "Other"] as const;
 
 export function QuickAddButton() {
   const [mode, setMode] = useState<Mode>(null);
-  const open = mode !== null;
+  const [noteOpen, setNoteOpen] = useState(false);
+  const sheetOpen = mode !== null && mode !== "quick_note";
 
   return (
     <>
@@ -56,7 +57,7 @@ export function QuickAddButton() {
         className="fixed z-50 right-4 bottom-[calc(env(safe-area-inset-bottom,0px)+1rem)] sm:bottom-5 flex items-stretch h-9 sm:h-9 w-[160px] sm:w-[160px] rounded-full bg-primary text-primary-foreground shadow-md ring-1 ring-black/10 overflow-hidden"
       >
         <button
-          onClick={() => setMode("quick_note")}
+          onClick={() => setNoteOpen(true)}
           aria-label="Quick Note"
           title="Quick Note"
           className="flex-1 flex items-center justify-center gap-1.5 text-xs font-medium hover:bg-white/10 active:bg-white/15 transition-colors"
@@ -76,11 +77,116 @@ export function QuickAddButton() {
         </button>
       </div>
 
-      <Sheet open={open} onOpenChange={(v) => !v && setMode(null)}>
+      {noteOpen && <FloatingNotepad onClose={() => setNoteOpen(false)} />}
+
+      <Sheet open={sheetOpen} onOpenChange={(v) => !v && setMode(null)}>
         <SheetContent side="right" className="w-full sm:max-w-md overflow-y-auto p-0">
           <QuickAddBody mode={mode} setMode={setMode} onClose={() => setMode(null)} />
         </SheetContent>
       </Sheet>
+    </>
+  );
+}
+
+// ─── Floating Post-it Notepad ────────────────────────
+function FloatingNotepad({ onClose }: { onClose: () => void }) {
+  const [content, setContent] = useState("");
+  const [confirmDiscard, setConfirmDiscard] = useState(false);
+  const create = useCreateQuickNote();
+  const taRef = useRef<HTMLTextAreaElement>(null);
+  const lastEnterAt = useRef<number>(0);
+
+  useEffect(() => {
+    taRef.current?.focus();
+  }, []);
+
+  const save = async () => {
+    const v = content.trim();
+    if (!v) { onClose(); return; }
+    try {
+      await create.mutateAsync(v);
+      onClose();
+    } catch {
+      toast.error("Failed to save");
+    }
+  };
+
+  const tryClose = () => {
+    if (content.trim()) setConfirmDiscard(true);
+    else onClose();
+  };
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        e.preventDefault();
+        tryClose();
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [content]);
+
+  return (
+    <>
+      <div
+        role="dialog"
+        aria-label="Quick Note"
+        className="fixed z-50 right-4 bottom-[calc(env(safe-area-inset-bottom,0px)+4rem)] sm:bottom-16 w-[280px] h-[200px] rounded-md bg-card border border-border shadow-xl flex flex-col"
+      >
+        <button
+          onClick={tryClose}
+          aria-label="Close"
+          className="absolute top-1 right-1 p-1 rounded text-muted-foreground hover:text-foreground hover:bg-muted"
+        >
+          <X className="h-3.5 w-3.5" />
+        </button>
+        <textarea
+          ref={taRef}
+          value={content}
+          onChange={(e) => setContent(e.target.value)}
+          placeholder="Brain dump — review later..."
+          className="flex-1 w-full resize-none bg-transparent border-0 outline-none px-3 pt-3 pr-7 pb-2 text-sm text-foreground placeholder:text-muted-foreground"
+          onKeyDown={(e) => {
+            if (e.key === "Enter" && !e.shiftKey) {
+              const now = Date.now();
+              if (now - lastEnterAt.current < 600 && content.trim()) {
+                e.preventDefault();
+                setContent((c) => c.replace(/\n$/, ""));
+                save();
+                return;
+              }
+              lastEnterAt.current = now;
+            }
+          }}
+        />
+        <div className="flex justify-end px-2 pb-2">
+          <button
+            onClick={save}
+            disabled={!content.trim() || create.isPending}
+            aria-label="Save note"
+            className="p-1.5 rounded text-primary hover:bg-primary/10 disabled:opacity-40 disabled:hover:bg-transparent"
+          >
+            <Check className="h-4 w-4" />
+          </button>
+        </div>
+      </div>
+
+      <AlertDialog open={confirmDiscard} onOpenChange={setConfirmDiscard}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Discard this note?</AlertDialogTitle>
+            <AlertDialogDescription>Your typed text will be lost.</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Keep open</AlertDialogCancel>
+            <AlertDialogAction onClick={() => { setConfirmDiscard(false); onClose(); }}>
+              Discard
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 }
