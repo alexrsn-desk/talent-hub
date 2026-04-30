@@ -174,6 +174,7 @@ serve(async (req) => {
       { data: quickNotes },
       { data: placementsData },
       { data: openCheckins },
+      { data: offersData },
     ] = await Promise.all([
       sb.from("candidate_jobs").select("*, candidates(*), jobs(*, clients(*))"),
       sb.from("jobs").select("*, clients(*)"),
