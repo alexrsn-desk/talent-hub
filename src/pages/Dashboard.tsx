@@ -16,6 +16,7 @@ import { QuickNotesSection } from "@/components/QuickNotesSection";
 import { GdprAuditPrompt } from "@/components/GdprAuditPrompt";
 import { NewRecordsSection } from "@/components/NewRecordsSection";
 import { PlacementsDashboardSection } from "@/components/PlacementsDashboardSection";
+import { OffersDashboardSection } from "@/components/OffersDashboardSection";
 
 const activityIcon: Record<string, typeof FileText> = {
   Note: FileText,
@@ -98,6 +99,9 @@ export default function DashboardPage() {
           {/* Quick capture inboxes — review notes and complete records added on the fly */}
           <QuickNotesSection />
           <NewRecordsSection />
+
+          {/* Active offers — risk, acceptance, resignation, start-date readiness */}
+          <OffersDashboardSection />
 
           {/* Active placements — starts, check-ins, guarantee, invoices */}
           <PlacementsDashboardSection />
