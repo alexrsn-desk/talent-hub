@@ -129,8 +129,11 @@ export function useCreateInterviewFeedback() {
       if (error) throw error;
 
       // Mark logged on parent interview
-      const stamp = payload.source === "client" ? "client_feedback_logged_at" : "candidate_feedback_logged_at";
-      await supabase.from("interviews").update({ [stamp]: new Date().toISOString() }).eq("id", payload.interview_id);
+      const nowIso = new Date().toISOString();
+      const updates = payload.source === "client"
+        ? { client_feedback_logged_at: nowIso }
+        : { candidate_feedback_logged_at: nowIso };
+      await supabase.from("interviews").update(updates).eq("id", payload.interview_id);
 
       return data;
     },
