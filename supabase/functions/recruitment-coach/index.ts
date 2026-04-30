@@ -174,6 +174,7 @@ serve(async (req) => {
       { data: quickNotes },
       { data: placementsData },
       { data: openCheckins },
+      { data: offersData },
     ] = await Promise.all([
       sb.from("candidate_jobs").select("*, candidates(*), jobs(*, clients(*))"),
       sb.from("jobs").select("*, clients(*)"),
@@ -191,6 +192,7 @@ serve(async (req) => {
       sb.from("quick_notes").select("id, content, created_at").eq("status", "inbox").order("created_at", { ascending: false }).limit(50),
       sb.from("placements").select("*").not("status", "eq", "fallen_through"),
       sb.from("placement_checkins").select("*").eq("completed", false),
+      sb.from("offers").select("*").not("status", "in", "(placement_complete,withdrawn,counter_offer_lost)"),
     ]);
 
     const cjs = candidateJobs || [];
@@ -487,6 +489,40 @@ serve(async (req) => {
               overdueDays: Math.max(0, Math.floor((nowMs - new Date(c.due_date).getTime()) / dayMs)),
               concernFlagged: c.concern_flagged,
             })),
+          })),
+        };
+      })(),
+      offers: (() => {
+        const list = offersData || [];
+        const today = new Date();
+        const in7 = new Date(today.getTime() + 7 * dayMs);
+        return {
+          total: list.length,
+          awaitingAcceptance: list.filter((o: any) => o.status === "awaiting_acceptance").length,
+          inNotice: list.filter((o: any) => o.status === "resigned").length,
+          startingThisWeek: list.filter((o: any) => o.start_date_confirmed && new Date(o.start_date_confirmed) >= today && new Date(o.start_date_confirmed) <= in7).length,
+          highRisk: list.filter((o: any) => o.overall_risk === "high").length,
+          records: list.map((o: any) => ({
+            candidate: o.candidate_name_snapshot,
+            client: o.client_name_snapshot,
+            jobTitle: o.job_title_snapshot,
+            status: o.status,
+            offerType: o.offer_type,
+            salaryOffered: o.salary_offered,
+            candidateExpectation: o.candidate_expectation_snapshot,
+            verbalOfferDate: o.verbal_offer_date,
+            daysSinceVerbal: o.verbal_offer_date ? Math.floor((nowMs - new Date(o.verbal_offer_date).getTime()) / dayMs) : null,
+            decision: o.candidate_decision,
+            counterOfferRisk: o.counter_offer_risk,
+            counterOfferReasons: o.counter_offer_reasons,
+            acceptanceRisk: o.acceptance_risk,
+            acceptanceReasons: o.acceptance_reasons,
+            startDateRisk: o.start_date_risk,
+            overallRisk: o.overall_risk,
+            resignationPlannedDate: o.resignation_planned_date,
+            resignationHandedInDate: o.resignation_handed_in_date,
+            counterOfferReceivedDate: o.counter_offer_received_date,
+            startDateConfirmed: o.start_date_confirmed,
           })),
         };
       })(),

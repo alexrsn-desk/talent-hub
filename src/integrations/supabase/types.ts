@@ -764,6 +764,59 @@ export type Database = {
           },
         ]
       }
+      counter_offers: {
+        Row: {
+          ai_strategy: string | null
+          amount_offered: number | null
+          candidate_reaction: string | null
+          created_at: string
+          id: string
+          offer_id: string
+          other_changes: string | null
+          outcome: string
+          owner_user_id: string
+          received_date: string
+          resolved_at: string | null
+          updated_at: string
+        }
+        Insert: {
+          ai_strategy?: string | null
+          amount_offered?: number | null
+          candidate_reaction?: string | null
+          created_at?: string
+          id?: string
+          offer_id: string
+          other_changes?: string | null
+          outcome?: string
+          owner_user_id: string
+          received_date?: string
+          resolved_at?: string | null
+          updated_at?: string
+        }
+        Update: {
+          ai_strategy?: string | null
+          amount_offered?: number | null
+          candidate_reaction?: string | null
+          created_at?: string
+          id?: string
+          offer_id?: string
+          other_changes?: string | null
+          outcome?: string
+          owner_user_id?: string
+          received_date?: string
+          resolved_at?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "counter_offers_offer_id_fkey"
+            columns: ["offer_id"]
+            isOneToOne: false
+            referencedRelation: "offers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       decay_alerts: {
         Row: {
           channel_suggestion: string | null
@@ -1333,6 +1386,185 @@ export type Database = {
           title?: string
           type?: string
           user_id?: string | null
+        }
+        Relationships: []
+      }
+      offer_milestones: {
+        Row: {
+          created_at: string
+          id: string
+          milestone_date: string | null
+          milestone_type: string
+          notes: string | null
+          offer_id: string
+          owner_user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          milestone_date?: string | null
+          milestone_type: string
+          notes?: string | null
+          offer_id: string
+          owner_user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          milestone_date?: string | null
+          milestone_type?: string
+          notes?: string | null
+          offer_id?: string
+          owner_user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "offer_milestones_offer_id_fkey"
+            columns: ["offer_id"]
+            isOneToOne: false
+            referencedRelation: "offers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      offers: {
+        Row: {
+          acceptance_deadline: string | null
+          acceptance_reasons: string | null
+          acceptance_risk: string | null
+          benefits_notes: string | null
+          candidate_decision: string
+          candidate_expectation_snapshot: number | null
+          candidate_id: string
+          candidate_job_id: string
+          candidate_name_snapshot: string | null
+          client_name_snapshot: string | null
+          conditions: string[] | null
+          conditions_other: string | null
+          counter_offer_reasons: string | null
+          counter_offer_received_date: string | null
+          counter_offer_risk: string | null
+          created_at: string
+          decision_logged_at: string | null
+          earliest_start_date: string | null
+          id: string
+          job_id: string
+          job_title_snapshot: string | null
+          notes: string | null
+          notice_period_weeks: number | null
+          offer_type: string
+          overall_risk: string | null
+          owner_user_id: string
+          pre_start_candidate_briefed: boolean
+          pre_start_candidate_called: boolean
+          pre_start_client_called: boolean
+          pre_start_placement_ready: boolean
+          resignation_accepted_date: string | null
+          resignation_handed_in_date: string | null
+          resignation_planned_date: string | null
+          risk_assessed_at: string | null
+          salary_currency: string
+          salary_offered: number | null
+          start_date_confirmed: string | null
+          start_date_proposed: string | null
+          start_date_reasons: string | null
+          start_date_risk: string | null
+          status: string
+          updated_at: string
+          verbal_offer_date: string | null
+          written_offer_date: string | null
+        }
+        Insert: {
+          acceptance_deadline?: string | null
+          acceptance_reasons?: string | null
+          acceptance_risk?: string | null
+          benefits_notes?: string | null
+          candidate_decision?: string
+          candidate_expectation_snapshot?: number | null
+          candidate_id: string
+          candidate_job_id: string
+          candidate_name_snapshot?: string | null
+          client_name_snapshot?: string | null
+          conditions?: string[] | null
+          conditions_other?: string | null
+          counter_offer_reasons?: string | null
+          counter_offer_received_date?: string | null
+          counter_offer_risk?: string | null
+          created_at?: string
+          decision_logged_at?: string | null
+          earliest_start_date?: string | null
+          id?: string
+          job_id: string
+          job_title_snapshot?: string | null
+          notes?: string | null
+          notice_period_weeks?: number | null
+          offer_type?: string
+          overall_risk?: string | null
+          owner_user_id: string
+          pre_start_candidate_briefed?: boolean
+          pre_start_candidate_called?: boolean
+          pre_start_client_called?: boolean
+          pre_start_placement_ready?: boolean
+          resignation_accepted_date?: string | null
+          resignation_handed_in_date?: string | null
+          resignation_planned_date?: string | null
+          risk_assessed_at?: string | null
+          salary_currency?: string
+          salary_offered?: number | null
+          start_date_confirmed?: string | null
+          start_date_proposed?: string | null
+          start_date_reasons?: string | null
+          start_date_risk?: string | null
+          status?: string
+          updated_at?: string
+          verbal_offer_date?: string | null
+          written_offer_date?: string | null
+        }
+        Update: {
+          acceptance_deadline?: string | null
+          acceptance_reasons?: string | null
+          acceptance_risk?: string | null
+          benefits_notes?: string | null
+          candidate_decision?: string
+          candidate_expectation_snapshot?: number | null
+          candidate_id?: string
+          candidate_job_id?: string
+          candidate_name_snapshot?: string | null
+          client_name_snapshot?: string | null
+          conditions?: string[] | null
+          conditions_other?: string | null
+          counter_offer_reasons?: string | null
+          counter_offer_received_date?: string | null
+          counter_offer_risk?: string | null
+          created_at?: string
+          decision_logged_at?: string | null
+          earliest_start_date?: string | null
+          id?: string
+          job_id?: string
+          job_title_snapshot?: string | null
+          notes?: string | null
+          notice_period_weeks?: number | null
+          offer_type?: string
+          overall_risk?: string | null
+          owner_user_id?: string
+          pre_start_candidate_briefed?: boolean
+          pre_start_candidate_called?: boolean
+          pre_start_client_called?: boolean
+          pre_start_placement_ready?: boolean
+          resignation_accepted_date?: string | null
+          resignation_handed_in_date?: string | null
+          resignation_planned_date?: string | null
+          risk_assessed_at?: string | null
+          salary_currency?: string
+          salary_offered?: number | null
+          start_date_confirmed?: string | null
+          start_date_proposed?: string | null
+          start_date_reasons?: string | null
+          start_date_risk?: string | null
+          status?: string
+          updated_at?: string
+          verbal_offer_date?: string | null
+          written_offer_date?: string | null
         }
         Relationships: []
       }

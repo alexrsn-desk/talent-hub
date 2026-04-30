@@ -16,6 +16,8 @@ import { useScreeningNote } from "@/hooks/use-screening-notes";
 import { toast } from "sonner";
 import { InterviewSlotPicker } from "@/components/InterviewSlotPicker";
 import { InterviewDetailsPanel } from "@/components/InterviewDetailsPanel";
+import { OfferManagementPanel } from "@/components/OfferManagementPanel";
+import { useOfferByCandidateJob } from "@/hooks/use-offers";
 import { logActivity } from "@/lib/activity-log";
 import { OfferBackupSignal } from "@/components/OfferBackupSignal";
 
@@ -121,6 +123,8 @@ export function JobPipelineBoard({ job }: { job: Job }) {
 
   // Interview details capture flow — opens after move to First/Second Interview
   const [interviewPanel, setInterviewPanel] = useState<{ cj: CandidateJob; stage: "First Interview" | "Second Interview" } | null>(null);
+  // Offer management flow — opens after move to Offer
+  const [offerPanel, setOfferPanel] = useState<{ cj: CandidateJob } | null>(null);
 
   const linkedCandidateIds = candidateJobs.map((cj) => cj.candidate_id);
   const availableCandidates = allCandidates.filter((c) => !linkedCandidateIds.includes(c.id));
@@ -163,6 +167,12 @@ export function JobPipelineBoard({ job }: { job: Job }) {
             // Small delay so the auto-create trigger has time to insert the interview row
             setTimeout(() => {
               setInterviewPanel({ cj, stage: toStage as "First Interview" | "Second Interview" });
+            }, 400);
+          }
+          if (toStage === "Offer") {
+            // Small delay so the auto-create trigger has time to insert the offer row
+            setTimeout(() => {
+              setOfferPanel({ cj });
             }, 400);
           }
         },
@@ -331,6 +341,7 @@ export function JobPipelineBoard({ job }: { job: Job }) {
                               }
                               performStageMove(cj, cj.stage, "Shortlist");
                             }}
+                            onOpenOffer={() => setOfferPanel({ cj })}
                             formatSalary={formatSalary}
                           />
                         )}
@@ -419,6 +430,17 @@ export function JobPipelineBoard({ job }: { job: Job }) {
           job={job as any}
         />
       )}
+
+      {/* Offer management — opens after move to Offer */}
+      {offerPanel && (
+        <OfferManagementPanel
+          open={!!offerPanel}
+          onOpenChange={(o) => !o && setOfferPanel(null)}
+          candidateJobId={offerPanel.cj.id}
+          candidate={offerPanel.cj.candidates ?? null}
+          job={job as any}
+        />
+      )}
     </div>
   );
 }
@@ -441,6 +463,7 @@ function PipelineCard({
   onOpenProfile,
   onOpenSlotPicker,
   onFastTrack,
+  onOpenOffer,
   formatSalary,
 }: {
   cj: CandidateJob;
@@ -451,6 +474,7 @@ function PipelineCard({
   onOpenProfile: () => void;
   onOpenSlotPicker: () => void;
   onFastTrack: () => void;
+  onOpenOffer?: () => void;
   formatSalary: (n: number | null) => string | null;
 }) {
   const days = daysSince(cj.stage_changed_at ?? cj.created_at);
@@ -463,6 +487,7 @@ function PipelineCard({
   // Auto-open the screening panel when card is in Screening stage
   const [screeningOpen, setScreeningOpen] = useState(isScreening);
   const { data: screeningNote } = useScreeningNote(isScreening || screeningOpen ? cj.id : undefined);
+  const { data: offerForCard } = useOfferByCandidateJob(stage === "Offer" ? cj.id : null);
 
   return (
     <div
@@ -535,6 +560,33 @@ function PipelineCard({
         <Badge variant="outline" className="text-[10px] h-5 px-1.5 border-red-500/40 text-red-400">
           {cj.rejection_reason}
         </Badge>
+      )}
+
+      {/* Offer summary — only on Offer cards */}
+      {stage === "Offer" && offerForCard && (
+        <button
+          onClick={(e) => { e.stopPropagation(); onOpenOffer?.(); }}
+          className="w-full text-left rounded-md border border-border bg-muted/30 px-2 py-1.5 space-y-0.5 hover:border-primary/40 transition-colors"
+        >
+          <div className="flex items-center justify-between gap-1">
+            <span className="text-[10px] font-medium">
+              {offerForCard.salary_offered ? `£${Math.round(offerForCard.salary_offered / 1000)}k` : "Offer"}
+              <span className="text-muted-foreground"> · {daysSince(offerForCard.verbal_offer_date)}d ago</span>
+            </span>
+            {offerForCard.overall_risk && (
+              <Badge variant="outline" className={`text-[9px] h-4 px-1 ${
+                offerForCard.overall_risk === "high" ? "border-red-500/40 text-red-400" :
+                offerForCard.overall_risk === "medium" ? "border-amber-500/40 text-amber-400" :
+                "border-emerald-500/40 text-emerald-400"
+              }`}>
+                {offerForCard.overall_risk}
+              </Badge>
+            )}
+          </div>
+          <p className="text-[10px] text-muted-foreground truncate">
+            {(offerForCard.status || "").replace(/_/g, " ")}
+          </p>
+        </button>
       )}
 
       {/* Days in current stage */}
