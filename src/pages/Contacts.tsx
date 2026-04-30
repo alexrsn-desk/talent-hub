@@ -392,6 +392,21 @@ export function ContactFullView({ contact, client, onBack, onDelete, onContactUp
         entityId={contact.client_id}
         entityName={contact.name}
       />
+      <DoNotContactDialog
+        open={dncOpen}
+        onOpenChange={setDncOpen}
+        entityType="contact"
+        entityId={contact.id}
+        entityName={contact.name}
+        isCurrentlyDnc={isDnc}
+      />
+      <RequestDeletionDialog
+        open={deleteOpen}
+        onOpenChange={setDeleteOpen}
+        entityType="contact"
+        entityId={contact.id}
+        entityName={contact.name}
+      />
     </div>
   );
 }
