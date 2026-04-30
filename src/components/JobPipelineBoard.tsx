@@ -17,6 +17,7 @@ import { toast } from "sonner";
 import { InterviewSlotPicker } from "@/components/InterviewSlotPicker";
 import { InterviewDetailsPanel } from "@/components/InterviewDetailsPanel";
 import { OfferManagementPanel } from "@/components/OfferManagementPanel";
+import { useOfferByCandidateJob } from "@/hooks/use-offers";
 import { logActivity } from "@/lib/activity-log";
 import { OfferBackupSignal } from "@/components/OfferBackupSignal";
 
