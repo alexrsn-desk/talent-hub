@@ -423,6 +423,15 @@ serve(async (req) => {
           channelSuggestion: a.channel_suggestion,
         };
       }).filter(Boolean),
+      quickNotes: (() => {
+        const list = quickNotes || [];
+        const stale = list.filter((n: any) => (nowMs - new Date(n.created_at).getTime()) / dayMs >= 2);
+        return {
+          total: list.length,
+          olderThan48h: stale.length,
+          oldestAgeDays: stale.length ? Math.floor((nowMs - new Date(stale[stale.length - 1].created_at).getTime()) / dayMs) : 0,
+        };
+      })(),
     };
 
     const recruiterContext = profile ? `
