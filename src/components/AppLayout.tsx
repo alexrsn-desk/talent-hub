@@ -2,6 +2,7 @@ import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
 import { CoachPanelProvider, CoachFloatingButton, CoachPanel } from "@/components/CoachPanel";
 import { NotificationBell } from "@/components/NotificationBell";
+import { QuickAddButton } from "@/components/QuickAddButton";
 
 export function AppLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -19,6 +20,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
             </main>
           </div>
         </div>
+        <QuickAddButton />
         <CoachFloatingButton />
         <CoachPanel />
       </SidebarProvider>

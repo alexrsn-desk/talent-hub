@@ -12,6 +12,8 @@ import { TeamView } from "@/components/TeamView";
 import { useIsManager } from "@/hooks/use-team";
 import { NeedsAttentionSection } from "@/components/NeedsAttentionSection";
 import { DecayAlertsSection } from "@/components/DecayAlertsSection";
+import { QuickNotesSection } from "@/components/QuickNotesSection";
+import { NewRecordsSection } from "@/components/NewRecordsSection";
 
 const activityIcon: Record<string, typeof FileText> = {
   Note: FileText,
@@ -90,6 +92,10 @@ export default function DashboardPage() {
         <>
           {/* 1. HEADLINE BRIEF — first thing every time */}
           <DashboardHeadline />
+
+          {/* Quick capture inboxes — review notes and complete records added on the fly */}
+          <QuickNotesSection />
+          <NewRecordsSection />
 
           {/* Jobs needing attention based on placement probability */}
           <NeedsAttentionSection />
