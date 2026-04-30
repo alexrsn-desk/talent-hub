@@ -294,8 +294,17 @@ export type Database = {
           availability: string | null
           created_at: string
           current_employer: string | null
+          dnc_channel: string | null
+          dnc_notes: string | null
+          dnc_reason: string | null
+          dnc_reason_other: string | null
+          dnc_set_at: string | null
+          dnc_set_by: string | null
+          do_not_contact: boolean
           email: string | null
           first_name: string | null
+          gdpr_deleted: boolean
+          gdpr_deleted_at: string | null
           id: string
           incomplete_profile: boolean
           job_title: string | null
@@ -323,8 +332,17 @@ export type Database = {
           availability?: string | null
           created_at?: string
           current_employer?: string | null
+          dnc_channel?: string | null
+          dnc_notes?: string | null
+          dnc_reason?: string | null
+          dnc_reason_other?: string | null
+          dnc_set_at?: string | null
+          dnc_set_by?: string | null
+          do_not_contact?: boolean
           email?: string | null
           first_name?: string | null
+          gdpr_deleted?: boolean
+          gdpr_deleted_at?: string | null
           id?: string
           incomplete_profile?: boolean
           job_title?: string | null
@@ -352,8 +370,17 @@ export type Database = {
           availability?: string | null
           created_at?: string
           current_employer?: string | null
+          dnc_channel?: string | null
+          dnc_notes?: string | null
+          dnc_reason?: string | null
+          dnc_reason_other?: string | null
+          dnc_set_at?: string | null
+          dnc_set_by?: string | null
+          do_not_contact?: boolean
           email?: string | null
           first_name?: string | null
+          gdpr_deleted?: boolean
+          gdpr_deleted_at?: string | null
           id?: string
           incomplete_profile?: boolean
           job_title?: string | null
@@ -552,13 +579,106 @@ export type Database = {
         }
         Relationships: []
       }
+      compliance_audits: {
+        Row: {
+          completed_at: string | null
+          created_at: string
+          id: string
+          next_due_date: string
+          records_archived: number
+          records_deleted: number
+          records_kept: number
+          records_reviewed: number
+          started_at: string
+          user_id: string
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string
+          id?: string
+          next_due_date?: string
+          records_archived?: number
+          records_deleted?: number
+          records_kept?: number
+          records_reviewed?: number
+          started_at?: string
+          user_id: string
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string
+          id?: string
+          next_due_date?: string
+          records_archived?: number
+          records_deleted?: number
+          records_kept?: number
+          records_reviewed?: number
+          started_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      compliance_log: {
+        Row: {
+          action: string
+          channel: string | null
+          created_at: string
+          entity_id: string
+          entity_name_snapshot: string | null
+          entity_type: string
+          id: string
+          notes: string | null
+          owner_user_id: string
+          performed_by: string | null
+          reason: string | null
+          reason_other: string | null
+        }
+        Insert: {
+          action: string
+          channel?: string | null
+          created_at?: string
+          entity_id: string
+          entity_name_snapshot?: string | null
+          entity_type: string
+          id?: string
+          notes?: string | null
+          owner_user_id: string
+          performed_by?: string | null
+          reason?: string | null
+          reason_other?: string | null
+        }
+        Update: {
+          action?: string
+          channel?: string | null
+          created_at?: string
+          entity_id?: string
+          entity_name_snapshot?: string | null
+          entity_type?: string
+          id?: string
+          notes?: string | null
+          owner_user_id?: string
+          performed_by?: string | null
+          reason?: string | null
+          reason_other?: string | null
+        }
+        Relationships: []
+      }
       contacts: {
         Row: {
           client_id: string
           created_at: string
           direct_phone: string | null
+          dnc_channel: string | null
+          dnc_notes: string | null
+          dnc_reason: string | null
+          dnc_reason_other: string | null
+          dnc_set_at: string | null
+          dnc_set_by: string | null
+          do_not_contact: boolean
           email: string | null
           first_name: string | null
+          gdpr_deleted: boolean
+          gdpr_deleted_at: string | null
           id: string
           incomplete_profile: boolean
           job_title: string | null
@@ -566,6 +686,7 @@ export type Database = {
           linkedin_url: string | null
           mobile_phone: string | null
           name: string
+          owner_user_id: string | null
           personal_email: string | null
           phone: string | null
           reengage_date: string | null
@@ -577,8 +698,17 @@ export type Database = {
           client_id: string
           created_at?: string
           direct_phone?: string | null
+          dnc_channel?: string | null
+          dnc_notes?: string | null
+          dnc_reason?: string | null
+          dnc_reason_other?: string | null
+          dnc_set_at?: string | null
+          dnc_set_by?: string | null
+          do_not_contact?: boolean
           email?: string | null
           first_name?: string | null
+          gdpr_deleted?: boolean
+          gdpr_deleted_at?: string | null
           id?: string
           incomplete_profile?: boolean
           job_title?: string | null
@@ -586,6 +716,7 @@ export type Database = {
           linkedin_url?: string | null
           mobile_phone?: string | null
           name: string
+          owner_user_id?: string | null
           personal_email?: string | null
           phone?: string | null
           reengage_date?: string | null
@@ -597,8 +728,17 @@ export type Database = {
           client_id?: string
           created_at?: string
           direct_phone?: string | null
+          dnc_channel?: string | null
+          dnc_notes?: string | null
+          dnc_reason?: string | null
+          dnc_reason_other?: string | null
+          dnc_set_at?: string | null
+          dnc_set_by?: string | null
+          do_not_contact?: boolean
           email?: string | null
           first_name?: string | null
+          gdpr_deleted?: boolean
+          gdpr_deleted_at?: string | null
           id?: string
           incomplete_profile?: boolean
           job_title?: string | null
@@ -606,6 +746,7 @@ export type Database = {
           linkedin_url?: string | null
           mobile_phone?: string | null
           name?: string
+          owner_user_id?: string | null
           personal_email?: string | null
           phone?: string | null
           reengage_date?: string | null

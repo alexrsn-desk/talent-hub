@@ -1,29 +1,42 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { useCandidateJobs, useJobs, useCreateCandidateJob, useDeleteCandidateJob, useUpdateCandidateJob } from "@/hooks/use-data";
+import { useCandidateJobs, useJobs, useCreateCandidateJob, useDeleteCandidateJob, useUpdateCandidateJob, useCandidates } from "@/hooks/use-data";
 import { Plus, X } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 
 const STAGES = ["Applied", "Screening", "Submitted", "Interviewing", "Offered", "Placed", "Rejected"];
 
 export function CandidateJobLinks({ candidateId }: { candidateId: string }) {
   const { data: links = [] } = useCandidateJobs(candidateId);
   const { data: jobs = [] } = useJobs();
+  const { data: candidates = [] } = useCandidates();
   const createLink = useCreateCandidateJob();
   const deleteLink = useDeleteCandidateJob();
   const updateLink = useUpdateCandidateJob();
   const [adding, setAdding] = useState(false);
   const [selectedJobId, setSelectedJobId] = useState("");
+  const [dncConfirmOpen, setDncConfirmOpen] = useState(false);
+
+  const candidate = candidates.find((c) => c.id === candidateId);
+  const isDnc = !!candidate && (candidate.do_not_contact === true || candidate.status === "Do Not Contact");
 
   const linkedJobIds = links.map(l => l.job_id);
   const availableJobs = jobs.filter(j => !linkedJobIds.includes(j.id));
 
-  const handleAdd = async () => {
+  const performAdd = async () => {
     if (!selectedJobId) return;
     await createLink.mutateAsync({ candidate_id: candidateId, job_id: selectedJobId });
     setAdding(false);
     setSelectedJobId("");
+    setDncConfirmOpen(false);
+  };
+
+  const handleAdd = async () => {
+    if (!selectedJobId) return;
+    if (isDnc) { setDncConfirmOpen(true); return; }
+    await performAdd();
   };
 
   return (
@@ -75,6 +88,22 @@ export function CandidateJobLinks({ candidateId }: { candidateId: string }) {
         ))}
         {links.length === 0 && <p className="text-sm text-muted-foreground">No linked jobs</p>}
       </div>
+
+      <AlertDialog open={dncConfirmOpen} onOpenChange={setDncConfirmOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>⚠️ This candidate is marked Do Not Contact</AlertDialogTitle>
+            <AlertDialogDescription>
+              {candidate?.name ?? "This candidate"} is marked Do Not Contact. Are you sure you want to submit them to a client role?
+              Only continue if they have specifically requested this opportunity.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={performAdd}>Submit anyway</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

@@ -23,6 +23,11 @@ import { Label } from "@/components/ui/label";
 import { logActivity } from "@/lib/activity-log";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { DoNotContactBanner } from "@/components/DoNotContactBanner";
+import { DoNotContactDialog } from "@/components/DoNotContactDialog";
+import { RequestDeletionDialog } from "@/components/RequestDeletionDialog";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
+import { ShieldAlert, MoreVertical } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -62,6 +67,8 @@ export function CandidateDetail({ candidate, onUpdate, onDelete }: Props) {
   const [editing, setEditing] = useState(false);
   const [discardOpen, setDiscardOpen] = useState(false);
   const [checkinOpen, setCheckinOpen] = useState(false);
+  const [dncOpen, setDncOpen] = useState(false);
+  const [deleteOpen, setDeleteOpen] = useState(false);
   const updateCandidate = useUpdateCandidate();
 
   const [form, setForm] = useState(() => ({
@@ -190,16 +197,17 @@ export function CandidateDetail({ candidate, onUpdate, onDelete }: Props) {
     if (!form.email) hints.push("No email on this record — worth adding?");
     if (!form.phone) hints.push("No phone number — worth adding?");
   }
-  const isDNC = candidate.status === "Do Not Contact";
+  const isDNC = candidate.status === "Do Not Contact" || !!candidate.do_not_contact;
 
   return (
     <div className="space-y-6">
-      {/* Do Not Contact Banner */}
+      {/* Do Not Contact Banner — permanent, undismissable */}
       {isDNC && (
-        <div className="flex items-center gap-2 rounded-lg border border-red-500/40 bg-red-500/10 px-4 py-3 text-sm text-red-400">
-          <Ban className="h-5 w-5 shrink-0" />
-          <span className="font-medium">⛔ Do Not Contact — this candidate has requested no further contact</span>
-        </div>
+        <DoNotContactBanner
+          reason={candidate.dnc_reason ?? (candidate.status === "Do Not Contact" ? "Status: Do Not Contact" : null)}
+          reasonOther={candidate.dnc_reason_other}
+          setAt={candidate.dnc_set_at}
+        />
       )}
 
       {/* On Hold Re-engage Banner */}
@@ -316,6 +324,26 @@ export function CandidateDetail({ candidate, onUpdate, onDelete }: Props) {
                   <Send className="h-3.5 w-3.5" /> Send Check-in
                 </Button>
               )}
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button size="sm" variant="outline" className="gap-1.5" aria-label="Compliance">
+                    <ShieldAlert className="h-3.5 w-3.5" /> Compliance
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-56">
+                  <DropdownMenuItem onClick={() => setDncOpen(true)}>
+                    {isDNC ? "Remove Do Not Contact" : "Mark as Do Not Contact"}
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem
+                    className="text-destructive focus:text-destructive"
+                    onClick={() => setDeleteOpen(true)}
+                    disabled={!!candidate.gdpr_deleted}
+                  >
+                    Request data deletion (GDPR)
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
               <Button variant="ghost" size="icon" onClick={onDelete}><Trash2 className="h-4 w-4 text-destructive" /></Button>
             </>
           )}
@@ -428,6 +456,21 @@ export function CandidateDetail({ candidate, onUpdate, onDelete }: Props) {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+      <DoNotContactDialog
+        open={dncOpen}
+        onOpenChange={setDncOpen}
+        entityType="candidate"
+        entityId={candidate.id}
+        entityName={candidate.name}
+        isCurrentlyDnc={isDNC}
+      />
+      <RequestDeletionDialog
+        open={deleteOpen}
+        onOpenChange={setDeleteOpen}
+        entityType="candidate"
+        entityId={candidate.id}
+        entityName={candidate.name}
+      />
     </div>
   );
 }

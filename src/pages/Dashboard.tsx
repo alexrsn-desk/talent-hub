@@ -13,6 +13,7 @@ import { useIsManager } from "@/hooks/use-team";
 import { NeedsAttentionSection } from "@/components/NeedsAttentionSection";
 import { DecayAlertsSection } from "@/components/DecayAlertsSection";
 import { QuickNotesSection } from "@/components/QuickNotesSection";
+import { GdprAuditPrompt } from "@/components/GdprAuditPrompt";
 import { NewRecordsSection } from "@/components/NewRecordsSection";
 
 const activityIcon: Record<string, typeof FileText> = {
@@ -102,6 +103,9 @@ export default function DashboardPage() {
 
           {/* Relationship decay alerts — only surfaces when AI finds a genuine reason */}
           <DecayAlertsSection />
+
+          {/* GDPR data audit reminder (every 6 months) */}
+          <GdprAuditPrompt />
 
       {/* 2. AI ACTIONS */}
       <DailyFocus />

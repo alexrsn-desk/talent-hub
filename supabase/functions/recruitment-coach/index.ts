@@ -91,6 +91,11 @@ This surfaces the need to check manually rather than claiming to know what's hap
 Never assume you know why they've gone quiet — just flag it and suggest a manual check.
 Stale records are a revenue risk — dormant relationships mean missed opportunities.
 
+DO NOT CONTACT (GDPR):
+Records marked Do Not Contact and GDPR-deleted records have already been excluded from your data.
+NEVER suggest contacting them, NEVER surface them in shortlists, NEVER include them in AI Actions, NEVER reference them by name.
+If a recruiter explicitly asks about a Do Not Contact person, refuse outreach suggestions and remind them the person has opted out.
+
 PLACEMENT PROBABILITY SCORES:
 Each open job has a placementScore (5-95%) with a band, trend, positives, negatives, and topAction.
 You MUST follow these framing rules whenever you reference a score:
@@ -161,16 +166,16 @@ serve(async (req) => {
       sb.from("candidate_jobs").select("*, candidates(*), jobs(*, clients(*))"),
       sb.from("jobs").select("*, clients(*)"),
       sb.from("clients").select("*"),
-      sb.from("candidates").select("*"),
+      sb.from("candidates").select("*").eq("do_not_contact", false).eq("gdpr_deleted", false),
       sb.from("notes").select("*, candidates(*), clients(*)").order("created_at", { ascending: false }).limit(500),
       sb.from("notes").select("*, candidates(*), clients(*)").not("follow_up_date", "is", null).lt("follow_up_date", today),
       sb.from("notes").select("*, candidates(*), clients(*)").eq("follow_up_date", today),
       sb.from("recruiter_profiles").select("*").limit(1),
       sb.from("call_signals").select("*, notes:note_id(*, candidates(*), clients(*))").eq("status", "unactioned").order("created_at", { ascending: false }).limit(50),
-      sb.from("candidates").select("*").eq("priority_flag", true),
+      sb.from("candidates").select("*").eq("priority_flag", true).eq("do_not_contact", false).eq("gdpr_deleted", false),
       sb.from("job_score_history").select("job_id, score, snapshot_date").order("snapshot_date", { ascending: false }),
       sb.from("decay_alerts").select("*").in("status", ["due", "at_risk", "critical"]).not("reason", "is", null),
-      sb.from("contacts").select("id,name,client_id"),
+      sb.from("contacts").select("id,name,client_id,do_not_contact").eq("do_not_contact", false),
       sb.from("quick_notes").select("id, content, created_at").eq("status", "inbox").order("created_at", { ascending: false }).limit(50),
     ]);
 

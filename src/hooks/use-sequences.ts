@@ -292,6 +292,8 @@ export function useEnrollCandidate() {
       job_id?: string | null;
       start_date?: string;
     }) => {
+      const { assertNotDoNotContact } = await import("@/lib/dnc-guard");
+      await assertNotDoNotContact("candidate", input.candidate_id);
       const startDate = input.start_date ?? new Date().toISOString().slice(0, 10);
 
       // Create enrollment
@@ -354,6 +356,10 @@ export function useEnrollEntity() {
       entity_id: string;
       start_date?: string;
     }) => {
+      if (input.entity_type === "candidate" || input.entity_type === "contact") {
+        const { assertNotDoNotContact } = await import("@/lib/dnc-guard");
+        await assertNotDoNotContact(input.entity_type, input.entity_id);
+      }
       const startDate = input.start_date ?? new Date().toISOString().slice(0, 10);
       const row: any = {
         sequence_id: input.sequence_id,

@@ -27,6 +27,15 @@ export type Candidate = {
   priority_followup_date: string | null;
   reengage_date?: string | null;
   reengage_reason?: string | null;
+  do_not_contact?: boolean | null;
+  dnc_reason?: string | null;
+  dnc_reason_other?: string | null;
+  dnc_channel?: string | null;
+  dnc_notes?: string | null;
+  dnc_set_at?: string | null;
+  dnc_set_by?: string | null;
+  gdpr_deleted?: boolean | null;
+  gdpr_deleted_at?: string | null;
   created_at: string;
   updated_at: string;
 };

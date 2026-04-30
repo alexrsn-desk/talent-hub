@@ -48,7 +48,7 @@ function buildGdprFooter(recruiterName: string) {
 export function SendCheckinPanel({ open, onOpenChange, candidates }: Props) {
   const isMulti = candidates.length > 1;
   const eligible = useMemo(
-    () => candidates.filter((c) => c.email && c.status !== "Do Not Contact").slice(0, MAX_BULK),
+    () => candidates.filter((c) => c.email && c.status !== "Do Not Contact" && !(c as any).do_not_contact).slice(0, MAX_BULK),
     [candidates]
   );
   const skipped = candidates.length - eligible.length;
