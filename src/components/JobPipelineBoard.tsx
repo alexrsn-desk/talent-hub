@@ -407,6 +407,18 @@ export function JobPipelineBoard({ job }: { job: Job }) {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Interview details capture — opens after move to First/Second Interview */}
+      {interviewPanel && (
+        <InterviewDetailsPanel
+          open={!!interviewPanel}
+          onOpenChange={(o) => !o && setInterviewPanel(null)}
+          candidateJobId={interviewPanel.cj.id}
+          stage={interviewPanel.stage}
+          candidate={interviewPanel.cj.candidates ?? null}
+          job={job as any}
+        />
+      )}
     </div>
   );
 }
