@@ -159,6 +159,12 @@ export function JobPipelineBoard({ job }: { job: Job }) {
             });
             toast.success("Fast-tracked to Shortlist");
           }
+          if (toStage === "First Interview" || toStage === "Second Interview") {
+            // Small delay so the auto-create trigger has time to insert the interview row
+            setTimeout(() => {
+              setInterviewPanel({ cj, stage: toStage as "First Interview" | "Second Interview" });
+            }, 400);
+          }
         },
       },
     );
