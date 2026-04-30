@@ -15,6 +15,7 @@ import { DecayAlertsSection } from "@/components/DecayAlertsSection";
 import { QuickNotesSection } from "@/components/QuickNotesSection";
 import { GdprAuditPrompt } from "@/components/GdprAuditPrompt";
 import { NewRecordsSection } from "@/components/NewRecordsSection";
+import { PlacementsDashboardSection } from "@/components/PlacementsDashboardSection";
 
 const activityIcon: Record<string, typeof FileText> = {
   Note: FileText,

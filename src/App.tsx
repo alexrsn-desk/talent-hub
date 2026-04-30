@@ -16,6 +16,7 @@ import Candidates from "./pages/Candidates";
 import Clients from "./pages/Clients";
 import Contacts from "./pages/Contacts";
 import Jobs from "./pages/Jobs";
+import Placements from "./pages/Placements";
 import BDPipeline from "./pages/BDPipeline";
 import Coach from "./pages/Coach";
 import Settings from "./pages/Settings";
@@ -146,6 +147,7 @@ function AppRoutes() {
           <Route path="/clients" element={<Clients />} />
           <Route path="/contacts" element={<Contacts />} />
           <Route path="/jobs" element={<Jobs />} />
+          <Route path="/placements" element={<Placements />} />
           <Route path="/bd-pipeline" element={<BDPipeline />} />
           <Route path="/coach" element={<Coach />} />
           <Route path="/weekly" element={<WeeklyIntel />} />
