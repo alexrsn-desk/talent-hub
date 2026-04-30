@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { Plus, NotebookPen, X, Search, ArrowLeft } from "lucide-react";
+import { Plus, NotebookPen, Pencil, X, Search, ArrowLeft } from "lucide-react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -39,18 +39,32 @@ export function QuickAddButton() {
 
   return (
     <>
-      {/* FAB */}
-      <button
-        onClick={() => setMode("menu")}
-        aria-label="Quick Add"
-        title="Quick Add"
-        className="fixed bottom-5 right-20 z-50 flex items-center gap-2 h-12 pl-3 pr-4 rounded-full bg-card text-foreground border border-border shadow-lg hover:shadow-xl hover:bg-accent transition-all hover:scale-105"
+      {/* Split pill FAB */}
+      <div
+        role="group"
+        aria-label="Quick capture"
+        className="fixed z-50 right-4 bottom-[calc(env(safe-area-inset-bottom,0px)+1rem)] sm:bottom-5 flex items-stretch h-9 sm:h-9 w-[160px] sm:w-[160px] rounded-full bg-primary text-primary-foreground shadow-md ring-1 ring-black/10 overflow-hidden"
       >
-        <span className="flex items-center justify-center h-8 w-8 rounded-full bg-primary text-primary-foreground">
-          <Plus className="h-5 w-5" />
-        </span>
-        <span className="text-sm font-medium hidden sm:inline">Quick Add</span>
-      </button>
+        <button
+          onClick={() => setMode("quick_note")}
+          aria-label="Quick Note"
+          title="Quick Note"
+          className="flex-1 flex items-center justify-center gap-1.5 text-xs font-medium hover:bg-white/10 active:bg-white/15 transition-colors"
+        >
+          <Pencil className="h-3.5 w-3.5" />
+          <span>Note</span>
+        </button>
+        <span aria-hidden className="w-px bg-white/25 my-1.5" />
+        <button
+          onClick={() => setMode("record_picker")}
+          aria-label="Quick Add"
+          title="Quick Add"
+          className="flex-1 flex items-center justify-center gap-1.5 text-xs font-medium hover:bg-white/10 active:bg-white/15 transition-colors"
+        >
+          <Plus className="h-3.5 w-3.5" />
+          <span>Add</span>
+        </button>
+      </div>
 
       <Sheet open={open} onOpenChange={(v) => !v && setMode(null)}>
         <SheetContent side="right" className="w-full sm:max-w-md overflow-y-auto p-0">
