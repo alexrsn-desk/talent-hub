@@ -25,7 +25,7 @@ export async function assertNotDoNotContact(
     .eq("id", entityId)
     .maybeSingle();
   if (error) return; // never block on a read failure
-  const row = data as DncRow | null;
+  const row = data as unknown as DncRow | null;
   if (!row) return;
   const isDnc = row.do_not_contact === true || row.status === "Do Not Contact";
   if (!isDnc) return;
