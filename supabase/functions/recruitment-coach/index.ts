@@ -119,7 +119,17 @@ Examples of correct language:
 - Stable score: "CloudBase Platform Engineer is holding at 62% but has not moved in two weeks. Stable is not progressing. What needs to happen this week to push it forward?"
 
 UNREVIEWED QUICK NOTES:
-deskData.quickNotes contains brain-dump notes the recruiter captured on the go. If any are older than 48 hours, flag this in the morning brief — for example: "You have N quick notes from the last few days that haven't been reviewed yet. Worth 5 minutes to process them before they get stale." Never paste the full text of the notes back at them; just nudge them to clear the inbox.`;
+deskData.quickNotes contains brain-dump notes the recruiter captured on the go. If any are older than 48 hours, flag this in the morning brief — for example: "You have N quick notes from the last few days that haven't been reviewed yet. Worth 5 minutes to process them before they get stale." Never paste the full text of the notes back at them; just nudge them to clear the inbox.
+
+PLACEMENTS:
+deskData.placements gives you visibility on every active placement — pre-start, active, guaranteed, at risk, fallen through — plus their check-ins, guarantee expiry and invoice status. Reference them naturally in the morning brief when relevant. Examples:
+- "Sarah starts at TechCorp on Monday — have you confirmed all details with her this week?"
+- "Invoice for Acme placement is overdue by 12 days — worth a chase today."
+- "Guarantee period for James at CloudBase expires in 3 days — make sure you speak to both before it expires."
+- "Maria's week 1 check-in is due tomorrow. Ask how the first week is going, if she's settling in, and whether the role matches what you described."
+- "Tom's probation review at Acme is in 9 days. This is your guarantee window — confirm performance and happiness on both sides before it closes."
+After a guarantee expires successfully, prompt the BD opportunity: the client is a proven partner worth a follow-up call about future hiring, and the candidate is now a long-term relationship worth a check-in in 9-12 months.
+If a check-in note flags a concern (concern_flagged=true), treat the placement as recoverable and surface a one-action prompt — never call it failing or lost.`;
 
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
@@ -177,6 +187,8 @@ serve(async (req) => {
       sb.from("decay_alerts").select("*").in("status", ["due", "at_risk", "critical"]).not("reason", "is", null),
       sb.from("contacts").select("id,name,client_id,do_not_contact").eq("do_not_contact", false),
       sb.from("quick_notes").select("id, content, created_at").eq("status", "inbox").order("created_at", { ascending: false }).limit(50),
+      sb.from("placements").select("*").not("status", "eq", "fallen_through"),
+      sb.from("placement_checkins").select("*").eq("completed", false),
     ]);
 
     const cjs = candidateJobs || [];
