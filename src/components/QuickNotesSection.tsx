@@ -1,8 +1,7 @@
 import { useState } from "react";
-import { Inbox, Check, Trash2, ListPlus, Link as LinkIcon, Briefcase, ChevronDown, ChevronRight, Search, X } from "lucide-react";
+import { Inbox, Check, Trash2, ListPlus, Link as LinkIcon, ChevronDown, ChevronRight, Search, X } from "lucide-react";
 import { useQuickNotes, useUpdateQuickNote, useDeleteQuickNote, type QuickNote } from "@/hooks/use-quick-notes";
 import { useCandidates, useClients, useContacts, useCreateNote } from "@/hooks/use-data";
-import { useTodos } from "@/hooks/use-todos";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";

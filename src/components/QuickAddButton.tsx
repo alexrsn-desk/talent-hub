@@ -1,5 +1,5 @@
-import { useState, useMemo, useEffect } from "react";
-import { Plus, NotebookPen, Sparkles, X, Search, ArrowLeft } from "lucide-react";
+import { useState, useMemo } from "react";
+import { Plus, NotebookPen, X, Search, ArrowLeft } from "lucide-react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
