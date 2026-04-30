@@ -119,7 +119,17 @@ Examples of correct language:
 - Stable score: "CloudBase Platform Engineer is holding at 62% but has not moved in two weeks. Stable is not progressing. What needs to happen this week to push it forward?"
 
 UNREVIEWED QUICK NOTES:
-deskData.quickNotes contains brain-dump notes the recruiter captured on the go. If any are older than 48 hours, flag this in the morning brief — for example: "You have N quick notes from the last few days that haven't been reviewed yet. Worth 5 minutes to process them before they get stale." Never paste the full text of the notes back at them; just nudge them to clear the inbox.`;
+deskData.quickNotes contains brain-dump notes the recruiter captured on the go. If any are older than 48 hours, flag this in the morning brief — for example: "You have N quick notes from the last few days that haven't been reviewed yet. Worth 5 minutes to process them before they get stale." Never paste the full text of the notes back at them; just nudge them to clear the inbox.
+
+PLACEMENTS:
+deskData.placements gives you visibility on every active placement — pre-start, active, guaranteed, at risk, fallen through — plus their check-ins, guarantee expiry and invoice status. Reference them naturally in the morning brief when relevant. Examples:
+- "Sarah starts at TechCorp on Monday — have you confirmed all details with her this week?"
+- "Invoice for Acme placement is overdue by 12 days — worth a chase today."
+- "Guarantee period for James at CloudBase expires in 3 days — make sure you speak to both before it expires."
+- "Maria's week 1 check-in is due tomorrow. Ask how the first week is going, if she's settling in, and whether the role matches what you described."
+- "Tom's probation review at Acme is in 9 days. This is your guarantee window — confirm performance and happiness on both sides before it closes."
+After a guarantee expires successfully, prompt the BD opportunity: the client is a proven partner worth a follow-up call about future hiring, and the candidate is now a long-term relationship worth a check-in in 9-12 months.
+If a check-in note flags a concern (concern_flagged=true), treat the placement as recoverable and surface a one-action prompt — never call it failing or lost.`;
 
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
@@ -162,6 +172,8 @@ serve(async (req) => {
       { data: decayAlerts },
       { data: contactsList },
       { data: quickNotes },
+      { data: placementsData },
+      { data: openCheckins },
     ] = await Promise.all([
       sb.from("candidate_jobs").select("*, candidates(*), jobs(*, clients(*))"),
       sb.from("jobs").select("*, clients(*)"),
@@ -177,6 +189,8 @@ serve(async (req) => {
       sb.from("decay_alerts").select("*").in("status", ["due", "at_risk", "critical"]).not("reason", "is", null),
       sb.from("contacts").select("id,name,client_id,do_not_contact").eq("do_not_contact", false),
       sb.from("quick_notes").select("id, content, created_at").eq("status", "inbox").order("created_at", { ascending: false }).limit(50),
+      sb.from("placements").select("*").not("status", "eq", "fallen_through"),
+      sb.from("placement_checkins").select("*").eq("completed", false),
     ]);
 
     const cjs = candidateJobs || [];
@@ -435,6 +449,45 @@ serve(async (req) => {
           total: list.length,
           olderThan48h: stale.length,
           oldestAgeDays: stale.length ? Math.floor((nowMs - new Date(stale[stale.length - 1].created_at).getTime()) / dayMs) : 0,
+        };
+      })(),
+      placements: (() => {
+        const today = new Date();
+        const in7 = new Date(today.getTime() + 7 * dayMs);
+        const in14 = new Date(today.getTime() + 14 * dayMs);
+        const list = placementsData || [];
+        const checkins = openCheckins || [];
+        const checkinsByPlacement: Record<string, any[]> = {};
+        for (const c of checkins) {
+          (checkinsByPlacement[c.placement_id] = checkinsByPlacement[c.placement_id] || []).push(c);
+        }
+        return {
+          total: list.length,
+          startingThisWeek: list.filter((p: any) => p.start_date && new Date(p.start_date) >= today && new Date(p.start_date) <= in7).length,
+          guaranteeExpiringIn14: list.filter((p: any) => p.guarantee_expiry_date && new Date(p.guarantee_expiry_date) >= today && new Date(p.guarantee_expiry_date) <= in14).length,
+          overdueInvoices: list.filter((p: any) => p.invoice_raised && !p.invoice_paid && p.invoice_due_date && new Date(p.invoice_due_date) < today).length,
+          atRisk: list.filter((p: any) => p.status === "at_risk").length,
+          records: list.map((p: any) => ({
+            candidate: p.candidate_name_snapshot,
+            client: p.client_name_snapshot,
+            jobTitle: p.job_title_snapshot,
+            startDate: p.start_date,
+            status: p.status,
+            guaranteeExpiry: p.guarantee_expiry_date,
+            invoiceDate: p.invoice_date,
+            invoiceDueDate: p.invoice_due_date,
+            invoiceRaised: p.invoice_raised,
+            invoicePaid: p.invoice_paid,
+            invoiceOverdueDays: p.invoice_raised && !p.invoice_paid && p.invoice_due_date
+              ? Math.max(0, Math.floor((nowMs - new Date(p.invoice_due_date).getTime()) / dayMs)) : 0,
+            feeAmount: p.fee_amount,
+            openCheckins: (checkinsByPlacement[p.id] || []).map((c: any) => ({
+              type: c.checkin_type,
+              dueDate: c.due_date,
+              overdueDays: Math.max(0, Math.floor((nowMs - new Date(c.due_date).getTime()) / dayMs)),
+              concernFlagged: c.concern_flagged,
+            })),
+          })),
         };
       })(),
     };
