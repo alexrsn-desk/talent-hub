@@ -15,6 +15,7 @@ import { ScreeningNotesPanel } from "@/components/ScreeningNotesPanel";
 import { useScreeningNote } from "@/hooks/use-screening-notes";
 import { toast } from "sonner";
 import { InterviewSlotPicker } from "@/components/InterviewSlotPicker";
+import { InterviewDetailsPanel } from "@/components/InterviewDetailsPanel";
 import { logActivity } from "@/lib/activity-log";
 import { OfferBackupSignal } from "@/components/OfferBackupSignal";
 
@@ -118,6 +119,9 @@ export function JobPipelineBoard({ job }: { job: Job }) {
   const [rejectingCJ, setRejectingCJ] = useState<{ cj: CandidateJob; fromStage: string } | null>(null);
   const [rejectionReason, setRejectionReason] = useState<string>(REJECTION_REASONS[0]);
 
+  // Interview details capture flow — opens after move to First/Second Interview
+  const [interviewPanel, setInterviewPanel] = useState<{ cj: CandidateJob; stage: "First Interview" | "Second Interview" } | null>(null);
+
   const linkedCandidateIds = candidateJobs.map((cj) => cj.candidate_id);
   const availableCandidates = allCandidates.filter((c) => !linkedCandidateIds.includes(c.id));
 
@@ -154,6 +158,12 @@ export function JobPipelineBoard({ job }: { job: Job }) {
               },
             });
             toast.success("Fast-tracked to Shortlist");
+          }
+          if (toStage === "First Interview" || toStage === "Second Interview") {
+            // Small delay so the auto-create trigger has time to insert the interview row
+            setTimeout(() => {
+              setInterviewPanel({ cj, stage: toStage as "First Interview" | "Second Interview" });
+            }, 400);
           }
         },
       },
@@ -397,6 +407,18 @@ export function JobPipelineBoard({ job }: { job: Job }) {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Interview details capture — opens after move to First/Second Interview */}
+      {interviewPanel && (
+        <InterviewDetailsPanel
+          open={!!interviewPanel}
+          onOpenChange={(o) => !o && setInterviewPanel(null)}
+          candidateJobId={interviewPanel.cj.id}
+          stage={interviewPanel.stage}
+          candidate={interviewPanel.cj.candidates ?? null}
+          job={job as any}
+        />
+      )}
     </div>
   );
 }

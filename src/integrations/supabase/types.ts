@@ -902,6 +902,84 @@ export type Database = {
         }
         Relationships: []
       }
+      interview_feedback: {
+        Row: {
+          counter_offer_risk: string | null
+          created_at: string
+          how_it_went: string | null
+          id: string
+          interview_id: string
+          key_points: string | null
+          next_steps: string | null
+          notes: string | null
+          owner_user_id: string
+          source: string
+          still_interested: string | null
+        }
+        Insert: {
+          counter_offer_risk?: string | null
+          created_at?: string
+          how_it_went?: string | null
+          id?: string
+          interview_id: string
+          key_points?: string | null
+          next_steps?: string | null
+          notes?: string | null
+          owner_user_id: string
+          source?: string
+          still_interested?: string | null
+        }
+        Update: {
+          counter_offer_risk?: string | null
+          created_at?: string
+          how_it_went?: string | null
+          id?: string
+          interview_id?: string
+          key_points?: string | null
+          next_steps?: string | null
+          notes?: string | null
+          owner_user_id?: string
+          source?: string
+          still_interested?: string | null
+        }
+        Relationships: []
+      }
+      interview_settings: {
+        Row: {
+          auto_send_confirmation: boolean
+          auto_send_reminder: boolean
+          created_at: string
+          day_before_reminder_time: string
+          id: string
+          morning_checkin_enabled: boolean
+          post_interview_delay_hours: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          auto_send_confirmation?: boolean
+          auto_send_reminder?: boolean
+          created_at?: string
+          day_before_reminder_time?: string
+          id?: string
+          morning_checkin_enabled?: boolean
+          post_interview_delay_hours?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          auto_send_confirmation?: boolean
+          auto_send_reminder?: boolean
+          created_at?: string
+          day_before_reminder_time?: string
+          id?: string
+          morning_checkin_enabled?: boolean
+          post_interview_delay_hours?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       interview_slots: {
         Row: {
           candidate_job_id: string
@@ -939,6 +1017,93 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      interviews: {
+        Row: {
+          candidate_feedback_logged_at: string | null
+          candidate_id: string
+          candidate_job_id: string
+          client_chase_sent_at: string | null
+          client_feedback_logged_at: string | null
+          confirmation_sent_at: string | null
+          created_at: string
+          day_before_reminder_sent_at: string | null
+          details_captured_at: string | null
+          duration_mins: number | null
+          feedback_chase_snoozed_until: string | null
+          format: string | null
+          id: string
+          interview_type: string | null
+          interviewers: string | null
+          job_id: string
+          location: string | null
+          morning_checkin_sent_at: string | null
+          outcome: string | null
+          owner_user_id: string
+          prep_notes: string | null
+          prep_sent_at: string | null
+          recruiter_advice: string | null
+          scheduled_at: string | null
+          stage: string
+          updated_at: string
+        }
+        Insert: {
+          candidate_feedback_logged_at?: string | null
+          candidate_id: string
+          candidate_job_id: string
+          client_chase_sent_at?: string | null
+          client_feedback_logged_at?: string | null
+          confirmation_sent_at?: string | null
+          created_at?: string
+          day_before_reminder_sent_at?: string | null
+          details_captured_at?: string | null
+          duration_mins?: number | null
+          feedback_chase_snoozed_until?: string | null
+          format?: string | null
+          id?: string
+          interview_type?: string | null
+          interviewers?: string | null
+          job_id: string
+          location?: string | null
+          morning_checkin_sent_at?: string | null
+          outcome?: string | null
+          owner_user_id: string
+          prep_notes?: string | null
+          prep_sent_at?: string | null
+          recruiter_advice?: string | null
+          scheduled_at?: string | null
+          stage?: string
+          updated_at?: string
+        }
+        Update: {
+          candidate_feedback_logged_at?: string | null
+          candidate_id?: string
+          candidate_job_id?: string
+          client_chase_sent_at?: string | null
+          client_feedback_logged_at?: string | null
+          confirmation_sent_at?: string | null
+          created_at?: string
+          day_before_reminder_sent_at?: string | null
+          details_captured_at?: string | null
+          duration_mins?: number | null
+          feedback_chase_snoozed_until?: string | null
+          format?: string | null
+          id?: string
+          interview_type?: string | null
+          interviewers?: string | null
+          job_id?: string
+          location?: string | null
+          morning_checkin_sent_at?: string | null
+          outcome?: string | null
+          owner_user_id?: string
+          prep_notes?: string | null
+          prep_sent_at?: string | null
+          recruiter_advice?: string | null
+          scheduled_at?: string | null
+          stage?: string
+          updated_at?: string
+        }
+        Relationships: []
       }
       job_score_history: {
         Row: {
