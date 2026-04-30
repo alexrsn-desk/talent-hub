@@ -19,6 +19,7 @@ import { SignalConfigurationSection } from "@/components/SignalConfiguration";
 import { TeamSection } from "@/components/TeamSection";
 import { JoinTeamButton } from "@/components/JoinTeamButton";
 import { DecaySettingsSection } from "@/components/DecaySettingsSection";
+import { ComplianceSection } from "@/components/ComplianceSection";
 
 const NICHES = [
   "Tech/Digital", "Sales/Commercial", "Finance", "Legal",
@@ -350,6 +351,9 @@ export default function SettingsPage() {
 
       {/* Relationship decay alerts */}
       <DecaySettingsSection />
+
+      {/* GDPR & Do Not Contact */}
+      <ComplianceSection />
 
       {/* Signal Performance */}
       <SignalPerformanceSection />
