@@ -172,6 +172,8 @@ serve(async (req) => {
       { data: decayAlerts },
       { data: contactsList },
       { data: quickNotes },
+      { data: placementsData },
+      { data: openCheckins },
     ] = await Promise.all([
       sb.from("candidate_jobs").select("*, candidates(*), jobs(*, clients(*))"),
       sb.from("jobs").select("*, clients(*)"),
@@ -444,6 +446,50 @@ serve(async (req) => {
         const list = quickNotes || [];
         const stale = list.filter((n: any) => (nowMs - new Date(n.created_at).getTime()) / dayMs >= 2);
         return {
+          total: list.length,
+          olderThan48h: stale.length,
+          oldestAgeDays: stale.length ? Math.floor((nowMs - new Date(stale[stale.length - 1].created_at).getTime()) / dayMs) : 0,
+        };
+      })(),
+      placements: (() => {
+        const today = new Date();
+        const in7 = new Date(today.getTime() + 7 * dayMs);
+        const in14 = new Date(today.getTime() + 14 * dayMs);
+        const list = placementsData || [];
+        const checkins = openCheckins || [];
+        const checkinsByPlacement: Record<string, any[]> = {};
+        for (const c of checkins) {
+          (checkinsByPlacement[c.placement_id] = checkinsByPlacement[c.placement_id] || []).push(c);
+        }
+        return {
+          total: list.length,
+          startingThisWeek: list.filter((p: any) => p.start_date && new Date(p.start_date) >= today && new Date(p.start_date) <= in7).length,
+          guaranteeExpiringIn14: list.filter((p: any) => p.guarantee_expiry_date && new Date(p.guarantee_expiry_date) >= today && new Date(p.guarantee_expiry_date) <= in14).length,
+          overdueInvoices: list.filter((p: any) => p.invoice_raised && !p.invoice_paid && p.invoice_due_date && new Date(p.invoice_due_date) < today).length,
+          atRisk: list.filter((p: any) => p.status === "at_risk").length,
+          records: list.map((p: any) => ({
+            candidate: p.candidate_name_snapshot,
+            client: p.client_name_snapshot,
+            jobTitle: p.job_title_snapshot,
+            startDate: p.start_date,
+            status: p.status,
+            guaranteeExpiry: p.guarantee_expiry_date,
+            invoiceDate: p.invoice_date,
+            invoiceDueDate: p.invoice_due_date,
+            invoiceRaised: p.invoice_raised,
+            invoicePaid: p.invoice_paid,
+            invoiceOverdueDays: p.invoice_raised && !p.invoice_paid && p.invoice_due_date
+              ? Math.max(0, Math.floor((nowMs - new Date(p.invoice_due_date).getTime()) / dayMs)) : 0,
+            feeAmount: p.fee_amount,
+            openCheckins: (checkinsByPlacement[p.id] || []).map((c: any) => ({
+              type: c.checkin_type,
+              dueDate: c.due_date,
+              overdueDays: Math.max(0, Math.floor((nowMs - new Date(c.due_date).getTime()) / dayMs)),
+              concernFlagged: c.concern_flagged,
+            })),
+          })),
+        };
+      })(),
           total: list.length,
           olderThan48h: stale.length,
           oldestAgeDays: stale.length ? Math.floor((nowMs - new Date(stale[stale.length - 1].created_at).getTime()) / dayMs) : 0,
