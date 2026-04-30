@@ -340,6 +340,7 @@ export function JobPipelineBoard({ job }: { job: Job }) {
                               }
                               performStageMove(cj, cj.stage, "Shortlist");
                             }}
+                            onOpenOffer={() => setOfferPanel({ cj })}
                             formatSalary={formatSalary}
                           />
                         )}
