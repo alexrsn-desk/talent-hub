@@ -562,6 +562,33 @@ function PipelineCard({
         </Badge>
       )}
 
+      {/* Offer summary — only on Offer cards */}
+      {stage === "Offer" && offerForCard && (
+        <button
+          onClick={(e) => { e.stopPropagation(); onOpenOffer?.(); }}
+          className="w-full text-left rounded-md border border-border bg-muted/30 px-2 py-1.5 space-y-0.5 hover:border-primary/40 transition-colors"
+        >
+          <div className="flex items-center justify-between gap-1">
+            <span className="text-[10px] font-medium">
+              {offerForCard.salary_offered ? `£${Math.round(offerForCard.salary_offered / 1000)}k` : "Offer"}
+              <span className="text-muted-foreground"> · {daysSince(offerForCard.verbal_offer_date)}d ago</span>
+            </span>
+            {offerForCard.overall_risk && (
+              <Badge variant="outline" className={`text-[9px] h-4 px-1 ${
+                offerForCard.overall_risk === "high" ? "border-red-500/40 text-red-400" :
+                offerForCard.overall_risk === "medium" ? "border-amber-500/40 text-amber-400" :
+                "border-emerald-500/40 text-emerald-400"
+              }`}>
+                {offerForCard.overall_risk}
+              </Badge>
+            )}
+          </div>
+          <p className="text-[10px] text-muted-foreground truncate">
+            {(offerForCard.status || "").replace(/_/g, " ")}
+          </p>
+        </button>
+      )}
+
       {/* Days in current stage */}
       <div className="flex items-center justify-between gap-2 pt-0.5">
         <span
