@@ -490,11 +490,6 @@ serve(async (req) => {
           })),
         };
       })(),
-          total: list.length,
-          olderThan48h: stale.length,
-          oldestAgeDays: stale.length ? Math.floor((nowMs - new Date(stale[stale.length - 1].created_at).getTime()) / dayMs) : 0,
-        };
-      })(),
     };
 
     const recruiterContext = profile ? `
