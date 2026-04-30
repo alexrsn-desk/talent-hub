@@ -191,6 +191,7 @@ serve(async (req) => {
       sb.from("quick_notes").select("id, content, created_at").eq("status", "inbox").order("created_at", { ascending: false }).limit(50),
       sb.from("placements").select("*").not("status", "eq", "fallen_through"),
       sb.from("placement_checkins").select("*").eq("completed", false),
+      sb.from("offers").select("*").not("status", "in", "(placement_complete,withdrawn,counter_offer_lost)"),
     ]);
 
     const cjs = candidateJobs || [];
