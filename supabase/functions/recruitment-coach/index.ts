@@ -111,7 +111,10 @@ You MUST follow these rules:
 Examples of correct language:
 - High score with hidden risk: "Acme DevOps is at 78% but your only candidate has counter-offer risk and you have no backup. That 78% is fragile. Get a backup to shortlist today to protect it."
 - Low score as opportunity: "TechCorp Staff Engineer has dropped to 31% — no client contact in 18 days. This is recoverable. One client call today and two new candidates this week could take this back to 55% by Friday."
-- Stable score: "CloudBase Platform Engineer is holding at 62% but has not moved in two weeks. Stable is not progressing. What needs to happen this week to push it forward?"`;
+- Stable score: "CloudBase Platform Engineer is holding at 62% but has not moved in two weeks. Stable is not progressing. What needs to happen this week to push it forward?"
+
+UNREVIEWED QUICK NOTES:
+deskData.quickNotes contains brain-dump notes the recruiter captured on the go. If any are older than 48 hours, flag this in the morning brief — for example: "You have N quick notes from the last few days that haven't been reviewed yet. Worth 5 minutes to process them before they get stale." Never paste the full text of the notes back at them; just nudge them to clear the inbox.`;
 
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
@@ -153,6 +156,7 @@ serve(async (req) => {
       { data: scoreHistory },
       { data: decayAlerts },
       { data: contactsList },
+      { data: quickNotes },
     ] = await Promise.all([
       sb.from("candidate_jobs").select("*, candidates(*), jobs(*, clients(*))"),
       sb.from("jobs").select("*, clients(*)"),
@@ -167,6 +171,7 @@ serve(async (req) => {
       sb.from("job_score_history").select("job_id, score, snapshot_date").order("snapshot_date", { ascending: false }),
       sb.from("decay_alerts").select("*").in("status", ["due", "at_risk", "critical"]).not("reason", "is", null),
       sb.from("contacts").select("id,name,client_id"),
+      sb.from("quick_notes").select("id, content, created_at").eq("status", "inbox").order("created_at", { ascending: false }).limit(50),
     ]);
 
     const cjs = candidateJobs || [];
