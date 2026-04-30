@@ -462,6 +462,7 @@ function PipelineCard({
   onOpenProfile,
   onOpenSlotPicker,
   onFastTrack,
+  onOpenOffer,
   formatSalary,
 }: {
   cj: CandidateJob;
@@ -472,6 +473,7 @@ function PipelineCard({
   onOpenProfile: () => void;
   onOpenSlotPicker: () => void;
   onFastTrack: () => void;
+  onOpenOffer?: () => void;
   formatSalary: (n: number | null) => string | null;
 }) {
   const days = daysSince(cj.stage_changed_at ?? cj.created_at);
@@ -484,6 +486,7 @@ function PipelineCard({
   // Auto-open the screening panel when card is in Screening stage
   const [screeningOpen, setScreeningOpen] = useState(isScreening);
   const { data: screeningNote } = useScreeningNote(isScreening || screeningOpen ? cj.id : undefined);
+  const { data: offerForCard } = useOfferByCandidateJob(stage === "Offer" ? cj.id : null);
 
   return (
     <div
