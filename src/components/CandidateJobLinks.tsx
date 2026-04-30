@@ -88,6 +88,22 @@ export function CandidateJobLinks({ candidateId }: { candidateId: string }) {
         ))}
         {links.length === 0 && <p className="text-sm text-muted-foreground">No linked jobs</p>}
       </div>
+
+      <AlertDialog open={dncConfirmOpen} onOpenChange={setDncConfirmOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>⚠️ This candidate is marked Do Not Contact</AlertDialogTitle>
+            <AlertDialogDescription>
+              {candidate?.name ?? "This candidate"} is marked Do Not Contact. Are you sure you want to submit them to a client role?
+              Only continue if they have specifically requested this opportunity.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={performAdd}>Submit anyway</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
