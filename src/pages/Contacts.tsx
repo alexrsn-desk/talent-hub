@@ -22,6 +22,11 @@ import { CalendarClock } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { EntityDecayAlert } from "@/components/EntityDecayAlert";
+import { DoNotContactBanner } from "@/components/DoNotContactBanner";
+import { DoNotContactDialog } from "@/components/DoNotContactDialog";
+import { RequestDeletionDialog } from "@/components/RequestDeletionDialog";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { ShieldAlert } from "lucide-react";
 
 const CONTACT_STATUSES = ["Active", "Warm", "Cold", "Left Company"] as const;
 
