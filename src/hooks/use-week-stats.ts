@@ -10,6 +10,8 @@ export type WeekStats = {
   interviews: number;
   atOffer: number;
   placements: number;
+  /** Live CVs out — all candidates currently at Submitted or Client Review (all time, all active jobs) */
+  liveCvsOut: number;
 };
 
 /** Returns the Monday (00:00) of the current week as a Date */
