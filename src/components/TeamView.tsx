@@ -6,6 +6,7 @@ import { useTeamMembers } from "@/hooks/use-team";
 import { ChevronDown, ChevronRight, AlertTriangle, Briefcase, Users, CheckSquare, Loader2, Target } from "lucide-react";
 import { usePlacementScores } from "@/hooks/use-placement-scores";
 import { useJobs } from "@/hooks/use-data";
+import { WeekStatsBar } from "@/components/WeekStatsBar";
 
 type MemberStats = {
   member_user_id: string;
@@ -247,6 +248,7 @@ function ConsultantCard({ stats }: { stats: MemberStats }) {
 
       {open && (
         <div className="border-t border-border p-3 space-y-3">
+          <WeekStatsBar ownerUserId={stats.member_user_id} compact />
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-sm">
             <Stat label="Open jobs" value={stats.openJobs} />
             <Stat label="Active candidates" value={stats.candidates} />

@@ -26,6 +26,16 @@ serve(async (req) => {
     const fourteenDaysAgo = new Date(now.getTime() - 14 * 86400000).toISOString().split("T")[0];
     const sevenDaysFromNow = new Date(now.getTime() + 7 * 86400000).toISOString().split("T")[0];
 
+    // Compute current week (Mon-Sun) for the "this week" stats bar
+    const weekStart = new Date(now);
+    weekStart.setHours(0, 0, 0, 0);
+    const day = weekStart.getDay();
+    weekStart.setDate(weekStart.getDate() + (day === 0 ? -6 : 1 - day));
+    const weekEnd = new Date(weekStart);
+    weekEnd.setDate(weekStart.getDate() + 6);
+    const weekStartIso = weekStart.toISOString().split("T")[0];
+    const weekEndIso = weekEnd.toISOString().split("T")[0];
+
     // Fetch all data in parallel
     const [
       { data: candidateJobs },
@@ -239,6 +249,17 @@ serve(async (req) => {
         totalOpenJobs: openJobs.length,
         totalCandidatesInPipeline: cjs.length,
         totalBDProspects: bdProspects.length,
+      },
+      thisWeek: {
+        weekStart: weekStartIso,
+        weekEnd: weekEndIso,
+        overdue: (overdueFollowUps || []).length,
+        cvsSent: cjs.filter((cj: any) =>
+          ["Submitted", "Client Review", "First Interview", "Second Interview", "Offer", "Placed"].includes(cj.stage)
+          && cj.stage_changed_at && cj.stage_changed_at.split("T")[0] >= weekStartIso
+          && cj.stage_changed_at.split("T")[0] <= weekEndIso,
+        ).length,
+        atOffer: cjs.filter((cj: any) => cj.stage === "Offer").length,
       },
     };
 

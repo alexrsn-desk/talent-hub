@@ -17,6 +17,7 @@ import { GdprAuditPrompt } from "@/components/GdprAuditPrompt";
 import { NewRecordsSection } from "@/components/NewRecordsSection";
 import { PlacementsDashboardSection } from "@/components/PlacementsDashboardSection";
 import { OffersDashboardSection } from "@/components/OffersDashboardSection";
+import { WeekStatsBar } from "@/components/WeekStatsBar";
 
 const activityIcon: Record<string, typeof FileText> = {
   Note: FileText,
@@ -95,6 +96,9 @@ export default function DashboardPage() {
         <>
           {/* 1. HEADLINE BRIEF — first thing every time */}
           <DashboardHeadline />
+
+          {/* This-week stats — a glance at the desk's pulse */}
+          <WeekStatsBar />
 
           {/* Quick capture inboxes — review notes and complete records added on the fly */}
           <QuickNotesSection />
