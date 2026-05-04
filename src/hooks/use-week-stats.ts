@@ -10,6 +10,8 @@ export type WeekStats = {
   interviews: number;
   atOffer: number;
   placements: number;
+  /** Live CVs out — all candidates currently at Submitted or Client Review (all time, all active jobs) */
+  liveCvsOut: number;
 };
 
 /** Returns the Monday (00:00) of the current week as a Date */
@@ -88,8 +90,15 @@ export function useWeekStats(ownerUserId?: string) {
         .select("id, start_date, offer_accepted_date, owner_user_id")
         .eq("owner_user_id", owner!);
 
-      const [overdueR, cvsR, interviewsR, atOfferR, placementsR] = await Promise.all([
-        overdueP, cvsP, interviewsP, atOfferP, placementsP,
+      // Live CVs out — currently at Submitted or Client Review (all time)
+      const liveCvsP = supabase
+        .from("candidate_jobs")
+        .select("id", { count: "exact", head: true })
+        .in("stage", ["Submitted", "Client Review"])
+        .eq("owner_user_id", owner!);
+
+      const [overdueR, cvsR, interviewsR, atOfferR, placementsR, liveCvsR] = await Promise.all([
+        overdueP, cvsP, interviewsP, atOfferP, placementsP, liveCvsP,
       ]);
 
       const placements = (placementsR.data || []).filter((p: any) => {
@@ -106,6 +115,7 @@ export function useWeekStats(ownerUserId?: string) {
         interviews: interviewsR.count ?? 0,
         atOffer: atOfferR.count ?? 0,
         placements,
+        liveCvsOut: liveCvsR.count ?? 0,
       };
       return stats;
     },
