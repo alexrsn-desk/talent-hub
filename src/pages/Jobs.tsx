@@ -16,6 +16,7 @@ import { CandidateMatching } from "@/components/CandidateMatching";
 import { usePlacementScores, usePlacementScoreFor } from "@/hooks/use-placement-scores";
 import { PlacementScoreBadge } from "@/components/PlacementScoreBadge";
 import { PlacementScorePanel } from "@/components/PlacementScorePanel";
+import { IntakeCallCompanionButton } from "@/components/IntakeCallCompanion";
 
 const JOB_STATUSES = ["Open", "On Hold", "Filled", "Cancelled"] as const;
 const JOB_TYPES = ["Perm", "Contract"] as const;
