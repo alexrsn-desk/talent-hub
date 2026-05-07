@@ -1113,6 +1113,7 @@ export interface ApplicationImportResult extends ImportResult {
   candidatesCreated: number;
   jobsCreated: number;
   importedIds: string[];
+  unmatchedCandidates: number;
 }
 
 function parseDateLoose(s: string | null | undefined): string | null {
