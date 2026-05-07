@@ -87,6 +87,12 @@ export function MigrationAssistant({ initialUnmatchedJobs, onComplete, showLater
   const [merging, setMerging] = useState(false);
   const [processing, setProcessing] = useState(false);
 
+  // Bulk note actions
+  const [tidiedMap, setTidiedMap] = useState<Record<string, string>>({});
+  const [bulkTidying, setBulkTidying] = useState(false);
+  const [bulkConfirming, setBulkConfirming] = useState(false);
+  const [bulkProgress, setBulkProgress] = useState({ done: 0, total: 0, label: "" });
+
   // Skipped items
   const [skippedItems, setSkippedItems] = useState<Record<string, string[]>>(getSkipped);
   const [showSkipped, setShowSkipped] = useState(false);
