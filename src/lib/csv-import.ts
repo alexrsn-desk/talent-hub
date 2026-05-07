@@ -1242,9 +1242,14 @@ export async function runApplicationsImport(
         res.skipped++;
         continue;
       }
-      // create basic
-      const { first, last } = splitFullName(candName || email.split("@")[0] || "Unknown");
-      const fullName = candName || [first, last].filter(Boolean).join(" ") || (email || "Unknown");
+      // create basic — prefer split first/last from CSV if present
+      let first = firstCol;
+      let last = lastCol;
+      if (!first && !last) {
+        const split = splitFullName(candName || email.split("@")[0] || "Unknown");
+        first = split.first; last = split.last;
+      }
+      const fullName = fullNameCol || [first, last].filter(Boolean).join(" ") || (email || "Unknown");
       const { data: newCand, error: ce } = await supabase
         .from("candidates")
         .insert({
