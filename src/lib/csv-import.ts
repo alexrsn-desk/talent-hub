@@ -495,6 +495,7 @@ export interface ImportResult {
   imported: number;
   skipped: number;
   updated: number;
+  skippedMissingData: number;
   errors: ImportError[];
   nameReviewItems: NameReviewItem[];
 }
@@ -647,7 +648,7 @@ export async function runImportForType(
   confirmedLinkedContacts: number;
 }> {
   const fields = FIELD_MAP[recordType];
-  const res: ImportResult = { imported: 0, skipped: 0, updated: 0, errors: [], nameReviewItems: [] };
+  const res: ImportResult = { imported: 0, skipped: 0, updated: 0, skippedMissingData: 0, errors: [], nameReviewItems: [] };
   const unmatchedJobs: { id: string; title: string }[] = [];
   const unlinkedContacts: { id: string; name: string; companyName: string }[] = [];
   const importedIds: string[] = [];
@@ -698,6 +699,19 @@ export async function runImportForType(
     // Extract notes content before inserting
     const notesContent = record._notes_content;
     delete record._notes_content;
+
+    // Candidates: hard-skip rows missing essentials (name AND contact method)
+    if (recordType === "candidates") {
+      const fullName = (record.name || "").trim();
+      const firstName = (record.first_name || "").trim();
+      const lastName = (record.last_name || "").trim();
+      const hasName = !!(firstName || lastName || fullName);
+      const hasContact = !!((record.email || "").trim() || (record.phone || "").trim());
+      if (!hasName || !hasContact) {
+        res.skippedMissingData++;
+        continue;
+      }
+    }
 
     const namePresent = record.first_name || record.name;
     const missingFields = fields.filter(f => {
@@ -1123,7 +1137,7 @@ export async function runApplicationsImport(
   onProgress?: (current: number, total: number) => void,
 ): Promise<ApplicationImportResult> {
   const res: ApplicationImportResult = {
-    imported: 0, skipped: 0, updated: 0, errors: [], nameReviewItems: [],
+    imported: 0, skipped: 0, updated: 0, skippedMissingData: 0, errors: [], nameReviewItems: [],
     candidatesCreated: 0, jobsCreated: 0, importedIds: [],
   };
 
