@@ -1002,3 +1002,302 @@ export async function detectDuplicateCandidates(): Promise<DuplicateCandidate[]>
   }
   return dupes;
 }
+
+// ── Applications import ───────────────────────────────────────────
+export const PIPELINE_STAGE_VALUES = [
+  "AI Suggested", "Longlist", "Contact", "Screening", "Shortlist",
+  "Submitted", "Client Review", "First Interview", "Second Interview",
+  "Offer", "Placed", "Rejected",
+] as const;
+
+const STAGE_ALIASES: Record<string, string> = {
+  // Direct
+  "ai suggested": "AI Suggested",
+  "longlist": "Longlist",
+  "contact": "Contact",
+  "screening": "Screening",
+  "shortlist": "Shortlist",
+  "submitted": "Submitted",
+  "client review": "Client Review",
+  "first interview": "First Interview",
+  "second interview": "Second Interview",
+  "offer": "Offer",
+  "placed": "Placed",
+  "rejected": "Rejected",
+  // Common aliases from other CRMs
+  "shortlisted": "Longlist",
+  "sent to client": "Submitted",
+  "submission": "Submitted",
+  "submission sent": "Submitted",
+  "cv sent": "Submitted",
+  "cv submitted": "Submitted",
+  "1st interview": "First Interview",
+  "interview 1": "First Interview",
+  "first stage interview": "First Interview",
+  "2nd interview": "Second Interview",
+  "interview 2": "Second Interview",
+  "second stage interview": "Second Interview",
+  "final interview": "Second Interview",
+  "offer made": "Offer",
+  "offered": "Offer",
+  "verbal offer": "Offer",
+  "written offer": "Offer",
+  "started": "Placed",
+  "hired": "Placed",
+  "successful": "Placed",
+  "unsuccessful": "Rejected",
+  "rejected by client": "Rejected",
+  "rejected by candidate": "Rejected",
+  "withdrawn": "Rejected",
+  "declined": "Rejected",
+  "closed": "Rejected",
+};
+
+export function mapApplicationStage(raw: string | null): string | null {
+  if (!raw) return null;
+  const k = raw.toLowerCase().trim();
+  if (STAGE_ALIASES[k]) return STAGE_ALIASES[k];
+  // Fall back to direct match if user already used canonical name
+  const direct = (PIPELINE_STAGE_VALUES as readonly string[]).find(s => s.toLowerCase() === k);
+  return direct ?? null;
+}
+
+export interface ApplicationImportOptions {
+  missingCandidateAction: "skip" | "create";
+  missingJobAction: "skip" | "create_closed";
+}
+
+export interface ApplicationImportResult extends ImportResult {
+  candidatesCreated: number;
+  jobsCreated: number;
+  importedIds: string[];
+}
+
+function parseDateLoose(s: string | null | undefined): string | null {
+  if (!s) return null;
+  const t = s.trim();
+  if (!t) return null;
+  // ISO yyyy-mm-dd
+  if (/^\d{4}-\d{2}-\d{2}/.test(t)) return t.slice(0, 10);
+  // dd/mm/yyyy or dd-mm-yyyy
+  const m = t.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{2,4})$/);
+  if (m) {
+    let [, d, mo, y] = m;
+    if (y.length === 2) y = (parseInt(y, 10) > 50 ? "19" : "20") + y;
+    return `${y}-${mo.padStart(2, "0")}-${d.padStart(2, "0")}`;
+  }
+  const dt = new Date(t);
+  if (!isNaN(dt.getTime())) return dt.toISOString().slice(0, 10);
+  return null;
+}
+
+export async function runApplicationsImport(
+  rows: string[][],
+  headers: string[],
+  mapping: Record<string, string>,
+  options: ApplicationImportOptions,
+  onProgress?: (current: number, total: number) => void,
+): Promise<ApplicationImportResult> {
+  const res: ApplicationImportResult = {
+    imported: 0, skipped: 0, updated: 0, errors: [], nameReviewItems: [],
+    candidatesCreated: 0, jobsCreated: 0, importedIds: [],
+  };
+
+  const { data: { user } } = await supabase.auth.getUser();
+  const ownerId = user?.id || null;
+
+  // Preload lookups
+  const [candidatesRes, jobsRes, clientsRes] = await Promise.all([
+    supabase.from("candidates").select("id, name, email, first_name, last_name"),
+    supabase.from("jobs").select("id, title, client_id"),
+    supabase.from("clients").select("id, company_name"),
+  ]);
+
+  const candByEmail: Record<string, string> = {};
+  const candByName: Record<string, string> = {};
+  (candidatesRes.data || []).forEach((c: any) => {
+    if (c.email) candByEmail[c.email.toLowerCase().trim()] = c.id;
+    if (c.name) candByName[c.name.toLowerCase().trim()] = c.id;
+  });
+
+  const clientByName: Record<string, string> = {};
+  (clientsRes.data || []).forEach((c: any) => {
+    clientByName[c.company_name.toLowerCase().trim()] = c.id;
+    const norm = normaliseCompany(c.company_name);
+    if (norm) clientByName[norm] = c.id;
+  });
+
+  // jobs: title|client_id => job_id
+  const jobByTitleClient: Record<string, string> = {};
+  (jobsRes.data || []).forEach((j: any) => {
+    const k = `${(j.title || "").toLowerCase().trim()}|${j.client_id || ""}`;
+    jobByTitleClient[k] = j.id;
+  });
+
+  // Existing candidate_jobs links to dedupe
+  const { data: cjData } = await supabase.from("candidate_jobs").select("candidate_id, job_id");
+  const existingLinks = new Set((cjData || []).map((c: any) => `${c.candidate_id}|${c.job_id}`));
+
+  const colIdx = (key: string): number => {
+    const h = Object.entries(mapping).find(([, v]) => v === key)?.[0];
+    return h ? headers.indexOf(h) : -1;
+  };
+  const idxEmail = colIdx("candidate_email");
+  const idxCandName = colIdx("candidate_name");
+  const idxJob = colIdx("job_title");
+  const idxClient = colIdx("client_company");
+  const idxStage = colIdx("stage");
+  const idxDate = colIdx("submitted_date");
+  const idxNotes = colIdx("outcome_notes");
+
+  for (let i = 0; i < rows.length; i++) {
+    onProgress?.(i + 1, rows.length);
+    const row = rows[i];
+    const get = (idx: number) => (idx >= 0 ? (row[idx] || "").trim() : "");
+
+    const email = get(idxEmail).toLowerCase();
+    const candName = get(idxCandName);
+    const jobTitle = get(idxJob);
+    const clientName = get(idxClient);
+    const stageRaw = get(idxStage);
+    const submittedDate = parseDateLoose(get(idxDate));
+    const outcomeNotes = get(idxNotes);
+
+    if (!jobTitle || !clientName || !stageRaw) {
+      res.errors.push({ row: i + 2, reason: "Missing job title, client company, or stage", data: { jobTitle, clientName, stageRaw } });
+      res.skipped++;
+      continue;
+    }
+    const stage = mapApplicationStage(stageRaw);
+    if (!stage) {
+      res.errors.push({ row: i + 2, reason: `Unknown stage "${stageRaw}"`, data: { stageRaw } });
+      res.skipped++;
+      continue;
+    }
+    if (!email && !candName) {
+      res.errors.push({ row: i + 2, reason: "Need candidate email or name", data: {} });
+      res.skipped++;
+      continue;
+    }
+
+    // 1. Resolve candidate
+    let candidateId: string | null = null;
+    if (email && candByEmail[email]) candidateId = candByEmail[email];
+    else if (candName && candByName[candName.toLowerCase()]) candidateId = candByName[candName.toLowerCase()];
+
+    if (!candidateId) {
+      if (options.missingCandidateAction === "skip") {
+        res.errors.push({ row: i + 2, reason: `Candidate not found: ${email || candName}`, data: { email, candName } });
+        res.skipped++;
+        continue;
+      }
+      // create basic
+      const { first, last } = splitFullName(candName || email.split("@")[0] || "Unknown");
+      const fullName = candName || [first, last].filter(Boolean).join(" ") || (email || "Unknown");
+      const { data: newCand, error: ce } = await supabase
+        .from("candidates")
+        .insert({
+          name: fullName, first_name: first || null, last_name: last || null,
+          email: email || null, status: "Active", source: "Imported",
+          owner_user_id: ownerId, incomplete_profile: true,
+        } as any)
+        .select("id")
+        .single();
+      if (ce || !newCand) {
+        res.errors.push({ row: i + 2, reason: `Failed to create candidate: ${ce?.message}`, data: { email, candName } });
+        res.skipped++;
+        continue;
+      }
+      candidateId = newCand.id;
+      if (email) candByEmail[email] = candidateId;
+      if (candName) candByName[candName.toLowerCase()] = candidateId;
+      res.candidatesCreated++;
+    }
+
+    // 2. Resolve client
+    const clientLc = clientName.toLowerCase().trim();
+    let clientId = clientByName[clientLc];
+    if (!clientId) {
+      const norm = normaliseCompany(clientName);
+      if (norm && clientByName[norm]) clientId = clientByName[norm];
+    }
+    if (!clientId) {
+      const { data: newClient, error: cle } = await supabase
+        .from("clients")
+        .insert({ company_name: clientName, status: "Target", owner_user_id: ownerId } as any)
+        .select("id")
+        .single();
+      if (cle || !newClient) {
+        res.errors.push({ row: i + 2, reason: `Failed to create client "${clientName}": ${cle?.message}`, data: {} });
+        res.skipped++;
+        continue;
+      }
+      clientId = newClient.id;
+      clientByName[clientLc] = clientId;
+    }
+
+    // 3. Resolve job
+    const jobKey = `${jobTitle.toLowerCase().trim()}|${clientId}`;
+    let jobId = jobByTitleClient[jobKey];
+    if (!jobId) {
+      if (options.missingJobAction === "skip") {
+        res.errors.push({ row: i + 2, reason: `Job not found: "${jobTitle}" at "${clientName}"`, data: {} });
+        res.skipped++;
+        continue;
+      }
+      const { data: newJob, error: je } = await supabase
+        .from("jobs")
+        .insert({
+          title: jobTitle, client_id: clientId, status: "Closed",
+          owner_user_id: ownerId, incomplete_profile: true,
+        } as any)
+        .select("id")
+        .single();
+      if (je || !newJob) {
+        res.errors.push({ row: i + 2, reason: `Failed to create job: ${je?.message}`, data: {} });
+        res.skipped++;
+        continue;
+      }
+      jobId = newJob.id;
+      jobByTitleClient[jobKey] = jobId;
+      res.jobsCreated++;
+    }
+
+    // 4. Insert candidate_job (dedupe)
+    const linkKey = `${candidateId}|${jobId}`;
+    if (existingLinks.has(linkKey)) {
+      res.skipped++;
+      res.errors.push({ row: i + 2, reason: "Application already exists for this candidate + job", data: {} });
+      continue;
+    }
+
+    const insertRow: any = {
+      candidate_id: candidateId, job_id: jobId, stage,
+      source: "imported", owner_user_id: ownerId,
+    };
+    if (submittedDate) insertRow.stage_changed_at = submittedDate;
+
+    const { data: ins, error: ie } = await supabase
+      .from("candidate_jobs").insert(insertRow).select("id").single();
+    if (ie || !ins) {
+      res.errors.push({ row: i + 2, reason: ie?.message || "Insert failed", data: insertRow });
+      res.skipped++;
+      continue;
+    }
+    existingLinks.add(linkKey);
+    res.imported++;
+    res.importedIds.push(ins.id);
+
+    // 5. Optional outcome notes -> notes table
+    if (outcomeNotes) {
+      await supabase.from("notes").insert({
+        content: outcomeNotes, activity_type: "Note",
+        outcome: `Imported application (${stage})`,
+        candidate_id: candidateId, job_id: jobId,
+        owner_user_id: ownerId,
+      } as any);
+    }
+  }
+
+  return res;
+}
