@@ -264,9 +264,10 @@ export function MigrationAssistant({ initialUnmatchedJobs, onComplete, showLater
   useEffect(() => {
     if (activeQueue === "notes" && currentItem) {
       const c = currentItem as CandidateWithNotes;
-      setEditedNotes(c.notes.map(n => n.content).join("\n\n---\n\n"));
+      const original = c.notes.map(n => n.content).join("\n\n---\n\n");
+      setEditedNotes(tidiedMap[c.id] ?? original);
     }
-  }, [activeQueue, currentIndex, currentItem]);
+  }, [activeQueue, currentIndex, currentItem, tidiedMap]);
 
   // ── Actions ──────────────────────────────────────────────────────
   const confirmJob = async () => {
