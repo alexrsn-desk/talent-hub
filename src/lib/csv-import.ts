@@ -698,22 +698,33 @@ export async function runImportForType(
   for (let i = 0; i < rows.length; i++) {
     onProgress?.(i + 1, rows.length);
     const row = rows[i];
+
+    // Silently skip completely blank rows (common in exported CSVs)
+    if (!row || row.every(c => !c || !String(c).trim())) {
+      res.skippedMissingData++;
+      continue;
+    }
+
     const record = buildRecord(row, headers, mapping, platform);
 
     // Extract notes content before inserting
     const notesContent = record._notes_content;
     delete record._notes_content;
 
-    // Candidates: hard-skip rows missing essentials (name AND contact method)
-    if (recordType === "candidates") {
+    // Silent skip for rows missing essential identifiers — don't count as errors or attempts
+    {
       const fullName = (record.name || "").trim();
       const firstName = (record.first_name || "").trim();
       const lastName = (record.last_name || "").trim();
-      const hasName = !!(firstName || lastName || fullName);
-      const hasContact = !!((record.email || "").trim() || (record.phone || "").trim());
-      if (!hasName || !hasContact) {
-        res.skippedMissingData++;
-        continue;
+      const hasAnyName = !!(firstName || lastName || fullName);
+
+      if (recordType === "candidates") {
+        if (!hasAnyName) { res.skippedMissingData++; continue; }
+      } else if (recordType === "contacts") {
+        if (!hasAnyName) { res.skippedMissingData++; continue; }
+      } else if (recordType === "clients") {
+        const companyName = (record.company_name || "").trim();
+        if (!companyName) { res.skippedMissingData++; continue; }
       }
     }
 
