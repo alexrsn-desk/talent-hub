@@ -87,6 +87,12 @@ export function MigrationAssistant({ initialUnmatchedJobs, onComplete, showLater
   const [merging, setMerging] = useState(false);
   const [processing, setProcessing] = useState(false);
 
+  // Bulk note actions
+  const [tidiedMap, setTidiedMap] = useState<Record<string, string>>({});
+  const [bulkTidying, setBulkTidying] = useState(false);
+  const [bulkConfirming, setBulkConfirming] = useState(false);
+  const [bulkProgress, setBulkProgress] = useState({ done: 0, total: 0, label: "" });
+
   // Skipped items
   const [skippedItems, setSkippedItems] = useState<Record<string, string[]>>(getSkipped);
   const [showSkipped, setShowSkipped] = useState(false);
@@ -258,9 +264,10 @@ export function MigrationAssistant({ initialUnmatchedJobs, onComplete, showLater
   useEffect(() => {
     if (activeQueue === "notes" && currentItem) {
       const c = currentItem as CandidateWithNotes;
-      setEditedNotes(c.notes.map(n => n.content).join("\n\n---\n\n"));
+      const original = c.notes.map(n => n.content).join("\n\n---\n\n");
+      setEditedNotes(tidiedMap[c.id] ?? original);
     }
-  }, [activeQueue, currentIndex, currentItem]);
+  }, [activeQueue, currentIndex, currentItem, tidiedMap]);
 
   // ── Actions ──────────────────────────────────────────────────────
   const confirmJob = async () => {
@@ -353,6 +360,81 @@ export function MigrationAssistant({ initialUnmatchedJobs, onComplete, showLater
       toast.error(e.message || "Failed to tidy notes");
     }
     setTidying(false);
+  };
+
+  // ── Bulk note actions ────────────────────────────────────────────
+  const tidyAllNotes = async (): Promise<Record<string, string>> => {
+    const list = candidatesWithNotes;
+    if (list.length === 0) return {};
+    setBulkTidying(true);
+    setBulkProgress({ done: 0, total: list.length, label: "Tidying notes" });
+    const results: Record<string, string> = { ...tidiedMap };
+    for (let i = 0; i < list.length; i++) {
+      const c = list[i];
+      const original = c.notes.map(n => n.content).join("\n\n---\n\n");
+      if (results[c.id]) {
+        setBulkProgress({ done: i + 1, total: list.length, label: "Tidying notes" });
+        continue;
+      }
+      try {
+        const { data, error } = await supabase.functions.invoke("tidy-notes", {
+          body: { notes: original, candidateName: c.name },
+        });
+        if (!error && data?.tidied) {
+          results[c.id] = data.tidied;
+        } else {
+          results[c.id] = original;
+        }
+      } catch {
+        results[c.id] = original;
+      }
+      setTidiedMap({ ...results });
+      setBulkProgress({ done: i + 1, total: list.length, label: "Tidying notes" });
+    }
+    setBulkTidying(false);
+    return results;
+  };
+
+  const confirmAllNotes = async (overrides?: Record<string, string>) => {
+    const list = candidatesWithNotes;
+    if (list.length === 0) return;
+    setBulkConfirming(true);
+    setBulkProgress({ done: 0, total: list.length, label: "Importing notes" });
+    const { data: { user } } = await supabase.auth.getUser();
+    const map = overrides ?? tidiedMap;
+    for (let i = 0; i < list.length; i++) {
+      const c = list[i];
+      const original = c.notes.map(n => n.content).join("\n\n---\n\n");
+      const finalContent = (map[c.id] ?? original).trim();
+      try {
+        for (const n of c.notes) {
+          await supabase.from("notes").delete().eq("id", n.id);
+        }
+        if (finalContent) {
+          await supabase.from("notes").insert({
+            candidate_id: c.id,
+            content: finalContent,
+            activity_type: "Note",
+            owner_user_id: user?.id,
+          } as any);
+        }
+      } catch (e: any) {
+        console.error("confirmAllNotes error", e);
+      }
+      setBulkProgress({ done: i + 1, total: list.length, label: "Importing notes" });
+    }
+    setCandidatesWithNotes([]);
+    setTidiedMap({});
+    setBulkConfirming(false);
+    toast.success(`Imported ${list.length} note${list.length > 1 ? "s" : ""}`);
+    const next = queues.find(q => q.key !== "notes" && q.items.length > 0);
+    if (next) { setActiveQueue(next.key); setCurrentIndex(0); }
+    resetItemState();
+  };
+
+  const tidyAndConfirmAll = async () => {
+    const results = await tidyAllNotes();
+    await confirmAllNotes(results);
   };
 
   const confirmAssignment = async () => {
@@ -492,6 +574,61 @@ export function MigrationAssistant({ initialUnmatchedJobs, onComplete, showLater
             </Button>
           ))}
         </div>
+
+        {/* Bulk note actions */}
+        {activeQueue === "notes" && candidatesWithNotes.length > 0 && (
+          <Card className="border-primary/30 bg-primary/5">
+            <CardContent className="p-4 space-y-3">
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <p className="text-sm font-medium">Bulk actions — {candidatesWithNotes.length} candidate{candidatesWithNotes.length > 1 ? "s" : ""} with notes</p>
+                  <p className="text-xs text-muted-foreground">Process every note in one click instead of one-by-one.</p>
+                </div>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={tidyAllNotes}
+                  disabled={bulkTidying || bulkConfirming}
+                >
+                  {bulkTidying ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-1" /> : <Sparkles className="h-3.5 w-3.5 mr-1" />}
+                  Tidy All
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => confirmAllNotes()}
+                  disabled={bulkTidying || bulkConfirming}
+                >
+                  {bulkConfirming ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-1" /> : <Check className="h-3.5 w-3.5 mr-1" />}
+                  Confirm All
+                </Button>
+                <Button
+                  size="sm"
+                  onClick={tidyAndConfirmAll}
+                  disabled={bulkTidying || bulkConfirming}
+                >
+                  {(bulkTidying || bulkConfirming) ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-1" /> : <Sparkles className="h-3.5 w-3.5 mr-1" />}
+                  Tidy All + Confirm
+                </Button>
+              </div>
+              {(bulkTidying || bulkConfirming) && bulkProgress.total > 0 && (
+                <div className="space-y-1.5">
+                  <Progress value={Math.round((bulkProgress.done / bulkProgress.total) * 100)} className="h-2" />
+                  <p className="text-xs text-muted-foreground">
+                    {bulkProgress.label}… {bulkProgress.done} of {bulkProgress.total} complete
+                  </p>
+                </div>
+              )}
+              {!bulkTidying && !bulkConfirming && Object.keys(tidiedMap).length > 0 && (
+                <p className="text-xs text-primary">
+                  All notes tidied — review individually or click Confirm All to import.
+                </p>
+              )}
+            </CardContent>
+          </Card>
+        )}
 
         {/* Current item card */}
         {currentItem && (
