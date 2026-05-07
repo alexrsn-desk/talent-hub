@@ -302,12 +302,13 @@ export function DataImport() {
       {/* Step 1: Select record type */}
       {step === "select" && (
         <>
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
             {([
               { type: "candidates" as const, icon: Users, label: "Candidates", desc: "Name, email, skills, salary…" },
               { type: "clients" as const, icon: Building2, label: "Companies", desc: "Company, contact, sector…" },
               { type: "contacts" as const, icon: UserCircle2, label: "Contacts", desc: "People at companies…" },
               { type: "jobs" as const, icon: Briefcase, label: "Jobs", desc: "Title, salary, type, fee…" },
+              { type: "applications" as const, icon: Database, label: "Applications", desc: "Candidate → Job at stage" },
             ]).map(({ type, icon: Icon, label, desc }) => (
               <Card
                 key={type}
@@ -322,6 +323,14 @@ export function DataImport() {
               </Card>
             ))}
           </div>
+          {recordType === "applications" && (
+            <div className="flex items-start gap-2 text-xs bg-muted border border-border rounded-lg p-3">
+              <Info className="h-4 w-4 shrink-0 mt-0.5 text-primary" />
+              <span className="text-foreground">
+                <strong>Import companies, candidates and jobs first</strong> for best matching. Missing candidates and closed jobs can be auto-created so historical submissions are preserved. <a href="#" onClick={(e) => { e.preventDefault(); import("@/lib/csv-import").then(m => m.downloadExampleCSV("applications")); }} className="text-primary underline">Download template</a>
+              </span>
+            </div>
+          )}
           {recordType === "contacts" && (
             <div className="flex items-start gap-2 text-xs bg-muted border border-border rounded-lg p-3">
               <Info className="h-4 w-4 shrink-0 mt-0.5 text-primary" />
