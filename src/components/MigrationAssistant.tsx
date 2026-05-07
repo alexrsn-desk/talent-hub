@@ -575,6 +575,61 @@ export function MigrationAssistant({ initialUnmatchedJobs, onComplete, showLater
           ))}
         </div>
 
+        {/* Bulk note actions */}
+        {activeQueue === "notes" && candidatesWithNotes.length > 0 && (
+          <Card className="border-primary/30 bg-primary/5">
+            <CardContent className="p-4 space-y-3">
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <p className="text-sm font-medium">Bulk actions — {candidatesWithNotes.length} candidate{candidatesWithNotes.length > 1 ? "s" : ""} with notes</p>
+                  <p className="text-xs text-muted-foreground">Process every note in one click instead of one-by-one.</p>
+                </div>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={tidyAllNotes}
+                  disabled={bulkTidying || bulkConfirming}
+                >
+                  {bulkTidying ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-1" /> : <Sparkles className="h-3.5 w-3.5 mr-1" />}
+                  Tidy All
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => confirmAllNotes()}
+                  disabled={bulkTidying || bulkConfirming}
+                >
+                  {bulkConfirming ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-1" /> : <Check className="h-3.5 w-3.5 mr-1" />}
+                  Confirm All
+                </Button>
+                <Button
+                  size="sm"
+                  onClick={tidyAndConfirmAll}
+                  disabled={bulkTidying || bulkConfirming}
+                >
+                  {(bulkTidying || bulkConfirming) ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-1" /> : <Sparkles className="h-3.5 w-3.5 mr-1" />}
+                  Tidy All + Confirm
+                </Button>
+              </div>
+              {(bulkTidying || bulkConfirming) && bulkProgress.total > 0 && (
+                <div className="space-y-1.5">
+                  <Progress value={Math.round((bulkProgress.done / bulkProgress.total) * 100)} className="h-2" />
+                  <p className="text-xs text-muted-foreground">
+                    {bulkProgress.label}… {bulkProgress.done} of {bulkProgress.total} complete
+                  </p>
+                </div>
+              )}
+              {!bulkTidying && !bulkConfirming && Object.keys(tidiedMap).length > 0 && (
+                <p className="text-xs text-primary">
+                  All notes tidied — review individually or click Confirm All to import.
+                </p>
+              )}
+            </CardContent>
+          </Card>
+        )}
+
         {/* Current item card */}
         {currentItem && (
           <Card className="border-primary/20">
