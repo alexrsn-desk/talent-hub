@@ -20,6 +20,7 @@ import { TeamSection } from "@/components/TeamSection";
 import { JoinTeamButton } from "@/components/JoinTeamButton";
 import { DecaySettingsSection } from "@/components/DecaySettingsSection";
 import { ComplianceSection } from "@/components/ComplianceSection";
+import { DangerZoneSection } from "@/components/DangerZoneSection";
 
 const NICHES = [
   "Tech/Digital", "Sales/Commercial", "Finance", "Legal",
@@ -321,6 +322,7 @@ export default function SettingsPage() {
             <TidyUp />
           </TabsContent>
         </Tabs>
+        <DangerZoneSection />
       </div>
 
       {/* Migration Assistant */}
