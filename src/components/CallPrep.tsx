@@ -56,9 +56,28 @@ function CallPrepDialog({ entityType, entityId, entityName, open, onOpenChange }
   const [checked, setChecked] = useState<Record<string, boolean>>({});
   const [expandedPhases, setExpandedPhases] = useState<Record<number, boolean>>({});
   const [showSummary, setShowSummary] = useState(false);
+  const [intakeJob, setIntakeJob] = useState<{ id: string; title: string; intake_summary: string | null; intake_captured_at: string | null } | null>(null);
+  const [intakeOpen, setIntakeOpen] = useState(false);
   const { toast } = useToast();
   const callSummaryLimit = useFeatureLimit("call_summary");
   const logUsage = useLogUsage();
+
+  // For client calls, look up an open job to surface intake companion / summary
+  useEffect(() => {
+    if (!open || entityType !== "client") { setIntakeJob(null); return; }
+    (async () => {
+      const { data } = await supabase
+        .from("jobs")
+        .select("id, title, intake_summary, intake_captured_at")
+        .eq("client_id", entityId)
+        .eq("status", "Open")
+        .order("date_opened", { ascending: false })
+        .limit(1);
+      const j = (data || [])[0];
+      if (j) setIntakeJob(j as any);
+    })();
+  }, [open, entityType, entityId]);
+
 
   const loadPrep = async () => {
     if (!callSummaryLimit.canUse) {
