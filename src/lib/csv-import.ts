@@ -1124,7 +1124,7 @@ export async function runApplicationsImport(
   onProgress?: (current: number, total: number) => void,
 ): Promise<ApplicationImportResult> {
   const res: ApplicationImportResult = {
-    imported: 0, skipped: 0, updated: 0, errors: [], nameReviewItems: [],
+    imported: 0, skipped: 0, updated: 0, skippedMissingData: 0, errors: [], nameReviewItems: [],
     candidatesCreated: 0, jobsCreated: 0, importedIds: [],
   };
 
