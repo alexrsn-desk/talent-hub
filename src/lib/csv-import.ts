@@ -1209,6 +1209,13 @@ export async function runApplicationsImport(
   for (let i = 0; i < rows.length; i++) {
     onProgress?.(i + 1, rows.length);
     const row = rows[i];
+
+    // Silently skip completely blank rows
+    if (!row || row.every(c => !c || !String(c).trim())) {
+      res.skippedMissingData++;
+      continue;
+    }
+
     const get = (idx: number) => (idx >= 0 ? (row[idx] || "").trim() : "");
 
     const email = get(idxEmail).toLowerCase();
@@ -1223,6 +1230,12 @@ export async function runApplicationsImport(
     const submittedDate = parseDateLoose(get(idxDate));
     const outcomeNotes = get(idxNotes);
 
+    // Silent skip — applications need at minimum a candidate identifier (name or email)
+    if (!email && !candName) {
+      res.skippedMissingData++;
+      continue;
+    }
+
     if (!jobTitle || !clientName || !stageRaw) {
       res.errors.push({ row: i + 2, reason: "Missing job title, client company, or stage", data: { jobTitle, clientName, stageRaw } });
       res.skipped++;
@@ -1231,11 +1244,6 @@ export async function runApplicationsImport(
     const stage = mapApplicationStage(stageRaw);
     if (!stage) {
       res.errors.push({ row: i + 2, reason: `Unknown stage "${stageRaw}"`, data: { stageRaw } });
-      res.skipped++;
-      continue;
-    }
-    if (!email && !candName) {
-      res.errors.push({ row: i + 2, reason: "Need candidate email, name, or first+last name", data: {} });
       res.skipped++;
       continue;
     }
