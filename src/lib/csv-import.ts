@@ -1143,7 +1143,7 @@ export async function runApplicationsImport(
 ): Promise<ApplicationImportResult> {
   const res: ApplicationImportResult = {
     imported: 0, skipped: 0, updated: 0, skippedMissingData: 0, errors: [], nameReviewItems: [],
-    candidatesCreated: 0, jobsCreated: 0, importedIds: [],
+    candidatesCreated: 0, jobsCreated: 0, importedIds: [], unmatchedCandidates: 0,
   };
 
   const { data: { user } } = await supabase.auth.getUser();
