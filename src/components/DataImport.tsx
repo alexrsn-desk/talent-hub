@@ -141,6 +141,7 @@ export function DataImport() {
         // Adapt to ImportResult shape used by results UI
         setResult({
           imported: res.imported, skipped: res.skipped, updated: 0,
+          skippedMissingData: res.unmatchedCandidates,
           errors: res.errors, nameReviewItems: [],
         } as any);
         setUnmatchedJobs([]);

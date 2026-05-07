@@ -69,7 +69,9 @@ export const CONTACT_FIELDS: FieldDef[] = [
 // Applications / submissions: link a candidate to a job at a stage
 export const APPLICATION_FIELDS: FieldDef[] = [
   { key: "candidate_email", label: "Candidate Email", required: false },
-  { key: "candidate_name", label: "Candidate Name", required: false },
+  { key: "candidate_name", label: "Candidate Name (full)", required: false },
+  { key: "candidate_first_name", label: "Candidate First Name", required: false },
+  { key: "candidate_last_name", label: "Candidate Last Name", required: false },
   { key: "job_title", label: "Job Title", required: true },
   { key: "client_company", label: "Client / Company", required: true },
   { key: "stage", label: "Stage", required: true },
@@ -218,7 +220,9 @@ export const BUILT_IN_TEMPLATES: MappingTemplate[] = [
       "email": "candidate_email", "Email": "candidate_email",
       "candidate_name": "candidate_name", "candidate name": "candidate_name",
       "Candidate Name": "candidate_name", "applicant": "candidate_name", "Applicant": "candidate_name",
-      "name": "candidate_name", "Name": "candidate_name",
+      "name": "candidate_name", "Name": "candidate_name", "full_name": "candidate_name", "full name": "candidate_name",
+      "first_name": "candidate_first_name", "first name": "candidate_first_name", "First Name": "candidate_first_name", "firstname": "candidate_first_name",
+      "last_name": "candidate_last_name", "last name": "candidate_last_name", "Last Name": "candidate_last_name", "lastname": "candidate_last_name", "surname": "candidate_last_name", "Surname": "candidate_last_name",
       "job_title": "job_title", "job title": "job_title", "Job Title": "job_title",
       "role": "job_title", "Role": "job_title", "position": "job_title", "Position": "job_title",
       "client": "client_company", "Client": "client_company",
@@ -1109,6 +1113,7 @@ export interface ApplicationImportResult extends ImportResult {
   candidatesCreated: number;
   jobsCreated: number;
   importedIds: string[];
+  unmatchedCandidates: number;
 }
 
 function parseDateLoose(s: string | null | undefined): string | null {
@@ -1138,7 +1143,7 @@ export async function runApplicationsImport(
 ): Promise<ApplicationImportResult> {
   const res: ApplicationImportResult = {
     imported: 0, skipped: 0, updated: 0, skippedMissingData: 0, errors: [], nameReviewItems: [],
-    candidatesCreated: 0, jobsCreated: 0, importedIds: [],
+    candidatesCreated: 0, jobsCreated: 0, importedIds: [], unmatchedCandidates: 0,
   };
 
   const { data: { user } } = await supabase.auth.getUser();
@@ -1182,6 +1187,8 @@ export async function runApplicationsImport(
   };
   const idxEmail = colIdx("candidate_email");
   const idxCandName = colIdx("candidate_name");
+  const idxFirst = colIdx("candidate_first_name");
+  const idxLast = colIdx("candidate_last_name");
   const idxJob = colIdx("job_title");
   const idxClient = colIdx("client_company");
   const idxStage = colIdx("stage");
@@ -1194,7 +1201,11 @@ export async function runApplicationsImport(
     const get = (idx: number) => (idx >= 0 ? (row[idx] || "").trim() : "");
 
     const email = get(idxEmail).toLowerCase();
-    const candName = get(idxCandName);
+    const fullNameCol = get(idxCandName);
+    const firstCol = get(idxFirst);
+    const lastCol = get(idxLast);
+    const combinedFromSplit = [firstCol, lastCol].filter(Boolean).join(" ").trim();
+    const candName = fullNameCol || combinedFromSplit;
     const jobTitle = get(idxJob);
     const clientName = get(idxClient);
     const stageRaw = get(idxStage);
@@ -1213,25 +1224,32 @@ export async function runApplicationsImport(
       continue;
     }
     if (!email && !candName) {
-      res.errors.push({ row: i + 2, reason: "Need candidate email or name", data: {} });
+      res.errors.push({ row: i + 2, reason: "Need candidate email, name, or first+last name", data: {} });
       res.skipped++;
       continue;
     }
 
-    // 1. Resolve candidate
+    // 1. Resolve candidate — email → full name → split first+last
     let candidateId: string | null = null;
     if (email && candByEmail[email]) candidateId = candByEmail[email];
     else if (candName && candByName[candName.toLowerCase()]) candidateId = candByName[candName.toLowerCase()];
+    else if (combinedFromSplit && candByName[combinedFromSplit.toLowerCase()]) candidateId = candByName[combinedFromSplit.toLowerCase()];
 
     if (!candidateId) {
       if (options.missingCandidateAction === "skip") {
-        res.errors.push({ row: i + 2, reason: `Candidate not found: ${email || candName}`, data: { email, candName } });
+        res.unmatchedCandidates++;
+        res.errors.push({ row: i + 2, reason: `Candidate not matched: ${email || candName}`, data: { email, candName } });
         res.skipped++;
         continue;
       }
-      // create basic
-      const { first, last } = splitFullName(candName || email.split("@")[0] || "Unknown");
-      const fullName = candName || [first, last].filter(Boolean).join(" ") || (email || "Unknown");
+      // create basic — prefer split first/last from CSV if present
+      let first = firstCol;
+      let last = lastCol;
+      if (!first && !last) {
+        const split = splitFullName(candName || email.split("@")[0] || "Unknown");
+        first = split.first; last = split.last;
+      }
+      const fullName = fullNameCol || [first, last].filter(Boolean).join(" ") || (email || "Unknown");
       const { data: newCand, error: ce } = await supabase
         .from("candidates")
         .insert({
