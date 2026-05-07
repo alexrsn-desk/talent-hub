@@ -69,7 +69,9 @@ export const CONTACT_FIELDS: FieldDef[] = [
 // Applications / submissions: link a candidate to a job at a stage
 export const APPLICATION_FIELDS: FieldDef[] = [
   { key: "candidate_email", label: "Candidate Email", required: false },
-  { key: "candidate_name", label: "Candidate Name", required: false },
+  { key: "candidate_name", label: "Candidate Name (full)", required: false },
+  { key: "candidate_first_name", label: "Candidate First Name", required: false },
+  { key: "candidate_last_name", label: "Candidate Last Name", required: false },
   { key: "job_title", label: "Job Title", required: true },
   { key: "client_company", label: "Client / Company", required: true },
   { key: "stage", label: "Stage", required: true },
