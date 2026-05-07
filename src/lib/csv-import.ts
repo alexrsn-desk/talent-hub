@@ -66,11 +66,23 @@ export const CONTACT_FIELDS: FieldDef[] = [
   { key: "_notes", label: "Notes (import as note)", required: false },
 ];
 
+// Applications / submissions: link a candidate to a job at a stage
+export const APPLICATION_FIELDS: FieldDef[] = [
+  { key: "candidate_email", label: "Candidate Email", required: false },
+  { key: "candidate_name", label: "Candidate Name", required: false },
+  { key: "job_title", label: "Job Title", required: true },
+  { key: "client_company", label: "Client / Company", required: true },
+  { key: "stage", label: "Stage", required: true },
+  { key: "submitted_date", label: "Date Submitted", required: false },
+  { key: "outcome_notes", label: "Outcome Notes", required: false },
+];
+
 export const FIELD_MAP: Record<RecordType, FieldDef[]> = {
   candidates: CANDIDATE_FIELDS,
   clients: CLIENT_FIELDS,
   jobs: JOB_FIELDS,
   contacts: CONTACT_FIELDS,
+  applications: APPLICATION_FIELDS,
 };
 
 // ── Platform definitions ──────────────────────────────────────────
