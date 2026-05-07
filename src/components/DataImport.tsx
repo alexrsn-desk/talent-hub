@@ -126,9 +126,37 @@ export function DataImport() {
 
   const mappedFieldCount = Object.values(mapping).filter(v => v && v !== "_skip").length;
 
+  // Applications-specific options
+  const [appMissingCandidate, setAppMissingCandidate] = useState<"skip" | "create">("create");
+  const [appMissingJob, setAppMissingJob] = useState<"skip" | "create_closed">("create_closed");
+
   const runImport = async () => {
     setStep("importing");
     try {
+      if (recordType === "applications") {
+        const res = await runApplicationsImport(rows, headers, mapping, {
+          missingCandidateAction: appMissingCandidate,
+          missingJobAction: appMissingJob,
+        });
+        // Adapt to ImportResult shape used by results UI
+        setResult({
+          imported: res.imported, skipped: res.skipped, updated: 0,
+          errors: res.errors, nameReviewItems: [],
+        } as any);
+        setUnmatchedJobs([]);
+        setUnlinkedContacts([]);
+        setNewClientsCreated(res.jobsCreated);
+        setAutoLinkedContacts(res.candidatesCreated);
+        setConfirmedLinkedContacts(0);
+        setNameReviewItems([]);
+        const platformLabel = selectedPlatform?.label || "CSV";
+        await saveImportHistory(platformLabel, recordType, {
+          imported: res.imported, skipped: res.skipped, updated: 0,
+          errors: res.errors, nameReviewItems: [],
+        }, res.importedIds);
+        setStep("results");
+        return;
+      }
       const res = await runImportForType(
         recordType, rows, headers, mapping, duplicateAction,
         undefined, platform || undefined, archiveOption, contactUnlinkedAction,
