@@ -637,6 +637,9 @@ export function DataImport() {
                 </div>
               </>
             )}
+
+            <div className="flex gap-2 pt-2">
+              <Button variant="outline" size="sm" onClick={() => setStep(selectedPlatform?.autoMap ? "upload" : "mapping")}>
                 <ArrowLeft className="h-4 w-4 mr-1" /> Back
               </Button>
               <Button
