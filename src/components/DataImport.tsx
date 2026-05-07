@@ -617,8 +617,26 @@ export function DataImport() {
               </div>
             )}
 
-            <div className="flex gap-2 pt-2">
-              <Button variant="outline" size="sm" onClick={() => setStep(selectedPlatform?.autoMap ? "upload" : "mapping")}>
+            {/* Applications options */}
+            {recordType === "applications" && (
+              <>
+                <div className="space-y-2 pt-2 border-t border-border">
+                  <p className="text-xs font-medium">If a candidate isn't found:</p>
+                  <div className="flex gap-2">
+                    <Button variant={appMissingCandidate === "create" ? "default" : "outline"} size="sm" onClick={() => setAppMissingCandidate("create")}>Create basic record</Button>
+                    <Button variant={appMissingCandidate === "skip" ? "default" : "outline"} size="sm" onClick={() => setAppMissingCandidate("skip")}>Skip row</Button>
+                  </div>
+                </div>
+                <div className="space-y-2 pt-2 border-t border-border">
+                  <p className="text-xs font-medium">If a job isn't found:</p>
+                  <div className="flex gap-2">
+                    <Button variant={appMissingJob === "create_closed" ? "default" : "outline"} size="sm" onClick={() => setAppMissingJob("create_closed")}>Create as Closed job</Button>
+                    <Button variant={appMissingJob === "skip" ? "default" : "outline"} size="sm" onClick={() => setAppMissingJob("skip")}>Skip row</Button>
+                  </div>
+                  <p className="text-[11px] text-muted-foreground">Stages map automatically (e.g. "Sent to client" → Submitted, "1st Interview" → First Interview).</p>
+                </div>
+              </>
+            )}
                 <ArrowLeft className="h-4 w-4 mr-1" /> Back
               </Button>
               <Button
