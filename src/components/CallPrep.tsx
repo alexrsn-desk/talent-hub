@@ -11,6 +11,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useFeatureLimit, useLogUsage } from "@/hooks/use-usage";
 import { FeatureLockButton } from "@/components/UsageLimitGuard";
 import { IntakeCallCompanion } from "@/components/IntakeCallCompanion";
+import { CallNotesPad } from "@/components/CallNotesPad";
 
 interface Phase {
   number: number;
