@@ -700,6 +700,19 @@ export async function runImportForType(
     const notesContent = record._notes_content;
     delete record._notes_content;
 
+    // Candidates: hard-skip rows missing essentials (name AND contact method)
+    if (recordType === "candidates") {
+      const fullName = (record.name || "").trim();
+      const firstName = (record.first_name || "").trim();
+      const lastName = (record.last_name || "").trim();
+      const hasName = !!(firstName || lastName || fullName);
+      const hasContact = !!((record.email || "").trim() || (record.phone || "").trim());
+      if (!hasName || !hasContact) {
+        res.skippedMissingData++;
+        continue;
+      }
+    }
+
     const namePresent = record.first_name || record.name;
     const missingFields = fields.filter(f => {
       if (f.key === "first_name" && (hasFullnameMapping || namePresent)) return false;
