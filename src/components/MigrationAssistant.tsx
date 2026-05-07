@@ -436,6 +436,8 @@ export function MigrationAssistant({ initialUnmatchedJobs, onComplete, showLater
     const results = await tidyAllNotes();
     await confirmAllNotes(results);
   };
+
+  const confirmAssignment = async () => {
     if (!currentItem) return;
     const c = currentItem as UnlinkedCandidate;
     setProcessing(true);
