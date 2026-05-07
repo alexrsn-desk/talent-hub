@@ -1,7 +1,7 @@
 import { supabase } from "@/integrations/supabase/client";
 
 // ── Field definitions ─────────────────────────────────────────────
-export type RecordType = "candidates" | "clients" | "jobs" | "contacts";
+export type RecordType = "candidates" | "clients" | "jobs" | "contacts" | "applications";
 
 export interface FieldDef {
   key: string;
