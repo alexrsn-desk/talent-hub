@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -6,10 +6,11 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { ChevronDown, ChevronRight, Loader2, FileText, AlertTriangle, CheckCircle2, X } from "lucide-react";
+import { ChevronDown, ChevronRight, Loader2, FileText, AlertTriangle, CheckCircle2, X, ClipboardList, Sparkles } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useFeatureLimit, useLogUsage } from "@/hooks/use-usage";
 import { FeatureLockButton } from "@/components/UsageLimitGuard";
+import { IntakeCallCompanion } from "@/components/IntakeCallCompanion";
 
 interface Phase {
   number: number;
