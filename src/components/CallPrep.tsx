@@ -180,24 +180,29 @@ function CallPrepDialog({ entityType, entityId, entityName, open, onOpenChange }
         )}
 
         {!loading && !showSummary && phases.length > 0 && (
-          <div className="space-y-3">
-            <div className="flex items-center justify-between text-sm text-muted-foreground">
-              <span>{coveredCount}/{totalQuestions} questions covered</span>
-              <Button size="sm" variant="outline" onClick={handleEndCall}>
-                End Call — Show Summary
-              </Button>
-            </div>
+          <div className="grid grid-cols-1 md:grid-cols-[55fr_45fr] gap-4">
+            <div className="space-y-3 min-w-0">
+              <div className="flex items-center justify-between text-sm text-muted-foreground">
+                <span>{coveredCount}/{totalQuestions} questions covered</span>
+                <Button size="sm" variant="outline" onClick={handleEndCall}>
+                  End Call — Show Summary
+                </Button>
+              </div>
 
-            {phases.map((phase) => (
-              <PhaseSection
-                key={phase.number}
-                phase={phase}
-                expanded={!!expandedPhases[phase.number]}
-                onToggle={() => togglePhase(phase.number)}
-                checked={checked}
-                onToggleQuestion={toggleQuestion}
-              />
-            ))}
+              {phases.map((phase) => (
+                <PhaseSection
+                  key={phase.number}
+                  phase={phase}
+                  expanded={!!expandedPhases[phase.number]}
+                  onToggle={() => togglePhase(phase.number)}
+                  checked={checked}
+                  onToggleQuestion={toggleQuestion}
+                />
+              ))}
+            </div>
+            <div className="border-t md:border-t-0 md:border-l border-border md:pl-4 pt-4 md:pt-0">
+              <CallNotesPad entityType={entityType} entityId={entityId} />
+            </div>
           </div>
         )}
 
