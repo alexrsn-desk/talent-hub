@@ -930,6 +930,12 @@ Global Inc,Sarah,Jones,sarah@global.com,02087654321,,Finance`;
 Alice,Brown,Head of Talent,Acme Corp,alice@acme.com,alice.b@gmail.com,02012345678,07700900100,https://linkedin.com/in/alicebrown,London,Active
 David,Lee,VP Engineering,Global Inc,david@global.com,,02087654321,07700900200,,Remote,Active`;
   }
+  if (type === "applications") {
+    return `Candidate Email,Candidate Name,Job Title,Client Company,Stage,Date Submitted,Outcome Notes
+john@example.com,John Smith,Senior Developer,Acme Corp,Submitted,2025-03-12,Awaiting client feedback
+jane@example.com,Jane Doe,Product Manager,Global Inc,First Interview,2025-03-14,Strong technical fit
+,Mark Brown,DevOps Lead,Acme Corp,Placed,2025-02-01,Started 1st March`;
+  }
   return `Job Title,Client Company,Location,Salary Min,Salary Max,Job Type,Status,Date Opened,Fee %
 Senior Developer,Acme Corp,London,70000,90000,Perm,Open,2025-01-15,20
 Project Manager,Global Inc,Remote,55000,65000,Contract,Open,2025-02-01,15`;
