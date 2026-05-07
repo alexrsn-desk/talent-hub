@@ -495,6 +495,7 @@ export interface ImportResult {
   imported: number;
   skipped: number;
   updated: number;
+  skippedMissingData: number;
   errors: ImportError[];
   nameReviewItems: NameReviewItem[];
 }
