@@ -1187,6 +1187,8 @@ export async function runApplicationsImport(
   };
   const idxEmail = colIdx("candidate_email");
   const idxCandName = colIdx("candidate_name");
+  const idxFirst = colIdx("candidate_first_name");
+  const idxLast = colIdx("candidate_last_name");
   const idxJob = colIdx("job_title");
   const idxClient = colIdx("client_company");
   const idxStage = colIdx("stage");
@@ -1199,7 +1201,11 @@ export async function runApplicationsImport(
     const get = (idx: number) => (idx >= 0 ? (row[idx] || "").trim() : "");
 
     const email = get(idxEmail).toLowerCase();
-    const candName = get(idxCandName);
+    const fullNameCol = get(idxCandName);
+    const firstCol = get(idxFirst);
+    const lastCol = get(idxLast);
+    const combinedFromSplit = [firstCol, lastCol].filter(Boolean).join(" ").trim();
+    const candName = fullNameCol || combinedFromSplit;
     const jobTitle = get(idxJob);
     const clientName = get(idxClient);
     const stageRaw = get(idxStage);
@@ -1218,19 +1224,21 @@ export async function runApplicationsImport(
       continue;
     }
     if (!email && !candName) {
-      res.errors.push({ row: i + 2, reason: "Need candidate email or name", data: {} });
+      res.errors.push({ row: i + 2, reason: "Need candidate email, name, or first+last name", data: {} });
       res.skipped++;
       continue;
     }
 
-    // 1. Resolve candidate
+    // 1. Resolve candidate — email → full name → split first+last
     let candidateId: string | null = null;
     if (email && candByEmail[email]) candidateId = candByEmail[email];
     else if (candName && candByName[candName.toLowerCase()]) candidateId = candByName[candName.toLowerCase()];
+    else if (combinedFromSplit && candByName[combinedFromSplit.toLowerCase()]) candidateId = candByName[combinedFromSplit.toLowerCase()];
 
     if (!candidateId) {
       if (options.missingCandidateAction === "skip") {
-        res.errors.push({ row: i + 2, reason: `Candidate not found: ${email || candName}`, data: { email, candName } });
+        res.unmatchedCandidates++;
+        res.errors.push({ row: i + 2, reason: `Candidate not matched: ${email || candName}`, data: { email, candName } });
         res.skipped++;
         continue;
       }
