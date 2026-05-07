@@ -38,10 +38,10 @@ interface TypeResults {
 export function OnboardingImport({ onComplete }: { onComplete: () => void }) {
   const [step, setStep] = useState<Step>("choice");
   const [enabledTypes, setEnabledTypes] = useState<Record<RecordType, boolean>>({
-    candidates: true, clients: true, jobs: true, contacts: false,
+    candidates: true, clients: true, jobs: true, contacts: false, applications: false,
   });
   const [files, setFiles] = useState<Record<RecordType, FileData | null>>({
-    candidates: null, clients: null, jobs: null, contacts: null,
+    candidates: null, clients: null, jobs: null, contacts: null, applications: null,
   });
   const [activeType, setActiveType] = useState<RecordType>("candidates");
   const [results, setResults] = useState<TypeResults>({});
