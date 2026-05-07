@@ -151,7 +151,7 @@ export function DataImport() {
         setNameReviewItems([]);
         const platformLabel = selectedPlatform?.label || "CSV";
         await saveImportHistory(platformLabel, recordType, {
-          imported: res.imported, skipped: res.skipped, updated: 0,
+          imported: res.imported, skipped: res.skipped, updated: 0, skippedMissingData: 0,
           errors: res.errors, nameReviewItems: [],
         }, res.importedIds);
         setStep("results");
