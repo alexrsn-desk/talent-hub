@@ -16,6 +16,7 @@ import {
   downloadErrorReport as dlErrors, ImportResult,
   saveImportHistory, getImportHistory, undoLastImport,
   previewContactCompanyMatches, CompanyMatchPreview, CompanyMatchRow, CompanyDecisions,
+  runApplicationsImport, ApplicationImportOptions, PIPELINE_STAGE_VALUES,
 } from "@/lib/csv-import";
 import { PostImportChecklist } from "@/components/PostImportChecklist";
 
@@ -125,9 +126,37 @@ export function DataImport() {
 
   const mappedFieldCount = Object.values(mapping).filter(v => v && v !== "_skip").length;
 
+  // Applications-specific options
+  const [appMissingCandidate, setAppMissingCandidate] = useState<"skip" | "create">("create");
+  const [appMissingJob, setAppMissingJob] = useState<"skip" | "create_closed">("create_closed");
+
   const runImport = async () => {
     setStep("importing");
     try {
+      if (recordType === "applications") {
+        const res = await runApplicationsImport(rows, headers, mapping, {
+          missingCandidateAction: appMissingCandidate,
+          missingJobAction: appMissingJob,
+        });
+        // Adapt to ImportResult shape used by results UI
+        setResult({
+          imported: res.imported, skipped: res.skipped, updated: 0,
+          errors: res.errors, nameReviewItems: [],
+        } as any);
+        setUnmatchedJobs([]);
+        setUnlinkedContacts([]);
+        setNewClientsCreated(res.jobsCreated);
+        setAutoLinkedContacts(res.candidatesCreated);
+        setConfirmedLinkedContacts(0);
+        setNameReviewItems([]);
+        const platformLabel = selectedPlatform?.label || "CSV";
+        await saveImportHistory(platformLabel, recordType, {
+          imported: res.imported, skipped: res.skipped, updated: 0,
+          errors: res.errors, nameReviewItems: [],
+        }, res.importedIds);
+        setStep("results");
+        return;
+      }
       const res = await runImportForType(
         recordType, rows, headers, mapping, duplicateAction,
         undefined, platform || undefined, archiveOption, contactUnlinkedAction,
@@ -273,12 +302,13 @@ export function DataImport() {
       {/* Step 1: Select record type */}
       {step === "select" && (
         <>
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
             {([
               { type: "candidates" as const, icon: Users, label: "Candidates", desc: "Name, email, skills, salary…" },
               { type: "clients" as const, icon: Building2, label: "Companies", desc: "Company, contact, sector…" },
               { type: "contacts" as const, icon: UserCircle2, label: "Contacts", desc: "People at companies…" },
               { type: "jobs" as const, icon: Briefcase, label: "Jobs", desc: "Title, salary, type, fee…" },
+              { type: "applications" as const, icon: Database, label: "Applications", desc: "Candidate → Job at stage" },
             ]).map(({ type, icon: Icon, label, desc }) => (
               <Card
                 key={type}
@@ -293,6 +323,14 @@ export function DataImport() {
               </Card>
             ))}
           </div>
+          {recordType === "applications" && (
+            <div className="flex items-start gap-2 text-xs bg-muted border border-border rounded-lg p-3">
+              <Info className="h-4 w-4 shrink-0 mt-0.5 text-primary" />
+              <span className="text-foreground">
+                <strong>Import companies, candidates and jobs first</strong> for best matching. Missing candidates and closed jobs can be auto-created so historical submissions are preserved. <a href="#" onClick={(e) => { e.preventDefault(); import("@/lib/csv-import").then(m => m.downloadExampleCSV("applications")); }} className="text-primary underline">Download template</a>
+              </span>
+            </div>
+          )}
           {recordType === "contacts" && (
             <div className="flex items-start gap-2 text-xs bg-muted border border-border rounded-lg p-3">
               <Info className="h-4 w-4 shrink-0 mt-0.5 text-primary" />
@@ -577,6 +615,27 @@ export function DataImport() {
                   ))}
                 </div>
               </div>
+            )}
+
+            {/* Applications options */}
+            {recordType === "applications" && (
+              <>
+                <div className="space-y-2 pt-2 border-t border-border">
+                  <p className="text-xs font-medium">If a candidate isn't found:</p>
+                  <div className="flex gap-2">
+                    <Button variant={appMissingCandidate === "create" ? "default" : "outline"} size="sm" onClick={() => setAppMissingCandidate("create")}>Create basic record</Button>
+                    <Button variant={appMissingCandidate === "skip" ? "default" : "outline"} size="sm" onClick={() => setAppMissingCandidate("skip")}>Skip row</Button>
+                  </div>
+                </div>
+                <div className="space-y-2 pt-2 border-t border-border">
+                  <p className="text-xs font-medium">If a job isn't found:</p>
+                  <div className="flex gap-2">
+                    <Button variant={appMissingJob === "create_closed" ? "default" : "outline"} size="sm" onClick={() => setAppMissingJob("create_closed")}>Create as Closed job</Button>
+                    <Button variant={appMissingJob === "skip" ? "default" : "outline"} size="sm" onClick={() => setAppMissingJob("skip")}>Skip row</Button>
+                  </div>
+                  <p className="text-[11px] text-muted-foreground">Stages map automatically (e.g. "Sent to client" → Submitted, "1st Interview" → First Interview).</p>
+                </div>
+              </>
             )}
 
             <div className="flex gap-2 pt-2">
