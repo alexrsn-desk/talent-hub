@@ -322,6 +322,7 @@ export default function SettingsPage() {
             <TidyUp />
           </TabsContent>
         </Tabs>
+        <DangerZoneSection />
       </div>
 
       {/* Migration Assistant */}
