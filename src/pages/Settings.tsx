@@ -20,6 +20,7 @@ import { TeamSection } from "@/components/TeamSection";
 import { JoinTeamButton } from "@/components/JoinTeamButton";
 import { DecaySettingsSection } from "@/components/DecaySettingsSection";
 import { ComplianceSection } from "@/components/ComplianceSection";
+import { DangerZoneSection } from "@/components/DangerZoneSection";
 
 const NICHES = [
   "Tech/Digital", "Sales/Commercial", "Finance", "Legal",
