@@ -209,6 +209,14 @@ export const BUILT_IN_TEMPLATES: MappingTemplate[] = [
       "source": "source", "company_name": "company_name",
       "sector": "sector", "industry": "sector",
       "notes": "_notes", "comments": "_notes",
+      // Applications
+      "candidate email": "candidate_email", "email": "candidate_email",
+      "candidate name": "candidate_name", "applicant": "candidate_name",
+      "job title": "job_title", "role": "job_title", "position": "job_title",
+      "client": "client_company", "client company": "client_company", "company": "client_company",
+      "stage": "stage", "status": "stage", "pipeline stage": "stage",
+      "date submitted": "submitted_date", "submission date": "submitted_date", "submitted": "submitted_date",
+      "outcome": "outcome_notes", "outcome notes": "outcome_notes",
     },
   },
 ];
