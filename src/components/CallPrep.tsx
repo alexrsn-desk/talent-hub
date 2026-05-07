@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -6,10 +6,11 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { ChevronDown, ChevronRight, Loader2, FileText, AlertTriangle, CheckCircle2, X } from "lucide-react";
+import { ChevronDown, ChevronRight, Loader2, FileText, AlertTriangle, CheckCircle2, X, ClipboardList, Sparkles } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useFeatureLimit, useLogUsage } from "@/hooks/use-usage";
 import { FeatureLockButton } from "@/components/UsageLimitGuard";
+import { IntakeCallCompanion } from "@/components/IntakeCallCompanion";
 
 interface Phase {
   number: number;
@@ -55,9 +56,28 @@ function CallPrepDialog({ entityType, entityId, entityName, open, onOpenChange }
   const [checked, setChecked] = useState<Record<string, boolean>>({});
   const [expandedPhases, setExpandedPhases] = useState<Record<number, boolean>>({});
   const [showSummary, setShowSummary] = useState(false);
+  const [intakeJob, setIntakeJob] = useState<{ id: string; title: string; intake_summary: string | null; intake_captured_at: string | null } | null>(null);
+  const [intakeOpen, setIntakeOpen] = useState(false);
   const { toast } = useToast();
   const callSummaryLimit = useFeatureLimit("call_summary");
   const logUsage = useLogUsage();
+
+  // For client calls, look up an open job to surface intake companion / summary
+  useEffect(() => {
+    if (!open || entityType !== "client") { setIntakeJob(null); return; }
+    (async () => {
+      const { data } = await supabase
+        .from("jobs")
+        .select("id, title, intake_summary, intake_captured_at")
+        .eq("client_id", entityId)
+        .eq("status", "Open")
+        .order("date_opened", { ascending: false })
+        .limit(1);
+      const j = (data || [])[0];
+      if (j) setIntakeJob(j as any);
+    })();
+  }, [open, entityType, entityId]);
+
 
   const loadPrep = async () => {
     if (!callSummaryLimit.canUse) {
@@ -122,6 +142,34 @@ function CallPrepDialog({ entityType, entityId, entityName, open, onOpenChange }
             Call Prep — {entityName}
           </DialogTitle>
         </DialogHeader>
+
+        {intakeJob && !intakeJob.intake_captured_at && (
+          <div className="rounded-md border border-primary/30 bg-primary/5 p-3 space-y-2">
+            <p className="text-sm font-medium flex items-center gap-1.5">
+              <ClipboardList className="h-4 w-4 text-primary" /> This is an intake call — here are your questions
+            </p>
+            <p className="text-xs text-muted-foreground">
+              Open job <span className="text-foreground font-medium">{intakeJob.title}</span> has no intake notes yet.
+            </p>
+            <Button size="sm" onClick={() => setIntakeOpen(true)}>Open Intake Companion</Button>
+          </div>
+        )}
+        {intakeJob && intakeJob.intake_captured_at && intakeJob.intake_summary && (
+          <div className="rounded-md border border-border bg-muted/30 p-3 space-y-1">
+            <p className="text-sm font-medium flex items-center gap-1.5">
+              <Sparkles className="h-4 w-4 text-primary" /> Intake already captured — here is what you know
+            </p>
+            <p className="text-xs text-muted-foreground whitespace-pre-wrap">{intakeJob.intake_summary}</p>
+          </div>
+        )}
+        {intakeJob && (
+          <IntakeCallCompanion
+            jobId={intakeJob.id}
+            jobTitle={intakeJob.title}
+            open={intakeOpen}
+            onOpenChange={setIntakeOpen}
+          />
+        )}
 
         {loading && (
           <div className="flex flex-col items-center justify-center py-12 gap-3">

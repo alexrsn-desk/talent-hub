@@ -16,6 +16,7 @@ import { CandidateMatching } from "@/components/CandidateMatching";
 import { usePlacementScores, usePlacementScoreFor } from "@/hooks/use-placement-scores";
 import { PlacementScoreBadge } from "@/components/PlacementScoreBadge";
 import { PlacementScorePanel } from "@/components/PlacementScorePanel";
+import { IntakeCallCompanionButton } from "@/components/IntakeCallCompanion";
 
 const JOB_STATUSES = ["Open", "On Hold", "Filled", "Cancelled"] as const;
 const JOB_TYPES = ["Perm", "Contract"] as const;
@@ -210,6 +211,7 @@ export function JobFullView({ job, onBack, onUpdate, onDelete, backLabel }: {
           </p>
         </div>
         <Badge variant="secondary" className={statusColor[job.status]}>{job.status}</Badge>
+        <IntakeCallCompanionButton jobId={job.id} jobTitle={job.title} />
         <Button variant="ghost" size="icon" onClick={onDelete}>
           <Trash2 className="h-4 w-4 text-destructive" />
         </Button>

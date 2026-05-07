@@ -1236,6 +1236,9 @@ export type Database = {
           fee_value: number | null
           id: string
           incomplete_profile: boolean
+          intake_captured_at: string | null
+          intake_notes: Json | null
+          intake_summary: string | null
           job_type: string
           location: string | null
           owner_user_id: string | null
@@ -1253,6 +1256,9 @@ export type Database = {
           fee_value?: number | null
           id?: string
           incomplete_profile?: boolean
+          intake_captured_at?: string | null
+          intake_notes?: Json | null
+          intake_summary?: string | null
           job_type?: string
           location?: string | null
           owner_user_id?: string | null
@@ -1270,6 +1276,9 @@ export type Database = {
           fee_value?: number | null
           id?: string
           incomplete_profile?: boolean
+          intake_captured_at?: string | null
+          intake_notes?: Json | null
+          intake_summary?: string | null
           job_type?: string
           location?: string | null
           owner_user_id?: string | null
