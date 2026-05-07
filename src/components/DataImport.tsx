@@ -949,6 +949,11 @@ export function DataImport() {
                 <div className="text-xs text-muted-foreground">Skipped</div>
               </div>
             </div>
+            {result.skippedMissingData > 0 && (
+              <div className="rounded-lg border border-border bg-muted/30 p-3 text-sm">
+                <strong>{result.skippedMissingData}</strong> row{result.skippedMissingData === 1 ? "" : "s"} skipped due to missing data (no name, or no email/phone)
+              </div>
+            )}
 
             {recordType === "contacts" && (autoLinkedContacts > 0 || confirmedLinkedContacts > 0 || newClientsCreated > 0 || unlinkedContacts.length > 0) && (
               <div className="rounded-lg border border-border bg-muted/30 p-3 space-y-1.5 text-sm">
