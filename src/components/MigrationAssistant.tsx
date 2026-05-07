@@ -362,7 +362,80 @@ export function MigrationAssistant({ initialUnmatchedJobs, onComplete, showLater
     setTidying(false);
   };
 
-  const confirmAssignment = async () => {
+  // ── Bulk note actions ────────────────────────────────────────────
+  const tidyAllNotes = async (): Promise<Record<string, string>> => {
+    const list = candidatesWithNotes;
+    if (list.length === 0) return {};
+    setBulkTidying(true);
+    setBulkProgress({ done: 0, total: list.length, label: "Tidying notes" });
+    const results: Record<string, string> = { ...tidiedMap };
+    for (let i = 0; i < list.length; i++) {
+      const c = list[i];
+      const original = c.notes.map(n => n.content).join("\n\n---\n\n");
+      if (results[c.id]) {
+        setBulkProgress({ done: i + 1, total: list.length, label: "Tidying notes" });
+        continue;
+      }
+      try {
+        const { data, error } = await supabase.functions.invoke("tidy-notes", {
+          body: { notes: original, candidateName: c.name },
+        });
+        if (!error && data?.tidied) {
+          results[c.id] = data.tidied;
+        } else {
+          results[c.id] = original;
+        }
+      } catch {
+        results[c.id] = original;
+      }
+      setTidiedMap({ ...results });
+      setBulkProgress({ done: i + 1, total: list.length, label: "Tidying notes" });
+    }
+    setBulkTidying(false);
+    return results;
+  };
+
+  const confirmAllNotes = async (overrides?: Record<string, string>) => {
+    const list = candidatesWithNotes;
+    if (list.length === 0) return;
+    setBulkConfirming(true);
+    setBulkProgress({ done: 0, total: list.length, label: "Importing notes" });
+    const { data: { user } } = await supabase.auth.getUser();
+    const map = overrides ?? tidiedMap;
+    for (let i = 0; i < list.length; i++) {
+      const c = list[i];
+      const original = c.notes.map(n => n.content).join("\n\n---\n\n");
+      const finalContent = (map[c.id] ?? original).trim();
+      try {
+        for (const n of c.notes) {
+          await supabase.from("notes").delete().eq("id", n.id);
+        }
+        if (finalContent) {
+          await supabase.from("notes").insert({
+            candidate_id: c.id,
+            content: finalContent,
+            activity_type: "Note",
+            owner_user_id: user?.id,
+          } as any);
+        }
+      } catch (e: any) {
+        console.error("confirmAllNotes error", e);
+      }
+      setBulkProgress({ done: i + 1, total: list.length, label: "Importing notes" });
+    }
+    setCandidatesWithNotes([]);
+    setTidiedMap({});
+    setBulkConfirming(false);
+    toast.success(`Imported ${list.length} note${list.length > 1 ? "s" : ""}`);
+    const next = queues.find(q => q.key !== "notes" && q.items.length > 0);
+    if (next) { setActiveQueue(next.key); setCurrentIndex(0); }
+    resetItemState();
+  };
+
+  const tidyAndConfirmAll = async () => {
+    const results = await tidyAllNotes();
+    await confirmAllNotes(results);
+  };
     if (!currentItem) return;
     const c = currentItem as UnlinkedCandidate;
     setProcessing(true);
