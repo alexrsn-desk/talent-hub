@@ -143,6 +143,34 @@ function CallPrepDialog({ entityType, entityId, entityName, open, onOpenChange }
           </DialogTitle>
         </DialogHeader>
 
+        {intakeJob && !intakeJob.intake_captured_at && (
+          <div className="rounded-md border border-primary/30 bg-primary/5 p-3 space-y-2">
+            <p className="text-sm font-medium flex items-center gap-1.5">
+              <ClipboardList className="h-4 w-4 text-primary" /> This is an intake call — here are your questions
+            </p>
+            <p className="text-xs text-muted-foreground">
+              Open job <span className="text-foreground font-medium">{intakeJob.title}</span> has no intake notes yet.
+            </p>
+            <Button size="sm" onClick={() => setIntakeOpen(true)}>Open Intake Companion</Button>
+          </div>
+        )}
+        {intakeJob && intakeJob.intake_captured_at && intakeJob.intake_summary && (
+          <div className="rounded-md border border-border bg-muted/30 p-3 space-y-1">
+            <p className="text-sm font-medium flex items-center gap-1.5">
+              <Sparkles className="h-4 w-4 text-primary" /> Intake already captured — here is what you know
+            </p>
+            <p className="text-xs text-muted-foreground whitespace-pre-wrap">{intakeJob.intake_summary}</p>
+          </div>
+        )}
+        {intakeJob && (
+          <IntakeCallCompanion
+            jobId={intakeJob.id}
+            jobTitle={intakeJob.title}
+            open={intakeOpen}
+            onOpenChange={setIntakeOpen}
+          />
+        )}
+
         {loading && (
           <div className="flex flex-col items-center justify-center py-12 gap-3">
             <Loader2 className="h-6 w-6 animate-spin text-primary" />
