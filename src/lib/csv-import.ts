@@ -698,22 +698,33 @@ export async function runImportForType(
   for (let i = 0; i < rows.length; i++) {
     onProgress?.(i + 1, rows.length);
     const row = rows[i];
+
+    // Silently skip completely blank rows (common in exported CSVs)
+    if (!row || row.every(c => !c || !String(c).trim())) {
+      res.skippedMissingData++;
+      continue;
+    }
+
     const record = buildRecord(row, headers, mapping, platform);
 
     // Extract notes content before inserting
     const notesContent = record._notes_content;
     delete record._notes_content;
 
-    // Candidates: hard-skip rows missing essentials (name AND contact method)
-    if (recordType === "candidates") {
+    // Silent skip for rows missing essential identifiers — don't count as errors or attempts
+    {
       const fullName = (record.name || "").trim();
       const firstName = (record.first_name || "").trim();
       const lastName = (record.last_name || "").trim();
-      const hasName = !!(firstName || lastName || fullName);
-      const hasContact = !!((record.email || "").trim() || (record.phone || "").trim());
-      if (!hasName || !hasContact) {
-        res.skippedMissingData++;
-        continue;
+      const hasAnyName = !!(firstName || lastName || fullName);
+
+      if (recordType === "candidates") {
+        if (!hasAnyName) { res.skippedMissingData++; continue; }
+      } else if (recordType === "contacts") {
+        if (!hasAnyName) { res.skippedMissingData++; continue; }
+      } else if (recordType === "clients") {
+        const companyName = (record.company_name || "").trim();
+        if (!companyName) { res.skippedMissingData++; continue; }
       }
     }
 
@@ -1198,6 +1209,13 @@ export async function runApplicationsImport(
   for (let i = 0; i < rows.length; i++) {
     onProgress?.(i + 1, rows.length);
     const row = rows[i];
+
+    // Silently skip completely blank rows
+    if (!row || row.every(c => !c || !String(c).trim())) {
+      res.skippedMissingData++;
+      continue;
+    }
+
     const get = (idx: number) => (idx >= 0 ? (row[idx] || "").trim() : "");
 
     const email = get(idxEmail).toLowerCase();
@@ -1212,6 +1230,12 @@ export async function runApplicationsImport(
     const submittedDate = parseDateLoose(get(idxDate));
     const outcomeNotes = get(idxNotes);
 
+    // Silent skip — applications need at minimum a candidate identifier (name or email)
+    if (!email && !candName) {
+      res.skippedMissingData++;
+      continue;
+    }
+
     if (!jobTitle || !clientName || !stageRaw) {
       res.errors.push({ row: i + 2, reason: "Missing job title, client company, or stage", data: { jobTitle, clientName, stageRaw } });
       res.skipped++;
@@ -1220,11 +1244,6 @@ export async function runApplicationsImport(
     const stage = mapApplicationStage(stageRaw);
     if (!stage) {
       res.errors.push({ row: i + 2, reason: `Unknown stage "${stageRaw}"`, data: { stageRaw } });
-      res.skipped++;
-      continue;
-    }
-    if (!email && !candName) {
-      res.errors.push({ row: i + 2, reason: "Need candidate email, name, or first+last name", data: {} });
       res.skipped++;
       continue;
     }
