@@ -46,7 +46,9 @@ export default function ContactsPage() {
   const createNote = useCreateNote();
   const deleteContact = useDeleteContact();
   const [search, setSearch] = useState("");
-  const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [advFilters, setAdvFilters] = useState<ContactFilters>(EMPTY_CONTACT_FILTERS);
+  const [aiResults, setAiResults] = useState<{ id: string; reason: string }[] | null>(null);
+  const { data: aggregates } = useSearchAggregates();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [selectedContact, setSelectedContact] = useState<Contact | null>(null);
 
@@ -55,14 +57,42 @@ export default function ContactsPage() {
     return acc;
   }, {});
 
-  const filtered = contacts.filter((c) => {
-    const matchesSearch =
-      c.name.toLowerCase().includes(search.toLowerCase()) ||
-      (c.job_title || "").toLowerCase().includes(search.toLowerCase()) ||
-      (clientMap[c.client_id]?.company_name || "").toLowerCase().includes(search.toLowerCase());
-    const matchesStatus = statusFilter === "all" || c.status === statusFilter;
-    return matchesSearch && matchesStatus;
-  });
+  const searchableRecords: SearchableRecord[] = useMemo(() => contacts.map(c => {
+    const client = clientMap[c.client_id];
+    const meta = aggregates?.clientNoteMeta.get(c.client_id);
+    return {
+      id: c.id,
+      type: "contact" as const,
+      name: c.name,
+      job_title: c.job_title,
+      company: client?.company_name || null,
+      sector: client?.sector || null,
+      location: client?.location || null,
+      status: c.status,
+      last_contacted: meta?.last ?? null,
+      has_open_roles: aggregates?.clientsWithOpenRoles.has(c.client_id) ?? false,
+      notes_excerpt: meta?.excerpt ?? null,
+    };
+  }), [contacts, clientMap, aggregates]);
+
+  const reasonById = useMemo(() => {
+    if (!aiResults) return null;
+    const m = new Map<string, string>();
+    aiResults.forEach(r => m.set(r.id, r.reason));
+    return m;
+  }, [aiResults]);
+
+  const filtered = useMemo(() => {
+    if (aiResults) {
+      const order = new Map(aiResults.map((r, i) => [r.id, i]));
+      const byId = new Map(contacts.map(c => [c.id, c]));
+      return aiResults.map(r => byId.get(r.id)).filter((c): c is Contact => !!c)
+        .sort((a, b) => (order.get(a.id) ?? 0) - (order.get(b.id) ?? 0));
+    }
+    const matched = applyContactFilters(searchableRecords, search, advFilters);
+    const ids = new Set(matched.map(r => r.id));
+    return contacts.filter(c => ids.has(c.id));
+  }, [aiResults, searchableRecords, search, advFilters, contacts]);
 
   const handleCreate = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -157,19 +187,17 @@ export default function ContactsPage() {
         </Dialog>
       </div>
 
-      <div className="flex items-center gap-3">
-        <div className="relative flex-1 max-w-sm">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input placeholder="Search contacts..." className="pl-9" value={search} onChange={(e) => setSearch(e.target.value)} />
-        </div>
-        <Select value={statusFilter} onValueChange={setStatusFilter}>
-          <SelectTrigger className="w-40"><SelectValue /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Statuses</SelectItem>
-            {CONTACT_STATUSES.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
-          </SelectContent>
-        </Select>
-      </div>
+      <AdvancedSearchBar
+        scope="contact"
+        records={searchableRecords}
+        query={search}
+        onQueryChange={setSearch}
+        filters={advFilters}
+        onFiltersChange={setAdvFilters}
+        statusOptions={CONTACT_STATUSES as unknown as string[]}
+        aiResults={aiResults}
+        onAiResultsChange={setAiResults}
+      />
 
       {isLoading ? (
         <div className="text-muted-foreground text-sm">Loading...</div>
