@@ -26,6 +26,8 @@ import { ContactFullView } from "@/pages/Contacts";
 import { JobFullView } from "@/pages/Jobs";
 import { toast } from "sonner";
 import { EntityDecayAlert } from "@/components/EntityDecayAlert";
+import { CompanyIntelPanel } from "@/components/CompanyIntelPanel";
+import { BulkEnrichDialog } from "@/components/BulkEnrichDialog";
 
 const STATUSES = ["Active", "Warm", "Cold", "Target"] as const;
 const SECTORS = ["Tech", "Digital", "FinTech", "SaaS", "Other"] as const;
