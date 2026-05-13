@@ -218,7 +218,12 @@ export default function ContactsPage() {
                 <tr><td colSpan={5} className="px-4 py-8 text-center text-muted-foreground">No contacts found</td></tr>
               ) : filtered.map(c => (
                 <tr key={c.id} className="border-b border-border hover:bg-muted/20 cursor-pointer transition-colors" onClick={() => setSelectedContact(c)}>
-                  <td className="px-4 py-3 font-medium">{c.name}</td>
+                  <td className="px-4 py-3 font-medium">
+                    {c.name}
+                    {reasonById?.get(c.id) && (
+                      <p className="text-[10px] text-primary/90 mt-0.5 flex items-start gap-1"><Sparkles className="h-2.5 w-2.5 mt-0.5 shrink-0" /><span className="line-clamp-2">{reasonById.get(c.id)}</span></p>
+                    )}
+                  </td>
                   <td className="px-4 py-3 text-muted-foreground">{c.job_title || "—"}</td>
                   <td className="px-4 py-3 text-muted-foreground">{clientMap[c.client_id]?.company_name || "—"}</td>
                   <td className="px-4 py-3 text-muted-foreground">{c.email || "—"}</td>
