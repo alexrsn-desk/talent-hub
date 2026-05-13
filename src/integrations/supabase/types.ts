@@ -579,6 +579,98 @@ export type Database = {
         }
         Relationships: []
       }
+      company_intel: {
+        Row: {
+          client_id: string
+          created_at: string
+          current_job_postings: Json
+          description: string | null
+          employee_count: string | null
+          enrichment_source: string | null
+          funding_amount: string | null
+          funding_date: string | null
+          funding_lead_investors: string[] | null
+          funding_stage: string | null
+          headquarters: string | null
+          id: string
+          industry: string | null
+          last_enriched_at: string | null
+          last_valuation: string | null
+          linkedin_url: string | null
+          official_name: string | null
+          owner_user_id: string
+          recent_signals: Json
+          revenue_range: string | null
+          tech_stack: string[] | null
+          total_funding: string | null
+          updated_at: string
+          website: string | null
+          year_founded: number | null
+        }
+        Insert: {
+          client_id: string
+          created_at?: string
+          current_job_postings?: Json
+          description?: string | null
+          employee_count?: string | null
+          enrichment_source?: string | null
+          funding_amount?: string | null
+          funding_date?: string | null
+          funding_lead_investors?: string[] | null
+          funding_stage?: string | null
+          headquarters?: string | null
+          id?: string
+          industry?: string | null
+          last_enriched_at?: string | null
+          last_valuation?: string | null
+          linkedin_url?: string | null
+          official_name?: string | null
+          owner_user_id: string
+          recent_signals?: Json
+          revenue_range?: string | null
+          tech_stack?: string[] | null
+          total_funding?: string | null
+          updated_at?: string
+          website?: string | null
+          year_founded?: number | null
+        }
+        Update: {
+          client_id?: string
+          created_at?: string
+          current_job_postings?: Json
+          description?: string | null
+          employee_count?: string | null
+          enrichment_source?: string | null
+          funding_amount?: string | null
+          funding_date?: string | null
+          funding_lead_investors?: string[] | null
+          funding_stage?: string | null
+          headquarters?: string | null
+          id?: string
+          industry?: string | null
+          last_enriched_at?: string | null
+          last_valuation?: string | null
+          linkedin_url?: string | null
+          official_name?: string | null
+          owner_user_id?: string
+          recent_signals?: Json
+          revenue_range?: string | null
+          tech_stack?: string[] | null
+          total_funding?: string | null
+          updated_at?: string
+          website?: string | null
+          year_founded?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "company_intel_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: true
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       compliance_audits: {
         Row: {
           completed_at: string | null
@@ -918,6 +1010,38 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      enrichment_usage: {
+        Row: {
+          client_id: string | null
+          cost_pence: number
+          created_at: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          client_id?: string | null
+          cost_pence?: number
+          created_at?: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          client_id?: string | null
+          cost_pence?: number
+          created_at?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "enrichment_usage_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       import_history: {
         Row: {
@@ -1771,6 +1895,7 @@ export type Database = {
           brand_color: string | null
           created_at: string
           display_name: string | null
+          enrichment_budget_pence: number
           id: string
           ideal_candidate: string | null
           location_regional_detail: string | null
@@ -1792,6 +1917,7 @@ export type Database = {
           brand_color?: string | null
           created_at?: string
           display_name?: string | null
+          enrichment_budget_pence?: number
           id?: string
           ideal_candidate?: string | null
           location_regional_detail?: string | null
@@ -1813,6 +1939,7 @@ export type Database = {
           brand_color?: string | null
           created_at?: string
           display_name?: string | null
+          enrichment_budget_pence?: number
           id?: string
           ideal_candidate?: string | null
           location_regional_detail?: string | null
