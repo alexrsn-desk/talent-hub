@@ -36,7 +36,42 @@ export type CompanyIntel = {
   current_job_postings: JobPosting[];
   enrichment_source: string | null;
   last_enriched_at: string | null;
+  field_status: Record<string, "unconfirmed" | "confirmed" | "manual"> | null;
 };
+
+export const TRACKED_INTEL_FIELDS = [
+  "official_name","website","linkedin_url","headquarters","year_founded",
+  "employee_count","industry","description","funding_stage","funding_amount",
+  "funding_date","total_funding","last_valuation","revenue_range",
+] as const;
+export type TrackedIntelField = typeof TRACKED_INTEL_FIELDS[number];
+
+export function useUpdateIntelField() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (args: {
+      intelId: string;
+      clientId: string;
+      field: TrackedIntelField;
+      value?: string | number | null;
+      action: "confirm" | "manual";
+      currentStatus: Record<string, string>;
+    }) => {
+      const nextStatus = { ...(args.currentStatus || {}) };
+      nextStatus[args.field] = args.action === "confirm" ? "confirmed" : "manual";
+      const update: any = { field_status: nextStatus };
+      if (args.action === "manual") update[args.field] = args.value ?? null;
+      const { error } = await supabase
+        .from("company_intel" as any).update(update).eq("id", args.intelId);
+      if (error) throw error;
+      return { ok: true };
+    },
+    onSuccess: (_d, vars) => {
+      qc.invalidateQueries({ queryKey: ["company_intel", vars.clientId] });
+    },
+    onError: (e: any) => toast.error(e?.message || "Update failed"),
+  });
+}
 
 export function useCompanyIntel(clientId?: string) {
   return useQuery({
