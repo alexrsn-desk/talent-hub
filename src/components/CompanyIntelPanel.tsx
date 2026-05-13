@@ -1,7 +1,16 @@
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Sparkles, RefreshCw, ExternalLink, Briefcase, TrendingUp, AlertTriangle, ArrowRightLeft, Clock } from "lucide-react";
-import { useCompanyIntel, useEnrichCompany, type CompanySignal } from "@/hooks/use-company-intel";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  Sparkles, RefreshCw, ExternalLink, Briefcase, TrendingUp, AlertTriangle,
+  ArrowRightLeft, Clock, CheckCircle2, Pencil, ShieldCheck, ShieldAlert, Bot, Check, X,
+} from "lucide-react";
+import {
+  useCompanyIntel, useEnrichCompany, useUpdateIntelField,
+  TRACKED_INTEL_FIELDS, type TrackedIntelField, type CompanySignal,
+} from "@/hooks/use-company-intel";
 
 const signalIcon = (t?: string) => {
   if (t === "growth") return <TrendingUp className="h-3.5 w-3.5 text-green-400" />;
@@ -13,6 +22,23 @@ const signalDot = (t?: string) =>
   t === "growth" ? "bg-success/20 text-green-400" :
   t === "risk" ? "bg-destructive/20 text-red-400" :
   "bg-yellow-500/20 text-yellow-400";
+
+const FIELD_LABELS: Record<TrackedIntelField, string> = {
+  official_name: "Official name",
+  website: "Website",
+  linkedin_url: "LinkedIn",
+  headquarters: "HQ",
+  year_founded: "Founded",
+  employee_count: "Size",
+  industry: "Industry",
+  description: "Description",
+  funding_stage: "Latest stage",
+  funding_amount: "Amount",
+  funding_date: "Date",
+  total_funding: "Total raised",
+  last_valuation: "Last valuation",
+  revenue_range: "Revenue",
+};
 
 export function CompanyIntelPanel({ clientId, companyName }: { clientId: string; companyName: string }) {
   const { data: intel, isLoading } = useCompanyIntel(clientId);
@@ -41,41 +67,67 @@ export function CompanyIntelPanel({ clientId, companyName }: { clientId: string;
 
   const signals = intel.recent_signals || [];
   const jobs = intel.current_job_postings || [];
+  const status = (intel.field_status || {}) as Record<string, "unconfirmed" | "confirmed" | "manual">;
+
+  // Overall verification status
+  const populated = TRACKED_INTEL_FIELDS.filter((f) => {
+    const v = (intel as any)[f];
+    return v !== null && v !== undefined && v !== "";
+  });
+  const counts = populated.reduce(
+    (acc, f) => {
+      const s = status[f] || "unconfirmed";
+      acc[s] = (acc[s] || 0) + 1;
+      return acc;
+    },
+    { unconfirmed: 0, confirmed: 0, manual: 0 } as Record<string, number>,
+  );
+  const total = populated.length;
+  const verifiedCount = counts.confirmed + counts.manual;
+
+  let banner: { icon: JSX.Element; label: string; cls: string };
+  if (total === 0) {
+    banner = { icon: <Bot className="h-4 w-4" />, label: "No data captured yet", cls: "bg-muted/40 text-muted-foreground border-border" };
+  } else if (verifiedCount === total) {
+    banner = { icon: <ShieldCheck className="h-4 w-4" />, label: "Verified profile", cls: "bg-success/10 text-green-400 border-success/30" };
+  } else if (verifiedCount === 0) {
+    banner = { icon: <Bot className="h-4 w-4" />, label: "AI estimated — please verify", cls: "bg-amber-500/10 text-amber-300 border-amber-500/30" };
+  } else {
+    banner = { icon: <ShieldAlert className="h-4 w-4" />, label: `Partially verified (${verifiedCount}/${total})`, cls: "bg-amber-500/10 text-amber-300 border-amber-500/30" };
+  }
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2 text-xs text-muted-foreground">
-          <Clock className="h-3.5 w-3.5" />
-          Last enriched {intel.last_enriched_at ? new Date(intel.last_enriched_at).toLocaleString("en-GB") : "—"}
+      <div className="flex items-center justify-between gap-3 flex-wrap">
+        <div className={`inline-flex items-center gap-2 rounded-md border px-3 py-1.5 text-sm font-medium ${banner.cls}`}>
+          {banner.icon}
+          {banner.label}
         </div>
-        <Button size="sm" variant="outline" onClick={() => enrich.mutate(clientId)} disabled={enrich.isPending}>
-          <RefreshCw className={`h-3.5 w-3.5 mr-1 ${enrich.isPending ? "animate-spin" : ""}`} />
-          {enrich.isPending ? "Refreshing…" : "Refresh intelligence"}
-        </Button>
+        <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 text-xs text-muted-foreground">
+            <Clock className="h-3.5 w-3.5" />
+            {intel.last_enriched_at ? new Date(intel.last_enriched_at).toLocaleString("en-GB") : "—"}
+          </div>
+          <Button size="sm" variant="outline" onClick={() => enrich.mutate(clientId)} disabled={enrich.isPending}>
+            <RefreshCw className={`h-3.5 w-3.5 mr-1 ${enrich.isPending ? "animate-spin" : ""}`} />
+            {enrich.isPending ? "Refreshing…" : "Refresh"}
+          </Button>
+        </div>
       </div>
 
       {/* Overview */}
       <section className="rounded-lg border border-border p-4 space-y-3">
         <h3 className="text-sm font-semibold">Overview</h3>
-        {intel.description && <p className="text-sm">{intel.description}</p>}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
-          <Field label="Size" value={intel.employee_count} />
-          <Field label="Founded" value={intel.year_founded?.toString()} />
-          <Field label="HQ" value={intel.headquarters} />
-          <Field label="Industry" value={intel.industry} />
+        <VerifiableField intel={intel} field="description" multiline />
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          <VerifiableField intel={intel} field="employee_count" />
+          <VerifiableField intel={intel} field="year_founded" />
+          <VerifiableField intel={intel} field="headquarters" />
+          <VerifiableField intel={intel} field="industry" />
         </div>
-        <div className="flex flex-wrap gap-3 text-xs">
-          {intel.website && (
-            <a href={intel.website} target="_blank" rel="noreferrer" className="text-primary hover:underline flex items-center gap-1">
-              <ExternalLink className="h-3 w-3" /> Website
-            </a>
-          )}
-          {intel.linkedin_url && (
-            <a href={intel.linkedin_url} target="_blank" rel="noreferrer" className="text-primary hover:underline flex items-center gap-1">
-              <ExternalLink className="h-3 w-3" /> LinkedIn
-            </a>
-          )}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <VerifiableField intel={intel} field="website" />
+          <VerifiableField intel={intel} field="linkedin_url" />
         </div>
       </section>
 
@@ -83,16 +135,16 @@ export function CompanyIntelPanel({ clientId, companyName }: { clientId: string;
       {(intel.funding_stage || intel.funding_amount || intel.total_funding) && (
         <section className="rounded-lg border border-border p-4 space-y-2">
           <h3 className="text-sm font-semibold">Funding</h3>
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
-            <Field label="Latest stage" value={intel.funding_stage} />
-            <Field label="Amount" value={intel.funding_amount} />
-            <Field label="Date" value={intel.funding_date} />
-            <Field label="Total raised" value={intel.total_funding} />
-            <Field label="Last valuation" value={intel.last_valuation} />
-            <Field label="Revenue" value={intel.revenue_range} />
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+            <VerifiableField intel={intel} field="funding_stage" />
+            <VerifiableField intel={intel} field="funding_amount" />
+            <VerifiableField intel={intel} field="funding_date" />
+            <VerifiableField intel={intel} field="total_funding" />
+            <VerifiableField intel={intel} field="last_valuation" />
+            <VerifiableField intel={intel} field="revenue_range" />
           </div>
           {intel.funding_lead_investors?.length ? (
-            <p className="text-xs text-muted-foreground">
+            <p className="text-xs text-muted-foreground pt-1">
               Lead investors: <span className="text-foreground">{intel.funding_lead_investors.join(", ")}</span>
             </p>
           ) : null}
@@ -166,11 +218,130 @@ export function CompanyIntelPanel({ clientId, companyName }: { clientId: string;
   );
 }
 
-function Field({ label, value }: { label: string; value?: string | null }) {
+function VerifiableField({
+  intel,
+  field,
+  multiline,
+}: {
+  intel: any;
+  field: TrackedIntelField;
+  multiline?: boolean;
+}) {
+  const value = intel[field];
+  const status = (intel.field_status?.[field] as "unconfirmed" | "confirmed" | "manual" | undefined);
+  const update = useUpdateIntelField();
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState<string>(value == null ? "" : String(value));
+
+  const isEmpty = value === null || value === undefined || value === "";
+  const effectiveStatus: "unconfirmed" | "confirmed" | "manual" = isEmpty
+    ? "manual"
+    : (status || "unconfirmed");
+
+  const renderValue = () => {
+    if (isEmpty) return <span className="text-muted-foreground">—</span>;
+    if (field === "website" || field === "linkedin_url") {
+      return (
+        <a href={String(value)} target="_blank" rel="noreferrer" className="text-primary hover:underline inline-flex items-center gap-1 break-all">
+          <ExternalLink className="h-3 w-3 shrink-0" /> {String(value)}
+        </a>
+      );
+    }
+    return <span className="break-words">{String(value)}</span>;
+  };
+
+  if (editing) {
+    return (
+      <div className="space-y-1.5">
+        <div className="text-xs text-muted-foreground">{FIELD_LABELS[field]}</div>
+        {multiline ? (
+          <Textarea value={draft} onChange={(e) => setDraft(e.target.value)} rows={3} className="text-sm" />
+        ) : (
+          <Input
+            value={draft}
+            onChange={(e) => setDraft(e.target.value)}
+            type={field === "year_founded" ? "number" : "text"}
+            className="h-8 text-sm"
+          />
+        )}
+        <div className="flex gap-1.5">
+          <Button
+            size="sm"
+            className="h-7 px-2"
+            onClick={() => {
+              const v: any = field === "year_founded" ? (draft ? Number(draft) : null) : draft.trim() || null;
+              update.mutate(
+                {
+                  intelId: intel.id,
+                  clientId: intel.client_id,
+                  field,
+                  value: v,
+                  action: "manual",
+                  currentStatus: intel.field_status || {},
+                },
+                { onSuccess: () => setEditing(false) },
+              );
+            }}
+            disabled={update.isPending}
+          >
+            <Check className="h-3.5 w-3.5 mr-1" /> Save
+          </Button>
+          <Button size="sm" variant="ghost" className="h-7 px-2" onClick={() => { setEditing(false); setDraft(value == null ? "" : String(value)); }}>
+            <X className="h-3.5 w-3.5" />
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div>
-      <div className="text-muted-foreground">{label}</div>
-      <div>{value || "—"}</div>
+    <div className="text-xs space-y-1">
+      <div className="text-muted-foreground">{FIELD_LABELS[field]}</div>
+      <div className="text-sm text-foreground">{renderValue()}</div>
+      <div className="flex items-center gap-2 flex-wrap">
+        {!isEmpty && effectiveStatus === "unconfirmed" && (
+          <>
+            <span className="inline-flex items-center gap-1 text-amber-300">
+              <AlertTriangle className="h-3 w-3" /> AI estimated
+            </span>
+            <Button
+              size="sm"
+              variant="outline"
+              className="h-6 px-2 text-[11px]"
+              disabled={update.isPending}
+              onClick={() =>
+                update.mutate({
+                  intelId: intel.id,
+                  clientId: intel.client_id,
+                  field,
+                  action: "confirm",
+                  currentStatus: intel.field_status || {},
+                })
+              }
+            >
+              <Check className="h-3 w-3 mr-1" /> Confirm
+            </Button>
+            <Button size="sm" variant="ghost" className="h-6 px-2 text-[11px]" onClick={() => setEditing(true)}>
+              <Pencil className="h-3 w-3 mr-1" /> Edit
+            </Button>
+          </>
+        )}
+        {!isEmpty && effectiveStatus === "confirmed" && (
+          <>
+            <span className="inline-flex items-center gap-1 text-green-400">
+              <CheckCircle2 className="h-3 w-3" /> Confirmed
+            </span>
+            <Button size="sm" variant="ghost" className="h-6 px-2 text-[11px]" onClick={() => setEditing(true)}>
+              <Pencil className="h-3 w-3 mr-1" /> Edit
+            </Button>
+          </>
+        )}
+        {(isEmpty || effectiveStatus === "manual") && (
+          <Button size="sm" variant="ghost" className="h-6 px-2 text-[11px]" onClick={() => setEditing(true)}>
+            <Pencil className="h-3 w-3 mr-1" /> {isEmpty ? "Add" : "Edit"}
+          </Button>
+        )}
+      </div>
     </div>
   );
 }

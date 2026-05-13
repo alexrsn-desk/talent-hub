@@ -587,6 +587,7 @@ export type Database = {
           description: string | null
           employee_count: string | null
           enrichment_source: string | null
+          field_status: Json
           funding_amount: string | null
           funding_date: string | null
           funding_lead_investors: string[] | null
@@ -614,6 +615,7 @@ export type Database = {
           description?: string | null
           employee_count?: string | null
           enrichment_source?: string | null
+          field_status?: Json
           funding_amount?: string | null
           funding_date?: string | null
           funding_lead_investors?: string[] | null
@@ -641,6 +643,7 @@ export type Database = {
           description?: string | null
           employee_count?: string | null
           enrichment_source?: string | null
+          field_status?: Json
           funding_amount?: string | null
           funding_date?: string | null
           funding_lead_investors?: string[] | null

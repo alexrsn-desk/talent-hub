@@ -168,10 +168,19 @@ Do NOT fabricate dates or amounts you are not confident in — leave the field e
       intel = {};
     }
 
-    // Upsert
-    const upsertPayload = {
-      client_id: clientId,
-      owner_user_id: client.owner_user_id || user.id,
+    // Load existing intel to preserve confirmed/manual fields
+    const { data: existing } = await supabase
+      .from("company_intel").select("*").eq("client_id", clientId).maybeSingle();
+
+    const TRACKED = [
+      "official_name","website","linkedin_url","headquarters","year_founded",
+      "employee_count","industry","description","funding_stage","funding_amount",
+      "funding_date","total_funding","last_valuation","revenue_range",
+    ];
+    const existingStatus = (existing?.field_status as Record<string, string> | null) || {};
+    const newStatus: Record<string, string> = { ...existingStatus };
+
+    const merged: any = {
       official_name: intel.official_name ?? null,
       website: intel.website ?? client.website ?? null,
       linkedin_url: intel.linkedin_url ?? null,
@@ -183,13 +192,32 @@ Do NOT fabricate dates or amounts you are not confident in — leave the field e
       funding_stage: intel.funding_stage ?? null,
       funding_amount: intel.funding_amount ?? null,
       funding_date: intel.funding_date ?? null,
-      funding_lead_investors: intel.funding_lead_investors ?? null,
       total_funding: intel.total_funding ?? null,
       last_valuation: intel.last_valuation ?? null,
       revenue_range: intel.revenue_range ?? null,
+    };
+
+    for (const f of TRACKED) {
+      const prevStatus = existingStatus[f];
+      if (prevStatus === "manual" || prevStatus === "confirmed") {
+        // Keep existing user-verified value & status
+        merged[f] = (existing as any)?.[f] ?? merged[f];
+      } else if (merged[f] !== null && merged[f] !== undefined && merged[f] !== "") {
+        newStatus[f] = "unconfirmed";
+      } else {
+        delete newStatus[f];
+      }
+    }
+
+    const upsertPayload = {
+      client_id: clientId,
+      owner_user_id: client.owner_user_id || user.id,
+      ...merged,
+      funding_lead_investors: intel.funding_lead_investors ?? null,
       tech_stack: intel.tech_stack ?? [],
       recent_signals: intel.recent_signals ?? [],
       current_job_postings: intel.current_job_postings ?? [],
+      field_status: newStatus,
       enrichment_source: "lovable-ai/gemini-2.5-pro",
       last_enriched_at: new Date().toISOString(),
     };

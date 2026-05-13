@@ -1,0 +1,1 @@
+ALTER TABLE public.company_intel ADD COLUMN IF NOT EXISTS field_status jsonb NOT NULL DEFAULT '{}'::jsonb;
