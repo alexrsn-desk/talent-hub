@@ -407,8 +407,13 @@ function ClientFullView({ client, onBack, onUpdate, onDelete }: {
         <TabsList>
           <TabsTrigger value="contacts">Contacts ({contacts.length})</TabsTrigger>
           <TabsTrigger value="jobs">Jobs ({clientJobs.length})</TabsTrigger>
+          <TabsTrigger value="intel">Company Intel</TabsTrigger>
           <TabsTrigger value="notes">Notes & Calls</TabsTrigger>
         </TabsList>
+
+        <TabsContent value="intel" className="mt-4">
+          <CompanyIntelPanel clientId={client.id} companyName={client.company_name} />
+        </TabsContent>
 
         <TabsContent value="contacts" className="mt-4 space-y-3">
           <div className="flex justify-end">
