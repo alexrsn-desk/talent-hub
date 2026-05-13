@@ -179,7 +179,8 @@ export default function ClientsPage() {
               </Button>
             </form>
           </DialogContent>
-        </Dialog>
+          </Dialog>
+        </div>
       </div>
 
       <Dialog open={showContactPrompt} onOpenChange={setShowContactPrompt}>
