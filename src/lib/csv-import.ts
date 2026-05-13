@@ -950,9 +950,12 @@ export async function runImportForType(
     }
 
     if (dupId) {
-      if (duplicateAction === "skip") {
+      // LinkedIn imports always skip duplicates silently — never update existing records
+      if (isLinkedIn || duplicateAction === "skip") {
         res.skipped++;
-        res.errors.push({ row: i + 2, reason: `${dupReason} — skipped`, data: record });
+        if (!isLinkedIn) {
+          res.errors.push({ row: i + 2, reason: `${dupReason} — skipped`, data: record });
+        }
         continue;
       } else {
         const { email: _e, personal_email: _pe, ...updateData } = record;
