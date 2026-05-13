@@ -39,7 +39,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 
-const STATUSES = ["New", "Contacted", "Screening", "Submitted", "Interviewing", "Placed", "On Hold", "Not Suitable", "Cold", "Archive", "Do Not Contact"] as const;
+const STATUSES = ["New", "Contacted", "Screening", "Submitted", "Interviewing", "Placed", "On Hold", "Not Suitable", "Cold", "Archive", "Do Not Contact", "LI Connection"] as const;
 const SOURCES = ["LinkedIn", "Referral", "Job Board", "Inbound"] as const;
 
 const statusColor: Record<string, string> = {
@@ -54,6 +54,7 @@ const statusColor: Record<string, string> = {
   Cold: "bg-slate-500/20 text-slate-400",
   Archive: "bg-slate-600/20 text-slate-500",
   "Do Not Contact": "bg-red-600/30 text-red-500 ring-1 ring-red-500/30",
+  "LI Connection": "bg-sky-500/20 text-sky-300",
 };
 
 interface Props {
