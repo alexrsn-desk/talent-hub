@@ -26,6 +26,8 @@ import { ContactFullView } from "@/pages/Contacts";
 import { JobFullView } from "@/pages/Jobs";
 import { toast } from "sonner";
 import { EntityDecayAlert } from "@/components/EntityDecayAlert";
+import { CompanyIntelPanel } from "@/components/CompanyIntelPanel";
+import { BulkEnrichDialog } from "@/components/BulkEnrichDialog";
 
 const STATUSES = ["Active", "Warm", "Cold", "Target"] as const;
 const SECTORS = ["Tech", "Digital", "FinTech", "SaaS", "Other"] as const;
@@ -143,10 +145,12 @@ export default function ClientsPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-semibold tracking-tight">Clients</h1>
-        <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-          <DialogTrigger asChild>
-            <Button size="sm"><Plus className="mr-1 h-4 w-4" />Add Client</Button>
-          </DialogTrigger>
+        <div className="flex items-center gap-2">
+          <BulkEnrichDialog clients={clients.map(c => ({ id: c.id, company_name: c.company_name, status: c.status }))} />
+          <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+            <DialogTrigger asChild>
+              <Button size="sm"><Plus className="mr-1 h-4 w-4" />Add Client</Button>
+            </DialogTrigger>
           <DialogContent className="max-w-md">
             <DialogHeader><DialogTitle>New Client (Company)</DialogTitle></DialogHeader>
             <form onSubmit={handleCreate} className="space-y-3">
@@ -175,7 +179,8 @@ export default function ClientsPage() {
               </Button>
             </form>
           </DialogContent>
-        </Dialog>
+          </Dialog>
+        </div>
       </div>
 
       <Dialog open={showContactPrompt} onOpenChange={setShowContactPrompt}>
@@ -402,8 +407,13 @@ function ClientFullView({ client, onBack, onUpdate, onDelete }: {
         <TabsList>
           <TabsTrigger value="contacts">Contacts ({contacts.length})</TabsTrigger>
           <TabsTrigger value="jobs">Jobs ({clientJobs.length})</TabsTrigger>
+          <TabsTrigger value="intel">Company Intel</TabsTrigger>
           <TabsTrigger value="notes">Notes & Calls</TabsTrigger>
         </TabsList>
+
+        <TabsContent value="intel" className="mt-4">
+          <CompanyIntelPanel clientId={client.id} companyName={client.company_name} />
+        </TabsContent>
 
         <TabsContent value="contacts" className="mt-4 space-y-3">
           <div className="flex justify-end">
