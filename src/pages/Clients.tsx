@@ -145,10 +145,12 @@ export default function ClientsPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-semibold tracking-tight">Clients</h1>
-        <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-          <DialogTrigger asChild>
-            <Button size="sm"><Plus className="mr-1 h-4 w-4" />Add Client</Button>
-          </DialogTrigger>
+        <div className="flex items-center gap-2">
+          <BulkEnrichDialog clients={clients.map(c => ({ id: c.id, company_name: c.company_name, status: c.status }))} />
+          <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+            <DialogTrigger asChild>
+              <Button size="sm"><Plus className="mr-1 h-4 w-4" />Add Client</Button>
+            </DialogTrigger>
           <DialogContent className="max-w-md">
             <DialogHeader><DialogTitle>New Client (Company)</DialogTitle></DialogHeader>
             <form onSubmit={handleCreate} className="space-y-3">
