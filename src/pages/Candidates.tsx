@@ -706,7 +706,10 @@ export default function CandidatesPage() {
                        {c.priority_flag && <PriorityStarIcon />}
                        <span className="font-medium truncate">{c.name}</span>
                      </div>
-                     {c.job_title && <p className="text-xs text-muted-foreground truncate">{c.job_title}{c.current_employer ? ` at ${c.current_employer}` : ""}</p>}
+                      {c.job_title && <p className="text-xs text-muted-foreground truncate">{c.job_title}{c.current_employer ? ` at ${c.current_employer}` : ""}</p>}
+                      {reasonById?.get(c.id) && (
+                        <p className="text-[10px] text-primary/90 mt-1 flex items-start gap-1"><Sparkles className="h-2.5 w-2.5 mt-0.5 shrink-0" /><span className="line-clamp-2">{reasonById.get(c.id)}</span></p>
+                      )}
                       <div className="flex items-center gap-2 mt-1 flex-wrap">
                         <Badge variant="secondary" className={cn("text-[10px]", statusColor[c.status])}>{c.status}</Badge>
                         {c.status === "On Hold" && c.reengage_date && <ReengageBadge date={c.reengage_date} />}
@@ -796,6 +799,9 @@ export default function CandidatesPage() {
                       {c.priority_flag && <PriorityStarIcon />}
                       {c.name}
                     </span>
+                    {reasonById?.get(c.id) && (
+                      <p className="text-[10px] text-primary/90 mt-0.5 flex items-start gap-1"><Sparkles className="h-2.5 w-2.5 mt-0.5 shrink-0" /><span className="line-clamp-2">{reasonById.get(c.id)}</span></p>
+                    )}
                   </td>
                   <td className="px-4 py-3 text-muted-foreground">
                     <InlineEditCell
