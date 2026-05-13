@@ -8,8 +8,10 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Label } from "@/components/ui/label";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Plus, Search, Star, ClipboardList, Phone, BriefcaseBusiness, Check, CalendarClock } from "lucide-react";
+import { Plus, Search, Star, ClipboardList, Phone, BriefcaseBusiness, Check, CalendarClock, Sparkles } from "lucide-react";
 import { useCandidates, useCreateCandidate, useUpdateCandidate, useDeleteCandidate, useJobs, useCreateCandidateJob, useCandidateJobs, useCreateNote, type Candidate } from "@/hooks/use-data";
+import { AdvancedSearchBar, applyCandidateFilters, EMPTY_CANDIDATE_FILTERS, type CandidateFilters, type SearchableRecord } from "@/components/AdvancedSearchBar";
+import { useSearchAggregates } from "@/hooks/use-search-aggregates";
 import { Textarea } from "@/components/ui/textarea";
 import { PriorityStarIcon } from "@/components/PriorityFlag";
 import { CandidateDetail } from "@/components/CandidateDetail";
