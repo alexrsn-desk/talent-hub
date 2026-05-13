@@ -273,7 +273,7 @@ const STATUS_MAPS: Record<string, Record<string, string>> = {
   bullhorn: BULLHORN_STATUS_MAP,
 };
 
-const VALID_STATUSES = ["New", "Contacted", "Screening", "Submitted", "Interviewing", "Placed", "On Hold", "Not Suitable", "Cold", "Archive", "Do Not Contact", "Active"];
+const VALID_STATUSES = ["New", "Contacted", "Screening", "Submitted", "Interviewing", "Placed", "On Hold", "Not Suitable", "Cold", "Archive", "Do Not Contact", "Active", "LI Connection"];
 
 export function mapStatus(raw: string | null, platform?: string): { status: string; flagPriority: boolean; flagged: boolean } {
   if (!raw) return { status: "Active", flagPriority: false, flagged: false };
