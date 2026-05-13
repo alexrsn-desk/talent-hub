@@ -103,6 +103,7 @@ export const PLATFORMS: PlatformOption[] = [
   { value: "jobadder", label: "JobAdder", description: "Standard JobAdder candidate export", autoMap: true },
   { value: "loxo", label: "Loxo", description: "Standard Loxo candidate export", autoMap: true },
   { value: "recruitee", label: "Recruitee", description: "Standard Recruitee candidate export", autoMap: true },
+  { value: "linkedin", label: "LinkedIn Connections", description: "LinkedIn export — imported as LI Connection candidates", autoMap: true },
   { value: "spreadsheet", label: "Spreadsheet / Excel", description: "Manual column mapping", autoMap: false },
   { value: "other", label: "Other CRM", description: "Manual column mapping", autoMap: false },
 ];
