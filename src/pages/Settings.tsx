@@ -21,6 +21,7 @@ import { JoinTeamButton } from "@/components/JoinTeamButton";
 import { DecaySettingsSection } from "@/components/DecaySettingsSection";
 import { ComplianceSection } from "@/components/ComplianceSection";
 import { DangerZoneSection } from "@/components/DangerZoneSection";
+import { EnrichmentBudgetSection } from "@/components/EnrichmentBudgetSection";
 
 const NICHES = [
   "Tech/Digital", "Sales/Commercial", "Finance", "Legal",
