@@ -179,7 +179,7 @@ serve(async (req) => {
       sb.from("candidate_jobs").select("*, candidates(*), jobs(*, clients(*))"),
       sb.from("jobs").select("*, clients(*)"),
       sb.from("clients").select("*"),
-      sb.from("candidates").select("*").eq("do_not_contact", false).eq("gdpr_deleted", false),
+      sb.from("candidates").select("*").eq("do_not_contact", false).eq("gdpr_deleted", false).neq("status", "LI Connection"),
       sb.from("notes").select("*, candidates(*), clients(*)").order("created_at", { ascending: false }).limit(500),
       sb.from("notes").select("*, candidates(*), clients(*)").not("follow_up_date", "is", null).lt("follow_up_date", today),
       sb.from("notes").select("*, candidates(*), clients(*)").eq("follow_up_date", today),
