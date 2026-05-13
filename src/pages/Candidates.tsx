@@ -395,7 +395,9 @@ export default function CandidatesPage() {
   const updateCandidate = useUpdateCandidate();
   const deleteCandidate = useDeleteCandidate();
   const [search, setSearch] = useState("");
-  const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [advFilters, setAdvFilters] = useState<CandidateFilters>(EMPTY_CANDIDATE_FILTERS);
+  const [aiResults, setAiResults] = useState<{ id: string; reason: string }[] | null>(null);
+  const { data: aggregates } = useSearchAggregates();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [selectedCandidate, setSelectedCandidate] = useState<Candidate | null>(null);
   const [detailOpen, setDetailOpen] = useState(false);
@@ -421,15 +423,50 @@ export default function CandidatesPage() {
     setTouchpointCandidate(c);
   }, []);
 
-  const filtered = candidates
-    .filter((c) => {
-      const matchesSearch = c.name.toLowerCase().includes(search.toLowerCase()) ||
-        (c.job_title || "").toLowerCase().includes(search.toLowerCase()) ||
-        (c.current_employer || "").toLowerCase().includes(search.toLowerCase());
-      const matchesStatus = statusFilter === "all" || c.status === statusFilter;
-      return matchesSearch && matchesStatus;
-    })
+  // Build searchable records (enrich with notes / pipeline aggregates)
+  const searchableRecords: SearchableRecord[] = useMemo(() => candidates.map(c => {
+    const meta = aggregates?.candidateNoteMeta.get(c.id);
+    return {
+      id: c.id,
+      type: "candidate" as const,
+      name: c.name,
+      job_title: c.job_title,
+      company: c.current_employer,
+      sector: null,
+      location: c.location,
+      status: c.status,
+      salary: c.salary_current ?? c.salary_expectation ?? null,
+      last_contacted: meta?.last ?? null,
+      in_pipeline: aggregates?.candidatesInPipeline.has(c.id) ?? false,
+      notes_excerpt: meta?.excerpt ?? null,
+    };
+  }), [candidates, aggregates]);
+
+  const reasonById = useMemo(() => {
+    if (!aiResults) return null;
+    const m = new Map<string, string>();
+    aiResults.forEach(r => m.set(r.id, r.reason));
+    return m;
+  }, [aiResults]);
+
+  const filteredBase = useMemo(() => {
+    if (aiResults) {
+      const order = new Map(aiResults.map((r, i) => [r.id, i]));
+      const byId = new Map(candidates.map(c => [c.id, c]));
+      return aiResults
+        .map(r => byId.get(r.id))
+        .filter((c): c is Candidate => !!c)
+        .sort((a, b) => (order.get(a.id) ?? 0) - (order.get(b.id) ?? 0));
+    }
+    const matched = applyCandidateFilters(searchableRecords, search, advFilters);
+    const ids = new Set(matched.map(r => r.id));
+    return candidates.filter(c => ids.has(c.id));
+  }, [aiResults, searchableRecords, search, advFilters, candidates]);
+
+  const filtered = filteredBase
+    .slice()
     .sort((a, b) => {
+      if (aiResults) return 0; // preserve AI ranking
       if (a.priority_flag && !b.priority_flag) return -1;
       if (!a.priority_flag && b.priority_flag) return 1;
       return 0;
