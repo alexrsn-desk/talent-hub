@@ -9,7 +9,7 @@ import { useUpdateCandidate, useCreateNote, type Candidate } from "@/hooks/use-d
 import { logActivity } from "@/lib/activity-log";
 import { toast } from "sonner";
 
-const STATUSES = ["New", "Contacted", "Screening", "Submitted", "Interviewing", "Placed", "On Hold", "Not Suitable"] as const;
+const STATUSES = ["New", "Contacted", "Screening", "Submitted", "Interviewing", "Placed", "On Hold", "Not Suitable", "LI Connection"] as const;
 
 interface QuickEditProps {
   candidate: Candidate;
