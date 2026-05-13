@@ -703,6 +703,40 @@ export async function runImportForType(
     (data || []).forEach(c => { clientLookup[c.company_name.toLowerCase()] = c.id; });
   }
 
+  const isLinkedIn = platform === "linkedin" && recordType === "candidates";
+
+  // For LinkedIn imports: build name+company dedup lookup against existing candidates
+  let existingCandNameEmployer: Record<string, string> = {};
+  if (isLinkedIn) {
+    const { data } = await supabase.from("candidates").select("id, first_name, last_name, name, current_employer");
+    (data || []).forEach((c: any) => {
+      const fn = (c.first_name || "").toLowerCase().trim();
+      const ln = (c.last_name || "").toLowerCase().trim();
+      const employer = (c.current_employer || "").toLowerCase().trim();
+      if (fn && ln && employer) {
+        existingCandNameEmployer[`${fn}|${ln}|${employer}`] = c.id;
+      }
+      // Also key off full name when first/last not split
+      const full = (c.name || "").toLowerCase().trim();
+      if (full && employer) {
+        existingCandNameEmployer[`${full}|${employer}`] = c.id;
+      }
+    });
+  }
+
+  // Helper: read a raw CSV cell by mapped field key
+  const cellByMappedKey = (row: string[], key: string): string => {
+    const h = Object.entries(mapping).find(([, v]) => v === key)?.[0];
+    if (!h) return "";
+    const idx = headers.indexOf(h);
+    return idx >= 0 ? (row[idx] || "").trim() : "";
+  };
+  // Helper: read by raw header label (used for LinkedIn "Connected On")
+  const cellByHeader = (row: string[], headerLabel: string): string => {
+    const idx = headers.findIndex(h => h.toLowerCase().trim() === headerLabel.toLowerCase().trim());
+    return idx >= 0 ? (row[idx] || "").trim() : "";
+  };
+
   const platformLabel = PLATFORMS.find(p => p.value === platform)?.label || platform || "CSV";
 
   for (let i = 0; i < rows.length; i++) {
@@ -718,8 +752,26 @@ export async function runImportForType(
     const record = buildRecord(row, headers, mapping, platform);
 
     // Extract notes content before inserting
-    const notesContent = record._notes_content;
+    let notesContent = record._notes_content;
     delete record._notes_content;
+
+    // LinkedIn-specific handling
+    if (isLinkedIn) {
+      // Force LI Connection status (overrides any incoming status mapping)
+      record.status = "LI Connection";
+      record.source = record.source || "LinkedIn";
+      // Build LI note from raw row data
+      const position = record.job_title || cellByMappedKey(row, "job_title");
+      const company = record.current_employer || cellByMappedKey(row, "current_employer");
+      const connectedOn = cellByHeader(row, "Connected On");
+      const today = new Date().toISOString().slice(0, 10);
+      notesContent = [
+        `LinkedIn connection — imported ${today}`,
+        position ? `Job title at import: ${position}` : null,
+        company ? `Employer at import: ${company}` : null,
+        connectedOn ? `Connected since: ${connectedOn}` : null,
+      ].filter(Boolean).join("\n");
+    }
 
     // Silent skip for rows missing essential identifiers — don't count as errors or attempts
     {
@@ -730,6 +782,12 @@ export async function runImportForType(
 
       if (recordType === "candidates") {
         if (!hasAnyName) { res.skippedMissingData++; continue; }
+        // LinkedIn: also skip rows where both Position AND Company are empty
+        if (isLinkedIn) {
+          const pos = (record.job_title || "").trim();
+          const comp = (record.current_employer || "").trim();
+          if (!pos && !comp) { res.skippedMissingData++; continue; }
+        }
       } else if (recordType === "contacts") {
         if (!hasAnyName) { res.skippedMissingData++; continue; }
       } else if (recordType === "clients") {
@@ -737,6 +795,21 @@ export async function runImportForType(
         if (!companyName) { res.skippedMissingData++; continue; }
       }
     }
+
+    // LinkedIn extra dedup: skip if same first+last+company (or full name+company) already exists
+    if (isLinkedIn) {
+      const fn = (record.first_name || "").toLowerCase().trim();
+      const ln = (record.last_name || "").toLowerCase().trim();
+      const full = (record.name || "").toLowerCase().trim();
+      const employer = (record.current_employer || "").toLowerCase().trim();
+      const keyA = fn && ln && employer ? `${fn}|${ln}|${employer}` : "";
+      const keyB = full && employer ? `${full}|${employer}` : "";
+      if ((keyA && existingCandNameEmployer[keyA]) || (keyB && existingCandNameEmployer[keyB])) {
+        res.skipped++;
+        continue;
+      }
+    }
+
 
     const namePresent = record.first_name || record.name;
     const missingFields = fields.filter(f => {
