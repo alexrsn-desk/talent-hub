@@ -88,7 +88,7 @@ export const FIELD_MAP: Record<RecordType, FieldDef[]> = {
 };
 
 // ── Platform definitions ──────────────────────────────────────────
-export type PlatformKey = "vincere" | "bullhorn" | "jobadder" | "loxo" | "recruitee" | "spreadsheet" | "other";
+export type PlatformKey = "vincere" | "bullhorn" | "jobadder" | "loxo" | "recruitee" | "linkedin" | "spreadsheet" | "other";
 
 export interface PlatformOption {
   value: PlatformKey;
