@@ -199,6 +199,15 @@ export const BUILT_IN_TEMPLATES: MappingTemplate[] = [
     },
   },
   {
+    name: "LinkedIn Connections", platform: "linkedin",
+    mappings: {
+      "First Name": "first_name", "Last Name": "last_name",
+      "Email Address": "email", "Email": "email",
+      "Company": "current_employer", "Position": "job_title",
+      "Connected On": "_skip", // captured separately for note
+    },
+  },
+  {
     name: "Generic Spreadsheet", platform: "spreadsheet",
     mappings: {
       "first_name": "first_name", "firstname": "first_name", "first name": "first_name",
