@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useCallback, Fragment } from "react";
+import { useState, useRef, useEffect, useCallback, useMemo, Fragment } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -8,8 +8,10 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Label } from "@/components/ui/label";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Plus, Search, Star, ClipboardList, Phone, BriefcaseBusiness, Check, CalendarClock } from "lucide-react";
+import { Plus, Search, Star, ClipboardList, Phone, BriefcaseBusiness, Check, CalendarClock, Sparkles } from "lucide-react";
 import { useCandidates, useCreateCandidate, useUpdateCandidate, useDeleteCandidate, useJobs, useCreateCandidateJob, useCandidateJobs, useCreateNote, type Candidate } from "@/hooks/use-data";
+import { AdvancedSearchBar, applyCandidateFilters, EMPTY_CANDIDATE_FILTERS, type CandidateFilters, type SearchableRecord } from "@/components/AdvancedSearchBar";
+import { useSearchAggregates } from "@/hooks/use-search-aggregates";
 import { Textarea } from "@/components/ui/textarea";
 import { PriorityStarIcon } from "@/components/PriorityFlag";
 import { CandidateDetail } from "@/components/CandidateDetail";
@@ -393,7 +395,9 @@ export default function CandidatesPage() {
   const updateCandidate = useUpdateCandidate();
   const deleteCandidate = useDeleteCandidate();
   const [search, setSearch] = useState("");
-  const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [advFilters, setAdvFilters] = useState<CandidateFilters>(EMPTY_CANDIDATE_FILTERS);
+  const [aiResults, setAiResults] = useState<{ id: string; reason: string }[] | null>(null);
+  const { data: aggregates } = useSearchAggregates();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [selectedCandidate, setSelectedCandidate] = useState<Candidate | null>(null);
   const [detailOpen, setDetailOpen] = useState(false);
@@ -419,15 +423,50 @@ export default function CandidatesPage() {
     setTouchpointCandidate(c);
   }, []);
 
-  const filtered = candidates
-    .filter((c) => {
-      const matchesSearch = c.name.toLowerCase().includes(search.toLowerCase()) ||
-        (c.job_title || "").toLowerCase().includes(search.toLowerCase()) ||
-        (c.current_employer || "").toLowerCase().includes(search.toLowerCase());
-      const matchesStatus = statusFilter === "all" || c.status === statusFilter;
-      return matchesSearch && matchesStatus;
-    })
+  // Build searchable records (enrich with notes / pipeline aggregates)
+  const searchableRecords: SearchableRecord[] = useMemo(() => candidates.map(c => {
+    const meta = aggregates?.candidateNoteMeta.get(c.id);
+    return {
+      id: c.id,
+      type: "candidate" as const,
+      name: c.name,
+      job_title: c.job_title,
+      company: c.current_employer,
+      sector: null,
+      location: c.location,
+      status: c.status,
+      salary: c.salary_current ?? c.salary_expectation ?? null,
+      last_contacted: meta?.last ?? null,
+      in_pipeline: aggregates?.candidatesInPipeline.has(c.id) ?? false,
+      notes_excerpt: meta?.excerpt ?? null,
+    };
+  }), [candidates, aggregates]);
+
+  const reasonById = useMemo(() => {
+    if (!aiResults) return null;
+    const m = new Map<string, string>();
+    aiResults.forEach(r => m.set(r.id, r.reason));
+    return m;
+  }, [aiResults]);
+
+  const filteredBase = useMemo(() => {
+    if (aiResults) {
+      const order = new Map(aiResults.map((r, i) => [r.id, i]));
+      const byId = new Map(candidates.map(c => [c.id, c]));
+      return aiResults
+        .map(r => byId.get(r.id))
+        .filter((c): c is Candidate => !!c)
+        .sort((a, b) => (order.get(a.id) ?? 0) - (order.get(b.id) ?? 0));
+    }
+    const matched = applyCandidateFilters(searchableRecords, search, advFilters);
+    const ids = new Set(matched.map(r => r.id));
+    return candidates.filter(c => ids.has(c.id));
+  }, [aiResults, searchableRecords, search, advFilters, candidates]);
+
+  const filtered = filteredBase
+    .slice()
     .sort((a, b) => {
+      if (aiResults) return 0; // preserve AI ranking
       if (a.priority_flag && !b.priority_flag) return -1;
       if (!a.priority_flag && b.priority_flag) return 1;
       return 0;
@@ -623,19 +662,17 @@ export default function CandidatesPage() {
         </Dialog>
       </div>
 
-      <div className="flex flex-col sm:flex-row sm:items-center gap-3">
-        <div className="relative flex-1 sm:max-w-sm">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input placeholder="Search candidates..." className="pl-9" value={search} onChange={(e) => setSearch(e.target.value)} />
-        </div>
-        <Select value={statusFilter} onValueChange={setStatusFilter}>
-          <SelectTrigger className="w-full sm:w-40"><SelectValue /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Statuses</SelectItem>
-            {STATUSES.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
-          </SelectContent>
-        </Select>
-      </div>
+      <AdvancedSearchBar
+        scope="candidate"
+        records={searchableRecords}
+        query={search}
+        onQueryChange={setSearch}
+        filters={advFilters}
+        onFiltersChange={setAdvFilters}
+        statusOptions={STATUSES as unknown as string[]}
+        aiResults={aiResults}
+        onAiResultsChange={setAiResults}
+      />
 
       {isLoading ? (
         <div className="text-muted-foreground text-sm">Loading...</div>
@@ -669,7 +706,10 @@ export default function CandidatesPage() {
                        {c.priority_flag && <PriorityStarIcon />}
                        <span className="font-medium truncate">{c.name}</span>
                      </div>
-                     {c.job_title && <p className="text-xs text-muted-foreground truncate">{c.job_title}{c.current_employer ? ` at ${c.current_employer}` : ""}</p>}
+                      {c.job_title && <p className="text-xs text-muted-foreground truncate">{c.job_title}{c.current_employer ? ` at ${c.current_employer}` : ""}</p>}
+                      {reasonById?.get(c.id) && (
+                        <p className="text-[10px] text-primary/90 mt-1 flex items-start gap-1"><Sparkles className="h-2.5 w-2.5 mt-0.5 shrink-0" /><span className="line-clamp-2">{reasonById.get(c.id)}</span></p>
+                      )}
                       <div className="flex items-center gap-2 mt-1 flex-wrap">
                         <Badge variant="secondary" className={cn("text-[10px]", statusColor[c.status])}>{c.status}</Badge>
                         {c.status === "On Hold" && c.reengage_date && <ReengageBadge date={c.reengage_date} />}
@@ -759,6 +799,9 @@ export default function CandidatesPage() {
                       {c.priority_flag && <PriorityStarIcon />}
                       {c.name}
                     </span>
+                    {reasonById?.get(c.id) && (
+                      <p className="text-[10px] text-primary/90 mt-0.5 flex items-start gap-1"><Sparkles className="h-2.5 w-2.5 mt-0.5 shrink-0" /><span className="line-clamp-2">{reasonById.get(c.id)}</span></p>
+                    )}
                   </td>
                   <td className="px-4 py-3 text-muted-foreground">
                     <InlineEditCell

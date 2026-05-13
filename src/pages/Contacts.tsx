@@ -1,17 +1,19 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
-import { Plus, Search, ExternalLink, ArrowLeft, Trash2, PhoneCall } from "lucide-react";
+import { Plus, Search, ExternalLink, ArrowLeft, Trash2, PhoneCall, Sparkles } from "lucide-react";
 import { useContacts, useCreateContact, useDeleteContact, useClients, useCreateNote, type Contact, type Client } from "@/hooks/use-data";
 import { Textarea } from "@/components/ui/textarea";
 import { ProfileTabs } from "@/components/ProfileTabs";
 import { LogTouchpointModal } from "@/components/LogTouchpointModal";
 import { CallPrepButton } from "@/components/CallPrep";
 import { ClickToEditField } from "@/components/ClickToEditField";
+import { AdvancedSearchBar, applyContactFilters, EMPTY_CONTACT_FILTERS, type ContactFilters, type SearchableRecord } from "@/components/AdvancedSearchBar";
+import { useSearchAggregates } from "@/hooks/use-search-aggregates";
 import { SummaryField } from "@/components/SummaryField";
 import { ConversationPrompts } from "@/components/ConversationPrompts";
 import { ReengageBadge, ReengageInlineEditor, formatReengageDate } from "@/components/ReengageDate";
@@ -44,7 +46,9 @@ export default function ContactsPage() {
   const createNote = useCreateNote();
   const deleteContact = useDeleteContact();
   const [search, setSearch] = useState("");
-  const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [advFilters, setAdvFilters] = useState<ContactFilters>(EMPTY_CONTACT_FILTERS);
+  const [aiResults, setAiResults] = useState<{ id: string; reason: string }[] | null>(null);
+  const { data: aggregates } = useSearchAggregates();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [selectedContact, setSelectedContact] = useState<Contact | null>(null);
 
@@ -53,14 +57,42 @@ export default function ContactsPage() {
     return acc;
   }, {});
 
-  const filtered = contacts.filter((c) => {
-    const matchesSearch =
-      c.name.toLowerCase().includes(search.toLowerCase()) ||
-      (c.job_title || "").toLowerCase().includes(search.toLowerCase()) ||
-      (clientMap[c.client_id]?.company_name || "").toLowerCase().includes(search.toLowerCase());
-    const matchesStatus = statusFilter === "all" || c.status === statusFilter;
-    return matchesSearch && matchesStatus;
-  });
+  const searchableRecords: SearchableRecord[] = useMemo(() => contacts.map(c => {
+    const client = clientMap[c.client_id];
+    const meta = aggregates?.clientNoteMeta.get(c.client_id);
+    return {
+      id: c.id,
+      type: "contact" as const,
+      name: c.name,
+      job_title: c.job_title,
+      company: client?.company_name || null,
+      sector: client?.sector || null,
+      location: client?.location || null,
+      status: c.status,
+      last_contacted: meta?.last ?? null,
+      has_open_roles: aggregates?.clientsWithOpenRoles.has(c.client_id) ?? false,
+      notes_excerpt: meta?.excerpt ?? null,
+    };
+  }), [contacts, clientMap, aggregates]);
+
+  const reasonById = useMemo(() => {
+    if (!aiResults) return null;
+    const m = new Map<string, string>();
+    aiResults.forEach(r => m.set(r.id, r.reason));
+    return m;
+  }, [aiResults]);
+
+  const filtered = useMemo(() => {
+    if (aiResults) {
+      const order = new Map(aiResults.map((r, i) => [r.id, i]));
+      const byId = new Map(contacts.map(c => [c.id, c]));
+      return aiResults.map(r => byId.get(r.id)).filter((c): c is Contact => !!c)
+        .sort((a, b) => (order.get(a.id) ?? 0) - (order.get(b.id) ?? 0));
+    }
+    const matched = applyContactFilters(searchableRecords, search, advFilters);
+    const ids = new Set(matched.map(r => r.id));
+    return contacts.filter(c => ids.has(c.id));
+  }, [aiResults, searchableRecords, search, advFilters, contacts]);
 
   const handleCreate = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -155,19 +187,17 @@ export default function ContactsPage() {
         </Dialog>
       </div>
 
-      <div className="flex items-center gap-3">
-        <div className="relative flex-1 max-w-sm">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input placeholder="Search contacts..." className="pl-9" value={search} onChange={(e) => setSearch(e.target.value)} />
-        </div>
-        <Select value={statusFilter} onValueChange={setStatusFilter}>
-          <SelectTrigger className="w-40"><SelectValue /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Statuses</SelectItem>
-            {CONTACT_STATUSES.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
-          </SelectContent>
-        </Select>
-      </div>
+      <AdvancedSearchBar
+        scope="contact"
+        records={searchableRecords}
+        query={search}
+        onQueryChange={setSearch}
+        filters={advFilters}
+        onFiltersChange={setAdvFilters}
+        statusOptions={CONTACT_STATUSES as unknown as string[]}
+        aiResults={aiResults}
+        onAiResultsChange={setAiResults}
+      />
 
       {isLoading ? (
         <div className="text-muted-foreground text-sm">Loading...</div>
@@ -188,7 +218,12 @@ export default function ContactsPage() {
                 <tr><td colSpan={5} className="px-4 py-8 text-center text-muted-foreground">No contacts found</td></tr>
               ) : filtered.map(c => (
                 <tr key={c.id} className="border-b border-border hover:bg-muted/20 cursor-pointer transition-colors" onClick={() => setSelectedContact(c)}>
-                  <td className="px-4 py-3 font-medium">{c.name}</td>
+                  <td className="px-4 py-3 font-medium">
+                    {c.name}
+                    {reasonById?.get(c.id) && (
+                      <p className="text-[10px] text-primary/90 mt-0.5 flex items-start gap-1"><Sparkles className="h-2.5 w-2.5 mt-0.5 shrink-0" /><span className="line-clamp-2">{reasonById.get(c.id)}</span></p>
+                    )}
+                  </td>
                   <td className="px-4 py-3 text-muted-foreground">{c.job_title || "—"}</td>
                   <td className="px-4 py-3 text-muted-foreground">{clientMap[c.client_id]?.company_name || "—"}</td>
                   <td className="px-4 py-3 text-muted-foreground">{c.email || "—"}</td>

@@ -1828,6 +1828,39 @@ export type Database = {
         }
         Relationships: []
       }
+      saved_searches: {
+        Row: {
+          created_at: string
+          filters: Json
+          id: string
+          name: string
+          owner_user_id: string
+          query: string | null
+          scope: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          filters?: Json
+          id?: string
+          name: string
+          owner_user_id: string
+          query?: string | null
+          scope: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          filters?: Json
+          id?: string
+          name?: string
+          owner_user_id?: string
+          query?: string | null
+          scope?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       screening_notes: {
         Row: {
           availability_confirmed: string | null
