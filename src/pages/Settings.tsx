@@ -355,6 +355,9 @@ export default function SettingsPage() {
       {/* Relationship decay alerts */}
       <DecaySettingsSection />
 
+      {/* Company Intelligence enrichment */}
+      <EnrichmentBudgetSection />
+
       {/* GDPR & Do Not Contact */}
       <ComplianceSection />
 
