@@ -1,6 +1,6 @@
 import { NavLink } from "@/components/NavLink";
 import { useLocation } from "react-router-dom";
-import { LayoutDashboard, Users, Building2, UserCircle, Briefcase, TrendingUp, Sparkles, Settings, BarChart3, PhoneCall, Link2, Award } from "lucide-react";
+import { LayoutDashboard, Users, Building2, UserCircle, Briefcase, TrendingUp, Sparkles, Settings, BarChart3, PhoneCall, Link2, Award, MessagesSquare } from "lucide-react";
 import {
   Sidebar,
   SidebarContent,
@@ -12,9 +12,11 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar";
 import { useActivePlacementCount } from "@/hooks/use-placements";
+import { useLiveConversationsOverdueCount } from "@/hooks/use-live-conversations";
 
 const items = [
   { title: "Dashboard", url: "/", icon: LayoutDashboard },
+  { title: "Live Conversations", url: "/live", icon: MessagesSquare, badge: "live" as const },
   { title: "Candidates", url: "/candidates", icon: Users },
   { title: "Clients", url: "/clients", icon: Building2 },
   { title: "Contacts", url: "/contacts", icon: UserCircle },
@@ -32,6 +34,7 @@ export function AppSidebar() {
   const { state } = useSidebar();
   const collapsed = state === "collapsed";
   const placementCount = useActivePlacementCount();
+  const liveOverdue = useLiveConversationsOverdueCount();
 
   return (
     <Sidebar collapsible="icon">
@@ -43,7 +46,10 @@ export function AppSidebar() {
           <SidebarGroupContent>
             <SidebarMenu>
               {items.map((item) => {
-                const showBadge = item.badge === "placements" && placementCount > 0;
+                const badgeCount =
+                  item.badge === "placements" ? placementCount :
+                  item.badge === "live" ? liveOverdue : 0;
+                const showBadge = badgeCount > 0;
                 return (
                   <SidebarMenuItem key={item.title}>
                     <SidebarMenuButton asChild>
@@ -56,8 +62,8 @@ export function AppSidebar() {
                         <item.icon className="mr-2 h-4 w-4" />
                         {!collapsed && <span className="flex-1">{item.title}</span>}
                         {!collapsed && showBadge && (
-                          <span className="ml-auto text-[10px] rounded-full bg-primary/20 text-primary px-1.5 py-0.5">
-                            {placementCount}
+                          <span className={`ml-auto text-[10px] rounded-full px-1.5 py-0.5 ${item.badge === "live" ? "bg-red-500/20 text-red-400" : "bg-primary/20 text-primary"}`}>
+                            {badgeCount}
                           </span>
                         )}
                       </NavLink>
