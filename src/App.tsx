@@ -25,6 +25,7 @@ import CallsMeetings from "./pages/CallsMeetings";
 import Sequences from "./pages/Sequences";
 import Auth from "./pages/Auth";
 import Portal from "./pages/Portal";
+import LiveConversations from "./pages/LiveConversations";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -143,6 +144,7 @@ function AppRoutes() {
       <AppLayout>
         <Routes>
           <Route path="/" element={<Dashboard />} />
+          <Route path="/live" element={<LiveConversations />} />
           <Route path="/candidates" element={<Candidates />} />
           <Route path="/clients" element={<Clients />} />
           <Route path="/contacts" element={<Contacts />} />

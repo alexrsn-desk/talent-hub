@@ -1,6 +1,6 @@
 import { NavLink } from "@/components/NavLink";
 import { useLocation } from "react-router-dom";
-import { LayoutDashboard, Users, Building2, UserCircle, Briefcase, TrendingUp, Sparkles, Settings, BarChart3, PhoneCall, Link2, Award } from "lucide-react";
+import { LayoutDashboard, Users, Building2, UserCircle, Briefcase, TrendingUp, Sparkles, Settings, BarChart3, PhoneCall, Link2, Award, MessagesSquare } from "lucide-react";
 import {
   Sidebar,
   SidebarContent,
@@ -12,9 +12,11 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar";
 import { useActivePlacementCount } from "@/hooks/use-placements";
+import { useLiveConversationsOverdueCount } from "@/hooks/use-live-conversations";
 
 const items = [
   { title: "Dashboard", url: "/", icon: LayoutDashboard },
+  { title: "Live Conversations", url: "/live", icon: MessagesSquare, badge: "live" as const },
   { title: "Candidates", url: "/candidates", icon: Users },
   { title: "Clients", url: "/clients", icon: Building2 },
   { title: "Contacts", url: "/contacts", icon: UserCircle },
