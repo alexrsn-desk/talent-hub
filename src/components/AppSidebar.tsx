@@ -34,6 +34,7 @@ export function AppSidebar() {
   const { state } = useSidebar();
   const collapsed = state === "collapsed";
   const placementCount = useActivePlacementCount();
+  const liveOverdue = useLiveConversationsOverdueCount();
 
   return (
     <Sidebar collapsible="icon">
@@ -45,7 +46,10 @@ export function AppSidebar() {
           <SidebarGroupContent>
             <SidebarMenu>
               {items.map((item) => {
-                const showBadge = item.badge === "placements" && placementCount > 0;
+                const badgeCount =
+                  item.badge === "placements" ? placementCount :
+                  item.badge === "live" ? liveOverdue : 0;
+                const showBadge = badgeCount > 0;
                 return (
                   <SidebarMenuItem key={item.title}>
                     <SidebarMenuButton asChild>
@@ -58,8 +62,8 @@ export function AppSidebar() {
                         <item.icon className="mr-2 h-4 w-4" />
                         {!collapsed && <span className="flex-1">{item.title}</span>}
                         {!collapsed && showBadge && (
-                          <span className="ml-auto text-[10px] rounded-full bg-primary/20 text-primary px-1.5 py-0.5">
-                            {placementCount}
+                          <span className={`ml-auto text-[10px] rounded-full px-1.5 py-0.5 ${item.badge === "live" ? "bg-red-500/20 text-red-400" : "bg-primary/20 text-primary"}`}>
+                            {badgeCount}
                           </span>
                         )}
                       </NavLink>
