@@ -104,11 +104,12 @@ const REJECTION_REASONS = [
 // Main board
 // ============================================================================
 
-export function JobPipelineBoard({ job }: { job: Job }) {
+export function JobPipelineBoard({ job, onJobUpdate }: { job: Job; onJobUpdate?: (u: Partial<Job>) => Promise<void> }) {
   const { data: candidateJobs = [] } = useCandidateJobs(undefined, job.id);
   const { data: allCandidates = [] } = useCandidates();
   const createCandidateJob = useCreateCandidateJob();
   const updateCandidateJob = useUpdateCandidateJob();
+  const navigate = useNavigate();
 
   const [addingToStage, setAddingToStage] = useState<string | null>(null);
   const [selectedCandidateId, setSelectedCandidateId] = useState("");
@@ -125,6 +126,9 @@ export function JobPipelineBoard({ job }: { job: Job }) {
   const [interviewPanel, setInterviewPanel] = useState<{ cj: CandidateJob; stage: "First Interview" | "Second Interview" } | null>(null);
   // Offer management flow — opens after move to Offer
   const [offerPanel, setOfferPanel] = useState<{ cj: CandidateJob } | null>(null);
+  // Placed prompt — opens after move to Placed
+  const [placedPrompt, setPlacedPrompt] = useState<{ cj: CandidateJob } | null>(null);
+  const [placedBusy, setPlacedBusy] = useState(false);
 
   const linkedCandidateIds = candidateJobs.map((cj) => cj.candidate_id);
   const availableCandidates = allCandidates.filter((c) => !linkedCandidateIds.includes(c.id));
