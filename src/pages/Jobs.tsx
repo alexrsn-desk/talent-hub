@@ -3,9 +3,11 @@ import { useSearchParams } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Search, Trash2, ArrowLeft } from "lucide-react";
-import { useJobs, useUpdateJob, useDeleteJob, useCandidateJobs, type Job } from "@/hooks/use-data";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
+import { Search, Trash2, ArrowLeft, XCircle, Check } from "lucide-react";
+import { useJobs, useUpdateJob, useDeleteJob, useCandidateJobs, useUpdateCandidateJob, useCreateNote, type Job } from "@/hooks/use-data";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { NotesSection } from "@/components/NotesSection";
 import { JobPipelineBoard } from "@/components/JobPipelineBoard";
@@ -17,17 +19,52 @@ import { usePlacementScores, usePlacementScoreFor } from "@/hooks/use-placement-
 import { PlacementScoreBadge } from "@/components/PlacementScoreBadge";
 import { PlacementScorePanel } from "@/components/PlacementScorePanel";
 import { IntakeCallCompanionButton } from "@/components/IntakeCallCompanion";
+import { toast } from "sonner";
+import { logActivity } from "@/lib/activity-log";
 
-const JOB_STATUSES = ["Open", "On Hold", "Filled", "Cancelled"] as const;
+export const JOB_STATUSES = ["Active", "On Hold", "Filled", "Closed"] as const;
+const CLOSE_STATUSES = ["Filled", "Closed"] as const;
 const JOB_TYPES = ["Perm", "Contract"] as const;
 const FEE_TYPES = ["Percentage", "Fixed"] as const;
 
-const statusColor: Record<string, string> = {
+// Legacy values "Open" and "Cancelled" still display correctly via the color map.
+export const statusColor: Record<string, string> = {
+  Active: "bg-success/20 text-green-400",
   Open: "bg-success/20 text-green-400",
   "On Hold": "bg-yellow-500/20 text-yellow-400",
   Filled: "bg-primary/20 text-primary",
+  Closed: "bg-destructive/20 text-red-400",
   Cancelled: "bg-destructive/20 text-red-400",
 };
+
+// Inline status dropdown — used in list rows. Stops propagation so the row doesn't navigate.
+function StatusSelect({
+  value,
+  onChange,
+  className = "",
+}: {
+  value: string;
+  onChange: (v: string) => void;
+  className?: string;
+}) {
+  const display = value === "Open" ? "Active" : value === "Cancelled" ? "Closed" : value;
+  return (
+    <div onClick={(e) => e.stopPropagation()} className={className}>
+      <Select value={JOB_STATUSES.includes(display as any) ? display : ""} onValueChange={onChange}>
+        <SelectTrigger
+          className={`h-7 w-auto min-w-[110px] gap-1.5 border-0 px-2 text-xs font-medium ${statusColor[value] || "bg-muted/30"}`}
+        >
+          <SelectValue placeholder={display || "Set status"} />
+        </SelectTrigger>
+        <SelectContent>
+          {JOB_STATUSES.map((s) => (
+            <SelectItem key={s} value={s} className="text-xs">{s}</SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+    </div>
+  );
+}
 
 export default function JobsPage() {
   const { data: jobs = [], isLoading } = useJobs();
