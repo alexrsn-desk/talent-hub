@@ -180,6 +180,9 @@ export function JobPipelineBoard({ job, onJobUpdate }: { job: Job; onJobUpdate?:
               setOfferPanel({ cj });
             }, 400);
           }
+          if (toStage === "Placed") {
+            setTimeout(() => setPlacedPrompt({ cj }), 300);
+          }
         },
       },
     );
