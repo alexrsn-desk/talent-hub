@@ -176,7 +176,15 @@ export default function JobsPage() {
                 <tr key={j.id} className="border-b border-border hover:bg-muted/20 cursor-pointer transition-colors" onClick={() => setSelectedJob(j)}>
                   <td className="px-4 py-3 font-medium">{j.title}</td>
                   <td className="px-4 py-3 text-muted-foreground">{(j.clients as any)?.company_name || "—"}</td>
-                  <td className="px-4 py-3"><Badge variant="secondary" className={statusColor[j.status]}>{j.status}</Badge></td>
+                  <td className="px-4 py-3">
+                    <StatusSelect
+                      value={j.status}
+                      onChange={async (v) => {
+                        await updateJob.mutateAsync({ id: j.id, status: v });
+                        toast.success(`Status: ${v}`);
+                      }}
+                    />
+                  </td>
                   <td className="px-4 py-3">
                     {score ? <PlacementScoreBadge score={score} /> : <span className="text-xs text-muted-foreground">—</span>}
                   </td>
