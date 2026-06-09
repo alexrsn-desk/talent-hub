@@ -449,6 +449,64 @@ export function JobPipelineBoard({ job, onJobUpdate }: { job: Job; onJobUpdate?:
           job={job as any}
         />
       )}
+
+      {/* Placed prompt — opens after move to Placed */}
+      <Dialog open={!!placedPrompt} onOpenChange={(o) => !o && !placedBusy && setPlacedPrompt(null)}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Candidate placed</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-1 py-1 text-sm">
+            <p>
+              <span className="font-medium">{placedPrompt?.cj.candidates?.name ?? "Candidate"}</span>{" "}
+              has been placed at{" "}
+              <span className="font-medium">{(job.clients as any)?.company_name ?? "this client"}</span>.
+            </p>
+            <p className="text-muted-foreground text-xs">What would you like to do next?</p>
+          </div>
+          <div className="grid gap-2 pt-2">
+            <Button
+              variant="outline"
+              disabled={placedBusy}
+              onClick={() => { setPlacedPrompt(null); navigate("/placements"); }}
+            >
+              Create placement record
+            </Button>
+            <Button
+              variant="outline"
+              disabled={placedBusy}
+              onClick={async () => {
+                if (!onJobUpdate) { toast.error("Job update not available here"); return; }
+                setPlacedBusy(true);
+                try {
+                  await onJobUpdate({ status: "Filled" } as any);
+                  toast.success("Job marked Filled");
+                  setPlacedPrompt(null);
+                } finally { setPlacedBusy(false); }
+              }}
+            >
+              Close this job (Filled)
+            </Button>
+            <Button
+              disabled={placedBusy}
+              onClick={async () => {
+                setPlacedBusy(true);
+                try {
+                  if (onJobUpdate) await onJobUpdate({ status: "Filled" } as any);
+                  toast.success("Job marked Filled");
+                  setPlacedPrompt(null);
+                  navigate("/placements");
+                } finally { setPlacedBusy(false); }
+              }}
+            >
+              Do both
+            </Button>
+            <Button variant="ghost" disabled={placedBusy} onClick={() => setPlacedPrompt(null)}>
+              Not now
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
