@@ -21,6 +21,7 @@ import { OfferManagementPanel } from "@/components/OfferManagementPanel";
 import { useOfferByCandidateJob } from "@/hooks/use-offers";
 import { logActivity } from "@/lib/activity-log";
 import { OfferBackupSignal } from "@/components/OfferBackupSignal";
+import { AddCandidateToStageDropdown } from "@/components/AddCandidateToStageDropdown";
 
 // ============================================================================
 // Stage definitions — reflects real recruitment workflow
