@@ -180,7 +180,7 @@ export function AddJobDialog() {
         salary_min: fd.get("salary_min") ? Number(fd.get("salary_min")) : null,
         salary_max: fd.get("salary_max") ? Number(fd.get("salary_max")) : null,
         job_type: (fd.get("job_type") as string) || "Perm",
-        status: "Open",
+        status: "Active",
         fee_type: (fd.get("fee_type") as string) || "Percentage",
         fee_value: fd.get("fee_value") ? Number(fd.get("fee_value")) : null,
         date_opened: new Date().toISOString().split("T")[0],
