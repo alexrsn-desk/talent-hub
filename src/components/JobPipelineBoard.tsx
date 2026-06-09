@@ -21,6 +21,7 @@ import { OfferManagementPanel } from "@/components/OfferManagementPanel";
 import { useOfferByCandidateJob } from "@/hooks/use-offers";
 import { logActivity } from "@/lib/activity-log";
 import { OfferBackupSignal } from "@/components/OfferBackupSignal";
+import { AddCandidateToStageDropdown } from "@/components/AddCandidateToStageDropdown";
 
 // ============================================================================
 // Stage definitions — reflects real recruitment workflow
@@ -279,44 +280,13 @@ export function JobPipelineBoard({ job, onJobUpdate }: { job: Job; onJobUpdate?:
                   <Badge variant="secondary" className="text-[10px] h-5 px-1.5">
                     {stageMap[stage]?.length || 0}
                   </Badge>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-5 w-5"
-                    onClick={() => {
-                      setAddingToStage(addingToStage === stage ? null : stage);
-                      setSelectedCandidateId("");
-                    }}
-                  >
-                    <Plus className="h-3 w-3" />
-                  </Button>
+                  <AddCandidateToStageDropdown
+                    jobId={job.id}
+                    stage={stage}
+                    candidateJobs={candidateJobs}
+                  />
                 </div>
               </div>
-
-              {addingToStage === stage && (
-                <div className="p-2 border-b border-border space-y-2">
-                  <Select value={selectedCandidateId} onValueChange={setSelectedCandidateId}>
-                    <SelectTrigger className="h-8 text-xs">
-                      <SelectValue placeholder="Select..." />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {availableCandidates.map((c) => (
-                        <SelectItem key={c.id} value={c.id} className="text-xs">
-                          {c.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <Button
-                    size="sm"
-                    className="w-full h-7 text-xs"
-                    onClick={() => handleAddCandidate(stage)}
-                    disabled={!selectedCandidateId}
-                  >
-                    Add
-                  </Button>
-                </div>
-              )}
 
               <Droppable droppableId={stage}>
                 {(provided, snapshot) => (
