@@ -44,8 +44,8 @@ export function useBillersWorkflow(viewUserId?: string | null) {
         supabase.from("candidate_tags").select("candidate_id,tag_definition_id"),
       ]);
 
-      const filterOwner = <T extends { owner_user_id?: string | null }>(rows: T[] | null) =>
-        (rows || []).filter(r => !viewUserId || r.owner_user_id === viewUserId);
+      const filterOwner = (rows: any[] | null): any[] =>
+        (rows || []).filter((r: any) => !viewUserId || r.owner_user_id === viewUserId);
 
       const cjs = filterOwner(cjRes.data as any);
       const jobs = filterOwner(jobsRes.data as any);
