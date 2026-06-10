@@ -245,7 +245,7 @@ export function useBillersWorkflow(viewUserId?: string | null) {
           id: job.id,
           title: `${job.title} at ${job.clients?.company_name || "—"}`,
           sub: `${active.length} candidate${active.length === 1 ? "" : "s"} · ${probability}% probability`,
-          signal: matchName ? `Pool match: ${matchName}` : undefined,
+          signal: matchName ? (matchPool ? `Pool match in ${matchPool}: ${matchName}` : `Pool match: ${matchName}`) : undefined,
           action: matchName
             ? `Add ${matchName} to pipeline`
             : `Source 2–3 ${job.title} candidates this week`,
