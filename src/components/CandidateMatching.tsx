@@ -73,6 +73,15 @@ export function CandidateMatching({ job, autoRun = false }: { job: Job; autoRun?
   const createCandidateJob = useCreateCandidateJob();
   const matchLimit = useFeatureLimit("candidate_match");
   const logUsage = useLogUsage();
+  const { user } = useAuth();
+  const [sendDialogOpen, setSendDialogOpen] = useState(false);
+  const [recruiterName, setRecruiterName] = useState<string>("");
+
+  useEffect(() => {
+    if (!user) return;
+    supabase.from("recruiter_profiles").select("display_name").eq("user_id", user.id).maybeSingle()
+      .then(({ data }) => setRecruiterName(data?.display_name || ""));
+  }, [user]);
 
   // Only auto-run when JD or intake summary is populated
   const hasBrief = Boolean((job as any).description?.trim() || (job as any).intake_summary?.trim());
