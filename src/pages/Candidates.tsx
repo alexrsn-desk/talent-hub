@@ -23,6 +23,7 @@ import { ReengageBadge, ReengageInlineEditor } from "@/components/ReengageDate";
 import { logActivity } from "@/lib/activity-log";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import { usePools, usePoolMemberships, computePoolHealth, HEALTH_DOT } from "@/hooks/use-talent-pools";
 
 const STATUSES = ["New", "Contacted", "Screening", "Submitted", "Interviewing", "Placed", "On Hold", "Not Suitable", "Cold", "Archive", "Do Not Contact", "LI Connection"] as const;
 const SOURCES = ["LinkedIn", "Referral", "Job Board", "Inbound"] as const;
@@ -409,6 +410,9 @@ export default function CandidatesPage() {
   const [touchpointCandidate, setTouchpointCandidate] = useState<Candidate | null>(null);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const lastClickedIndex = useRef<number | null>(null);
+  const [poolFilter, setPoolFilter] = useState<string>("all");
+  const { data: pools = [] } = usePools();
+  const { data: memberships = [] } = usePoolMemberships();
 
   const handleTogglePriority = useCallback((c: Candidate) => {
     if (c.priority_flag) {
@@ -466,6 +470,10 @@ export default function CandidatesPage() {
 
   const filtered = filteredBase
     .slice()
+    .filter((c) => {
+      if (poolFilter === "all") return true;
+      return memberships.some((m) => m.candidate_id === c.id && m.pool_id === poolFilter);
+    })
     .sort((a, b) => {
       if (aiResults) return 0; // preserve AI ranking
       if (a.priority_flag && !b.priority_flag) return -1;
