@@ -1401,6 +1401,7 @@ export type Database = {
           client_id: string | null
           created_at: string
           date_opened: string
+          description: string | null
           fee_type: string | null
           fee_value: number | null
           id: string
@@ -1421,6 +1422,7 @@ export type Database = {
           client_id?: string | null
           created_at?: string
           date_opened?: string
+          description?: string | null
           fee_type?: string | null
           fee_value?: number | null
           id?: string
@@ -1441,6 +1443,7 @@ export type Database = {
           client_id?: string | null
           created_at?: string
           date_opened?: string
+          description?: string | null
           fee_type?: string | null
           fee_value?: number | null
           id?: string
