@@ -289,6 +289,48 @@ export type Database = {
           },
         ]
       }
+      candidate_talent_pools: {
+        Row: {
+          added_at: string
+          added_by: string | null
+          candidate_id: string
+          id: string
+          owner_user_id: string
+          pool_id: string
+        }
+        Insert: {
+          added_at?: string
+          added_by?: string | null
+          candidate_id: string
+          id?: string
+          owner_user_id: string
+          pool_id: string
+        }
+        Update: {
+          added_at?: string
+          added_by?: string | null
+          candidate_id?: string
+          id?: string
+          owner_user_id?: string
+          pool_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "candidate_talent_pools_candidate_id_fkey"
+            columns: ["candidate_id"]
+            isOneToOne: false
+            referencedRelation: "candidates"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "candidate_talent_pools_pool_id_fkey"
+            columns: ["pool_id"]
+            isOneToOne: false
+            referencedRelation: "talent_pools"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       candidates: {
         Row: {
           availability: string | null
@@ -2339,6 +2381,42 @@ export type Database = {
           id?: string
           label?: string
           position?: number
+        }
+        Relationships: []
+      }
+      talent_pools: {
+        Row: {
+          checkin_frequency_days: number
+          created_at: string
+          description: string | null
+          id: string
+          name: string
+          owner_user_id: string
+          target_size: number
+          updated_at: string
+          warning_threshold_days: number
+        }
+        Insert: {
+          checkin_frequency_days?: number
+          created_at?: string
+          description?: string | null
+          id?: string
+          name: string
+          owner_user_id: string
+          target_size?: number
+          updated_at?: string
+          warning_threshold_days?: number
+        }
+        Update: {
+          checkin_frequency_days?: number
+          created_at?: string
+          description?: string | null
+          id?: string
+          name?: string
+          owner_user_id?: string
+          target_size?: number
+          updated_at?: string
+          warning_threshold_days?: number
         }
         Relationships: []
       }
