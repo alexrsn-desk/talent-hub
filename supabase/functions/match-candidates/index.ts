@@ -118,6 +118,8 @@ Salary: £${job.salary_min || "?"} - £${job.salary_max || "?"}
 Type: ${job.job_type}
 Status: ${job.status}
 Tags: ${jobTagStr || "None"}
+Job Description: ${(job as any).description || "Not provided"}
+Intake Brief Summary: ${(job as any).intake_summary || "Not captured"}
 Notes: ${jobNotes.map((n: any) => n.content).join(" | ") || "None"}
 `.trim();
 

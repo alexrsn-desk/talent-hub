@@ -184,7 +184,8 @@ export function AddJobDialog() {
         fee_type: (fd.get("fee_type") as string) || "Percentage",
         fee_value: fd.get("fee_value") ? Number(fd.get("fee_value")) : null,
         date_opened: new Date().toISOString().split("T")[0],
-      });
+        description: (fd.get("description") as string)?.trim() || null,
+      } as any);
 
       resetForm();
       setOpen(false);
@@ -377,6 +378,16 @@ export function AddJobDialog() {
             </div>
           </div>
           <div><Label>Fee Value</Label><Input name="fee_value" type="number" step="0.1" /></div>
+          <div>
+            <Label>Job Description</Label>
+            <textarea
+              name="description"
+              rows={5}
+              placeholder="Paste the JD — AI will auto-match candidates when you save."
+              className="flex w-full rounded-md border border-input bg-background px-3 py-2 text-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            />
+            <p className="text-[11px] text-muted-foreground mt-1">Optional, but unlocks AI candidate matching.</p>
+          </div>
           <Button type="submit" className="w-full" disabled={saving}>
             {saving ? "Creating..." : "Create Job"}
           </Button>
