@@ -7,11 +7,13 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
 import {
   Sparkles, RefreshCw, Loader2, Search, ExternalLink, Clock,
-  AlertTriangle, ChevronDown, ChevronUp, Send, ListPlus, Save,
+  AlertTriangle, ChevronDown, ChevronUp, Send, ListPlus,
 } from "lucide-react";
 import { useCreateCandidateJob } from "@/hooks/use-data";
 import type { Job } from "@/hooks/use-data";
 import { useFeatureLimit, useLogUsage } from "@/hooks/use-usage";
+import { MultiCandidateSendDialog } from "@/components/MultiCandidateSendDialog";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface MatchResult {
   candidate_id: string;
@@ -71,6 +73,15 @@ export function CandidateMatching({ job, autoRun = false }: { job: Job; autoRun?
   const createCandidateJob = useCreateCandidateJob();
   const matchLimit = useFeatureLimit("candidate_match");
   const logUsage = useLogUsage();
+  const { user } = useAuth();
+  const [sendDialogOpen, setSendDialogOpen] = useState(false);
+  const [recruiterName, setRecruiterName] = useState<string>("");
+
+  useEffect(() => {
+    if (!user) return;
+    supabase.from("recruiter_profiles").select("display_name").eq("user_id", user.id).maybeSingle()
+      .then(({ data }) => setRecruiterName(data?.display_name || ""));
+  }, [user]);
 
   // Only auto-run when JD or intake summary is populated
   const hasBrief = Boolean((job as any).description?.trim() || (job as any).intake_summary?.trim());
@@ -259,11 +270,8 @@ export function CandidateMatching({ job, autoRun = false }: { job: Job; autoRun?
             <Button size="sm" variant="outline" disabled={!selectedIds.length} onClick={() => addSelectedToPipeline("Longlist")} className="gap-1">
               <ListPlus className="h-3.5 w-3.5" /> Add to pipeline
             </Button>
-            <Button size="sm" variant="outline" disabled={!selectedIds.length} onClick={() => addSelectedToPipeline("Shortlist")} className="gap-1">
-              <Save className="h-3.5 w-3.5" /> Save as shortlist
-            </Button>
-            <Button size="sm" disabled={!selectedIds.length} onClick={() => addSelectedToPipeline("Submitted")} className="gap-1">
-              <Send className="h-3.5 w-3.5" /> Send as shortlist
+            <Button size="sm" disabled={!selectedIds.length} onClick={() => setSendDialogOpen(true)} className="gap-1">
+              <Send className="h-3.5 w-3.5" /> Send to client
             </Button>
           </div>
         </>
@@ -275,6 +283,27 @@ export function CandidateMatching({ job, autoRun = false }: { job: Job; autoRun?
           <p className="text-xs text-muted-foreground">Try expanding your search, or add candidates that fit this brief.</p>
           {data?.explanation && <p className="text-xs text-foreground/70">{data.explanation}</p>}
         </div>
+      )}
+
+      {sendDialogOpen && (
+        <MultiCandidateSendDialog
+          open={sendDialogOpen}
+          onOpenChange={setSendDialogOpen}
+          job={job}
+          recruiterName={recruiterName}
+          candidates={selectedIds
+            .map((id) => sorted.find((m) => m.candidate_id === id))
+            .filter(Boolean)
+            .map((m: any) => ({
+              id: m.candidate_id,
+              name: m.candidate_name,
+              job_title: m.job_title,
+              current_employer: m.current_employer,
+              availability: m.availability,
+              salary_expectation: m.salary_current,
+              email: null,
+            }))}
+        />
       )}
     </div>
   );
