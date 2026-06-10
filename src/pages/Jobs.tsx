@@ -435,7 +435,3 @@ function JobDescriptionEditor({ job, onUpdate }: { job: Job; onUpdate: (u: Parti
     </div>
   );
 }
-
-    </div>
-  );
-}
