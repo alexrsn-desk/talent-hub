@@ -33,7 +33,7 @@ export function useBillersWorkflow(viewUserId?: string | null) {
     queryKey: ["billers-workflow", viewUserId || "me"],
     staleTime: 30_000,
     queryFn: async (): Promise<BillersWorkflowData> => {
-      const [cjRes, jobsRes, clientsRes, candsRes, contactsRes, notesRes, jobTagsRes, candTagsRes] = await Promise.all([
+      const [cjRes, jobsRes, clientsRes, candsRes, contactsRes, notesRes, jobTagsRes, candTagsRes, poolsRes, poolMembersRes] = await Promise.all([
         supabase.from("candidate_jobs").select("id,candidate_id,job_id,stage,stage_changed_at,created_at,owner_user_id"),
         supabase.from("jobs").select("id,title,status,client_id,owner_user_id,clients(company_name,contact_name)"),
         supabase.from("clients").select("id,company_name,contact_name,status,heat,next_action,next_action_due_date,next_followup_date,last_activity_date,owner_user_id"),
@@ -42,6 +42,8 @@ export function useBillersWorkflow(viewUserId?: string | null) {
         supabase.from("notes").select("id,candidate_id,client_id,activity_type,content,created_at,follow_up_date").order("created_at", { ascending: false }).limit(1500),
         supabase.from("job_tags").select("job_id,tag_definition_id"),
         supabase.from("candidate_tags").select("candidate_id,tag_definition_id"),
+        supabase.from("talent_pools" as any).select("id,name,description,owner_user_id"),
+        supabase.from("candidate_talent_pools" as any).select("candidate_id,pool_id,owner_user_id"),
       ]);
 
       const filterOwner = (rows: any[] | null): any[] =>
@@ -202,18 +204,41 @@ export function useBillersWorkflow(viewUserId?: string | null) {
         const needs = active.length === 0 || active.length === 1 || probability < 40;
         if (!needs) continue;
 
-        // Find pool match via shared tags
-        const jobTagIds = tagsByJob.get(job.id) || [];
+        // Find pool match first: any pool whose name/description keywords appear in job title
+        const pools = filterOwner(poolsRes.data as any);
+        const poolMembers = filterOwner(poolMembersRes.data as any);
+        const jobTitleLower = (job.title || "").toLowerCase();
         let matchName: string | null = null;
-        for (const tid of jobTagIds) {
-          const candIds = candidatesByTag.get(tid);
-          if (!candIds) continue;
-          for (const cid of candIds) {
+        let matchPool: string | null = null;
+        for (const pool of pools as any[]) {
+          const tokens = `${pool.name || ""} ${pool.description || ""}`.toLowerCase().split(/\s+/).filter((t: string) => t.length > 3);
+          const overlaps = tokens.some((t: string) => jobTitleLower.includes(t));
+          if (!overlaps) continue;
+          const memberIds = (poolMembers as any[]).filter((m) => m.pool_id === pool.id).map((m) => m.candidate_id);
+          for (const cid of memberIds) {
             if (onJobIds.has(cid)) continue;
             const c = candById.get(cid) as any;
-            if (c && (c.status === "Active" || c.status === "Passive")) { matchName = c.name; break; }
+            if (c && (c.status === "Active" || c.status === "Passive")) {
+              matchName = c.name;
+              matchPool = pool.name;
+              break;
+            }
           }
           if (matchName) break;
+        }
+        // Fallback: shared-tag match
+        if (!matchName) {
+          const jobTagIds = tagsByJob.get(job.id) || [];
+          for (const tid of jobTagIds) {
+            const candIds = candidatesByTag.get(tid);
+            if (!candIds) continue;
+            for (const cid of candIds) {
+              if (onJobIds.has(cid)) continue;
+              const c = candById.get(cid) as any;
+              if (c && (c.status === "Active" || c.status === "Passive")) { matchName = c.name; break; }
+            }
+            if (matchName) break;
+          }
         }
 
         fillPipeline.push({
