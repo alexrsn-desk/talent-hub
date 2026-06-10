@@ -22,6 +22,7 @@ import { DecaySettingsSection } from "@/components/DecaySettingsSection";
 import { ComplianceSection } from "@/components/ComplianceSection";
 import { DangerZoneSection } from "@/components/DangerZoneSection";
 import { EnrichmentBudgetSection } from "@/components/EnrichmentBudgetSection";
+import { TalentPoolsSettings } from "@/components/TalentPoolsSettings";
 
 const NICHES = [
   "Tech/Digital", "Sales/Commercial", "Finance", "Legal",
@@ -343,6 +344,9 @@ export default function SettingsPage() {
       <div className="pt-6 border-t border-border">
         <TagManagement />
       </div>
+
+      {/* Talent Pools */}
+      <TalentPoolsSettings />
 
       {/* My Plan */}
       <div className="pt-6 border-t border-border">

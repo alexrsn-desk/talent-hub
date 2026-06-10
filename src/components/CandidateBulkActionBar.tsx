@@ -423,3 +423,48 @@ function MobileMoreActions({ selected, onClose }: { selected: Candidate[]; onClo
     </div>
   );
 }
+
+// --- Add to Talent Pool ---
+function AddToPoolAction({ selected }: { selected: Candidate[] }) {
+  const [open, setOpen] = useState(false);
+  const [poolId, setPoolId] = useState<string>("");
+  const { data: pools = [] } = usePools();
+  const addToPool = useAddCandidatesToPool();
+
+  const handleAdd = async () => {
+    if (!poolId) return;
+    await addToPool.mutateAsync({ poolId, candidateIds: selected.map((c) => c.id) });
+    const pool = pools.find((p) => p.id === poolId);
+    toast.success(`${selected.length} candidate${selected.length !== 1 ? "s" : ""} added to ${pool?.name || "pool"}`);
+    setOpen(false);
+    setPoolId("");
+  };
+
+  return (
+    <>
+      <ActionButton onClick={() => setOpen(true)}>
+        <Users className="h-4 w-4 mr-1" /> Add to Pool
+      </ActionButton>
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader><DialogTitle>Add {selected.length} candidate{selected.length !== 1 ? "s" : ""} to talent pool</DialogTitle></DialogHeader>
+          <div className="space-y-3">
+            {pools.length === 0 ? (
+              <p className="text-sm text-muted-foreground">No talent pools yet. Create one in Settings → Talent Pools.</p>
+            ) : (
+              <Select value={poolId} onValueChange={setPoolId}>
+                <SelectTrigger><SelectValue placeholder="Select a pool..." /></SelectTrigger>
+                <SelectContent>
+                  {pools.map((p) => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            )}
+            <Button className="w-full" onClick={handleAdd} disabled={!poolId || addToPool.isPending}>
+              {addToPool.isPending ? "Adding..." : "Add to pool"}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+    </>
+  );
+}
