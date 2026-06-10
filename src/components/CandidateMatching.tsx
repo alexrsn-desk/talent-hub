@@ -270,11 +270,8 @@ export function CandidateMatching({ job, autoRun = false }: { job: Job; autoRun?
             <Button size="sm" variant="outline" disabled={!selectedIds.length} onClick={() => addSelectedToPipeline("Longlist")} className="gap-1">
               <ListPlus className="h-3.5 w-3.5" /> Add to pipeline
             </Button>
-            <Button size="sm" variant="outline" disabled={!selectedIds.length} onClick={() => addSelectedToPipeline("Shortlist")} className="gap-1">
-              <Save className="h-3.5 w-3.5" /> Save as shortlist
-            </Button>
-            <Button size="sm" disabled={!selectedIds.length} onClick={() => addSelectedToPipeline("Submitted")} className="gap-1">
-              <Send className="h-3.5 w-3.5" /> Send as shortlist
+            <Button size="sm" disabled={!selectedIds.length} onClick={() => setSendDialogOpen(true)} className="gap-1">
+              <Send className="h-3.5 w-3.5" /> Send to client
             </Button>
           </div>
         </>
