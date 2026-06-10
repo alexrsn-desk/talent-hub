@@ -340,7 +340,10 @@ export function JobFullView({ job, onBack, onUpdate, onDelete, backLabel }: {
 
       <TagsSection entityType="job" entityId={job.id} />
 
-      <CandidateMatching job={job} autoRun={job.status === "Active" || job.status === "Open"} />
+      <JobDescriptionEditor job={job} onUpdate={onUpdate} />
+
+      <CandidateMatching job={job} autoRun />
+
 
       <div>
         <h2 className="text-sm font-medium mb-3">Candidate Pipeline</h2>
