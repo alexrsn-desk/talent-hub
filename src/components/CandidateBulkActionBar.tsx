@@ -5,10 +5,11 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { BriefcaseBusiness, Mail, ClipboardList, Tag, Download, X, ChevronUp, Check, MoreHorizontal, RefreshCw, Send } from "lucide-react";
+import { BriefcaseBusiness, Mail, ClipboardList, Tag, Download, X, ChevronUp, Check, MoreHorizontal, RefreshCw, Send, Users } from "lucide-react";
 import { SendCheckinPanel } from "@/components/SendCheckinPanel";
 import { useJobs, useCreateCandidateJob, useCreateNote, useUpdateCandidate, type Candidate } from "@/hooks/use-data";
 import { useAddCandidateTag, useTagDefinitions, TAG_CATEGORIES } from "@/hooks/use-tags";
+import { usePools, useAddCandidatesToPool } from "@/hooks/use-talent-pools";
 import { logActivity } from "@/lib/activity-log";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
@@ -35,6 +36,7 @@ export function CandidateBulkActionBar({ selected, onClear }: BulkActionBarProps
 
       <div className="flex items-center gap-2">
         <AddToJobAction selected={selected} />
+        <AddToPoolAction selected={selected} />
         {!isMobile && <SendCheckinAction selected={selected} />}
         {!isMobile && <AddToSequenceAction selected={selected} />}
         {!isMobile && <SendEmailAction selected={selected} />}
