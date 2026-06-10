@@ -683,6 +683,33 @@ export default function CandidatesPage() {
         onAiResultsChange={setAiResults}
       />
 
+      {pools.length > 0 && (
+        <div className="flex items-center gap-2 flex-wrap">
+          <span className="text-xs text-muted-foreground">Talent pool:</span>
+          <Select value={poolFilter} onValueChange={setPoolFilter}>
+            <SelectTrigger className="h-8 w-auto min-w-[220px] text-xs">
+              <SelectValue placeholder="All candidates" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All candidates</SelectItem>
+              {pools.map((p) => {
+                const memberIds = memberships.filter((m) => m.pool_id === p.id).map((m) => m.candidate_id);
+                const members = memberIds.map((cid) => candidates.find((c) => c.id === cid)).filter(Boolean) as any[];
+                const health = computePoolHealth(p, members.map((m) => ({ status: m.status, last_contacted: m.last_contacted_at || null })));
+                return (
+                  <SelectItem key={p.id} value={p.id}>
+                    {p.name} ({members.length}) {HEALTH_DOT[health]}
+                  </SelectItem>
+                );
+              })}
+            </SelectContent>
+          </Select>
+          {poolFilter !== "all" && (
+            <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => setPoolFilter("all")}>Clear</Button>
+          )}
+        </div>
+      )}
+
       {isLoading ? (
         <div className="text-muted-foreground text-sm">Loading...</div>
       ) : (
