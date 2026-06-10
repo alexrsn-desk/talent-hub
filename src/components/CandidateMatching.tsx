@@ -284,6 +284,27 @@ export function CandidateMatching({ job, autoRun = false }: { job: Job; autoRun?
           {data?.explanation && <p className="text-xs text-foreground/70">{data.explanation}</p>}
         </div>
       )}
+
+      {sendDialogOpen && (
+        <MultiCandidateSendDialog
+          open={sendDialogOpen}
+          onOpenChange={setSendDialogOpen}
+          job={job}
+          recruiterName={recruiterName}
+          candidates={selectedIds
+            .map((id) => sorted.find((m) => m.candidate_id === id))
+            .filter(Boolean)
+            .map((m: any) => ({
+              id: m.candidate_id,
+              name: m.candidate_name,
+              job_title: m.job_title,
+              current_employer: m.current_employer,
+              availability: m.availability,
+              salary_expectation: m.salary_current,
+              email: null,
+            }))}
+        />
+      )}
     </div>
   );
 }
