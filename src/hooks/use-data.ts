@@ -74,6 +74,8 @@ export type Job = {
   fee_type: string | null;
   fee_value: number | null;
   date_opened: string;
+  description?: string | null;
+  intake_summary?: string | null;
   created_at: string;
   updated_at: string;
   clients?: Client | null;
