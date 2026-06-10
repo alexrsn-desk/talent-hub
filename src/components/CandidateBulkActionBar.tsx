@@ -5,10 +5,11 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { BriefcaseBusiness, Mail, ClipboardList, Tag, Download, X, ChevronUp, Check, MoreHorizontal, RefreshCw, Send } from "lucide-react";
+import { BriefcaseBusiness, Mail, ClipboardList, Tag, Download, X, ChevronUp, Check, MoreHorizontal, RefreshCw, Send, Users } from "lucide-react";
 import { SendCheckinPanel } from "@/components/SendCheckinPanel";
 import { useJobs, useCreateCandidateJob, useCreateNote, useUpdateCandidate, type Candidate } from "@/hooks/use-data";
 import { useAddCandidateTag, useTagDefinitions, TAG_CATEGORIES } from "@/hooks/use-tags";
+import { usePools, useAddCandidatesToPool } from "@/hooks/use-talent-pools";
 import { logActivity } from "@/lib/activity-log";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
@@ -35,6 +36,7 @@ export function CandidateBulkActionBar({ selected, onClear }: BulkActionBarProps
 
       <div className="flex items-center gap-2">
         <AddToJobAction selected={selected} />
+        <AddToPoolAction selected={selected} />
         {!isMobile && <SendCheckinAction selected={selected} />}
         {!isMobile && <AddToSequenceAction selected={selected} />}
         {!isMobile && <SendEmailAction selected={selected} />}
@@ -419,5 +421,50 @@ function MobileMoreActions({ selected, onClose }: { selected: Candidate[]; onClo
       <AddTagAction selected={selected} />
       <ExportAction selected={selected} />
     </div>
+  );
+}
+
+// --- Add to Talent Pool ---
+function AddToPoolAction({ selected }: { selected: Candidate[] }) {
+  const [open, setOpen] = useState(false);
+  const [poolId, setPoolId] = useState<string>("");
+  const { data: pools = [] } = usePools();
+  const addToPool = useAddCandidatesToPool();
+
+  const handleAdd = async () => {
+    if (!poolId) return;
+    await addToPool.mutateAsync({ poolId, candidateIds: selected.map((c) => c.id) });
+    const pool = pools.find((p) => p.id === poolId);
+    toast.success(`${selected.length} candidate${selected.length !== 1 ? "s" : ""} added to ${pool?.name || "pool"}`);
+    setOpen(false);
+    setPoolId("");
+  };
+
+  return (
+    <>
+      <ActionButton onClick={() => setOpen(true)}>
+        <Users className="h-4 w-4 mr-1" /> Add to Pool
+      </ActionButton>
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader><DialogTitle>Add {selected.length} candidate{selected.length !== 1 ? "s" : ""} to talent pool</DialogTitle></DialogHeader>
+          <div className="space-y-3">
+            {pools.length === 0 ? (
+              <p className="text-sm text-muted-foreground">No talent pools yet. Create one in Settings → Talent Pools.</p>
+            ) : (
+              <Select value={poolId} onValueChange={setPoolId}>
+                <SelectTrigger><SelectValue placeholder="Select a pool..." /></SelectTrigger>
+                <SelectContent>
+                  {pools.map((p) => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            )}
+            <Button className="w-full" onClick={handleAdd} disabled={!poolId || addToPool.isPending}>
+              {addToPool.isPending ? "Adding..." : "Add to pool"}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }
