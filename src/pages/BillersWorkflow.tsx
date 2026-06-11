@@ -112,7 +112,7 @@ function SectionShell({
         <div className="bg-card">
           {items.length === 0
             ? <div className="px-4 py-6 text-sm text-muted-foreground text-center">{emptyMessage}</div>
-            : items.map((it) => <SectionRow key={it.id} item={it} onLogCall={onLogCall} onRefresh={onRefresh} />)}
+            : items.map((it) => <SectionRow key={it.id} item={it} onLogCall={onLogCall} onRefresh={onRefresh} onOpenGap={onOpenGap} />)}
         </div>
       )}
     </div>
