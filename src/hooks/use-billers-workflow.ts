@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 
-export type BillerTone = "amber" | "green";
+export type BillerTone = "amber" | "green" | "red" | "yellow";
 
 export type BillerItem = {
   id: string;
@@ -12,9 +12,35 @@ export type BillerItem = {
   href?: string;
   urgency: number;
   tone: BillerTone;
+  section: "close" | "feed";
   logEntityType?: "candidate" | "client";
   logEntityId?: string;
   logEntityName?: string;
+  bdTarget?: boolean;
+};
+
+export type BillerThresholds = {
+  critical: number;       // < this on a live role → red
+  warning: number;        // < this → amber
+  caution: number;        // < this → yellow
+  bdInactivityDays: number;
+  offerColdDays: number;
+  clientSilenceDays: number;
+  placedClientDays: number;
+  placedCandidateDays: number;
+  warmProspectDays: number;
+};
+
+export const DEFAULT_THRESHOLDS: BillerThresholds = {
+  critical: 1, // active job with 0 candidates is critical (< 1)
+  warning: 2,
+  caution: 3,
+  bdInactivityDays: 3,
+  offerColdDays: 4,
+  clientSilenceDays: 7,
+  placedClientDays: 60,
+  placedCandidateDays: 90,
+  warmProspectDays: 42,
 };
 
 export type BillersWorkflowData = {
@@ -25,51 +51,74 @@ export type BillersWorkflowData = {
   navinMode: boolean;
   totalActiveJobs: number;
   totalActiveDeals: number;
+  dailyBdTargets: BillerItem[]; // up to 3
 };
 
 const BACKUP_STAGES = new Set(["Screening", "Shortlist"]);
 const LATE_STAGES = new Set(["First Interview", "Second Interview", "Offer"]);
 const SUBMITTED_STAGES = new Set(["Submitted", "Client Review"]);
 const ACTIVE_STAGES = ["Longlist","Contact","Screening","Shortlist","Submitted","Client Review","First Interview","Second Interview","Offer"];
+const BD_TYPES = new Set(["Call", "Email", "LinkedIn Message", "Meeting", "Text Message", "WhatsApp"]);
 
-function daysSince(iso?: string | null): number {
-  if (!iso) return 9999;
-  return Math.floor((Date.now() - new Date(iso).getTime()) / 86400000);
-}
+const daysSince = (iso?: string | null) => !iso ? 9999 : Math.floor((Date.now() - new Date(iso).getTime()) / 86400000);
 
-// Parse free-text notice period to weeks. Returns null if unknown.
 function parseNoticeWeeks(text?: string | null): number | null {
   if (!text) return null;
   const t = text.toLowerCase();
   if (/immediate|none|^0\b/.test(t)) return 0;
-  const mWeek = t.match(/(\d+)\s*week/);
-  if (mWeek) return parseInt(mWeek[1], 10);
-  const mMonth = t.match(/(\d+)\s*month/);
-  if (mMonth) return parseInt(mMonth[1], 10) * 4;
+  const w = t.match(/(\d+)\s*week/); if (w) return parseInt(w[1], 10);
+  const m = t.match(/(\d+)\s*month/); if (m) return parseInt(m[1], 10) * 4;
   return null;
 }
 
-export function useBillersWorkflow(viewUserId?: string | null) {
+function snoozeKey(id: string) { return `desky.bw.snooze.${id}`; }
+function isSnoozed(id: string): boolean {
+  try {
+    const v = localStorage.getItem(snoozeKey(id));
+    if (!v) return false;
+    const until = parseInt(v, 10);
+    if (Number.isNaN(until)) return false;
+    if (until > Date.now()) return true;
+    localStorage.removeItem(snoozeKey(id));
+  } catch {}
+  return false;
+}
+
+function doneKey(id: string) { return `desky.bw.done.${id}`; }
+function isDone(id: string): boolean {
+  try {
+    const v = localStorage.getItem(doneKey(id));
+    if (!v) return false;
+    const until = parseInt(v, 10);
+    if (until > Date.now()) return true;
+    localStorage.removeItem(doneKey(id));
+  } catch {}
+  return false;
+}
+
+const stripHidden = (arr: BillerItem[]) =>
+  arr.filter((it) => !isSnoozed(it.id) && !isDone(it.id));
+
+export function useBillersWorkflow(viewUserId?: string | null, thresholds: BillerThresholds = DEFAULT_THRESHOLDS) {
   return useQuery({
-    queryKey: ["billers-workflow-v2", viewUserId || "me"],
+    queryKey: ["billers-workflow-v3", viewUserId || "me", thresholds],
     staleTime: 30_000,
     queryFn: async (): Promise<BillersWorkflowData> => {
-      const [cjRes, jobsRes, clientsRes, candsRes, notesRes, jobTagsRes, candTagsRes, poolsRes, poolMembersRes, placementsRes] = await Promise.all([
+      const [cjRes, jobsRes, clientsRes, candsRes, notesRes, jobTagsRes, candTagsRes, poolsRes, poolMembersRes, placementsRes, offersRes] = await Promise.all([
         supabase.from("candidate_jobs").select("id,candidate_id,job_id,stage,stage_changed_at,created_at,owner_user_id"),
         supabase.from("jobs").select("id,title,status,client_id,owner_user_id,clients(company_name,contact_name)"),
         supabase.from("clients").select("id,company_name,contact_name,status,heat,last_activity_date,owner_user_id"),
         supabase.from("candidates").select("id,name,job_title,status,notice_period,owner_user_id"),
-        supabase.from("notes").select("id,candidate_id,client_id,activity_type,content,created_at").order("created_at", { ascending: false }).limit(1500),
+        supabase.from("notes").select("id,candidate_id,client_id,activity_type,content,created_at").order("created_at",{ ascending: false }).limit(1500),
         supabase.from("job_tags").select("job_id,tag_definition_id"),
         supabase.from("candidate_tags").select("candidate_id,tag_definition_id"),
-        supabase.from("talent_pools" as any).select("id,name,description,target_size,checkin_frequency_days,warning_threshold_days,owner_user_id"),
+        supabase.from("talent_pools" as any).select("id,name,description,target_size,warning_threshold_days,owner_user_id"),
         supabase.from("candidate_talent_pools" as any).select("candidate_id,pool_id,owner_user_id,added_at"),
         supabase.from("placements" as any).select("id,candidate_id,client_id,job_id,candidate_name_snapshot,client_name_snapshot,job_title_snapshot,offer_accepted_date,start_date,status,owner_user_id"),
+        supabase.from("offers" as any).select("id,candidate_id,job_id,counter_offer_risk,counter_offer_reasons,owner_user_id,status").limit(500),
       ]);
 
-      const filterOwner = (rows: any[] | null): any[] =>
-        (rows || []).filter((r: any) => !viewUserId || r.owner_user_id === viewUserId);
-
+      const filterOwner = (rows: any[] | null) => (rows || []).filter((r: any) => !viewUserId || r.owner_user_id === viewUserId);
       const cjs = filterOwner(cjRes.data as any);
       const jobs = filterOwner(jobsRes.data as any);
       const clients = filterOwner(clientsRes.data as any);
@@ -80,6 +129,7 @@ export function useBillersWorkflow(viewUserId?: string | null) {
       const pools = filterOwner(poolsRes.data as any);
       const poolMembers = filterOwner(poolMembersRes.data as any);
       const placements = filterOwner(placementsRes.data as any);
+      const offers = filterOwner(offersRes.data as any);
 
       const jobById = new Map(jobs.map((j: any) => [j.id, j]));
       const candById = new Map(candidates.map((c: any) => [c.id, c]));
@@ -93,52 +143,44 @@ export function useBillersWorkflow(viewUserId?: string | null) {
         if (n.candidate_id && !lastCandNote.has(n.candidate_id)) lastCandNote.set(n.candidate_id, n);
       }
 
-      // Index cjs by job
       const cjsByJob = new Map<string, any[]>();
       for (const cj of cjs) {
         const arr = cjsByJob.get(cj.job_id) || [];
-        arr.push(cj);
-        cjsByJob.set(cj.job_id, arr);
+        arr.push(cj); cjsByJob.set(cj.job_id, arr);
       }
 
-      // Tag indices for silver medallist matching
       const tagsByCand = new Map<string, Set<string>>();
       for (const ct of candTags as any[]) {
         const s = tagsByCand.get(ct.candidate_id) || new Set();
-        s.add(ct.tag_definition_id);
-        tagsByCand.set(ct.candidate_id, s);
+        s.add(ct.tag_definition_id); tagsByCand.set(ct.candidate_id, s);
       }
       const tagsByJob = new Map<string, Set<string>>();
       for (const jt of jobTags as any[]) {
         const s = tagsByJob.get(jt.job_id) || new Set();
-        s.add(jt.tag_definition_id);
-        tagsByJob.set(jt.job_id, s);
+        s.add(jt.tag_definition_id); tagsByJob.set(jt.job_id, s);
       }
 
-      const findBackupSuggestions = (job: any, onJobIds: Set<string>): string[] => {
+      const findCandidateMatches = (job: any, exclude: Set<string>, limit = 3): string[] => {
         const out: string[] = [];
-        const jobTagIds = tagsByJob.get(job.id);
-        if (jobTagIds && jobTagIds.size) {
+        const jt = tagsByJob.get(job.id);
+        if (jt && jt.size) {
           for (const c of candidates as any[]) {
-            if (onJobIds.has(c.id)) continue;
+            if (exclude.has(c.id)) continue;
             if (c.status !== "Active" && c.status !== "Passive") continue;
-            const ct = tagsByCand.get(c.id);
-            if (!ct) continue;
-            let shared = false;
-            for (const t of jobTagIds) if (ct.has(t)) { shared = true; break; }
-            if (shared) { out.push(c.name); if (out.length >= 3) return out; }
+            const ct = tagsByCand.get(c.id); if (!ct) continue;
+            for (const t of jt) { if (ct.has(t)) { out.push(c.name); break; } }
+            if (out.length >= limit) return out;
           }
         }
-        // Fallback: job title token overlap
-        if (out.length < 3) {
-          const titleTokens = (job.title || "").toLowerCase().split(/\s+/).filter((t: string) => t.length > 3);
+        if (out.length < limit) {
+          const tokens = (job.title || "").toLowerCase().split(/\s+/).filter((t: string) => t.length > 3);
           for (const c of candidates as any[]) {
-            if (onJobIds.has(c.id)) continue;
+            if (exclude.has(c.id) || out.includes(c.name)) continue;
             if (c.status !== "Active" && c.status !== "Passive") continue;
-            const jt = (c.job_title || "").toLowerCase();
-            if (titleTokens.some((t: string) => jt.includes(t))) {
-              if (!out.includes(c.name)) out.push(c.name);
-              if (out.length >= 3) break;
+            const jtitle = (c.job_title || "").toLowerCase();
+            if (tokens.some((t: string) => jtitle.includes(t))) {
+              out.push(c.name);
+              if (out.length >= limit) break;
             }
           }
         }
@@ -146,9 +188,59 @@ export function useBillersWorkflow(viewUserId?: string | null) {
       };
 
       // ============================================================
-      // SECTION 1 — CLOSE & PROTECT
+      // CLOSE & PROTECT
       // ============================================================
       const closeProtect: BillerItem[] = [];
+
+      // TRIGGER 1 — LIVE ROLE PIPELINE THIN/EMPTY
+      for (const job of jobs as any[]) {
+        if (job.status !== "Active") continue;
+        const active = (cjsByJob.get(job.id) || []).filter((cj: any) => ACTIVE_STAGES.includes(cj.stage));
+        const count = active.length;
+        if (count >= thresholds.caution) continue;
+        const company = job.clients?.company_name || "—";
+        const onIds = new Set(active.map((cj: any) => cj.candidate_id));
+        const matches = findCandidateMatches(job, onIds, 3);
+
+        let tone: BillerTone = "yellow";
+        let title = "";
+        let signal: string | undefined;
+        let action = "";
+        let urgency = 0;
+
+        if (count < thresholds.critical) {
+          tone = "red";
+          title = `🚨 ${job.title} at ${company} has NO candidates`;
+          signal = "This role will go to a competitor if you don't act today";
+          action = "Add 2 candidates to the pipeline before anything else";
+          urgency = 1000;
+        } else if (count < thresholds.warning) {
+          tone = "amber";
+          title = `⚠️ ${job.title} at ${company} — only ${count} candidate`;
+          signal = "One rejection and you have nothing";
+          action = "Add 1–2 more candidates this week";
+          urgency = 500;
+        } else {
+          tone = "yellow";
+          title = `${job.title} at ${company} — ${count} candidates`;
+          signal = "Worth adding one more as insurance";
+          action = "Add one more candidate this week";
+          urgency = 300;
+        }
+
+        closeProtect.push({
+          id: `cp-thin-${job.id}`,
+          tone, section: "close",
+          title,
+          sub: matches.length ? `Best matches: ${matches.join(", ")}` : undefined,
+          signal, action,
+          href: `/jobs`,
+          urgency,
+          logEntityType: "client",
+          logEntityId: job.client_id,
+          logEntityName: company,
+        });
+      }
 
       for (const cj of cjs) {
         if (!activeJobIds.has(cj.job_id)) continue;
@@ -156,42 +248,24 @@ export function useBillersWorkflow(viewUserId?: string | null) {
         const cand = candById.get(cj.candidate_id) as any;
         if (!job || !cand) continue;
         const company = job.clients?.company_name || "—";
-        const contactName = job.clients?.contact_name || "client";
         const stageDays = daysSince(cj.stage_changed_at || cj.created_at);
 
-        // TRIGGER 3 — OFFER GOING COLD (4+ days)
-        if (cj.stage === "Offer" && stageDays >= 4) {
-          closeProtect.push({
-            id: `cp-offercold-${cj.id}`,
-            tone: "amber",
-            title: `${cand.name} has had the offer ${stageDays} days without accepting`,
-            sub: `${job.title} at ${company}`,
-            signal: stageDays >= 5
-              ? "After 5 days — counter offer probability rises sharply"
-              : "Silence on an offer means something is happening",
-            action: "Call today — not email. Ask directly what is going on.",
-            href: `/jobs`,
-            urgency: 200 + stageDays,
-            logEntityType: "candidate",
-            logEntityId: cand.id,
-            logEntityName: cand.name,
-          });
-        }
-
-        // TRIGGER 2 — NOTICE PERIOD WARMUP (at Offer, 6+ weeks notice)
-        if (cj.stage === "Offer") {
-          const weeks = parseNoticeWeeks(cand.notice_period);
-          if (weeks !== null && weeks >= 6) {
-            const months = weeks >= 8 ? `${Math.round(weeks / 4)} month` : `${weeks} week`;
+        // TRIGGER 2 — NO BACKUP AT FINAL/OFFER
+        if (LATE_STAGES.has(cj.stage)) {
+          const others = cjsByJob.get(cj.job_id) || [];
+          const hasBackup = others.some((o: any) => o.id !== cj.id && BACKUP_STAGES.has(o.stage));
+          if (!hasBackup) {
+            const exclude = new Set(others.map((o: any) => o.candidate_id));
+            const matches = findCandidateMatches(job, exclude, 3);
             closeProtect.push({
-              id: `cp-notice-${cj.id}`,
-              tone: "amber",
-              title: `${cand.name} has a ${months} notice period`,
-              sub: `${job.title} at ${company} — a lot can happen in ${months}s`,
-              signal: "Counter offer risk is highest during long notice periods",
-              action: "Schedule a 2-week-in check-in + send counter-offer prep notes",
+              id: `cp-backup-${cj.id}`,
+              tone: "amber", section: "close",
+              title: `${cand.name} is at ${cj.stage} for ${job.title} at ${company}`,
+              sub: matches.length ? `Silver medallists who match: ${matches.join(", ")}` : "No backup candidate exists",
+              signal: "Finals fall through ~30% of the time. If this drops you start from scratch.",
+              action: "Add one backup to shortlist now",
               href: `/jobs`,
-              urgency: 150 + weeks,
+              urgency: 250 + stageDays,
               logEntityType: "candidate",
               logEntityId: cand.id,
               logEntityName: cand.name,
@@ -199,144 +273,219 @@ export function useBillersWorkflow(viewUserId?: string | null) {
           }
         }
 
-        // TRIGGER 1 & 6 — BACKUP CANDIDATE NEEDED (late stages, no backup at Screening/Shortlist)
-        if (LATE_STAGES.has(cj.stage)) {
-          const others = cjsByJob.get(cj.job_id) || [];
-          const hasBackup = others.some((o: any) => o.id !== cj.id && BACKUP_STAGES.has(o.stage));
-          if (!hasBackup) {
-            const onJobIds = new Set(others.map((o: any) => o.candidate_id));
-            const suggestions = findBackupSuggestions(job, onJobIds);
-            const isFinal = cj.stage === "Second Interview" || cj.stage === "Offer";
+        // TRIGGER 3 — OFFER GOING COLD
+        if (cj.stage === "Offer" && stageDays >= thresholds.offerColdDays) {
+          closeProtect.push({
+            id: `cp-offercold-${cj.id}`,
+            tone: "amber", section: "close",
+            title: `${cand.name} has had the offer ${stageDays} days`,
+            sub: `${job.title} at ${company}`,
+            signal: stageDays >= 5 ? "After 5 days counter-offer probability rises sharply" : "Silence on an offer means something is happening",
+            action: "Call today — not email. Ask directly what is going on.",
+            href: `/jobs`,
+            urgency: 400 + stageDays,
+            logEntityType: "candidate",
+            logEntityId: cand.id,
+            logEntityName: cand.name,
+          });
+        }
+
+        // TRIGGER 4 — NOTICE PERIOD WARMUP
+        if (cj.stage === "Offer") {
+          const weeks = parseNoticeWeeks(cand.notice_period);
+          if (weeks !== null && weeks >= 6) {
+            const label = weeks >= 8 ? `${Math.round(weeks/4)} month` : `${weeks} week`;
             closeProtect.push({
-              id: `cp-backup-${cj.id}`,
-              tone: "amber",
-              title: `${cand.name} is at ${cj.stage} for ${job.title} at ${company} — no backup`,
-              sub: suggestions.length
-                ? `Silver medallists who match: ${suggestions.slice(0, 3).join(", ")}`
-                : "No silver medallists found — source one this week",
-              signal: isFinal
-                ? "Finals fall through ~30% of the time. If this drops you start from scratch."
-                : "If this falls through you have nothing to send next.",
-              action: "Add one backup to shortlist today",
+              id: `cp-notice-${cj.id}`,
+              tone: "amber", section: "close",
+              title: `${cand.name} has a ${label} notice period`,
+              sub: `${job.title} at ${company}`,
+              signal: "Counter offer risk is highest during long notice periods",
+              action: "Schedule a 2-week-in check-in + send counter-offer prep notes",
               href: `/jobs`,
-              urgency: (isFinal ? 130 : 110) + stageDays,
+              urgency: 200 + weeks,
+              logEntityType: "candidate",
+              logEntityId: cand.id,
+              logEntityName: cand.name,
+            });
+          }
+        }
+
+        // TRIGGER 6 — COUNTER OFFER RISK from offers table
+        if (cj.stage === "Offer" || cj.stage === "Second Interview") {
+          const off = offers.find((o: any) => o.candidate_id === cand.id && o.job_id === job.id);
+          if (off && (off.counter_offer_risk === "high" || off.counter_offer_risk === "medium")) {
+            closeProtect.push({
+              id: `cp-co-${cj.id}`,
+              tone: "red", section: "close",
+              title: `⚠️ Counter offer risk detected for ${cand.name} at ${company}`,
+              sub: off.counter_offer_reasons ? `Signal: ${off.counter_offer_reasons.slice(0, 120)}` : `${job.title}`,
+              signal: "This is your most fragile deal",
+              action: "Call today — before they speak to their manager",
+              href: `/jobs`,
+              urgency: 900,
+              logEntityType: "candidate",
+              logEntityId: cand.id,
+              logEntityName: cand.name,
             });
           }
         }
       }
 
-      // TRIGGER 4 — CLIENT GONE QUIET MID PROCESS (CVs out 7+ days no feedback)
+      // TRIGGER 5 — CLIENT GONE QUIET MID-PROCESS
       const submittedByJob = new Map<string, { count: number; lastDays: number }>();
       for (const cj of cjs) {
         if (!SUBMITTED_STAGES.has(cj.stage)) continue;
         if (!activeJobIds.has(cj.job_id)) continue;
-        const job = jobById.get(cj.job_id) as any;
-        if (!job) continue;
+        const job = jobById.get(cj.job_id) as any; if (!job) continue;
         const ln = lastClientNote.get(job.client_id);
         const d = daysSince(ln?.created_at);
-        if (d < 7) continue;
+        if (d < thresholds.clientSilenceDays) continue;
         const cur = submittedByJob.get(cj.job_id) || { count: 0, lastDays: d };
-        cur.count += 1;
-        cur.lastDays = Math.max(cur.lastDays, d);
+        cur.count += 1; cur.lastDays = Math.max(cur.lastDays, d);
         submittedByJob.set(cj.job_id, cur);
       }
       for (const [jobId, info] of submittedByJob.entries()) {
-        const job = jobById.get(jobId) as any;
-        if (!job) continue;
+        const job = jobById.get(jobId) as any; if (!job) continue;
         const company = job.clients?.company_name || "—";
         const contactName = job.clients?.contact_name || "client";
         closeProtect.push({
           id: `cp-quiet-${jobId}`,
-          tone: "amber",
-          title: `${company} has had ${info.count} CV${info.count === 1 ? "" : "s"} for ${info.lastDays} days with no feedback`,
+          tone: "amber", section: "close",
+          title: `${company} has had ${info.count} CV${info.count === 1 ? "" : "s"} for ${info.lastDays} days — no feedback`,
           sub: `${job.title}`,
-          signal: "Silence usually means: too busy / not right / lost interest. All three need a call.",
+          signal: "Silence = too busy / not right / lost interest. All three need a call.",
           action: `Call ${contactName} today`,
           href: `/clients`,
-          urgency: 120 + info.lastDays,
+          urgency: 350 + info.lastDays,
           logEntityType: "client",
           logEntityId: job.client_id,
           logEntityName: company,
         });
       }
 
-      closeProtect.sort((a, b) => b.urgency - a.urgency);
-
-      // ============================================================
-      // SECTION 2 — FEED THE BEAST
-      // ============================================================
-      const feedTheBeast: BillerItem[] = [];
-
-      // TRIGGER 1 — THIN PIPELINE WARNING (<3 candidates at any active stage)
-      for (const job of jobs as any[]) {
-        if (job.status !== "Active") continue;
-        const active = (cjsByJob.get(job.id) || []).filter((cj: any) => ACTIVE_STAGES.includes(cj.stage));
-        const count = active.length;
-        if (count >= 3) continue;
-        const company = job.clients?.company_name || "—";
-        const onJobIds = new Set(active.map((cj: any) => cj.candidate_id));
-
-        // Pool suggestion
-        const jobTitleLower = (job.title || "").toLowerCase();
-        let poolHit: { name: string; candidate?: string } | null = null;
-        for (const pool of pools as any[]) {
-          const tokens = `${pool.name || ""} ${pool.description || ""}`.toLowerCase().split(/\s+/).filter((t: string) => t.length > 3);
-          if (!tokens.some((t: string) => jobTitleLower.includes(t))) continue;
-          const memberIds = (poolMembers as any[]).filter((m) => m.pool_id === pool.id).map((m) => m.candidate_id);
-          let pickName: string | undefined;
-          for (const cid of memberIds) {
-            if (onJobIds.has(cid)) continue;
-            const c = candById.get(cid) as any;
-            if (c && (c.status === "Active" || c.status === "Passive")) { pickName = c.name; break; }
-          }
-          poolHit = { name: pool.name, candidate: pickName };
-          break;
-        }
-
-        feedTheBeast.push({
-          id: `ftb-thin-${job.id}`,
-          tone: "green",
-          title: `${job.title} at ${company} — thin pipeline (${count} candidate${count === 1 ? "" : "s"})`,
-          sub: poolHit
-            ? `Pool "${poolHit.name}"${poolHit.candidate ? ` — start with ${poolHit.candidate}` : ""}`
-            : `Target ≥ 3 to give yourself a real chance`,
-          signal: count === 0 ? "Zero candidates — this role is at risk of dying" : undefined,
-          action: "Add 2 candidates to this pipeline today",
-          href: `/jobs`,
-          urgency: 80 + (3 - count) * 10,
+      // TRIGGER 8 — BD CONTACTS WITH LIVE ROLES (silence on live client)
+      const liveClientIds = new Set<string>();
+      for (const j of jobs as any[]) if (j.status === "Active" && j.client_id) liveClientIds.add(j.client_id);
+      for (const clientId of liveClientIds) {
+        const client = clientById.get(clientId) as any; if (!client) continue;
+        const ln = lastClientNote.get(clientId);
+        const d = daysSince(ln?.created_at);
+        if (d < 14) continue;
+        // Skip if already covered by quiet-CV alert for any of its jobs
+        const hasQuiet = jobs.some((j: any) => j.client_id === clientId && submittedByJob.has(j.id));
+        if (hasQuiet) continue;
+        const company = client.company_name || "—";
+        closeProtect.push({
+          id: `cp-livesilence-${clientId}`,
+          tone: "amber", section: "close",
+          title: `${company} has an active role — you haven't spoken in ${d === 9999 ? "weeks" : `${d} days`}`,
+          sub: `Silence from a client mid-process is a warning sign`,
+          action: `Call ${client.contact_name || "contact"} today — proactive update before they chase you`,
+          href: `/clients`,
+          urgency: 220 + Math.min(d, 60),
+          logEntityType: "client",
+          logEntityId: clientId,
+          logEntityName: company,
         });
       }
 
-      // TRIGGER 2 — SILVER MEDALLIST RE-ENGAGEMENT
-      // Candidates who reached interview stage in last 6 months, weren't placed, still Active/Passive
+      // ============================================================
+      // FEED THE BEAST
+      // ============================================================
+      const feedTheBeast: BillerItem[] = [];
+
+      // TRIGGER 1 — BD REACTIVATION (past clients)
+      const placementsByClient = new Map<string, any[]>();
+      for (const p of placements) {
+        if (p.status === "fallen_through") continue;
+        const arr = placementsByClient.get(p.client_id) || [];
+        arr.push(p); placementsByClient.set(p.client_id, arr);
+      }
+      for (const [clientId, ps] of placementsByClient.entries()) {
+        const client = clientById.get(clientId) as any; if (!client) continue;
+        if (liveClientIds.has(clientId)) continue; // they're in C&P
+        const last = ps.sort((a,b) => (b.offer_accepted_date || "").localeCompare(a.offer_accepted_date || ""))[0];
+        const placedDays = daysSince(last.offer_accepted_date || last.start_date);
+        if (placedDays < thresholds.placedClientDays + 30) continue; // >= 90d placed + 60d silence ≈ matches spec
+        const ln = lastClientNote.get(clientId);
+        const contactDays = daysSince(ln?.created_at || client.last_activity_date);
+        if (contactDays < thresholds.placedClientDays) continue;
+        const months = Math.max(1, Math.floor(placedDays / 30));
+        const company = client.company_name || last.client_name_snapshot || "—";
+        feedTheBeast.push({
+          id: `ftb-bd-${clientId}`,
+          tone: "green", section: "feed",
+          title: `${company} hired through you ${months} month${months === 1 ? "" : "s"} ago`,
+          sub: `${contactDays >= 9000 ? "Not heard from since" : `${contactDays}d since last contact`} — past clients are 5x more likely to hire again`,
+          action: `Call ${client.contact_name || "contact"} this week — lead with a candidate or insight, not "checking in"`,
+          href: `/clients`,
+          urgency: 70 + Math.min(contactDays, 90),
+          logEntityType: "client",
+          logEntityId: clientId,
+          logEntityName: company,
+        });
+      }
+
+      // TRIGGER 2 — PLACED CANDIDATE REFERRALS
+      const placementByCand = new Map<string, any>();
+      for (const p of placements) {
+        if (p.status === "fallen_through") continue;
+        const prev = placementByCand.get(p.candidate_id);
+        if (!prev || (p.offer_accepted_date || "") > (prev.offer_accepted_date || "")) {
+          placementByCand.set(p.candidate_id, p);
+        }
+      }
+      for (const [candId, p] of placementByCand.entries()) {
+        const placedDays = daysSince(p.offer_accepted_date || p.start_date);
+        if (placedDays < thresholds.placedCandidateDays) continue;
+        const cand = candById.get(candId) as any; if (!cand) continue;
+        const ln = lastCandNote.get(candId);
+        const contactDays = daysSince(ln?.created_at);
+        if (contactDays < 60) continue;
+        const months = Math.max(1, Math.floor(placedDays / 30));
+        const company = p.client_name_snapshot || (clientById.get(p.client_id) as any)?.company_name || "—";
+        feedTheBeast.push({
+          id: `ftb-ref-${p.id}`,
+          tone: "green", section: "feed",
+          title: `${cand.name} has been at ${company} for ${months} month${months === 1 ? "" : "s"}`,
+          sub: `Settled, happy, connected to a new network`,
+          signal: "Placed candidates are your best referral source",
+          action: "Call this week — ask how it's going, ask who's looking",
+          href: `/candidates`,
+          urgency: 55 + Math.min(contactDays, 60),
+          logEntityType: "candidate",
+          logEntityId: candId,
+          logEntityName: cand.name,
+        });
+      }
+
+      // TRIGGER 3 — SILVER MEDALLIST RE-ENGAGEMENT
       const placedCandIds = new Set(placements.filter((p: any) => p.status !== "fallen_through").map((p: any) => p.candidate_id));
       const interviewedRecent = new Map<string, { cj: any; job: any }>();
       for (const cj of cjs) {
         if (!["First Interview","Second Interview","Offer"].includes(cj.stage)) continue;
         const moved = daysSince(cj.stage_changed_at || cj.created_at);
         if (moved > 180) continue;
-        const cand = candById.get(cj.candidate_id) as any;
-        if (!cand) continue;
+        const cand = candById.get(cj.candidate_id) as any; if (!cand) continue;
         if (placedCandIds.has(cand.id)) continue;
         if (cand.status !== "Active" && cand.status !== "Passive") continue;
-        const job = jobById.get(cj.job_id) as any;
-        if (!job) continue;
+        const job = jobById.get(cj.job_id) as any; if (!job) continue;
         const prev = interviewedRecent.get(cand.id);
         if (!prev || moved < daysSince(prev.cj.stage_changed_at || prev.cj.created_at)) {
           interviewedRecent.set(cand.id, { cj, job });
         }
       }
-      // Active jobs the candidate could match (by shared tag or title token)
       const activeJobsList = jobs.filter((j: any) => j.status === "Active");
       for (const [candId, { cj, job }] of interviewedRecent.entries()) {
         const cand = candById.get(candId) as any;
         const weeks = Math.max(1, Math.round(daysSince(cj.stage_changed_at || cj.created_at) / 7));
         const company = job.clients?.company_name || "—";
-        const candOnJobIds = new Set(cjs.filter((c: any) => c.candidate_id === candId && ACTIVE_STAGES.includes(c.stage)).map((c: any) => c.job_id));
+        const onJobIds = new Set(cjs.filter((c: any) => c.candidate_id === candId && ACTIVE_STAGES.includes(c.stage)).map((c: any) => c.job_id));
         const candTagSet = tagsByCand.get(candId) || new Set();
         const matches: string[] = [];
         for (const aj of activeJobsList) {
-          if (candOnJobIds.has(aj.id)) continue;
+          if (onJobIds.has(aj.id)) continue;
           const jt = tagsByJob.get(aj.id);
           let share = false;
           if (jt) for (const t of jt) if (candTagSet.has(t)) { share = true; break; }
@@ -351,95 +500,51 @@ export function useBillersWorkflow(viewUserId?: string | null) {
         if (matches.length === 0) continue;
         feedTheBeast.push({
           id: `ftb-silver-${candId}`,
-          tone: "green",
+          tone: "green", section: "feed",
           title: `${cand.name} interviewed at ${company} ${weeks} week${weeks === 1 ? "" : "s"} ago — still on the market`,
           sub: `Could match: ${matches.join(" · ")}`,
           signal: "Warm candidate who already knows your process",
           action: "Pitch into a new role today",
           href: `/candidates`,
-          urgency: 70 - Math.min(weeks, 20),
+          urgency: 60 - Math.min(weeks, 20),
           logEntityType: "candidate",
           logEntityId: candId,
           logEntityName: cand.name,
         });
       }
 
-      // TRIGGER 3 — BD REACTIVATION (past clients with placements, 60+ days no contact)
-      const placementsByClient = new Map<string, any[]>();
-      for (const p of placements) {
-        if (p.status === "fallen_through") continue;
-        const arr = placementsByClient.get(p.client_id) || [];
-        arr.push(p);
-        placementsByClient.set(p.client_id, arr);
-      }
-      for (const [clientId, ps] of placementsByClient.entries()) {
-        const client = clientById.get(clientId) as any;
-        if (!client) continue;
-        const last = ps.sort((a, b) => (b.offer_accepted_date || "").localeCompare(a.offer_accepted_date || ""))[0];
-        const placedDays = daysSince(last.offer_accepted_date || last.start_date);
-        if (placedDays < 60) continue;
-        const ln = lastClientNote.get(clientId);
-        const contactDays = daysSince(ln?.created_at || client.last_activity_date);
-        if (contactDays < 60) continue;
-        const months = Math.max(1, Math.floor(placedDays / 30));
-        const company = client.company_name || last.client_name_snapshot || "—";
+      // TRIGGER 4 — WARM PROSPECTS GONE QUIET
+      for (const client of clients as any[]) {
+        const status = (client.status || "").toLowerCase();
+        if (!status.includes("warm") && !status.includes("prospect")) continue;
+        if (liveClientIds.has(client.id)) continue;
+        const ln = lastClientNote.get(client.id);
+        const d = daysSince(ln?.created_at || client.last_activity_date);
+        if (d < thresholds.warmProspectDays) continue;
+        const weeks = Math.max(1, Math.round(d / 7));
+        const company = client.company_name || "—";
         feedTheBeast.push({
-          id: `ftb-bd-${clientId}`,
-          tone: "green",
-          title: `${company} hired through you ${months} month${months === 1 ? "" : "s"} ago`,
-          sub: `${contactDays >= 9000 ? "Not heard from since" : `${contactDays}d since last contact`} — past clients are 5x more likely to hire again`,
-          action: `Call ${client.contact_name || "contact"} today — lead with a candidate or insight, not "checking in"`,
+          id: `ftb-warm-${client.id}`,
+          tone: "green", section: "feed",
+          title: `${client.contact_name || company} at ${company} showed hiring interest ${weeks} week${weeks === 1 ? "" : "s"} ago`,
+          sub: ln?.content ? `Last note: ${(ln.content || "").slice(0, 100)}` : "Relationships go cold fast",
+          action: "Call this week — lead with something useful, not a check-in",
           href: `/clients`,
-          urgency: 60 + Math.min(contactDays, 90),
+          urgency: 45 + Math.min(d, 60),
           logEntityType: "client",
-          logEntityId: clientId,
+          logEntityId: client.id,
           logEntityName: company,
         });
       }
 
-      // TRIGGER 4 — PLACED CANDIDATE REFERRAL (90+ days, no contact since)
-      const placementByCand = new Map<string, any>();
-      for (const p of placements) {
-        if (p.status === "fallen_through") continue;
-        const prev = placementByCand.get(p.candidate_id);
-        if (!prev || (p.offer_accepted_date || "") > (prev.offer_accepted_date || "")) {
-          placementByCand.set(p.candidate_id, p);
-        }
-      }
-      for (const [candId, p] of placementByCand.entries()) {
-        const placedDays = daysSince(p.offer_accepted_date || p.start_date);
-        if (placedDays < 90) continue;
-        const cand = candById.get(candId) as any;
-        if (!cand) continue;
-        const ln = lastCandNote.get(candId);
-        const contactDays = daysSince(ln?.created_at);
-        if (contactDays < 60) continue;
-        const months = Math.max(1, Math.floor(placedDays / 30));
-        const company = p.client_name_snapshot || (clientById.get(p.client_id) as any)?.company_name || "—";
-        feedTheBeast.push({
-          id: `ftb-ref-${p.id}`,
-          tone: "green",
-          title: `${cand.name} has been at ${company} for ${months} month${months === 1 ? "" : "s"}`,
-          sub: `Settled, happy, and connected to a new network`,
-          signal: "Placed candidates are your best referral source",
-          action: "Call this week — ask how it's going, ask who's looking",
-          href: `/candidates`,
-          urgency: 50 + Math.min(contactDays, 60),
-          logEntityType: "candidate",
-          logEntityId: candId,
-          logEntityName: cand.name,
-        });
-      }
-
-      // TRIGGER 6 — TALENT POOL HEALTH (below target OR 3+ cold members)
+      // TRIGGER 5 — TALENT POOL HEALTH
       for (const pool of pools as any[]) {
         const members = (poolMembers as any[]).filter((m) => m.pool_id === pool.id);
         const target = pool.target_size || 5;
         const warnDays = pool.warning_threshold_days || 28;
         let cold = 0;
         for (const m of members) {
-          const c = candById.get(m.candidate_id) as any;
-          if (!c) continue;
+          const c = candById.get(m.candidate_id) as any; if (!c) continue;
           const ln = lastCandNote.get(m.candidate_id);
           const d = daysSince(ln?.created_at || m.added_at);
           if (d >= warnDays * 1.5) cold += 1;
@@ -448,32 +553,27 @@ export function useBillersWorkflow(viewUserId?: string | null) {
         if (!thin && cold < 3) continue;
         feedTheBeast.push({
           id: `ftb-pool-${pool.id}`,
-          tone: "green",
+          tone: "green", section: "feed",
           title: `${pool.name} pool is running thin`,
           sub: `${members.length} candidate${members.length === 1 ? "" : "s"} · target ${target}${cold ? ` · ${cold} gone cold` : ""}`,
           signal: "A thin bench means slow fills when roles come in",
           action: "Add 2–3 candidates this week + re-engage cold ones",
           href: `/candidates`,
-          urgency: 40 + (target - members.length) * 5 + cold * 3,
+          urgency: 35 + (target - members.length) * 5 + cold * 3,
         });
       }
 
-      feedTheBeast.sort((a, b) => b.urgency - a.urgency);
-
       // ============================================================
-      // META — BD silence, recent placement, navin mode
+      // META
       // ============================================================
-      const BD_ACTIVITY_TYPES = new Set(["Call", "Email", "LinkedIn Message", "Meeting", "Text Message", "WhatsApp"]);
       let lastBdTouch: string | null = null;
       for (const n of notes as any[]) {
-        if (!BD_ACTIVITY_TYPES.has(n.activity_type)) continue;
+        if (!BD_TYPES.has(n.activity_type)) continue;
         if (!n.client_id) continue;
-        lastBdTouch = n.created_at;
-        break;
+        lastBdTouch = n.created_at; break;
       }
       const bdSilenceDays = lastBdTouch ? daysSince(lastBdTouch) : 9999;
 
-      // Recent placement in last 3 days
       let recentPlacement: BillersWorkflowData["recentPlacement"] = null;
       for (const p of placements) {
         if (p.status === "fallen_through") continue;
@@ -489,17 +589,104 @@ export function useBillersWorkflow(viewUserId?: string | null) {
 
       const totalActiveJobs = jobs.filter((j: any) => j.status === "Active").length;
       const totalActiveDeals = cjs.filter((cj: any) => activeJobIds.has(cj.job_id) && ACTIVE_STAGES.includes(cj.stage)).length;
-      const navinMode = totalActiveJobs === 0 && totalActiveDeals === 0;
+      const navinMode = totalActiveJobs === 0 && totalActiveDeals === 0 && bdSilenceDays >= 3;
+
+      // DAILY BD TARGET — top 3 named calls (when <=1 active jobs OR bd silence >=3)
+      const dailyBdTargets: BillerItem[] = [];
+      if (totalActiveJobs <= 1 || bdSilenceDays >= thresholds.bdInactivityDays) {
+        // 1. Most recent placement client
+        const sortedPlClients = Array.from(placementsByClient.entries())
+          .map(([cid, ps]) => {
+            const last = ps.sort((a,b) => (b.offer_accepted_date || "").localeCompare(a.offer_accepted_date || ""))[0];
+            return { cid, last, days: daysSince(last.offer_accepted_date || last.start_date) };
+          })
+          .sort((a,b) => a.days - b.days);
+        const pick1 = sortedPlClients.find(x => !liveClientIds.has(x.cid));
+        if (pick1) {
+          const cl = clientById.get(pick1.cid) as any;
+          if (cl) dailyBdTargets.push({
+            id: `bdt-1-${pick1.cid}`, tone: "red", section: "feed",
+            title: cl.contact_name || cl.company_name || "Past client",
+            sub: `${cl.company_name || "—"} — placed client (${Math.floor(pick1.days/30)}mo ago)`,
+            action: "Reactivation call — lead with value",
+            urgency: 9999, bdTarget: true,
+            logEntityType: "client", logEntityId: pick1.cid, logEntityName: cl.company_name,
+          });
+        }
+        // 2. Warm prospect
+        const warmPick = (clients as any[]).find((c) => {
+          const s = (c.status || "").toLowerCase();
+          if (!s.includes("warm") && !s.includes("prospect")) return false;
+          if (liveClientIds.has(c.id)) return false;
+          if (dailyBdTargets.some(t => t.logEntityId === c.id)) return false;
+          return true;
+        });
+        if (warmPick) {
+          dailyBdTargets.push({
+            id: `bdt-2-${warmPick.id}`, tone: "red", section: "feed",
+            title: warmPick.contact_name || warmPick.company_name,
+            sub: `${warmPick.company_name || "—"} — warm prospect`,
+            action: "Open with a market insight or candidate",
+            urgency: 9998, bdTarget: true,
+            logEntityType: "client", logEntityId: warmPick.id, logEntityName: warmPick.company_name,
+          });
+        }
+        // 3. Placed candidate for referral
+        const refPick = Array.from(placementByCand.entries())
+          .map(([cid, p]) => ({ cid, p, days: daysSince(p.offer_accepted_date || p.start_date) }))
+          .filter(x => x.days >= 90)
+          .sort((a,b) => a.days - b.days)[0];
+        if (refPick) {
+          const cand = candById.get(refPick.cid) as any;
+          if (cand) dailyBdTargets.push({
+            id: `bdt-3-${refPick.cid}`, tone: "red", section: "feed",
+            title: cand.name,
+            sub: `Placed at ${refPick.p.client_name_snapshot || "—"} — ask for referrals`,
+            action: "Settled-in check-in + referral ask",
+            urgency: 9997, bdTarget: true,
+            logEntityType: "candidate", logEntityId: refPick.cid, logEntityName: cand.name,
+          });
+        }
+      }
+
+      closeProtect.sort((a,b) => b.urgency - a.urgency);
+      feedTheBeast.sort((a,b) => b.urgency - a.urgency);
 
       return {
-        closeProtect: closeProtect.slice(0, 30),
-        feedTheBeast: feedTheBeast.slice(0, 30),
+        closeProtect: stripHidden(closeProtect).slice(0, 40),
+        feedTheBeast: stripHidden(feedTheBeast).slice(0, 40),
         bdSilenceDays,
         recentPlacement,
         navinMode,
         totalActiveJobs,
         totalActiveDeals,
+        dailyBdTargets: stripHidden(dailyBdTargets),
       };
     },
   });
+}
+
+export function snoozeItem(id: string, days: 1 | 3 | 7) {
+  try {
+    localStorage.setItem(`desky.bw.snooze.${id}`, String(Date.now() + days * 86400000));
+  } catch {}
+}
+
+export function markItemDone(id: string) {
+  // Hide for the rest of the day (24h)
+  try {
+    localStorage.setItem(`desky.bw.done.${id}`, String(Date.now() + 86400000));
+  } catch {}
+}
+
+const THRESHOLD_KEY = "desky.bw.thresholds";
+export function loadThresholds(): BillerThresholds {
+  try {
+    const raw = localStorage.getItem(THRESHOLD_KEY);
+    if (!raw) return DEFAULT_THRESHOLDS;
+    return { ...DEFAULT_THRESHOLDS, ...JSON.parse(raw) };
+  } catch { return DEFAULT_THRESHOLDS; }
+}
+export function saveThresholds(t: BillerThresholds) {
+  try { localStorage.setItem(THRESHOLD_KEY, JSON.stringify(t)); } catch {}
 }
