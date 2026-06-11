@@ -80,7 +80,7 @@ function SectionRow({ item, onLogCall, onRefresh, onOpenGap }: { item: BillerIte
 }
 
 function SectionShell({
-  tone, icon, header, subheader, items, collapsed, onToggle, emptyMessage, onLogCall, onRefresh,
+  tone, icon, header, subheader, items, collapsed, onToggle, emptyMessage, onLogCall, onRefresh, onOpenGap,
 }: {
   tone: "amber" | "green";
   icon: React.ReactNode;
@@ -92,6 +92,7 @@ function SectionShell({
   emptyMessage: string;
   onLogCall: (it: BillerItem) => void;
   onRefresh: () => void;
+  onOpenGap?: (it: BillerItem) => void;
 }) {
   const headerClass = tone === "amber" ? "border-amber-500/30 bg-amber-500/5" : "border-emerald-500/30 bg-emerald-500/5";
   const iconClass = tone === "amber" ? "text-amber-400" : "text-emerald-400";
