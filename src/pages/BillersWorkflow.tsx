@@ -83,7 +83,10 @@ export default function BillersWorkflow() {
     sections.chaseSubmissions.length === 0 &&
     sections.readyToSend.length === 0 &&
     sections.fillPipeline.length === 0 &&
-    sections.protectRelationships.length === 0;
+    sections.protectRelationships.length === 0 &&
+    sections.placedClients.length === 0 &&
+    sections.placedCandidates.length === 0 &&
+    sections.warmProspectsQuiet.length === 0;
 
   const viewName = viewUserId
     ? team.find((m) => m.member_user_id === viewUserId)?.name || "Consultant"
