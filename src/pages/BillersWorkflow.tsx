@@ -93,6 +93,8 @@ export default function BillersWorkflow() {
   });
   const [topLine, setTopLine] = useState<string>("");
   const [loadingLine, setLoadingLine] = useState(false);
+  const [logCallItem, setLogCallItem] = useState<BillerItem | null>(null);
+  const handleLogCall = (item: BillerItem) => setLogCallItem(item);
 
   const { data, isLoading, refetch, isFetching } = useBillersWorkflow(viewUserId);
 
