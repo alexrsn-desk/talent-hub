@@ -10,6 +10,10 @@ export type BillerItem = {
   action: string;      // single action
   href?: string;       // optional link target
   urgency: number;     // for sorting
+  // Optional entity reference for "Log call done" quick capture on BD prompts
+  logEntityType?: "candidate" | "client";
+  logEntityId?: string;
+  logEntityName?: string;
 };
 
 export type BillersWorkflowData = {
@@ -22,6 +26,8 @@ export type BillersWorkflowData = {
   placedCandidates: BillerItem[];     // Referral sources: people you placed
   warmProspectsQuiet: BillerItem[];   // Hiring interest, gone quiet
   dailyBdTarget: BillerItem[];        // 3 calls before midday
+  showDailyTarget: boolean;           // only when <2 active jobs
+  bdSilenceDays: number;              // days since last BD touchpoint
 };
 
 const ACTIVE_STAGES = ["Longlist","Contact","Screening","Shortlist","Submitted","Client Review","First Interview","Second Interview","Offer"];
