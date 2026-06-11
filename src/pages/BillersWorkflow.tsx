@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ChevronDown, ChevronRight, RefreshCw, Sparkles, Loader2 } from "lucide-react";
+import { ChevronDown, ChevronRight, RefreshCw, Sparkles, Loader2, Phone, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useBillersWorkflow, type BillerItem } from "@/hooks/use-billers-workflow";
 import { useIsManager, useTeamMembers } from "@/hooks/use-team";
@@ -10,23 +10,43 @@ import {
   DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem,
 } from "@/components/ui/dropdown-menu";
 import { supabase } from "@/integrations/supabase/client";
+import { LogTouchpointModal } from "@/components/LogTouchpointModal";
 
 type SectionKey = "billing" | "cvs" | "pipeline" | "relationships" | "bd";
 
-function SectionRow({ item }: { item: BillerItem }) {
+function SectionRow({
+  item,
+  onLogCall,
+}: {
+  item: BillerItem;
+  onLogCall?: (item: BillerItem) => void;
+}) {
   const nav = useNavigate();
+  const canLog = !!(item.logEntityType && item.logEntityId && item.logEntityName);
   return (
-    <button
-      onClick={() => item.href && nav(item.href)}
-      className="w-full text-left flex items-start gap-3 py-2.5 px-3 border-b border-border hover:bg-muted/30 transition-colors"
-    >
-      <div className="flex-1 min-w-0">
+    <div className="w-full flex items-start gap-3 py-2.5 px-3 border-b border-border hover:bg-muted/30 transition-colors">
+      <button
+        onClick={() => item.href && nav(item.href)}
+        className="flex-1 min-w-0 text-left"
+      >
         <div className="text-sm font-medium text-foreground truncate">{item.title}</div>
         {item.sub && <div className="text-xs text-muted-foreground mt-0.5">{item.sub}</div>}
         {item.signal && <div className="text-xs text-amber-400 mt-0.5">{item.signal}</div>}
+      </button>
+      <div className="flex items-center gap-2 shrink-0 pt-0.5">
+        <div className="text-xs text-primary font-medium">→ {item.action}</div>
+        {canLog && onLogCall && (
+          <Button
+            size="sm"
+            variant="outline"
+            className="h-7 px-2 text-xs"
+            onClick={(e) => { e.stopPropagation(); onLogCall(item); }}
+          >
+            <Phone className="h-3 w-3 mr-1" /> Log call
+          </Button>
+        )}
       </div>
-      <div className="text-xs text-primary font-medium shrink-0 pt-0.5">→ {item.action}</div>
-    </button>
+    </div>
   );
 }
 
