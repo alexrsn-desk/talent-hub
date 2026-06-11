@@ -11,7 +11,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { supabase } from "@/integrations/supabase/client";
 
-type SectionKey = "billing" | "cvs" | "pipeline" | "relationships";
+type SectionKey = "billing" | "cvs" | "pipeline" | "relationships" | "bd";
 
 function SectionRow({ item }: { item: BillerItem }) {
   const nav = useNavigate();
@@ -69,7 +69,7 @@ export default function BillersWorkflow() {
   const qc = useQueryClient();
   const [viewUserId, setViewUserId] = useState<string | null>(null); // null = my desk
   const [collapsed, setCollapsed] = useState<Record<SectionKey, boolean>>({
-    billing: false, cvs: false, pipeline: false, relationships: false,
+    billing: false, cvs: false, pipeline: false, relationships: false, bd: false,
   });
   const [topLine, setTopLine] = useState<string>("");
   const [loadingLine, setLoadingLine] = useState(false);
@@ -83,7 +83,10 @@ export default function BillersWorkflow() {
     sections.chaseSubmissions.length === 0 &&
     sections.readyToSend.length === 0 &&
     sections.fillPipeline.length === 0 &&
-    sections.protectRelationships.length === 0;
+    sections.protectRelationships.length === 0 &&
+    sections.placedClients.length === 0 &&
+    sections.placedCandidates.length === 0 &&
+    sections.warmProspectsQuiet.length === 0;
 
   const viewName = viewUserId
     ? team.find((m) => m.member_user_id === viewUserId)?.name || "Consultant"
@@ -103,6 +106,9 @@ export default function BillersWorkflow() {
           readyToSend: sections.readyToSend.slice(0, 6).map(s => ({ t: s.title, sub: s.sub })),
           fillPipeline: sections.fillPipeline.slice(0, 6).map(s => ({ t: s.title, sub: s.sub, sig: s.signal })),
           protectRelationships: sections.protectRelationships.slice(0, 8).map(s => ({ t: s.title, sub: s.sub, sig: s.signal })),
+          placedClients: sections.placedClients.slice(0, 6).map(s => ({ t: s.title, sub: s.sub })),
+          placedCandidates: sections.placedCandidates.slice(0, 6).map(s => ({ t: s.title, sub: s.sub })),
+          warmProspectsQuiet: sections.warmProspectsQuiet.slice(0, 6).map(s => ({ t: s.title, sub: s.sub, sig: s.signal })),
         };
         const { data: { session } } = await supabase.auth.getSession();
         const resp = await fetch(url, {
@@ -233,6 +239,71 @@ export default function BillersWorkflow() {
             collapsed={collapsed.relationships}
             onToggle={() => toggle("relationships")}
           />
+
+          {/* SECTION 5: BD Engine */}
+          {(sections!.placedClients.length > 0 ||
+            sections!.placedCandidates.length > 0 ||
+            sections!.warmProspectsQuiet.length > 0 ||
+            sections!.dailyBdTarget.length > 0) && (
+            <div className="border border-border rounded-lg overflow-hidden bg-card">
+              <button onClick={() => toggle("bd")} className="w-full flex items-center gap-2 px-4 py-3 hover:bg-muted/30">
+                {collapsed.bd ? <ChevronRight className="h-4 w-4 text-muted-foreground" /> : <ChevronDown className="h-4 w-4 text-muted-foreground" />}
+                <div className="flex-1 text-left">
+                  <div className="text-sm font-semibold">📞 BD Engine</div>
+                  <div className="text-xs text-muted-foreground">Where tomorrow's billings come from. Pick up the phone.</div>
+                </div>
+              </button>
+              {!collapsed.bd && (
+                <div>
+                  {sections!.dailyBdTarget.length > 0 && (
+                    <div className="px-4 py-3 border-b border-border bg-primary/5">
+                      <div className="text-[11px] uppercase tracking-wide text-primary font-semibold mb-1">
+                        Your BD target for today — {sections!.dailyBdTarget.length} call{sections!.dailyBdTarget.length === 1 ? "" : "s"} before midday
+                      </div>
+                      <div className="text-xs text-muted-foreground mb-2">Not emails. Not LinkedIn messages. Calls. Make these first — everything else can wait.</div>
+                      {sections!.dailyBdTarget.map((it) => <SectionRow key={it.id} item={it} />)}
+                    </div>
+                  )}
+
+                  {sections!.placedClients.length > 0 && (
+                    <>
+                      <div className="px-4 pt-3 pb-1 text-[11px] uppercase tracking-wide text-muted-foreground">
+                        Placed clients — your warmest BD calls ({sections!.placedClients.length})
+                      </div>
+                      <div className="px-4 pb-1 text-xs text-muted-foreground italic">
+                        You've placed at these companies but they haven't given you a role since.
+                      </div>
+                      {sections!.placedClients.map((it) => <SectionRow key={it.id} item={it} />)}
+                    </>
+                  )}
+
+                  {sections!.placedCandidates.length > 0 && (
+                    <>
+                      <div className="px-4 pt-3 pb-1 text-[11px] uppercase tracking-wide text-muted-foreground">
+                        Placed candidates — referral sources ({sections!.placedCandidates.length})
+                      </div>
+                      <div className="px-4 pb-1 text-xs text-muted-foreground italic">
+                        Now settled in roles. They know others looking. Check in and ask.
+                      </div>
+                      {sections!.placedCandidates.map((it) => <SectionRow key={it.id} item={it} />)}
+                    </>
+                  )}
+
+                  {sections!.warmProspectsQuiet.length > 0 && (
+                    <>
+                      <div className="px-4 pt-3 pb-1 text-[11px] uppercase tracking-wide text-muted-foreground">
+                        Warm prospects gone quiet ({sections!.warmProspectsQuiet.length})
+                      </div>
+                      <div className="px-4 pb-1 text-xs text-muted-foreground italic">
+                        Showed hiring interest but haven't been spoken to in 6+ weeks.
+                      </div>
+                      {sections!.warmProspectsQuiet.map((it) => <SectionRow key={it.id} item={it} />)}
+                    </>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
         </>
       )}
     </div>
