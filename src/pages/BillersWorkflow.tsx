@@ -69,7 +69,7 @@ export default function BillersWorkflow() {
   const qc = useQueryClient();
   const [viewUserId, setViewUserId] = useState<string | null>(null); // null = my desk
   const [collapsed, setCollapsed] = useState<Record<SectionKey, boolean>>({
-    billing: false, cvs: false, pipeline: false, relationships: false,
+    billing: false, cvs: false, pipeline: false, relationships: false, bd: false,
   });
   const [topLine, setTopLine] = useState<string>("");
   const [loadingLine, setLoadingLine] = useState(false);
