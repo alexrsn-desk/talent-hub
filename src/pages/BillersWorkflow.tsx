@@ -166,6 +166,7 @@ export default function BillersWorkflow() {
   const [logCallItem, setLogCallItem] = useState<BillerItem | null>(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [thresholds, setThresholds] = useState<BillerThresholds>(loadThresholds());
+  const [gapItem, setGapItem] = useState<BillerItem | null>(null);
 
   const { data, isLoading, refetch, isFetching } = useBillersWorkflow(viewUserId, thresholds);
   const sections = useMemo(() => data, [data]);
