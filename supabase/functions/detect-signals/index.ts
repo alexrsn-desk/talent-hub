@@ -7,93 +7,101 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-// Tool-agnostic reply phrase libraries — used for heuristics + parsing.
-const POSITIVE_PHRASES = [
-  "interested", "open to", "worth a call", "happy to chat", "good timing",
-  "currently looking", "open to opportunities", "would like to know more",
-  "tell me more", "sounds interesting", "could be relevant",
-];
-const INBOUND_PHRASES = [
-  "replied", "got back to me", "they responded", "came back to me",
-  "messaged back", "reached out", "reply received", "responded to",
-  "email reply",
-];
-const NEGATIVE_PHRASES = [
-  "not looking", "happy where i am", "not right now", "not interested",
-  "not for me", "please remove", "unsubscribe", "take me off",
-];
-const TIMING_PHRASES = [
-  "check back", "get back to me in", "not until", "in a few months",
-  "end of year", "new year", "after my review", "after my bonus",
-];
-
-const buildRegex = (phrases: string[]) =>
-  new RegExp(`\\b(${phrases.map((p) => p.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join("|")})\\b`, "i");
-
-const POSITIVE_RE = buildRegex(POSITIVE_PHRASES);
-const INBOUND_RE = buildRegex(INBOUND_PHRASES);
-const NEGATIVE_RE = buildRegex(NEGATIVE_PHRASES);
-const TIMING_RE = buildRegex(TIMING_PHRASES);
-const AFTER_DATE_RE = /\bafter\s+([a-z]+(?:\s+\d{1,4})?)/i;
-
 const SIGNAL_PROMPT = `You are an expert recruitment consultant reviewing new information just added to a recruitment CRM.
 
 CRITICAL CONFIDENCE RULE:
-Only fire a signal when there is CLEAR, EXPLICIT evidence in the note or transcript. Do NOT fire signals based on vague hints, implications, or guesses. False positives are worse than missed signals — be conservative.
+Only fire a signal when there is CLEAR, EXPLICIT evidence in the note. Do NOT invent signals from vague hints. False positives are worse than missed signals.
 
-Identify these signal types:
+You identify THREE classes of signal.
 
-TYPE 1 — OPPORTUNITIES:
-HIRING SIGNALS / CANDIDATE SIGNALS / REFERRAL OPPORTUNITIES / BD LEADS as before.
+═══════════════════════════════════════
+TYPE 1 — OPPORTUNITIES
+═══════════════════════════════════════
+HIRING SIGNALS, CANDIDATE SIGNALS, REFERRAL OPPORTUNITIES, BD LEADS as before.
 
-TYPE 2 — MISSING ACTIONS:
+═══════════════════════════════════════
+TYPE 2 — MISSING ACTIONS
+═══════════════════════════════════════
 Specific date / commitment / interview / salary mentioned without a follow-up logged.
 
-TYPE 3 — INBOUND REPLY DETECTION (tool-agnostic — do NOT look for tool names, look for content + intent):
-A note represents an inbound reply when:
-- The wording shows the candidate is responding (positive, negative, timing, or unclear), OR
-- The note clearly states a reply was received ("replied", "got back to me", "they responded", "messaged back", "reached out", "reply received", "responded to").
+═══════════════════════════════════════
+TYPE 3 — INBOUND REPLY DETECTION (AI INTENT — NOT KEYWORDS)
+═══════════════════════════════════════
+For candidate notes only. Read the note the way a senior recruiter would.
 
-Fire ONE of these specific signal_types when an inbound reply is detected. NEVER require a specific source tool — fire on content.
+Step A. IS THIS AN INBOUND REPLY?
+Judge by tone and content — conversational responses, reactions to an approach,
+answers to questions, questions back to the recruiter. Do NOT rely on keyword
+matching. A note saying "Funny timing — I was thinking about moving" is a positive
+reply even though it contains no keyword like "interested".
+
+If the note is clearly NOT an inbound reply (e.g. recruiter's own notes about a
+candidate, an internal observation, a call log written by the recruiter), do not
+emit a Campaign Reply signal.
+
+Step B. WHAT IS THE INTENT? Pick exactly ONE:
 
 (a) "Campaign Reply — Positive"
-  When the note shows interest: phrases like "interested", "open to", "worth a call", "happy to chat", "good timing", "currently looking", "open to opportunities", "would like to know more", "tell me more", "sounds interesting", "could be relevant".
-  trigger_phrase: the exact interest phrase quoted from the note.
-  explanation: one sentence — candidate replied positively to outreach.
-  suggested_action: "Call [Name] today — review fit and put forward for matching live roles."
-  priority_score: 8. confidence: "high".
+  Candidate is interested OR curious OR asking questions about the role / package
+  / client / location. Any question about the opportunity, any expression of
+  openness, any indication that exploring further is welcome. Recognise INTENT
+  not vocabulary. Treat soft-positive ("maybe — depends on the role", "I'm fairly
+  settled but would listen") as Positive.
+  priority_score: 8.
 
-(b) "Campaign Reply — Not Interested"
-  When the note shows clear rejection: "not looking", "happy where I am", "not right now", "not interested", "not for me", "please remove", "unsubscribe", "take me off".
-  trigger_phrase: the exact rejection phrase.
-  explanation: one sentence — candidate declined outreach.
-  suggested_action: "Mark candidate as Cold and stop outreach."
-  priority_score: 2. confidence: "high".
+(b) "Campaign Reply — Future Timing"
+  Candidate is open in principle but timing is later — "check back in September",
+  "after my bonus in March", "give me a few months", "not right now but keep me
+  in mind". Extract a specific ISO date in suggested_date if possible (assume the
+  next future occurrence of the month named). Otherwise leave suggested_date null.
+  priority_score: 5.
 
-(c) "Campaign Reply — Future Timing"
-  When the note shows interest but later: "check back", "get back to me in", "not until", "after [month/date]", "in a few months", "end of year", "new year", "after my review".
-  trigger_phrase: the timing phrase.
-  explanation: one sentence — candidate interested but timing is later.
-  suggested_action: "Set a re-engage date based on the timing they mentioned."
-  suggested_date: if a specific month/date is mentioned, output ISO date YYYY-MM-DD (assume the next future occurrence). Otherwise omit.
-  priority_score: 5. confidence: "high".
+(c) "Campaign Reply — Not Interested"
+  Clear rejection — "not looking", "happy where I am", "please remove", "wrong
+  person", "not for me". This is handled silently by the system (candidate is
+  auto-marked Cold). Still emit the signal so the system can act on it.
+  priority_score: 2.
 
 (d) "Campaign Reply — Review Needed"
-  Note appears to be an inbound reply but the intent is unclear.
-  trigger_phrase: short quote from the reply.
-  explanation: "Inbound reply received — intent unclear from note content."
-  suggested_action: "[Name] replied to your outreach. Review the note to assess their interest."
-  priority_score: 5. confidence: "medium".
+  Note appears to be a reply but the intent is genuinely ambiguous.
+  priority_score: 5. confidence: "low" or "medium".
 
-Optional metadata you MAY include on any Campaign Reply signal (omit if unknown — never invent):
-- campaign_name: if the note explicitly names a campaign or sequence (e.g. "Replied to Head of Product campaign")
-- source_label: short label like "Via Sourcewhale", "Via email" — only if the note explicitly says so. Otherwise leave blank.
-- reply_excerpt: the first 100 characters of the actual reply content if quoted in the note.
-- sentiment: "Positive" | "Not interested" | "Future timing" | "Unclear"
+Step C. CONFIDENCE
+- "high"  — intent is unmistakable
+- "medium"— probably X but not certain
+- "low"   — genuinely ambiguous → use "Campaign Reply — Review Needed"
 
-Return ONLY valid JSON:
-{"signals":[{"signal_category":"opportunity","signal_type":"Campaign Reply — Positive","trigger_phrase":"...","explanation":"...","suggested_action":"...","suggested_date":"YYYY-MM-DD","confidence":"high","priority_score":8,"campaign_name":"...","source_label":"...","reply_excerpt":"...","sentiment":"Positive"}]}
-If no clear signals, return {"signals":[]}.`;
+Step D. JOB LINKING
+You are given a list of the recruiter's ACTIVE JOBS and the CANDIDATE PROFILE.
+- If the note mentions a campaign / sequence / role title, match it to a job in
+  the list when one fits well.
+- Otherwise, match the candidate profile (current title, location, etc.) to the
+  best-fitting active job.
+- Output suggested_job_id (the exact id from the list) and match_percent (0–100,
+  honest estimate of fit). If no reasonable match exists, omit both fields.
+
+═══════════════════════════════════════
+OUTPUT
+═══════════════════════════════════════
+For Campaign Reply signals include ALL of:
+  signal_category: "opportunity"
+  signal_type: one of the four exact strings above
+  trigger_phrase: short quote from the reply (≤ 12 words)
+  explanation: one sentence describing the intent
+  suggested_action: one specific next action
+  suggested_date: ISO date (Future Timing only, when extractable)
+  confidence: "high" | "medium" | "low"
+  priority_score: 1–10
+  reply_excerpt: first ~120 chars of the actual reply content
+  intent_label: "Positive" | "Curious" | "Open" | "Future timing" | "Not interested" | "Unclear"
+  suggested_job_id: string from ACTIVE JOBS list (omit if no good match)
+  match_percent: 0–100 (omit if no match)
+  campaign_name: only if explicitly named in note
+  source_label: only if explicitly stated (e.g. "Via email")
+
+For TYPE 1 / TYPE 2 signals, omit the reply-specific fields.
+
+Return ONLY valid JSON: {"signals":[...]} — empty array if nothing clear.`;
 
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
@@ -117,11 +125,14 @@ serve(async (req) => {
     let resolvedNoteId = note_id;
     let candidateId: string | null = null;
     let ownerUserId: string | null = null;
+    let candidateProfile = "";
+    let activeJobsBlock = "";
+    let activeJobsList: { id: string; title: string; company: string }[] = [];
 
     if (note_id) {
       const { data: note, error: noteErr } = await sb
         .from("notes")
-        .select("*, candidates(name), clients(company_name)")
+        .select("*, candidates(id,name,job_title,location,salary_expectation), clients(company_name)")
         .eq("id", note_id)
         .single();
 
@@ -140,6 +151,29 @@ serve(async (req) => {
       if (note.follow_up_date) parts.push(`Follow-up date already set: ${note.follow_up_date}`);
       if (note.outcome) parts.push(`Outcome: ${note.outcome}`);
       recordContext = parts.length > 0 ? `\n\nRecord metadata: ${parts.join(". ")}` : "";
+
+      if (note.candidates) {
+        const c: any = note.candidates;
+        candidateProfile = `Name: ${c.name || "?"} · Title: ${c.job_title || "?"} · Location: ${c.location || "?"}${c.salary_expectation ? " · Expects: " + c.salary_expectation : ""}`;
+      }
+
+      if (ownerUserId) {
+        const { data: jobs } = await sb
+          .from("jobs")
+          .select("id,title,status,location,clients(company_name)")
+          .eq("owner_user_id", ownerUserId)
+          .eq("status", "Active")
+          .limit(40);
+        activeJobsList = (jobs || []).map((j: any) => ({
+          id: j.id,
+          title: j.title,
+          company: j.clients?.company_name || "—",
+        }));
+        if (activeJobsList.length) {
+          activeJobsBlock = "\n\nACTIVE JOBS (id · title · client):\n" +
+            activeJobsList.map((j) => `${j.id} · ${j.title} · ${j.company}`).join("\n");
+        }
+      }
     } else if (context) {
       transcript = context.content || "";
       contactName = context.contact_name || "Unknown";
@@ -154,16 +188,16 @@ serve(async (req) => {
       });
     }
 
-    // Tool-agnostic reply heuristic — bias the model when reply content is present.
-    const hasPositive = POSITIVE_RE.test(transcript);
-    const hasNegative = NEGATIVE_RE.test(transcript);
-    const hasTiming = TIMING_RE.test(transcript) || AFTER_DATE_RE.test(transcript);
-    const hasInbound = INBOUND_RE.test(transcript);
-    const replyLikely = hasPositive || hasNegative || hasTiming || hasInbound;
-
-    const replyHint = replyLikely
-      ? `\n\nIMPORTANT: This note contains inbound reply indicators (positive=${hasPositive}, negative=${hasNegative}, timing=${hasTiming}, inbound=${hasInbound}). You MUST emit exactly ONE "Campaign Reply — ..." signal per TYPE 3, choosing the most specific sub-type from Positive / Not Interested / Future Timing / Review Needed based on the wording. Do not look for tool names — judge on content alone.`
+    const replyHint = candidateId
+      ? `\n\nThis note is on a CANDIDATE record — assess whether it represents an inbound reply per TYPE 3 above using full intent analysis (not keyword matching). If it is a reply, emit exactly ONE Campaign Reply signal.`
       : "";
+
+    const userBlock = [
+      `Contact: ${contactName}`,
+      candidateProfile ? `Candidate profile: ${candidateProfile}` : "",
+      activeJobsBlock,
+      `\nNote content:\n${transcript}${recordContext}${replyHint}`,
+    ].filter(Boolean).join("\n");
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
@@ -175,7 +209,7 @@ serve(async (req) => {
         model: "google/gemini-3-flash-preview",
         messages: [
           { role: "system", content: SIGNAL_PROMPT },
-          { role: "user", content: `Contact: ${contactName}\n\nContent:\n${transcript}${recordContext}${replyHint}` },
+          { role: "user", content: userBlock },
         ],
       }),
     });
@@ -223,9 +257,12 @@ serve(async (req) => {
       return 4;
     };
 
-    // ── Duplicate prevention: skip Campaign Reply inserts if one already fired for this
-    //    candidate in the last 7 days (against a DIFFERENT note — same note re-runs are
-    //    handled by the delete-then-insert further down).
+    // Validate suggested_job_id against the list we actually sent.
+    const jobIds = new Set(activeJobsList.map((j) => j.id));
+    const jobMeta = new Map(activeJobsList.map((j) => [j.id, j] as const));
+
+    // Duplicate prevention — skip new Campaign Reply if one fired for this candidate
+    // in the last 7 days on a different note.
     let recentCampaignReplyForCandidate = false;
     if (candidateId) {
       const sevenDaysAgo = new Date(Date.now() - 7 * 86400000).toISOString();
@@ -239,16 +276,20 @@ serve(async (req) => {
       recentCampaignReplyForCandidate = !!(recent && recent.length > 0);
     }
 
-    // Side-effects: handle Not Interested silently (no signal stored).
     const sideEffects: string[] = [];
     const signalsToStore: any[] = [];
 
     for (const s of signals) {
       const stype = String(s.signal_type || "");
       const isReply = /campaign reply/i.test(stype);
+      const conf = ["high", "medium", "low"].includes(s.confidence) ? s.confidence : "medium";
+
+      // Low-confidence replies are downgraded to Review Needed
+      if (isReply && conf === "low" && !/review needed/i.test(stype)) {
+        s.signal_type = "Campaign Reply — Review Needed";
+      }
 
       if (isReply && /not interested/i.test(stype)) {
-        // Silent: mark candidate Cold + log touchpoint. No signal shown.
         if (candidateId) {
           await sb.from("candidates").update({ status: "Cold" }).eq("id", candidateId);
           await sb.from("notes").insert({
@@ -260,17 +301,15 @@ serve(async (req) => {
           });
           sideEffects.push("marked_cold");
         }
-        continue;
+        continue; // silent — do not store signal
       }
 
       if (isReply && recentCampaignReplyForCandidate) {
-        // Duplicate prevention — skip new reply signals if one fired in last 7d.
         sideEffects.push("duplicate_reply_skipped");
         continue;
       }
 
       if (isReply && /future timing/i.test(stype) && candidateId && s.suggested_date) {
-        // Set re-engage date if AI extracted one and none currently set.
         const { data: cand } = await sb
           .from("candidates")
           .select("reengage_date")
@@ -294,16 +333,31 @@ serve(async (req) => {
           ? Math.max(1, Math.min(10, Math.round(s.priority_score)))
           : fallbackPriority(s);
 
-        // Build a rich explanation for reply signals so the UI can show campaign + source + excerpt.
+        // Encode reply metadata into the explanation field so the UI can render it
+        // without a schema change. Format: free text + JSON tag block.
         let explanation = s.explanation || "";
         if (/campaign reply/i.test(s.signal_type || "")) {
-          const meta: string[] = [];
-          if (s.campaign_name) meta.push(`Campaign: ${s.campaign_name}`);
-          else meta.push("Outreach reply");
-          if (s.source_label) meta.push(s.source_label);
-          if (s.sentiment) meta.push(`Sentiment: ${s.sentiment}`);
-          if (s.reply_excerpt) meta.push(`Reply: "${String(s.reply_excerpt).slice(0, 100)}"`);
-          explanation = `${explanation}${explanation ? " · " : ""}${meta.join(" · ")}`;
+          const validJobId = s.suggested_job_id && jobIds.has(s.suggested_job_id) ? s.suggested_job_id : null;
+          const job = validJobId ? jobMeta.get(validJobId) : null;
+          const meta: Record<string, any> = {
+            intent: s.intent_label || null,
+            confidence: conf,
+            excerpt: s.reply_excerpt ? String(s.reply_excerpt).slice(0, 120) : null,
+            campaign: s.campaign_name || null,
+            source: s.source_label || null,
+            suggestedJobId: validJobId,
+            suggestedJobTitle: job?.title || null,
+            suggestedJobClient: job?.company || null,
+            matchPercent: Number.isFinite(s.match_percent)
+              ? Math.max(0, Math.min(100, Math.round(s.match_percent)))
+              : null,
+          };
+          const summaryBits: string[] = [];
+          if (meta.intent) summaryBits.push(`Intent: ${meta.intent}`);
+          summaryBits.push(`Confidence: ${conf}`);
+          if (job) summaryBits.push(`Likely role: ${job.title} at ${job.company}${meta.matchPercent != null ? ` (${meta.matchPercent}% match)` : ""}`);
+          if (meta.excerpt) summaryBits.push(`Reply: "${meta.excerpt}"`);
+          explanation = `${explanation}${explanation ? " · " : ""}${summaryBits.join(" · ")}\n<reply-meta>${JSON.stringify(meta)}</reply-meta>`;
         }
 
         return {
