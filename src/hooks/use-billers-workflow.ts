@@ -323,12 +323,150 @@ export function useBillersWorkflow(viewUserId?: string | null) {
       }
       protectRelationships.sort((a, b) => b.urgency - a.urgency);
 
+      // ============ SECTION 5: BD Engine ============
+      const placements = filterOwner(placementsRes.data as any) as any[];
+
+      // Days helpers tied to placement date
+      const monthsSince = (iso?: string | null) => iso ? Math.floor(daysSince(iso) / 30) : 9999;
+
+      // Active jobs per client (companies with no current open role with you)
+      const activeJobsByClient = new Map<string, number>();
+      for (const j of jobs as any[]) {
+        if (j.status !== "Active") continue;
+        activeJobsByClient.set(j.client_id, (activeJobsByClient.get(j.client_id) || 0) + 1);
+      }
+
+      // PROMPT 1 — Placed Clients (companies you've placed at, no role since)
+      // Group placements by client, take most recent successful placement (status not fall_through)
+      const placementsByClient = new Map<string, any[]>();
+      for (const p of placements) {
+        if (p.status === "fall_through") continue;
+        const arr = placementsByClient.get(p.client_id) || [];
+        arr.push(p);
+        placementsByClient.set(p.client_id, arr);
+      }
+      const placedClients: BillerItem[] = [];
+      for (const [clientId, ps] of placementsByClient.entries()) {
+        // Only include placements within the last 2 years
+        const recent = ps
+          .filter((p) => monthsSince(p.offer_accepted_date || p.start_date) <= 24)
+          .sort((a, b) => (b.offer_accepted_date || "").localeCompare(a.offer_accepted_date || ""));
+        if (recent.length === 0) continue;
+        // Skip if they currently have an active role with you (already engaged)
+        if ((activeJobsByClient.get(clientId) || 0) > 0) continue;
+        const last = recent[0];
+        const months = monthsSince(last.offer_accepted_date || last.start_date);
+        const client = clientById.get(clientId) as any;
+        const companyName = client?.company_name || last.client_name_snapshot || "—";
+        const lastNote = lastClientNote.get(clientId);
+        const contactDays = daysSince(lastNote?.created_at || client?.last_activity_date);
+        const urgencyAction = months >= 12 || contactDays >= 60 ? "Call today" : "Call this week";
+        placedClients.push({
+          id: `bd-pc-${clientId}`,
+          title: `${companyName} — placed ${last.candidate_name_snapshot || "candidate"} ${months}mo ago`,
+          sub: contactDays >= 9000 ? "Not contacted since" : `Last contact ${contactDays}d ago`,
+          signal: recent.length > 1 ? `${recent.length} placements here — strong warm relationship` : undefined,
+          action: urgencyAction,
+          href: `/clients`,
+          urgency: months + (contactDays >= 60 ? 20 : 0),
+        });
+      }
+      placedClients.sort((a, b) => b.urgency - a.urgency);
+
+      // PROMPT 2 — Placed Candidates (referral sources, 3–18 months in role)
+      const placedCandidates: BillerItem[] = [];
+      for (const p of placements) {
+        if (p.status === "fall_through") continue;
+        const months = monthsSince(p.offer_accepted_date || p.start_date);
+        if (months < 3 || months > 18) continue;
+        const cand = candById.get(p.candidate_id) as any;
+        const name = cand?.name || p.candidate_name_snapshot || "Candidate";
+        const company = p.client_name_snapshot || (clientById.get(p.client_id) as any)?.company_name || "—";
+        const lastNote = lastCandNote.get(p.candidate_id);
+        const contactDays = daysSince(lastNote?.created_at);
+        const ask = months <= 6
+          ? "Check in — ask how it's going"
+          : "Ask for referrals — they're in a new network now";
+        placedCandidates.push({
+          id: `bd-pcand-${p.id}`,
+          title: `${name} — placed at ${company} ${months}mo ago`,
+          sub: contactDays >= 9000 ? "Not contacted since placement" : `Last contact ${contactDays}d ago`,
+          action: ask,
+          href: `/candidates`,
+          urgency: (contactDays >= 60 ? 30 : 10) + months,
+        });
+      }
+      placedCandidates.sort((a, b) => b.urgency - a.urgency);
+
+      // PROMPT 3 — Warm prospects gone quiet (hiring interest, 6+ weeks silent)
+      const warmProspectsQuiet: BillerItem[] = [];
+      // Contact level (warmer, more specific)
+      const contactsByClientWarm = new Map<string, any[]>();
+      for (const ct of contacts as any[]) {
+        if (!["Warm", "Hot", "Engaged"].includes(ct.status || "")) continue;
+        const arr = contactsByClientWarm.get(ct.client_id) || [];
+        arr.push(ct);
+        contactsByClientWarm.set(ct.client_id, arr);
+      }
+      for (const cl of clients as any[]) {
+        if (!["Warm", "Hot", "Engaged"].includes(cl.heat || cl.status || "")) continue;
+        // Skip if currently transacting on an active role
+        if ((activeJobsByClient.get(cl.id) || 0) > 0) continue;
+        const lastNote = lastClientNote.get(cl.id);
+        const d = daysSince(lastNote?.created_at || cl.last_activity_date);
+        if (d < 42) continue; // 6+ weeks
+        const linkedContacts = contactsByClientWarm.get(cl.id) || [];
+        const contact = linkedContacts[0];
+        const nameLine = contact
+          ? `${contact.name} — ${contact.job_title || "Contact"}, ${cl.company_name}`
+          : `${cl.company_name}${cl.contact_name ? ` · ${cl.contact_name}` : ""}`;
+        const said = (lastNote?.content || "").slice(0, 80);
+        warmProspectsQuiet.push({
+          id: `bd-wpq-${cl.id}`,
+          title: nameLine,
+          sub: `Last spoke: ${Math.round(d / 7)} weeks ago`,
+          signal: said ? `Said: ${said.replace(/\s+/g, " ")}…` : (cl.next_action ? `Said: ${cl.next_action}` : undefined),
+          action: d >= 70 ? "Call today" : "Follow up this week",
+          href: `/clients`,
+          urgency: d,
+        });
+      }
+      warmProspectsQuiet.sort((a, b) => b.urgency - a.urgency);
+
+      // PROMPT 4 — Daily BD target: 3 calls before midday
+      // Pick the strongest from each prompt (placed clients, warm quiet, placed candidates)
+      const dailyBdTarget: BillerItem[] = [];
+      const pcPick = placedClients[0];
+      const wpPick = warmProspectsQuiet[0];
+      const pcandPick = placedCandidates[0];
+      const renumber = (it: BillerItem, n: number, kind: string): BillerItem => ({
+        ...it,
+        id: `bd-target-${n}`,
+        title: `${n}. ${it.title}`,
+        sub: kind,
+        action: "Make this call",
+      });
+      let n = 1;
+      if (pcPick) dailyBdTarget.push(renumber(pcPick, n++, "Placed client — warm BD"));
+      if (wpPick) dailyBdTarget.push(renumber(wpPick, n++, "Warm prospect"));
+      if (pcandPick) dailyBdTarget.push(renumber(pcandPick, n++, "Referral source"));
+      // Top-up from any remaining prompt if fewer than 3
+      const overflow = [...placedClients.slice(1), ...warmProspectsQuiet.slice(1), ...placedCandidates.slice(1)];
+      while (dailyBdTarget.length < 3 && overflow.length) {
+        const next = overflow.shift()!;
+        dailyBdTarget.push(renumber(next, n++, "BD call"));
+      }
+
       return {
         closestToBilling,
         chaseSubmissions,
         readyToSend,
         fillPipeline,
         protectRelationships: protectRelationships.slice(0, 20),
+        placedClients: placedClients.slice(0, 15),
+        placedCandidates: placedCandidates.slice(0, 15),
+        warmProspectsQuiet: warmProspectsQuiet.slice(0, 15),
+        dailyBdTarget,
       };
     },
   });
