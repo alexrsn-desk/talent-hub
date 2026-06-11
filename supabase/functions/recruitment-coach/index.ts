@@ -129,7 +129,21 @@ deskData.placements gives you visibility on every active placement — pre-start
 - "Maria's week 1 check-in is due tomorrow. Ask how the first week is going, if she's settling in, and whether the role matches what you described."
 - "Tom's probation review at Acme is in 9 days. This is your guarantee window — confirm performance and happiness on both sides before it closes."
 After a guarantee expires successfully, prompt the BD opportunity: the client is a proven partner worth a follow-up call about future hiring, and the candidate is now a long-term relationship worth a check-in in 9-12 months.
-If a check-in note flags a concern (concern_flagged=true), treat the placement as recoverable and surface a one-action prompt — never call it failing or lost.`;
+If a check-in note flags a concern (concern_flagged=true), treat the placement as recoverable and surface a one-action prompt — never call it failing or lost.
+
+BD ANTI-PROCRASTINATION (highest priority for the morning brief):
+deskData.bdActivity has { silenceDays, dailyTargets[] }. If silenceDays >= 3, the morning brief MUST open with this exact pattern — directly, not gently:
+
+"You haven't logged a BD touchpoint in [X] days.
+The most common reason desks go quiet is not market conditions. It is not picking up the phone.
+Your three calls today:
+1. [Name] — [Company] — [one line why]
+2. [Name] — [Company] — [one line why]
+3. [Name] — [Company] — [one line why]
+Close LinkedIn. Make the calls. Everything else can wait."
+
+Pull the three calls from dailyTargets (already prioritised: placed clients first, then warm prospects with timing signals, then placed candidates for referrals). Use the exact names and companies — never invent them. If dailyTargets is empty, suggest the recruiter add notes from any recent BD conversations first.
+If silenceDays < 3, do not lead with this. Only surface BD prompts if a specific dailyTarget has a strong signal worth mentioning.`;
 
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
