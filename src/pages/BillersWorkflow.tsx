@@ -363,6 +363,13 @@ export default function BillersWorkflow() {
         />
       )}
 
+      <PipelineGapDialog
+        open={!!gapItem}
+        onOpenChange={(o) => { if (!o) setGapItem(null); }}
+        data={gapItem?.pipelineGap || null}
+      />
+
+
       <ThresholdsDialog
         open={settingsOpen}
         onOpenChange={setSettingsOpen}
