@@ -153,6 +153,14 @@ serve(async (req) => {
           weekHighlight:
             "No notes, calls, touchpoints or pipeline movement recorded in the last 7 days. Log activity through the week and re-run this summary on Friday.",
         },
+        desk: {
+          candidateSentiment: { label: "Unknown", evidence: "" },
+          themes: [],
+          salaryIntel: { summary: "", examples: [] },
+          companiesMentioned: { wantToJoin: [], leaving: [] },
+          signalSummary: { total: 0, byCategory: {}, topUnactioned: "" },
+          companySignalsFromNotes: [],
+        },
         marketIntel: {
           candidateThemes: [],
           clientThemes: [],
