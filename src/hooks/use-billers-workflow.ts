@@ -18,6 +18,10 @@ export type BillersWorkflowData = {
   readyToSend: BillerItem[];
   fillPipeline: BillerItem[];
   protectRelationships: BillerItem[];
+  placedClients: BillerItem[];        // BD warmth: companies you placed at
+  placedCandidates: BillerItem[];     // Referral sources: people you placed
+  warmProspectsQuiet: BillerItem[];   // Hiring interest, gone quiet
+  dailyBdTarget: BillerItem[];        // 3 calls before midday
 };
 
 const ACTIVE_STAGES = ["Longlist","Contact","Screening","Shortlist","Submitted","Client Review","First Interview","Second Interview","Offer"];
