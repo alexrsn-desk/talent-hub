@@ -774,6 +774,31 @@ export function useBillersWorkflow(viewUserId?: string | null, thresholds: Bille
           urgency: 35 + (target - members.length) * 5 + cold * 3,
         });
       }
+      // TRIGGER 6 — CAMPAIGN REPLIES (Re-engage subsection)
+      const replySignals = (signalsRes.data || []).filter((s: any) => !viewUserId || s.notes?.owner_user_id === viewUserId);
+      for (const sig of replySignals as any[]) {
+        const candId = sig.notes?.candidate_id;
+        const cand = candId ? (candById.get(candId) as any) : null;
+        const name = cand?.name || "Candidate";
+        const score = sig.priority_score || 5;
+        const daysAgo = daysSince(sig.created_at);
+        const tone: BillerTone = score >= 7 ? "amber" : score >= 4 ? "green" : "yellow";
+        const urgency = score >= 7 ? 90 - daysAgo : score >= 4 ? 50 - daysAgo : 10;
+        feedTheBeast.push({
+          id: `ftb-reply-${sig.id}`,
+          tone, section: "feed",
+          title: `📨 ${name} replied to your campaign${daysAgo > 0 ? ` · ${daysAgo}d ago` : " · today"}`,
+          sub: sig.trigger_phrase ? `"${(sig.trigger_phrase || "").slice(0, 120)}"` : sig.explanation,
+          signal: sig.explanation,
+          action: sig.suggested_action || `Review ${name}'s reply and assess fit`,
+          href: candId ? `/candidates` : undefined,
+          urgency,
+          logEntityType: candId ? "candidate" : undefined,
+          logEntityId: candId || undefined,
+          logEntityName: name,
+        });
+      }
+
 
       // ============================================================
       // META
