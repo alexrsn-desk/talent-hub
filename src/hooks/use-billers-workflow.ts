@@ -37,17 +37,18 @@ export function useBillersWorkflow(viewUserId?: string | null) {
     queryKey: ["billers-workflow", viewUserId || "me"],
     staleTime: 30_000,
     queryFn: async (): Promise<BillersWorkflowData> => {
-      const [cjRes, jobsRes, clientsRes, candsRes, contactsRes, notesRes, jobTagsRes, candTagsRes, poolsRes, poolMembersRes] = await Promise.all([
+      const [cjRes, jobsRes, clientsRes, candsRes, contactsRes, notesRes, jobTagsRes, candTagsRes, poolsRes, poolMembersRes, placementsRes] = await Promise.all([
         supabase.from("candidate_jobs").select("id,candidate_id,job_id,stage,stage_changed_at,created_at,owner_user_id"),
         supabase.from("jobs").select("id,title,status,client_id,owner_user_id,clients(company_name,contact_name)"),
         supabase.from("clients").select("id,company_name,contact_name,status,heat,next_action,next_action_due_date,next_followup_date,last_activity_date,owner_user_id"),
         supabase.from("candidates").select("id,name,job_title,status,reengage_date,priority_followup_date,owner_user_id"),
-        supabase.from("contacts").select("id,name,client_id,status,reengage_date"),
+        supabase.from("contacts").select("id,name,job_title,client_id,status,reengage_date"),
         supabase.from("notes").select("id,candidate_id,client_id,activity_type,content,created_at,follow_up_date").order("created_at", { ascending: false }).limit(1500),
         supabase.from("job_tags").select("job_id,tag_definition_id"),
         supabase.from("candidate_tags").select("candidate_id,tag_definition_id"),
         supabase.from("talent_pools" as any).select("id,name,description,owner_user_id"),
         supabase.from("candidate_talent_pools" as any).select("candidate_id,pool_id,owner_user_id"),
+        supabase.from("placements" as any).select("id,candidate_id,client_id,job_id,candidate_name_snapshot,client_name_snapshot,job_title_snapshot,offer_accepted_date,start_date,status,owner_user_id"),
       ]);
 
       const filterOwner = (rows: any[] | null): any[] =>
