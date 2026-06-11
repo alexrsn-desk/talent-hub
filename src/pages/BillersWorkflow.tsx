@@ -1,10 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ChevronDown, ChevronRight, RefreshCw, Sparkles, Loader2, Phone, AlertTriangle } from "lucide-react";
+import { ChevronDown, ChevronRight, RefreshCw, Sparkles, Loader2, Phone, AlertTriangle, Shield, Swords, PartyPopper } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useBillersWorkflow, type BillerItem } from "@/hooks/use-billers-workflow";
 import { useIsManager, useTeamMembers } from "@/hooks/use-team";
-import { useAuth } from "@/contexts/AuthContext";
 import { useQueryClient } from "@tanstack/react-query";
 import {
   DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem,
@@ -12,7 +11,7 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { LogTouchpointModal } from "@/components/LogTouchpointModal";
 
-type SectionKey = "billing" | "cvs" | "pipeline" | "relationships" | "bd";
+type SectionKey = "close" | "feed";
 
 function SectionRow({
   item,
@@ -23,59 +22,70 @@ function SectionRow({
 }) {
   const nav = useNavigate();
   const canLog = !!(item.logEntityType && item.logEntityId && item.logEntityName);
+  const borderClass = item.tone === "amber"
+    ? "border-l-4 border-l-amber-500"
+    : "border-l-4 border-l-emerald-500";
+  const signalClass = item.tone === "amber" ? "text-amber-400" : "text-emerald-400";
   return (
-    <div className="w-full flex items-start gap-3 py-2.5 px-3 border-b border-border hover:bg-muted/30 transition-colors">
+    <div className={`w-full flex items-start gap-3 py-3 px-3 border-b border-border hover:bg-muted/30 transition-colors ${borderClass}`}>
       <button
         onClick={() => item.href && nav(item.href)}
         className="flex-1 min-w-0 text-left"
       >
-        <div className="text-sm font-medium text-foreground truncate">{item.title}</div>
+        <div className="text-sm font-medium text-foreground">{item.title}</div>
         {item.sub && <div className="text-xs text-muted-foreground mt-0.5">{item.sub}</div>}
-        {item.signal && <div className="text-xs text-amber-400 mt-0.5">{item.signal}</div>}
+        {item.signal && <div className={`text-xs mt-0.5 ${signalClass}`}>{item.signal}</div>}
+        <div className="text-xs text-primary font-medium mt-1">→ {item.action}</div>
       </button>
-      <div className="flex items-center gap-2 shrink-0 pt-0.5">
-        <div className="text-xs text-primary font-medium">→ {item.action}</div>
-        {canLog && onLogCall && (
-          <Button
-            size="sm"
-            variant="outline"
-            className="h-7 px-2 text-xs"
-            onClick={(e) => { e.stopPropagation(); onLogCall(item); }}
-          >
-            <Phone className="h-3 w-3 mr-1" /> Log call
-          </Button>
-        )}
-      </div>
+      {canLog && onLogCall && (
+        <Button
+          size="sm"
+          variant="outline"
+          className="h-7 px-2 text-xs shrink-0 mt-0.5"
+          onClick={(e) => { e.stopPropagation(); onLogCall(item); }}
+        >
+          <Phone className="h-3 w-3 mr-1" /> Log call
+        </Button>
+      )}
     </div>
   );
 }
 
-function Section({
-  id, header, subtext, items, collapsed, onToggle, emptyMessage,
+function SectionShell({
+  tone, icon, header, subheader, items, collapsed, onToggle, emptyMessage, onLogCall,
 }: {
-  id: SectionKey;
+  tone: "amber" | "green";
+  icon: React.ReactNode;
   header: string;
-  subtext: string;
+  subheader: string;
   items: BillerItem[];
   collapsed: boolean;
   onToggle: () => void;
-  emptyMessage?: string;
+  emptyMessage: string;
+  onLogCall: (item: BillerItem) => void;
 }) {
-  if (items.length === 0 && !emptyMessage) return null;
+  const headerClass = tone === "amber"
+    ? "border-amber-500/30 bg-amber-500/5"
+    : "border-emerald-500/30 bg-emerald-500/5";
+  const iconClass = tone === "amber" ? "text-amber-400" : "text-emerald-400";
   return (
-    <div className="border border-border rounded-lg overflow-hidden bg-card">
-      <button onClick={onToggle} className="w-full flex items-center gap-2 px-4 py-3 hover:bg-muted/30">
+    <div className={`border rounded-lg overflow-hidden ${headerClass}`}>
+      <button onClick={onToggle} className="w-full flex items-center gap-3 px-4 py-3 hover:bg-muted/20">
         {collapsed ? <ChevronRight className="h-4 w-4 text-muted-foreground" /> : <ChevronDown className="h-4 w-4 text-muted-foreground" />}
+        <div className={iconClass}>{icon}</div>
         <div className="flex-1 text-left">
-          <div className="text-sm font-semibold">{header} <span className="ml-1 text-xs text-muted-foreground">({items.length})</span></div>
-          <div className="text-xs text-muted-foreground">{subtext}</div>
+          <div className="text-sm font-semibold flex items-center gap-2">
+            {header}
+            <span className="text-xs text-muted-foreground font-normal">({items.length})</span>
+          </div>
+          <div className="text-xs text-muted-foreground">{subheader}</div>
         </div>
       </button>
       {!collapsed && (
-        <div>
+        <div className="bg-card">
           {items.length === 0 ? (
-            <div className="px-4 py-4 text-sm text-muted-foreground">{emptyMessage}</div>
-          ) : items.map((it) => <SectionRow key={it.id} item={it} />)}
+            <div className="px-4 py-6 text-sm text-muted-foreground text-center">{emptyMessage}</div>
+          ) : items.map((it) => <SectionRow key={it.id} item={it} onLogCall={onLogCall} />)}
         </div>
       )}
     </div>
@@ -83,38 +93,35 @@ function Section({
 }
 
 export default function BillersWorkflow() {
-  const { user } = useAuth();
   const isManager = useIsManager();
   const { data: team = [] } = useTeamMembers();
   const qc = useQueryClient();
-  const [viewUserId, setViewUserId] = useState<string | null>(null); // null = my desk
-  const [collapsed, setCollapsed] = useState<Record<SectionKey, boolean>>({
-    billing: false, cvs: false, pipeline: false, relationships: false, bd: false,
-  });
+  const [viewUserId, setViewUserId] = useState<string | null>(null);
+  const [collapsed, setCollapsed] = useState<Record<SectionKey, boolean>>({ close: false, feed: false });
   const [topLine, setTopLine] = useState<string>("");
   const [loadingLine, setLoadingLine] = useState(false);
   const [logCallItem, setLogCallItem] = useState<BillerItem | null>(null);
-  const handleLogCall = (item: BillerItem) => setLogCallItem(item);
 
   const { data, isLoading, refetch, isFetching } = useBillersWorkflow(viewUserId);
-
   const sections = useMemo(() => data, [data]);
-  const allEmpty =
-    sections &&
-    sections.closestToBilling.length === 0 &&
-    sections.chaseSubmissions.length === 0 &&
-    sections.readyToSend.length === 0 &&
-    sections.fillPipeline.length === 0 &&
-    sections.protectRelationships.length === 0 &&
-    sections.placedClients.length === 0 &&
-    sections.placedCandidates.length === 0 &&
-    sections.warmProspectsQuiet.length === 0;
+
+  const closeEmpty = !sections || sections.closeProtect.length === 0;
+  const feedEmpty = !sections || sections.feedTheBeast.length === 0;
+  const allEmpty = closeEmpty && feedEmpty;
 
   const viewName = viewUserId
     ? team.find((m) => m.member_user_id === viewUserId)?.name || "Consultant"
     : "My desk";
 
-  // Fetch AI top line whenever sections change
+  // Pick the single highest priority action across both sections
+  const topAction = useMemo<BillerItem | null>(() => {
+    if (!sections) return null;
+    const all = [...sections.closeProtect, ...sections.feedTheBeast];
+    if (all.length === 0) return null;
+    return all.sort((a, b) => b.urgency - a.urgency)[0];
+  }, [sections]);
+
+  // AI top line generation
   useEffect(() => {
     if (!sections || allEmpty) { setTopLine(""); return; }
     let cancelled = false;
@@ -123,14 +130,11 @@ export default function BillersWorkflow() {
       try {
         const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/billers-top-action`;
         const compact = {
-          closestToBilling: sections.closestToBilling.slice(0, 8).map(s => ({ t: s.title, sub: s.sub, sig: s.signal, a: s.action })),
-          chaseSubmissions: sections.chaseSubmissions.slice(0, 6).map(s => ({ t: s.title, sub: s.sub })),
-          readyToSend: sections.readyToSend.slice(0, 6).map(s => ({ t: s.title, sub: s.sub })),
-          fillPipeline: sections.fillPipeline.slice(0, 6).map(s => ({ t: s.title, sub: s.sub, sig: s.signal })),
-          protectRelationships: sections.protectRelationships.slice(0, 8).map(s => ({ t: s.title, sub: s.sub, sig: s.signal })),
-          placedClients: sections.placedClients.slice(0, 6).map(s => ({ t: s.title, sub: s.sub })),
-          placedCandidates: sections.placedCandidates.slice(0, 6).map(s => ({ t: s.title, sub: s.sub })),
-          warmProspectsQuiet: sections.warmProspectsQuiet.slice(0, 6).map(s => ({ t: s.title, sub: s.sub, sig: s.signal })),
+          closeProtect: sections.closeProtect.slice(0, 8).map(s => ({ t: s.title, sub: s.sub, sig: s.signal, a: s.action })),
+          feedTheBeast: sections.feedTheBeast.slice(0, 8).map(s => ({ t: s.title, sub: s.sub, sig: s.signal, a: s.action })),
+          recentPlacement: sections.recentPlacement,
+          navinMode: sections.navinMode,
+          bdSilenceDays: sections.bdSilenceDays,
         };
         const { data: { session } } = await supabase.auth.getSession();
         const resp = await fetch(url, {
@@ -162,13 +166,18 @@ export default function BillersWorkflow() {
     );
   }
 
+  if (!sections) return null;
+
+  // Navin mode: pipeline empty — Feed the Beast takes over
+  const navinMode = sections.navinMode;
+
   return (
     <div className="max-w-4xl mx-auto px-4 py-6 space-y-4">
       {/* Header */}
       <div className="flex items-center justify-between gap-3">
         <div>
           <h1 className="text-xl font-semibold">Biller's Workflow</h1>
-          <p className="text-sm text-muted-foreground">Where is the money — and what moves it closer right now?</p>
+          <p className="text-sm text-muted-foreground">Protect money in motion · drive next month's revenue now</p>
         </div>
         <div className="flex items-center gap-2">
           {isManager && team.length > 0 && (
@@ -184,180 +193,115 @@ export default function BillersWorkflow() {
               </DropdownMenuContent>
             </DropdownMenu>
           )}
-          <Button variant="ghost" size="sm" onClick={() => { refetch(); qc.invalidateQueries({ queryKey: ["billers-workflow"] }); }} disabled={isFetching}>
+          <Button variant="ghost" size="sm" onClick={() => { refetch(); qc.invalidateQueries({ queryKey: ["billers-workflow-v2"] }); }} disabled={isFetching}>
             <RefreshCw className={`h-4 w-4 ${isFetching ? "animate-spin" : ""}`} />
           </Button>
         </div>
       </div>
 
-      {/* AI top line */}
+      {/* Anti-placement euphoria banner */}
+      {sections.recentPlacement && (
+        <div className="border border-emerald-500/40 bg-emerald-500/5 rounded-lg px-4 py-3 flex items-start gap-3">
+          <PartyPopper className="h-4 w-4 text-emerald-400 mt-0.5 shrink-0" />
+          <div className="text-sm">
+            <div className="font-semibold text-emerald-300">
+              Placement confirmed — {sections.recentPlacement.name} at {sections.recentPlacement.company}. Well done.
+            </div>
+            <div className="text-xs text-muted-foreground mt-0.5">
+              Your pipeline just got thinner. Today is not a day to celebrate — it's a day to feed the beast.
+              Focus on the green section below.
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Navin scenario banner */}
+      {navinMode && (
+        <div className="border border-emerald-500/40 bg-emerald-500/10 rounded-lg px-4 py-3 flex items-start gap-3">
+          <Swords className="h-4 w-4 text-emerald-400 mt-0.5 shrink-0" />
+          <div className="text-sm">
+            <div className="font-semibold text-emerald-300">Your pipeline is empty. This is a BD week — not a sourcing week.</div>
+            <div className="text-xs text-muted-foreground mt-0.5">
+              Nothing to protect. Everything below is future money. Make calls before midday — nothing else matters today.
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* BD silence callout */}
+      {sections.bdSilenceDays >= 3 && sections.bdSilenceDays < 9000 && !navinMode && (
+        <div className="border border-red-500/40 bg-red-500/5 rounded-lg px-4 py-3 flex items-start gap-3">
+          <AlertTriangle className="h-4 w-4 text-red-400 mt-0.5 shrink-0" />
+          <div className="text-sm">
+            <div className="font-semibold text-red-300">
+              No BD touchpoint logged in {sections.bdSilenceDays} days.
+            </div>
+            <div className="text-xs text-muted-foreground mt-0.5">
+              Pipeline will reflect this in 4–6 weeks. Today that changes — the green section below is your fix.
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Coach one-liner */}
       <div className="border border-primary/30 bg-primary/5 rounded-lg px-4 py-3 flex items-start gap-3">
         <Sparkles className="h-4 w-4 text-primary mt-0.5 shrink-0" />
         <div className="text-sm">
           {loadingLine ? (
             <span className="text-muted-foreground">Reading your desk…</span>
           ) : topLine ? (
-            <span className="font-medium">{topLine}</span>
+            <>
+              <div className="text-[11px] uppercase tracking-wide text-muted-foreground mb-0.5">Your most important action today</div>
+              <span className="font-medium">{topLine}</span>
+            </>
           ) : allEmpty ? (
-            <span className="text-muted-foreground">Your desk is clear. Good time to build your bench or prospect for new roles.</span>
-          ) : (
-            <span className="text-muted-foreground">Scan the sections below — start at the top.</span>
-          )}
+            <span className="text-muted-foreground">Your desk is in good shape. Use this time to build your bench and prospect for new roles.</span>
+          ) : topAction ? (
+            <>
+              <div className="text-[11px] uppercase tracking-wide text-muted-foreground mb-0.5">Your most important action today</div>
+              <span className="font-medium">{topAction.action} — {topAction.title}</span>
+            </>
+          ) : null}
         </div>
       </div>
 
-      {allEmpty ? null : (
+      {allEmpty ? (
+        <div className="border border-border rounded-lg bg-card px-4 py-8 text-center text-sm text-muted-foreground">
+          Your desk is in good shape. Use this time to build your bench and prospect for new roles.
+        </div>
+      ) : (
         <>
-          <Section
-            id="billing"
-            header="💰 Closest to billing"
-            subtext="Do these first. Money is close."
-            items={sections!.closestToBilling}
-            collapsed={collapsed.billing}
-            onToggle={() => toggle("billing")}
+          {/* Section 1 — Close & Protect (hidden in Navin mode) */}
+          {!navinMode && (
+            <SectionShell
+              tone="amber"
+              icon={<Shield className="h-4 w-4" />}
+              header="Close & Protect"
+              subheader="Protect the money in motion"
+              items={sections.closeProtect}
+              collapsed={collapsed.close}
+              onToggle={() => toggle("close")}
+              emptyMessage="No active deals at risk. Good position — now feed the beast."
+              onLogCall={setLogCallItem}
+            />
+          )}
+
+          {/* Section 2 — Feed the Beast */}
+          <SectionShell
+            tone="green"
+            icon={<Swords className="h-4 w-4" />}
+            header="Feed the Beast"
+            subheader="Drive next month's revenue now"
+            items={sections.feedTheBeast}
+            collapsed={collapsed.feed}
+            onToggle={() => toggle("feed")}
+            emptyMessage="Pipeline looks healthy. Focus on closing active deals."
+            onLogCall={setLogCallItem}
           />
-
-          {(sections!.chaseSubmissions.length > 0 || sections!.readyToSend.length >= 0) && (
-            <div className="border border-border rounded-lg overflow-hidden bg-card">
-              <button onClick={() => toggle("cvs")} className="w-full flex items-center gap-2 px-4 py-3 hover:bg-muted/30">
-                {collapsed.cvs ? <ChevronRight className="h-4 w-4 text-muted-foreground" /> : <ChevronDown className="h-4 w-4 text-muted-foreground" />}
-                <div className="flex-1 text-left">
-                  <div className="text-sm font-semibold">📤 Get CVs out</div>
-                  <div className="text-xs text-muted-foreground">CVs working passively in the background while you do other things</div>
-                </div>
-              </button>
-              {!collapsed.cvs && (
-                <div>
-                  {sections!.chaseSubmissions.length > 0 && (
-                    <>
-                      <div className="px-4 pt-3 pb-1 text-[11px] uppercase tracking-wide text-muted-foreground">Chase existing submissions</div>
-                      {sections!.chaseSubmissions.map((it) => <SectionRow key={it.id} item={it} />)}
-                    </>
-                  )}
-                  <div className="px-4 pt-3 pb-1 text-[11px] uppercase tracking-wide text-muted-foreground">Ready to send now</div>
-                  {sections!.readyToSend.length === 0 ? (
-                    <div className="px-4 py-3 text-sm text-muted-foreground">No candidates at shortlist stage. Move candidates forward to generate submissions.</div>
-                  ) : sections!.readyToSend.map((it) => <SectionRow key={it.id} item={it} />)}
-                </div>
-              )}
-            </div>
-          )}
-
-          <Section
-            id="pipeline"
-            header="🔍 Fill the pipeline"
-            subtext="Roles that need more candidates to stay healthy"
-            items={sections!.fillPipeline}
-            collapsed={collapsed.pipeline}
-            onToggle={() => toggle("pipeline")}
-            emptyMessage="All pipelines look healthy."
-          />
-
-          <Section
-            id="relationships"
-            header="🤝 Protect relationships"
-            subtext="The contacts that keep your desk healthy long term"
-            items={sections!.protectRelationships}
-            collapsed={collapsed.relationships}
-            onToggle={() => toggle("relationships")}
-          />
-
-          {/* BD silence callout — when no BD touchpoint in 3+ days */}
-          {sections!.bdSilenceDays >= 3 && sections!.bdSilenceDays < 9000 && (
-            <div className="border border-red-500/40 bg-red-500/5 rounded-lg px-4 py-3 flex items-start gap-3">
-              <AlertTriangle className="h-4 w-4 text-red-400 mt-0.5 shrink-0" />
-              <div className="text-sm">
-                <div className="font-semibold text-red-300">
-                  You haven't logged a BD touchpoint in {sections!.bdSilenceDays} days.
-                </div>
-                <div className="text-xs text-muted-foreground mt-0.5">
-                  The most common reason desks go quiet isn't market conditions. It's not picking up the phone.
-                  Your calls below — close LinkedIn and make them.
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* DAILY BD TARGET — pinned above BD engine when triggered */}
-          {sections!.showDailyTarget && sections!.dailyBdTarget.length > 0 && (
-            <div className="border border-primary/40 bg-primary/10 rounded-lg overflow-hidden">
-              <div className="px-4 py-3 border-b border-primary/20">
-                <div className="text-sm font-bold text-primary uppercase tracking-wide">
-                  Your BD target today — {sections!.dailyBdTarget.length} call{sections!.dailyBdTarget.length === 1 ? "" : "s"} before midday
-                </div>
-                <div className="text-xs text-muted-foreground mt-1">
-                  Not emails. Not LinkedIn. Calls. These are your three most important calls today based on your relationship history. Make them first — everything else can wait.
-                </div>
-              </div>
-              {sections!.dailyBdTarget.map((it) => (
-                <SectionRow key={it.id} item={it} onLogCall={handleLogCall} />
-              ))}
-            </div>
-          )}
-
-          {/* BD Engine — the underlying prompts */}
-          {(sections!.placedClients.length > 0 ||
-            sections!.placedCandidates.length > 0 ||
-            sections!.warmProspectsQuiet.length > 0) && (
-            <div className="border border-border rounded-lg overflow-hidden bg-card">
-              <button onClick={() => toggle("bd")} className="w-full flex items-center gap-2 px-4 py-3 hover:bg-muted/30">
-                {collapsed.bd ? <ChevronRight className="h-4 w-4 text-muted-foreground" /> : <ChevronDown className="h-4 w-4 text-muted-foreground" />}
-                <div className="flex-1 text-left">
-                  <div className="text-sm font-semibold">📞 BD Engine</div>
-                  <div className="text-xs text-muted-foreground">Proactive BD prompts based on your relationship history.</div>
-                </div>
-              </button>
-              {!collapsed.bd && (
-                <div>
-                  {sections!.placedClients.length > 0 && (
-                    <>
-                      <div className="px-4 pt-3 pb-1 text-[11px] uppercase tracking-wide text-muted-foreground">
-                        Placed clients — your warmest BD calls ({sections!.placedClients.length})
-                      </div>
-                      <div className="px-4 pb-1 text-xs text-muted-foreground italic">
-                        Placed 90+ days ago, no touchpoint in 60+ days. These are your warmest BD.
-                      </div>
-                      {sections!.placedClients.map((it) => (
-                        <SectionRow key={it.id} item={it} onLogCall={handleLogCall} />
-                      ))}
-                    </>
-                  )}
-
-                  {sections!.placedCandidates.length > 0 && (
-                    <>
-                      <div className="px-4 pt-3 pb-1 text-[11px] uppercase tracking-wide text-muted-foreground">
-                        Placed candidates — referral sources ({sections!.placedCandidates.length})
-                      </div>
-                      <div className="px-4 pb-1 text-xs text-muted-foreground italic">
-                        Settled in roles 90+ days, no touchpoint in 60+ days. Best source of referrals.
-                      </div>
-                      {sections!.placedCandidates.map((it) => (
-                        <SectionRow key={it.id} item={it} onLogCall={handleLogCall} />
-                      ))}
-                    </>
-                  )}
-
-                  {sections!.warmProspectsQuiet.length > 0 && (
-                    <>
-                      <div className="px-4 pt-3 pb-1 text-[11px] uppercase tracking-wide text-muted-foreground">
-                        Warm prospects gone quiet ({sections!.warmProspectsQuiet.length})
-                      </div>
-                      <div className="px-4 pb-1 text-xs text-muted-foreground italic">
-                        Warm/Prospect status, no touchpoint in 42+ days. Relationships go cold fast.
-                      </div>
-                      {sections!.warmProspectsQuiet.map((it) => (
-                        <SectionRow key={it.id} item={it} onLogCall={handleLogCall} />
-                      ))}
-                    </>
-                  )}
-                </div>
-              )}
-            </div>
-          )}
         </>
       )}
 
-      {/* Log call modal — shared across BD prompts */}
+      {/* Log call modal */}
       {logCallItem && logCallItem.logEntityType && logCallItem.logEntityId && logCallItem.logEntityName && (
         <LogTouchpointModal
           open={!!logCallItem}
