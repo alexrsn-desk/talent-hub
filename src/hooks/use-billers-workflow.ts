@@ -156,6 +156,9 @@ export function useBillersWorkflow(viewUserId?: string | null, thresholds: Bille
       const poolMembers = filterOwner(poolMembersRes.data as any);
       const placements = filterOwner(placementsRes.data as any);
       const offers = filterOwner(offersRes.data as any);
+      const tagDefs = (tagDefsRes.data || []) as any[];
+      const tagNameById = new Map<string, string>();
+      for (const t of tagDefs) tagNameById.set(t.id, t.name);
 
       const jobById = new Map(jobs.map((j: any) => [j.id, j]));
       const candById = new Map(candidates.map((c: any) => [c.id, c]));
