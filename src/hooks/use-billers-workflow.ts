@@ -3,6 +3,30 @@ import { supabase } from "@/integrations/supabase/client";
 
 export type BillerTone = "amber" | "green" | "red" | "yellow";
 
+export type PipelineGapMatch = {
+  candidateId: string;
+  name: string;
+  reason: string;
+};
+
+export type PipelineGapData = {
+  jobId: string;
+  jobTitle: string;
+  company: string;
+  clientId?: string;
+  currentCount: number;
+  weeksOpen: number;
+  daysSinceLastAdd: number;
+  sourcingTarget: number;
+  escalated: boolean;
+  promptShownDays: number;
+  readyNow: PipelineGapMatch[];
+  silverMedallists: PipelineGapMatch[];
+  coldPoolCount: number;
+  keyCriteria: string[];
+  linkedinSearch: string;
+};
+
 export type BillerItem = {
   id: string;
   title: string;
@@ -17,6 +41,7 @@ export type BillerItem = {
   logEntityId?: string;
   logEntityName?: string;
   bdTarget?: boolean;
+  pipelineGap?: PipelineGapData;
 };
 
 export type BillerThresholds = {
@@ -104,14 +129,15 @@ export function useBillersWorkflow(viewUserId?: string | null, thresholds: Bille
     queryKey: ["billers-workflow-v3", viewUserId || "me", thresholds],
     staleTime: 30_000,
     queryFn: async (): Promise<BillersWorkflowData> => {
-      const [cjRes, jobsRes, clientsRes, candsRes, notesRes, jobTagsRes, candTagsRes, poolsRes, poolMembersRes, placementsRes, offersRes] = await Promise.all([
+      const [cjRes, jobsRes, clientsRes, candsRes, notesRes, jobTagsRes, candTagsRes, tagDefsRes, poolsRes, poolMembersRes, placementsRes, offersRes] = await Promise.all([
         supabase.from("candidate_jobs").select("id,candidate_id,job_id,stage,stage_changed_at,created_at,owner_user_id"),
-        supabase.from("jobs").select("id,title,status,client_id,owner_user_id,clients(company_name,contact_name)"),
+        supabase.from("jobs").select("id,title,status,client_id,owner_user_id,date_opened,created_at,location,clients(company_name,contact_name)"),
         supabase.from("clients").select("id,company_name,contact_name,status,heat,last_activity_date,owner_user_id"),
         supabase.from("candidates").select("id,name,job_title,status,notice_period,owner_user_id"),
         supabase.from("notes").select("id,candidate_id,client_id,activity_type,content,created_at").order("created_at",{ ascending: false }).limit(1500),
         supabase.from("job_tags").select("job_id,tag_definition_id"),
         supabase.from("candidate_tags").select("candidate_id,tag_definition_id"),
+        supabase.from("tag_definitions" as any).select("id,name"),
         supabase.from("talent_pools" as any).select("id,name,description,target_size,warning_threshold_days,owner_user_id"),
         supabase.from("candidate_talent_pools" as any).select("candidate_id,pool_id,owner_user_id,added_at"),
         supabase.from("placements" as any).select("id,candidate_id,client_id,job_id,candidate_name_snapshot,client_name_snapshot,job_title_snapshot,offer_accepted_date,start_date,status,owner_user_id"),
@@ -130,6 +156,9 @@ export function useBillersWorkflow(viewUserId?: string | null, thresholds: Bille
       const poolMembers = filterOwner(poolMembersRes.data as any);
       const placements = filterOwner(placementsRes.data as any);
       const offers = filterOwner(offersRes.data as any);
+      const tagDefs = (tagDefsRes.data || []) as any[];
+      const tagNameById = new Map<string, string>();
+      for (const t of tagDefs) tagNameById.set(t.id, t.name);
 
       const jobById = new Map(jobs.map((j: any) => [j.id, j]));
       const candById = new Map(candidates.map((c: any) => [c.id, c]));
@@ -192,7 +221,127 @@ export function useBillersWorkflow(viewUserId?: string | null, thresholds: Bille
       // ============================================================
       const closeProtect: BillerItem[] = [];
 
-      // TRIGGER 1 — LIVE ROLE PIPELINE THIN/EMPTY
+      // TRIGGER 1 — LIVE ROLE PIPELINE THIN/EMPTY (two-step: Send Now → Proactive Sourcing)
+      const poolMembersByCand = new Map<string, any[]>();
+      for (const m of poolMembers as any[]) {
+        const arr = poolMembersByCand.get(m.candidate_id) || [];
+        arr.push(m); poolMembersByCand.set(m.candidate_id, arr);
+      }
+      const poolById = new Map((pools as any[]).map((p) => [p.id, p]));
+
+      const buildReadyNow = (job: any, exclude: Set<string>, limit = 5): PipelineGapMatch[] => {
+        const out: PipelineGapMatch[] = [];
+        const seen = new Set<string>();
+        const jt = tagsByJob.get(job.id);
+        const jobTagNames = jt ? Array.from(jt).map((id) => tagNameById.get(id)).filter(Boolean) as string[] : [];
+        const tokens = (job.title || "").toLowerCase().split(/\s+/).filter((t: string) => t.length > 3);
+
+        const push = (c: any, reason: string) => {
+          if (seen.has(c.id) || exclude.has(c.id)) return;
+          if (c.status !== "Active" && c.status !== "Passive") return;
+          seen.add(c.id);
+          out.push({ candidateId: c.id, name: c.name, reason });
+        };
+
+        // 1) Recently spoken (last 30d) matching by tag or title token
+        for (const c of candidates as any[]) {
+          if (out.length >= limit) break;
+          const ln = lastCandNote.get(c.id);
+          if (!ln) continue;
+          const d = daysSince(ln.created_at);
+          if (d > 30) continue;
+          const ct = tagsByCand.get(c.id);
+          let matchedTag: string | null = null;
+          if (jt && ct) for (const t of jt) if (ct.has(t)) { matchedTag = tagNameById.get(t) || null; break; }
+          const titleHit = tokens.some((t: string) => (c.job_title || "").toLowerCase().includes(t));
+          if (matchedTag) push(c, `Spoken ${d}d ago · ${matchedTag}`);
+          else if (titleHit) push(c, `Spoken ${d}d ago · title match`);
+        }
+        // 2) Tag overlap
+        if (jt && jt.size) {
+          for (const c of candidates as any[]) {
+            if (out.length >= limit) break;
+            const ct = tagsByCand.get(c.id); if (!ct) continue;
+            const hits: string[] = [];
+            for (const t of jt) if (ct.has(t)) { const n = tagNameById.get(t); if (n) hits.push(n); }
+            if (hits.length) push(c, `Matches: ${hits.slice(0,3).join(", ")}`);
+          }
+        }
+        // 3) In a talent pool whose tag matches role
+        for (const c of candidates as any[]) {
+          if (out.length >= limit) break;
+          const pm = poolMembersByCand.get(c.id);
+          if (!pm || !pm.length) continue;
+          const pool = poolById.get(pm[0].pool_id) as any;
+          if (!pool) continue;
+          const ct = tagsByCand.get(c.id);
+          let share = false;
+          if (jt && ct) for (const t of jt) if (ct.has(t)) { share = true; break; }
+          if (!share) share = tokens.some((t: string) => (c.job_title || "").toLowerCase().includes(t));
+          if (share) push(c, `Talent pool: ${pool.name}`);
+        }
+        // 4) Title-token fallback
+        for (const c of candidates as any[]) {
+          if (out.length >= limit) break;
+          const jtitle = (c.job_title || "").toLowerCase();
+          if (tokens.some((t: string) => jtitle.includes(t))) push(c, `Title match: ${c.job_title || "—"}`);
+        }
+        return out;
+      };
+
+      // silver medallists: interviewed at any client in last 6mo, not on this job, still available
+      const findSilverForJob = (job: any, exclude: Set<string>, limit = 3): PipelineGapMatch[] => {
+        const out: PipelineGapMatch[] = [];
+        const seen = new Set<string>();
+        const jt = tagsByJob.get(job.id);
+        const tokens = (job.title || "").toLowerCase().split(/\s+/).filter((t: string) => t.length > 3);
+        for (const cj of cjs) {
+          if (out.length >= limit) break;
+          if (!["First Interview","Second Interview","Offer"].includes(cj.stage)) continue;
+          if (daysSince(cj.stage_changed_at || cj.created_at) > 180) continue;
+          const cand = candById.get(cj.candidate_id) as any; if (!cand) continue;
+          if (exclude.has(cand.id) || seen.has(cand.id)) continue;
+          if (cand.status !== "Active" && cand.status !== "Passive") continue;
+          const ct = tagsByCand.get(cand.id);
+          let share = false;
+          if (jt && ct) for (const t of jt) if (ct.has(t)) { share = true; break; }
+          if (!share) share = tokens.some((t: string) => (cand.job_title || "").toLowerCase().includes(t));
+          if (!share) continue;
+          const otherJob = jobById.get(cj.job_id) as any;
+          const otherCompany = otherJob?.clients?.company_name || "—";
+          const weeks = Math.max(1, Math.round(daysSince(cj.stage_changed_at || cj.created_at) / 7));
+          seen.add(cand.id);
+          out.push({ candidateId: cand.id, name: cand.name, reason: `Interviewed at ${otherCompany} ${weeks}w ago` });
+        }
+        return out;
+      };
+
+      const coldCountForJob = (job: any): number => {
+        const jt = tagsByJob.get(job.id);
+        const tokens = (job.title || "").toLowerCase().split(/\s+/).filter((t: string) => t.length > 3);
+        let n = 0;
+        for (const c of candidates as any[]) {
+          if (c.status !== "Active" && c.status !== "Passive") continue;
+          const ln = lastCandNote.get(c.id);
+          const d = daysSince(ln?.created_at);
+          if (d < 56) continue;
+          const ct = tagsByCand.get(c.id);
+          let share = false;
+          if (jt && ct) for (const t of jt) if (ct.has(t)) { share = true; break; }
+          if (!share) share = tokens.some((t: string) => (c.job_title || "").toLowerCase().includes(t));
+          if (share) n++;
+        }
+        return n;
+      };
+
+      const buildLinkedInSearch = (job: any, criteria: string[]): string => {
+        const title = `"${(job.title || "").trim()}"`;
+        const skills = criteria.slice(0, 4).filter((c) => !!c).map((c) => `"${c}"`);
+        const skillsPart = skills.length ? ` AND (${skills.join(" OR ")})` : "";
+        const locPart = job.location ? ` AND "${job.location}"` : "";
+        return `${title}${skillsPart}${locPart}`;
+      };
+
       for (const job of jobs as any[]) {
         if (job.status !== "Active") continue;
         const active = (cjsByJob.get(job.id) || []).filter((cj: any) => ACTIVE_STAGES.includes(cj.stage));
@@ -200,7 +349,40 @@ export function useBillersWorkflow(viewUserId?: string | null, thresholds: Bille
         if (count >= thresholds.caution) continue;
         const company = job.clients?.company_name || "—";
         const onIds = new Set(active.map((cj: any) => cj.candidate_id));
-        const matches = findCandidateMatches(job, onIds, 3);
+
+        const readyNow = buildReadyNow(job, onIds, 5);
+        const silver = findSilverForJob(job, onIds, 3);
+        const coldPoolCount = coldCountForJob(job);
+
+        const jt = tagsByJob.get(job.id);
+        const keyCriteria = jt
+          ? Array.from(jt).map((id) => tagNameById.get(id)).filter(Boolean).slice(0, 6) as string[]
+          : [];
+        const linkedinSearch = buildLinkedInSearch(job, keyCriteria);
+
+        const opened = job.date_opened || job.created_at;
+        const weeksOpen = Math.max(0, Math.round(daysSince(opened) / 7));
+        // most recent candidate_jobs row created for this job = last "added"
+        const lastAdded = (cjsByJob.get(job.id) || [])
+          .map((c: any) => c.created_at)
+          .sort()
+          .reverse()[0];
+        const daysSinceLastAdd = daysSince(lastAdded);
+
+        let sourcingTarget = Math.max(1, thresholds.caution - count + 1);
+        if (count === 0) sourcingTarget = 3;
+        if (weeksOpen >= 2 && sourcingTarget < 3) sourcingTarget += 1;
+
+        // Sourcing prompt tracking (per job)
+        const promptKey = `desky.bw.srcPrompt.${job.id}`;
+        let promptShownTs = 0;
+        try { promptShownTs = parseInt(localStorage.getItem(promptKey) || "0", 10) || 0; } catch {}
+        if (!promptShownTs) {
+          try { localStorage.setItem(promptKey, String(Date.now())); } catch {}
+          promptShownTs = Date.now();
+        }
+        const promptShownDays = Math.floor((Date.now() - promptShownTs) / 86400000);
+        const escalated = promptShownDays >= 3 && daysSinceLastAdd >= 3 && readyNow.length === 0;
 
         let tone: BillerTone = "yellow";
         let title = "";
@@ -208,37 +390,66 @@ export function useBillersWorkflow(viewUserId?: string | null, thresholds: Bille
         let action = "";
         let urgency = 0;
 
-        if (count < thresholds.critical) {
+        if (escalated) {
+          tone = "red";
+          title = `🚨 ${job.title} at ${company} — no new candidates in ${daysSinceLastAdd}d`;
+          signal = `Sourcing prompt has been live for ${promptShownDays}d and pipeline is still thin. This role is at serious risk.`;
+          action = "Source for this role before anything else today";
+          urgency = 1100;
+        } else if (count < thresholds.critical) {
           tone = "red";
           title = `🚨 ${job.title} at ${company} has NO candidates`;
-          signal = "This role will go to a competitor if you don't act today";
-          action = "Add 2 candidates to the pipeline before anything else";
+          signal = readyNow.length
+            ? `${readyNow.length} ready to send · weeks open: ${weeksOpen}`
+            : "Database exhausted — proactive sourcing required";
+          action = readyNow.length ? "Send these today" : "Source new candidates today";
           urgency = 1000;
         } else if (count < thresholds.warning) {
           tone = "amber";
           title = `⚠️ ${job.title} at ${company} — only ${count} candidate`;
-          signal = "One rejection and you have nothing";
-          action = "Add 1–2 more candidates this week";
+          signal = readyNow.length ? `${readyNow.length} ready to send` : "One rejection and you have nothing";
+          action = readyNow.length ? "Send these today" : "Source 1–2 more this week";
           urgency = 500;
         } else {
           tone = "yellow";
           title = `${job.title} at ${company} — ${count} candidates`;
-          signal = "Worth adding one more as insurance";
+          signal = readyNow.length ? `${readyNow.length} ready to send as insurance` : "Worth adding one more as insurance";
           action = "Add one more candidate this week";
           urgency = 300;
         }
+
+        const sub = readyNow.length
+          ? `Ready to send: ${readyNow.slice(0, 3).map((m) => m.name).join(", ")}`
+          : "No ready matches in your database for this role";
 
         closeProtect.push({
           id: `cp-thin-${job.id}`,
           tone, section: "close",
           title,
-          sub: matches.length ? `Best matches: ${matches.join(", ")}` : undefined,
+          sub,
           signal, action,
           href: `/jobs`,
           urgency,
           logEntityType: "client",
           logEntityId: job.client_id,
           logEntityName: company,
+          pipelineGap: {
+            jobId: job.id,
+            jobTitle: job.title,
+            company,
+            clientId: job.client_id,
+            currentCount: count,
+            weeksOpen,
+            daysSinceLastAdd,
+            sourcingTarget,
+            escalated,
+            promptShownDays,
+            readyNow,
+            silverMedallists: silver,
+            coldPoolCount,
+            keyCriteria,
+            linkedinSearch,
+          },
         });
       }
 

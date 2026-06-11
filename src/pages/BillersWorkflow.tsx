@@ -19,6 +19,7 @@ import { LogTouchpointModal } from "@/components/LogTouchpointModal";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { PipelineGapDialog } from "@/components/PipelineGapDialog";
 
 type SectionKey = "close" | "feed";
 
@@ -39,7 +40,7 @@ const toneSignal = (tone: BillerItem["tone"]) => {
   }
 };
 
-function SectionRow({ item, onLogCall, onRefresh }: { item: BillerItem; onLogCall: (it: BillerItem) => void; onRefresh: () => void }) {
+function SectionRow({ item, onLogCall, onRefresh, onOpenGap }: { item: BillerItem; onLogCall: (it: BillerItem) => void; onRefresh: () => void; onOpenGap?: (it: BillerItem) => void }) {
   const nav = useNavigate();
   const canLog = !!(item.logEntityType && item.logEntityId && item.logEntityName);
 
@@ -48,7 +49,7 @@ function SectionRow({ item, onLogCall, onRefresh }: { item: BillerItem; onLogCal
 
   return (
     <div className={`w-full flex items-start gap-3 py-3 px-3 border-b border-border hover:bg-muted/30 transition-colors ${toneBorder(item.tone)}`}>
-      <button onClick={() => item.href && nav(item.href)} className="flex-1 min-w-0 text-left">
+      <button onClick={() => { if (item.pipelineGap && onOpenGap) onOpenGap(item); else if (item.href) nav(item.href); }} className="flex-1 min-w-0 text-left">
         <div className="text-sm font-medium text-foreground">{item.title}</div>
         {item.sub && <div className="text-xs text-muted-foreground mt-0.5">{item.sub}</div>}
         {item.signal && <div className={`text-xs mt-0.5 ${toneSignal(item.tone)}`}>{item.signal}</div>}
@@ -79,7 +80,7 @@ function SectionRow({ item, onLogCall, onRefresh }: { item: BillerItem; onLogCal
 }
 
 function SectionShell({
-  tone, icon, header, subheader, items, collapsed, onToggle, emptyMessage, onLogCall, onRefresh,
+  tone, icon, header, subheader, items, collapsed, onToggle, emptyMessage, onLogCall, onRefresh, onOpenGap,
 }: {
   tone: "amber" | "green";
   icon: React.ReactNode;
@@ -91,6 +92,7 @@ function SectionShell({
   emptyMessage: string;
   onLogCall: (it: BillerItem) => void;
   onRefresh: () => void;
+  onOpenGap?: (it: BillerItem) => void;
 }) {
   const headerClass = tone === "amber" ? "border-amber-500/30 bg-amber-500/5" : "border-emerald-500/30 bg-emerald-500/5";
   const iconClass = tone === "amber" ? "text-amber-400" : "text-emerald-400";
@@ -110,7 +112,7 @@ function SectionShell({
         <div className="bg-card">
           {items.length === 0
             ? <div className="px-4 py-6 text-sm text-muted-foreground text-center">{emptyMessage}</div>
-            : items.map((it) => <SectionRow key={it.id} item={it} onLogCall={onLogCall} onRefresh={onRefresh} />)}
+            : items.map((it) => <SectionRow key={it.id} item={it} onLogCall={onLogCall} onRefresh={onRefresh} onOpenGap={onOpenGap} />)}
         </div>
       )}
     </div>
@@ -164,6 +166,7 @@ export default function BillersWorkflow() {
   const [logCallItem, setLogCallItem] = useState<BillerItem | null>(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [thresholds, setThresholds] = useState<BillerThresholds>(loadThresholds());
+  const [gapItem, setGapItem] = useState<BillerItem | null>(null);
 
   const { data, isLoading, refetch, isFetching } = useBillersWorkflow(viewUserId, thresholds);
   const sections = useMemo(() => data, [data]);
@@ -323,6 +326,7 @@ export default function BillersWorkflow() {
               emptyMessage="No active deals at risk. Good position — now feed the beast ↓"
               onLogCall={setLogCallItem}
               onRefresh={refresh}
+              onOpenGap={setGapItem}
             />
           )}
 
@@ -358,6 +362,13 @@ export default function BillersWorkflow() {
           entityName={logCallItem.logEntityName}
         />
       )}
+
+      <PipelineGapDialog
+        open={!!gapItem}
+        onOpenChange={(o) => { if (!o) setGapItem(null); }}
+        data={gapItem?.pipelineGap || null}
+      />
+
 
       <ThresholdsDialog
         open={settingsOpen}
