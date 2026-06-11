@@ -209,6 +209,7 @@ serve(async (req) => {
         return {
           type: n.activity_type,
           entity,
+          createdAt: n.created_at ? new Date(n.created_at).toISOString().slice(0, 10) : "",
           content: n.content || "",
           outcome: n.outcome || "",
           transcript,
