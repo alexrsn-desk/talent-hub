@@ -85,6 +85,10 @@ export const SIGNALS_BY_CATEGORY: Record<SignalCategoryKey, string[]> = {
     "Referral Opportunity",
     "BD Cold Contact",
     "Campaign Reply",
+    "Campaign Reply — Positive",
+    "Campaign Reply — Not Interested",
+    "Campaign Reply — Future Timing",
+    "Campaign Reply — Review Needed",
   ],
   admin: [
     "Missing Salary",
