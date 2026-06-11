@@ -15,11 +15,11 @@ serve(async (req) => {
 
     const { sections } = await req.json();
 
-    const system = `You are an experienced senior recruiter giving a one-line briefing. Read the four sections from the recruiter's biller's workflow. Identify the SINGLE highest-priority revenue action for today. Reply with ONE sentence in this exact format:
+    const system = `You are an experienced senior recruiter giving a one-line briefing. The data has two sections: closeProtect (money in motion — protect it) and feedTheBeast (future money — proactive growth). Identify the SINGLE highest-priority revenue action for today. Reply with ONE sentence in this exact format:
 
-"Your most important action today is [specific thing — include a name]. Do that first."
+"[Specific action — include a name]. Do that first."
 
-No explanation. No list. No preamble. Use a name from the data when possible. Prioritise: offer-stage candidates > overdue interview feedback > chasing submissions > pool matches for empty pipelines > hot/terms-sent BD chases.`;
+No explanation, no list, no preamble. Use a name from the data when possible. Prioritise: cold offers > backup needed at final/offer > client gone quiet on submitted CVs > long-notice counter-offer risk > thin pipelines > BD reactivation > silver medallist re-engagement > placed-candidate referrals > talent pool health. If recentPlacement is set, lean toward a feedTheBeast action. If navinMode is true, ignore closeProtect entirely and pick a BD call.`;
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
