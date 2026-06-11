@@ -262,40 +262,64 @@ export default function BillersWorkflow() {
             onToggle={() => toggle("relationships")}
           />
 
-          {/* SECTION 5: BD Engine */}
+          {/* BD silence callout — when no BD touchpoint in 3+ days */}
+          {sections!.bdSilenceDays >= 3 && sections!.bdSilenceDays < 9000 && (
+            <div className="border border-red-500/40 bg-red-500/5 rounded-lg px-4 py-3 flex items-start gap-3">
+              <AlertTriangle className="h-4 w-4 text-red-400 mt-0.5 shrink-0" />
+              <div className="text-sm">
+                <div className="font-semibold text-red-300">
+                  You haven't logged a BD touchpoint in {sections!.bdSilenceDays} days.
+                </div>
+                <div className="text-xs text-muted-foreground mt-0.5">
+                  The most common reason desks go quiet isn't market conditions. It's not picking up the phone.
+                  Your calls below — close LinkedIn and make them.
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* DAILY BD TARGET — pinned above BD engine when triggered */}
+          {sections!.showDailyTarget && sections!.dailyBdTarget.length > 0 && (
+            <div className="border border-primary/40 bg-primary/10 rounded-lg overflow-hidden">
+              <div className="px-4 py-3 border-b border-primary/20">
+                <div className="text-sm font-bold text-primary uppercase tracking-wide">
+                  Your BD target today — {sections!.dailyBdTarget.length} call{sections!.dailyBdTarget.length === 1 ? "" : "s"} before midday
+                </div>
+                <div className="text-xs text-muted-foreground mt-1">
+                  Not emails. Not LinkedIn. Calls. These are your three most important calls today based on your relationship history. Make them first — everything else can wait.
+                </div>
+              </div>
+              {sections!.dailyBdTarget.map((it) => (
+                <SectionRow key={it.id} item={it} onLogCall={handleLogCall} />
+              ))}
+            </div>
+          )}
+
+          {/* BD Engine — the underlying prompts */}
           {(sections!.placedClients.length > 0 ||
             sections!.placedCandidates.length > 0 ||
-            sections!.warmProspectsQuiet.length > 0 ||
-            sections!.dailyBdTarget.length > 0) && (
+            sections!.warmProspectsQuiet.length > 0) && (
             <div className="border border-border rounded-lg overflow-hidden bg-card">
               <button onClick={() => toggle("bd")} className="w-full flex items-center gap-2 px-4 py-3 hover:bg-muted/30">
                 {collapsed.bd ? <ChevronRight className="h-4 w-4 text-muted-foreground" /> : <ChevronDown className="h-4 w-4 text-muted-foreground" />}
                 <div className="flex-1 text-left">
                   <div className="text-sm font-semibold">📞 BD Engine</div>
-                  <div className="text-xs text-muted-foreground">Where tomorrow's billings come from. Pick up the phone.</div>
+                  <div className="text-xs text-muted-foreground">Proactive BD prompts based on your relationship history.</div>
                 </div>
               </button>
               {!collapsed.bd && (
                 <div>
-                  {sections!.dailyBdTarget.length > 0 && (
-                    <div className="px-4 py-3 border-b border-border bg-primary/5">
-                      <div className="text-[11px] uppercase tracking-wide text-primary font-semibold mb-1">
-                        Your BD target for today — {sections!.dailyBdTarget.length} call{sections!.dailyBdTarget.length === 1 ? "" : "s"} before midday
-                      </div>
-                      <div className="text-xs text-muted-foreground mb-2">Not emails. Not LinkedIn messages. Calls. Make these first — everything else can wait.</div>
-                      {sections!.dailyBdTarget.map((it) => <SectionRow key={it.id} item={it} />)}
-                    </div>
-                  )}
-
                   {sections!.placedClients.length > 0 && (
                     <>
                       <div className="px-4 pt-3 pb-1 text-[11px] uppercase tracking-wide text-muted-foreground">
                         Placed clients — your warmest BD calls ({sections!.placedClients.length})
                       </div>
                       <div className="px-4 pb-1 text-xs text-muted-foreground italic">
-                        You've placed at these companies but they haven't given you a role since.
+                        Placed 90+ days ago, no touchpoint in 60+ days. These are your warmest BD.
                       </div>
-                      {sections!.placedClients.map((it) => <SectionRow key={it.id} item={it} />)}
+                      {sections!.placedClients.map((it) => (
+                        <SectionRow key={it.id} item={it} onLogCall={handleLogCall} />
+                      ))}
                     </>
                   )}
 
@@ -305,9 +329,11 @@ export default function BillersWorkflow() {
                         Placed candidates — referral sources ({sections!.placedCandidates.length})
                       </div>
                       <div className="px-4 pb-1 text-xs text-muted-foreground italic">
-                        Now settled in roles. They know others looking. Check in and ask.
+                        Settled in roles 90+ days, no touchpoint in 60+ days. Best source of referrals.
                       </div>
-                      {sections!.placedCandidates.map((it) => <SectionRow key={it.id} item={it} />)}
+                      {sections!.placedCandidates.map((it) => (
+                        <SectionRow key={it.id} item={it} onLogCall={handleLogCall} />
+                      ))}
                     </>
                   )}
 
@@ -317,9 +343,11 @@ export default function BillersWorkflow() {
                         Warm prospects gone quiet ({sections!.warmProspectsQuiet.length})
                       </div>
                       <div className="px-4 pb-1 text-xs text-muted-foreground italic">
-                        Showed hiring interest but haven't been spoken to in 6+ weeks.
+                        Warm/Prospect status, no touchpoint in 42+ days. Relationships go cold fast.
                       </div>
-                      {sections!.warmProspectsQuiet.map((it) => <SectionRow key={it.id} item={it} />)}
+                      {sections!.warmProspectsQuiet.map((it) => (
+                        <SectionRow key={it.id} item={it} onLogCall={handleLogCall} />
+                      ))}
                     </>
                   )}
                 </div>
@@ -327,6 +355,17 @@ export default function BillersWorkflow() {
             </div>
           )}
         </>
+      )}
+
+      {/* Log call modal — shared across BD prompts */}
+      {logCallItem && logCallItem.logEntityType && logCallItem.logEntityId && logCallItem.logEntityName && (
+        <LogTouchpointModal
+          open={!!logCallItem}
+          onOpenChange={(o) => { if (!o) setLogCallItem(null); }}
+          entityType={logCallItem.logEntityType}
+          entityId={logCallItem.logEntityId}
+          entityName={logCallItem.logEntityName}
+        />
       )}
     </div>
   );
