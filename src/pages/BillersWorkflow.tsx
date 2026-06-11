@@ -326,6 +326,7 @@ export default function BillersWorkflow() {
               emptyMessage="No active deals at risk. Good position — now feed the beast ↓"
               onLogCall={setLogCallItem}
               onRefresh={refresh}
+              onOpenGap={setGapItem}
             />
           )}
 
