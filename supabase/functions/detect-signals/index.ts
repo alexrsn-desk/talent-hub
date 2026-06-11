@@ -27,18 +27,37 @@ TYPE 2 — MISSING ACTIONS:
 - An interview or meeting referenced with no date logged
 - A salary figure mentioned that differs from what is on the record
 
+TYPE 3 — CAMPAIGN REPLY (special handling):
+ALWAYS fire a "Campaign Reply" signal when the note represents an inbound reply to an outreach campaign. Triggers:
+- Phrases like "reply received", "replied to", "responded to", "email reply", "replied:"
+- Note that mentions Sourcewhale or any sourcing-tool reply forward
+- Inbound message wording where the candidate is responding, not the recruiter writing about them
+
+For Campaign Reply signals:
+- signal_type: "Campaign Reply"
+- signal_category: "opportunity"
+- trigger_phrase: the reply indicator quoted
+- explanation: identify which campaign/role they replied to if available, else "Inbound reply from outreach campaign"
+- suggested_action — assess fit from the reply content + candidate profile and use ONE of these exact patterns:
+    STRONG FIT → "[Name] replied positively and matches [Job] at [Client]. Call today — get them in front of the client."
+    UNCLEAR FIT → "[Name] replied to your campaign. Review their profile and reply content to assess fit."
+    NEGATIVE → "[Name] replied but indicated not interested or wrong timing. Update their status."
+  If the full reply content is NOT in the note, use UNCLEAR FIT and append " — Reply received, check Sourcewhale for content."
+- priority_score: STRONG=8 (amber, today), UNCLEAR=5 (green, this week), NEGATIVE=2 (grey, status update).
+- confidence: "high" for any clear inbound reply.
+
 For each signal, provide:
 - signal_category: exactly "opportunity" or "missing_action"
-- signal_type: opportunities → "Hiring Signal" | "Candidate Signal" | "Referral Opportunity" | "BD Lead". missing_action → "Missing Follow-up" | "Missing Next Action" | "Missing Interview Date" | "Salary Mismatch" | "Missing Commitment"
+- signal_type: opportunities → "Hiring Signal" | "Candidate Signal" | "Referral Opportunity" | "BD Lead" | "Campaign Reply". missing_action → "Missing Follow-up" | "Missing Next Action" | "Missing Interview Date" | "Salary Mismatch" | "Missing Commitment"
 - trigger_phrase: exact quote (under 10 words)
 - explanation: one sentence why it matters
 - suggested_action: one specific action
 - suggested_date: optional ISO date or day name
-- confidence: "high" (direct explicit quote, unambiguous) | "medium" (clear but needs interpretation) | "low" (implied — usually skip these entirely)
+- confidence: "high" | "medium" | "low"
 - priority_score: 1-10 integer based on revenue/urgency impact:
-    * 8-10 = Revenue at risk (counter offer, candidate going quiet at offer stage, deal at risk)
-    * 5-7  = Pipeline/BD opportunity (hiring signal, BD lead, no feedback, candidate signal)
-    * 1-3  = Admin/info (missing salary, missing notice period, profile gaps)
+    * 8-10 = Revenue at risk OR strong-fit campaign reply
+    * 5-7  = Pipeline/BD opportunity (hiring signal, BD lead, candidate signal, unclear campaign reply)
+    * 1-3  = Admin/info OR negative campaign reply
 
 If no clear signals, return empty array. Do NOT invent signals.
 
@@ -99,6 +118,14 @@ serve(async (req) => {
       });
     }
 
+    // Pre-check for campaign reply triggers — bias the model when found.
+    const replyRegex = /\b(reply received|replied to|responded to|email reply|replied:)\b/i;
+    const sourcewhaleMention = /sourcewhale/i.test(transcript);
+    const hasReplyTrigger = replyRegex.test(transcript) || sourcewhaleMention;
+    const replyHint = hasReplyTrigger
+      ? `\n\nIMPORTANT: This note contains an inbound campaign reply indicator${sourcewhaleMention ? " (Sourcewhale source detected)" : ""}. You MUST emit a "Campaign Reply" signal per TYPE 3 above, assessing fit (strong / unclear / negative) from the reply text and candidate context. Do this in addition to any other signals.`
+      : "";
+
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: {
@@ -109,7 +136,7 @@ serve(async (req) => {
         model: "google/gemini-3-flash-preview",
         messages: [
           { role: "system", content: SIGNAL_PROMPT },
-          { role: "user", content: `Contact: ${contactName}\n\nContent:\n${transcript}${recordContext}` },
+          { role: "user", content: `Contact: ${contactName}\n\nContent:\n${transcript}${recordContext}${replyHint}` },
         ],
       }),
     });

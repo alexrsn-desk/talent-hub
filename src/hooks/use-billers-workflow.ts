@@ -129,7 +129,7 @@ export function useBillersWorkflow(viewUserId?: string | null, thresholds: Bille
     queryKey: ["billers-workflow-v3", viewUserId || "me", thresholds],
     staleTime: 30_000,
     queryFn: async (): Promise<BillersWorkflowData> => {
-      const [cjRes, jobsRes, clientsRes, candsRes, notesRes, jobTagsRes, candTagsRes, tagDefsRes, poolsRes, poolMembersRes, placementsRes, offersRes] = await Promise.all([
+      const [cjRes, jobsRes, clientsRes, candsRes, notesRes, jobTagsRes, candTagsRes, tagDefsRes, poolsRes, poolMembersRes, placementsRes, offersRes, signalsRes] = await Promise.all([
         supabase.from("candidate_jobs").select("id,candidate_id,job_id,stage,stage_changed_at,created_at,owner_user_id"),
         supabase.from("jobs").select("id,title,status,client_id,owner_user_id,date_opened,created_at,location,clients(company_name,contact_name)"),
         supabase.from("clients").select("id,company_name,contact_name,status,heat,last_activity_date,owner_user_id"),
@@ -142,6 +142,7 @@ export function useBillersWorkflow(viewUserId?: string | null, thresholds: Bille
         supabase.from("candidate_talent_pools" as any).select("candidate_id,pool_id,owner_user_id,added_at"),
         supabase.from("placements" as any).select("id,candidate_id,client_id,job_id,candidate_name_snapshot,client_name_snapshot,job_title_snapshot,offer_accepted_date,start_date,status,owner_user_id"),
         supabase.from("offers" as any).select("id,candidate_id,job_id,counter_offer_risk,counter_offer_reasons,owner_user_id,status").limit(500),
+        supabase.from("call_signals" as any).select("id,note_id,signal_type,trigger_phrase,explanation,suggested_action,priority_score,status,created_at,notes!inner(candidate_id,client_id,owner_user_id)").eq("signal_type","Campaign Reply").eq("status","unactioned").order("created_at",{ ascending: false }).limit(100),
       ]);
 
       const filterOwner = (rows: any[] | null) => (rows || []).filter((r: any) => !viewUserId || r.owner_user_id === viewUserId);
@@ -773,6 +774,31 @@ export function useBillersWorkflow(viewUserId?: string | null, thresholds: Bille
           urgency: 35 + (target - members.length) * 5 + cold * 3,
         });
       }
+      // TRIGGER 6 — CAMPAIGN REPLIES (Re-engage subsection)
+      const replySignals = (signalsRes.data || []).filter((s: any) => !viewUserId || s.notes?.owner_user_id === viewUserId);
+      for (const sig of replySignals as any[]) {
+        const candId = sig.notes?.candidate_id;
+        const cand = candId ? (candById.get(candId) as any) : null;
+        const name = cand?.name || "Candidate";
+        const score = sig.priority_score || 5;
+        const daysAgo = daysSince(sig.created_at);
+        const tone: BillerTone = score >= 7 ? "amber" : score >= 4 ? "green" : "yellow";
+        const urgency = score >= 7 ? 90 - daysAgo : score >= 4 ? 50 - daysAgo : 10;
+        feedTheBeast.push({
+          id: `ftb-reply-${sig.id}`,
+          tone, section: "feed",
+          title: `📨 ${name} replied to your campaign${daysAgo > 0 ? ` · ${daysAgo}d ago` : " · today"}`,
+          sub: sig.trigger_phrase ? `"${(sig.trigger_phrase || "").slice(0, 120)}"` : sig.explanation,
+          signal: sig.explanation,
+          action: sig.suggested_action || `Review ${name}'s reply and assess fit`,
+          href: candId ? `/candidates` : undefined,
+          urgency,
+          logEntityType: candId ? "candidate" : undefined,
+          logEntityId: candId || undefined,
+          logEntityName: name,
+        });
+      }
+
 
       // ============================================================
       // META
