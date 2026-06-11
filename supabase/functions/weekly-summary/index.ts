@@ -97,7 +97,19 @@ serve(async (req) => {
       .gte("created_at", dwsISO)
       .lte("created_at", dweISO);
 
+    // Signals fired this week (for Signal Summary in Section 1)
+    const noteIdsThisWeek = (thisPeriodNotes || []).map((n) => n.id);
+    let signalsThisWeek: any[] = [];
+    if (noteIdsThisWeek.length > 0) {
+      const { data: sigs } = await sb
+        .from("call_signals")
+        .select("signal_type, signal_category, trigger_phrase, suggested_action, status, priority_score, days_unactioned, created_at")
+        .in("note_id", noteIdsThisWeek);
+      signalsThisWeek = sigs || [];
+    }
+
     const notes = thisPeriodNotes || [];
+
     const prevNotes = prevPeriodNotes || [];
     const activity = thisPeriodActivity || [];
     const prevActivity = prevPeriodActivity || [];
