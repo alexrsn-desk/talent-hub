@@ -3,6 +3,30 @@ import { supabase } from "@/integrations/supabase/client";
 
 export type BillerTone = "amber" | "green" | "red" | "yellow";
 
+export type PipelineGapMatch = {
+  candidateId: string;
+  name: string;
+  reason: string;
+};
+
+export type PipelineGapData = {
+  jobId: string;
+  jobTitle: string;
+  company: string;
+  clientId?: string;
+  currentCount: number;
+  weeksOpen: number;
+  daysSinceLastAdd: number;
+  sourcingTarget: number;
+  escalated: boolean;
+  promptShownDays: number;
+  readyNow: PipelineGapMatch[];
+  silverMedallists: PipelineGapMatch[];
+  coldPoolCount: number;
+  keyCriteria: string[];
+  linkedinSearch: string;
+};
+
 export type BillerItem = {
   id: string;
   title: string;
@@ -17,6 +41,7 @@ export type BillerItem = {
   logEntityId?: string;
   logEntityName?: string;
   bdTarget?: boolean;
+  pipelineGap?: PipelineGapData;
 };
 
 export type BillerThresholds = {
