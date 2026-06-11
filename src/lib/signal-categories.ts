@@ -38,6 +38,7 @@ export const DEFAULT_ENABLED_SIGNALS: Record<string, boolean> = {
   "Candidate Signal": true,
   "Referral Opportunity": true,
   "BD Cold Contact": true,
+  "Campaign Reply": true,
   // Admin (all off)
   "Missing Salary": false,
   "Incomplete Profile": false,
@@ -79,6 +80,7 @@ export const SIGNALS_BY_CATEGORY: Record<SignalCategoryKey, string[]> = {
     "Candidate Signal",
     "Referral Opportunity",
     "BD Cold Contact",
+    "Campaign Reply",
   ],
   admin: [
     "Missing Salary",
