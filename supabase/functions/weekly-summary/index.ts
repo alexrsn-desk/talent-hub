@@ -97,7 +97,19 @@ serve(async (req) => {
       .gte("created_at", dwsISO)
       .lte("created_at", dweISO);
 
+    // Signals fired this week (for Signal Summary in Section 1)
+    const noteIdsThisWeek = (thisPeriodNotes || []).map((n) => n.id);
+    let signalsThisWeek: any[] = [];
+    if (noteIdsThisWeek.length > 0) {
+      const { data: sigs } = await sb
+        .from("call_signals")
+        .select("signal_type, signal_category, trigger_phrase, suggested_action, status, priority_score, days_unactioned, created_at")
+        .in("note_id", noteIdsThisWeek);
+      signalsThisWeek = sigs || [];
+    }
+
     const notes = thisPeriodNotes || [];
+
     const prevNotes = prevPeriodNotes || [];
     const activity = thisPeriodActivity || [];
     const prevActivity = prevPeriodActivity || [];
@@ -140,6 +152,14 @@ serve(async (req) => {
           nearClose: 0,
           weekHighlight:
             "No notes, calls, touchpoints or pipeline movement recorded in the last 7 days. Log activity through the week and re-run this summary on Friday.",
+        },
+        desk: {
+          candidateSentiment: { label: "Unknown", evidence: "" },
+          themes: [],
+          salaryIntel: { summary: "", examples: [] },
+          companiesMentioned: { wantToJoin: [], leaving: [] },
+          signalSummary: { total: 0, byCategory: {}, topUnactioned: "" },
+          companySignalsFromNotes: [],
         },
         marketIntel: {
           candidateThemes: [],
@@ -197,6 +217,7 @@ serve(async (req) => {
         return {
           type: n.activity_type,
           entity,
+          createdAt: n.created_at ? new Date(n.created_at).toISOString().slice(0, 10) : "",
           content: n.content || "",
           outcome: n.outcome || "",
           transcript,
@@ -217,14 +238,38 @@ serve(async (req) => {
       notesWithTranscripts: notes.filter((n) => n.transcript).length,
     };
 
-    const systemPrompt = `You are an expert recruitment business analyst. You produce weekly intelligence summaries for a solo recruiter.
+    // Aggregate signals by category for the Signal Summary block
+    const sigByCat: Record<string, number> = {};
+    for (const s of signalsThisWeek) {
+      const c = (s.signal_category || "other").toString();
+      sigByCat[c] = (sigByCat[c] || 0) + 1;
+    }
+    const topUnactioned = signalsThisWeek
+      .filter((s) => s.status !== "actioned" && s.status !== "dismissed")
+      .sort((a, b) => (b.priority_score || 0) - (a.priority_score || 0))[0];
+
+    const signalsDigest = {
+      total: signalsThisWeek.length,
+      byCategory: sigByCat,
+      topUnactioned: topUnactioned
+        ? {
+            type: topUnactioned.signal_type,
+            category: topUnactioned.signal_category,
+            phrase: topUnactioned.trigger_phrase,
+            action: topUnactioned.suggested_action,
+            daysUnactioned: topUnactioned.days_unactioned,
+          }
+        : null,
+    };
+
+    const systemPrompt = `You are an expert recruitment business analyst. You produce a weekly intelligence summary for a solo recruiter, focused on what they heard on their own calls this week.
 
 IMPORTANT RULES:
-- Base every insight on the data provided. Do NOT invent facts.
-- NEVER include real candidate or client names in content suggestions — fully anonymised insights only.
+- Base every insight strictly on the data provided. Do NOT invent facts.
+- NEVER include real candidate or client names in contentSuggestions — fully anonymised insights only.
+- In "desk" sections, you MAY name specific companies and people because those come from the recruiter's own notes.
 - Be direct, practical, market-informed. No generic advice.
-- If a section has no supporting data, return an empty array rather than filler text.
-- Write content suggestions in a direct, first-person recruiter voice.
+- If a section has no supporting data, return an empty array / null rather than filler.
 
 Return ONLY valid JSON with this exact structure:
 {
@@ -236,6 +281,31 @@ Return ONLY valid JSON with this exact structure:
     "placements": number,
     "nearClose": number,
     "weekHighlight": "string"
+  },
+  "desk": {
+    "candidateSentiment": {
+      "label": "Cautious"|"Active"|"Optimistic"|"Mixed"|"Unknown",
+      "evidence": "one short sentence citing language patterns from the notes"
+    },
+    "themes": [
+      { "topic": "string", "mentions": number, "note": "short context, e.g. 'recurring theme this week'" }
+    ],
+    "salaryIntel": {
+      "summary": "one short sentence on salary expectations heard this week",
+      "examples": ["string"]
+    },
+    "companiesMentioned": {
+      "wantToJoin": ["Company name — short reason / count"],
+      "leaving": ["Company name — short reason / count"]
+    },
+    "signalSummary": {
+      "total": number,
+      "byCategory": { "revenue": number, "bd": number, "pipeline": number, "other": number },
+      "topUnactioned": "one sentence describing the most important unactioned signal, or empty string"
+    },
+    "companySignalsFromNotes": [
+      { "company": "string", "person": "string|optional", "signal": "funding|hiring|leadership|restructure|other", "detail": "string", "source": "e.g. 'call note Tuesday'" }
+    ]
   },
   "marketIntel": {
     "candidateThemes": ["string"],
@@ -258,11 +328,14 @@ Return ONLY valid JSON with this exact structure:
 ## Raw Stats
 ${JSON.stringify(statsSnapshot, null, 2)}
 
+## Signals fired this week
+${JSON.stringify(signalsDigest, null, 2)}
+
 ## Conversations & Notes (${conversationContent.length} touchpoints)
 ${conversationContent
   .map(
     (n, i) =>
-      `${i + 1}. [${n.type}] ${n.entity}: ${n.content}${n.outcome ? ` (Outcome: ${n.outcome})` : ""}${n.transcript}`,
+      `${i + 1}. [${n.type}] ${n.entity} (${n.createdAt || ""}): ${n.content}${n.outcome ? ` (Outcome: ${n.outcome})` : ""}${n.transcript}`,
   )
   .join("\n")}
 
@@ -274,7 +347,8 @@ ${stageChanges
   })
   .join("\n") || "None"}
 
-Analyse all of this and generate my Weekly Intelligence Summary. No real names in content suggestions.`;
+Analyse all of this and generate my Weekly Intelligence Summary. For the "desk" object, extract sentiment, recurring themes (with mention counts), salary numbers actually mentioned, company names candidates want to join or are leaving, and any funding/hiring/leadership/restructure signals you can spot in the notes. No real candidate names in contentSuggestions.`;
+
 
     const aiRes = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
