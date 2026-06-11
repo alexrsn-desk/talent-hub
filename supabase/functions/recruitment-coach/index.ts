@@ -129,7 +129,21 @@ deskData.placements gives you visibility on every active placement — pre-start
 - "Maria's week 1 check-in is due tomorrow. Ask how the first week is going, if she's settling in, and whether the role matches what you described."
 - "Tom's probation review at Acme is in 9 days. This is your guarantee window — confirm performance and happiness on both sides before it closes."
 After a guarantee expires successfully, prompt the BD opportunity: the client is a proven partner worth a follow-up call about future hiring, and the candidate is now a long-term relationship worth a check-in in 9-12 months.
-If a check-in note flags a concern (concern_flagged=true), treat the placement as recoverable and surface a one-action prompt — never call it failing or lost.`;
+If a check-in note flags a concern (concern_flagged=true), treat the placement as recoverable and surface a one-action prompt — never call it failing or lost.
+
+BD ANTI-PROCRASTINATION (highest priority for the morning brief):
+deskData.bdActivity has { silenceDays, dailyTargets[] }. If silenceDays >= 3, the morning brief MUST open with this exact pattern — directly, not gently:
+
+"You haven't logged a BD touchpoint in [X] days.
+The most common reason desks go quiet is not market conditions. It is not picking up the phone.
+Your three calls today:
+1. [Name] — [Company] — [one line why]
+2. [Name] — [Company] — [one line why]
+3. [Name] — [Company] — [one line why]
+Close LinkedIn. Make the calls. Everything else can wait."
+
+Pull the three calls from dailyTargets (already prioritised: placed clients first, then warm prospects with timing signals, then placed candidates for referrals). Use the exact names and companies — never invent them. If dailyTargets is empty, suggest the recruiter add notes from any recent BD conversations first.
+If silenceDays < 3, do not lead with this. Only surface BD prompts if a specific dailyTarget has a strong signal worth mentioning.`;
 
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
@@ -525,6 +539,69 @@ serve(async (req) => {
             startDateConfirmed: o.start_date_confirmed,
           })),
         };
+      })(),
+      bdActivity: (() => {
+        // Days since last BD-type touchpoint (Call/Email/LinkedIn/Meeting tied to a client)
+        const BD_TYPES = new Set(["Call", "Email", "LinkedIn Message", "Meeting", "Text Message", "WhatsApp"]);
+        const lastBd = notes.find((n: any) => BD_TYPES.has(n.activity_type) && n.client_id);
+        const silenceDays = lastBd
+          ? Math.floor((nowMs - new Date(lastBd.created_at).getTime()) / dayMs)
+          : 9999;
+
+        // Build 3 daily BD targets — placed clients first, warm prospects, placed candidates
+        const cutoff90 = new Date(nowMs - 90 * dayMs).toISOString();
+        const cutoff60Ms = nowMs - 60 * dayMs;
+        const cutoff42Ms = nowMs - 42 * dayMs;
+        const lastNoteByClient = new Map<string, any>();
+        const lastNoteByCand = new Map<string, any>();
+        for (const n of notes) {
+          if (n.client_id && !lastNoteByClient.has(n.client_id)) lastNoteByClient.set(n.client_id, n);
+          if (n.candidate_id && !lastNoteByCand.has(n.candidate_id)) lastNoteByCand.set(n.candidate_id, n);
+        }
+        const targets: Array<{ name: string; company: string; reason: string }> = [];
+        // 1) Placed clients — placed >90d ago, no touchpoint 60d
+        for (const p of (placementsData || [])) {
+          if (p.status === "fallen_through") continue;
+          if (!p.offer_accepted_date || p.offer_accepted_date > cutoff90.slice(0, 10)) continue;
+          const lastN = lastNoteByClient.get(p.client_id);
+          if (lastN && new Date(lastN.created_at).getTime() > cutoff60Ms) continue;
+          const months = Math.floor((nowMs - new Date(p.offer_accepted_date).getTime()) / dayMs / 30);
+          targets.push({
+            name: p.client_name_snapshot || "Client",
+            company: p.client_name_snapshot || "",
+            reason: `placed ${p.candidate_name_snapshot} ${months}mo ago — your warmest BD`,
+          });
+          if (targets.length >= 1) break;
+        }
+        // 2) Warm/Prospect client gone quiet 42d+
+        for (const c of allClients) {
+          if (!["Warm", "Prospect", "In Dialogue", "Approached"].includes(c.status || "") &&
+              !["Warm", "Hot"].includes(c.heat || "")) continue;
+          const lastN = lastNoteByClient.get(c.id);
+          const lastTs = lastN ? new Date(lastN.created_at).getTime() : 0;
+          if (lastTs > cutoff42Ms) continue;
+          const said = (lastN?.content || "").slice(0, 70).replace(/\s+/g, " ");
+          targets.push({
+            name: c.contact_name || c.company_name,
+            company: c.company_name,
+            reason: said ? `last said "${said}…"` : "warm prospect gone quiet",
+          });
+          if (targets.length >= 2) break;
+        }
+        // 3) Placed candidate — referral source, 90d+/60d no contact
+        for (const p of (placementsData || [])) {
+          if (p.status === "fallen_through") continue;
+          if (!p.offer_accepted_date || p.offer_accepted_date > cutoff90.slice(0, 10)) continue;
+          const lastN = lastNoteByCand.get(p.candidate_id);
+          if (lastN && new Date(lastN.created_at).getTime() > cutoff60Ms) continue;
+          targets.push({
+            name: p.candidate_name_snapshot,
+            company: p.client_name_snapshot,
+            reason: "placed candidate — best source of referrals",
+          });
+          if (targets.length >= 3) break;
+        }
+        return { silenceDays, dailyTargets: targets };
       })(),
     };
 
