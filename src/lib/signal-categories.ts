@@ -39,6 +39,10 @@ export const DEFAULT_ENABLED_SIGNALS: Record<string, boolean> = {
   "Referral Opportunity": true,
   "BD Cold Contact": true,
   "Campaign Reply": true,
+  "Campaign Reply — Positive": true,
+  "Campaign Reply — Not Interested": true,
+  "Campaign Reply — Future Timing": true,
+  "Campaign Reply — Review Needed": true,
   // Admin (all off)
   "Missing Salary": false,
   "Incomplete Profile": false,
@@ -81,6 +85,10 @@ export const SIGNALS_BY_CATEGORY: Record<SignalCategoryKey, string[]> = {
     "Referral Opportunity",
     "BD Cold Contact",
     "Campaign Reply",
+    "Campaign Reply — Positive",
+    "Campaign Reply — Not Interested",
+    "Campaign Reply — Future Timing",
+    "Campaign Reply — Review Needed",
   ],
   admin: [
     "Missing Salary",

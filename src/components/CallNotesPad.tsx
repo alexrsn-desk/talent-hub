@@ -66,9 +66,10 @@ export function CallNotesPad({ entityType, entityId }: Props) {
       const { data: noteRow, error } = await supabase.from("notes").insert(payload).select("id").maybeSingle();
       if (error) throw error;
 
-      // Fire-and-forget AI extraction
+      // Fire-and-forget AI extraction + reply-signal detection
       if (noteRow?.id && entityType === "candidate") {
         supabase.functions.invoke("extract-insights", { body: { note_id: noteRow.id } }).catch(() => {});
+        supabase.functions.invoke("detect-signals", { body: { note_id: noteRow.id } }).catch(() => {});
       }
 
       toast({ title: "Notes saved" });
