@@ -106,6 +106,9 @@ export default function BillersWorkflow() {
           readyToSend: sections.readyToSend.slice(0, 6).map(s => ({ t: s.title, sub: s.sub })),
           fillPipeline: sections.fillPipeline.slice(0, 6).map(s => ({ t: s.title, sub: s.sub, sig: s.signal })),
           protectRelationships: sections.protectRelationships.slice(0, 8).map(s => ({ t: s.title, sub: s.sub, sig: s.signal })),
+          placedClients: sections.placedClients.slice(0, 6).map(s => ({ t: s.title, sub: s.sub })),
+          placedCandidates: sections.placedCandidates.slice(0, 6).map(s => ({ t: s.title, sub: s.sub })),
+          warmProspectsQuiet: sections.warmProspectsQuiet.slice(0, 6).map(s => ({ t: s.title, sub: s.sub, sig: s.signal })),
         };
         const { data: { session } } = await supabase.auth.getSession();
         const resp = await fetch(url, {
