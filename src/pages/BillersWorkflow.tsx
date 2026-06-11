@@ -40,7 +40,7 @@ const toneSignal = (tone: BillerItem["tone"]) => {
   }
 };
 
-function SectionRow({ item, onLogCall, onRefresh }: { item: BillerItem; onLogCall: (it: BillerItem) => void; onRefresh: () => void }) {
+function SectionRow({ item, onLogCall, onRefresh, onOpenGap }: { item: BillerItem; onLogCall: (it: BillerItem) => void; onRefresh: () => void; onOpenGap?: (it: BillerItem) => void }) {
   const nav = useNavigate();
   const canLog = !!(item.logEntityType && item.logEntityId && item.logEntityName);
 
