@@ -49,7 +49,7 @@ function SectionRow({ item, onLogCall, onRefresh, onOpenGap }: { item: BillerIte
 
   return (
     <div className={`w-full flex items-start gap-3 py-3 px-3 border-b border-border hover:bg-muted/30 transition-colors ${toneBorder(item.tone)}`}>
-      <button onClick={() => item.href && nav(item.href)} className="flex-1 min-w-0 text-left">
+      <button onClick={() => { if (item.pipelineGap && onOpenGap) onOpenGap(item); else if (item.href) nav(item.href); }} className="flex-1 min-w-0 text-left">
         <div className="text-sm font-medium text-foreground">{item.title}</div>
         {item.sub && <div className="text-xs text-muted-foreground mt-0.5">{item.sub}</div>}
         {item.signal && <div className={`text-xs mt-0.5 ${toneSignal(item.tone)}`}>{item.signal}</div>}
