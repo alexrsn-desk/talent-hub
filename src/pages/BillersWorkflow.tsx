@@ -11,7 +11,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { supabase } from "@/integrations/supabase/client";
 
-type SectionKey = "billing" | "cvs" | "pipeline" | "relationships";
+type SectionKey = "billing" | "cvs" | "pipeline" | "relationships" | "bd";
 
 function SectionRow({ item }: { item: BillerItem }) {
   const nav = useNavigate();
