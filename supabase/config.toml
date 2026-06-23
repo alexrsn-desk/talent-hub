@@ -2,3 +2,6 @@ project_id = "xkwophgwfqauvaztokue"
 
 [functions.webhook-import]
 verify_jwt = false
+
+[functions.vincere-webhook]
+verify_jwt = false
