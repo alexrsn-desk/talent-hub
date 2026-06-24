@@ -157,17 +157,36 @@ Deno.serve(async (req) => {
   const results: Array<{ ok: boolean; id?: string; email?: string; error?: string }> = [];
 
   for (const r of records) {
-    const first = pick(r, ["firstName", "first_name", "FirstName", "given_name"]);
-    const last = pick(r, ["lastName", "last_name", "LastName", "family_name", "surname"]);
-    const fullName = pick(r, ["name", "fullName", "full_name"]);
-    const email = pick(r, ["email", "Email", "email_address", "emailAddress"]);
-    const phone = pick(r, ["phone", "Phone", "mobile", "phone_number"]);
-    const jobTitle = pick(r, ["jobTitle", "job_title", "title", "currentTitle"]);
-    const employer = pick(r, ["currentEmployer", "current_employer", "company", "employer"]);
-    const location = pick(r, ["location", "city"]);
-    const linkedin = pick(r, ["linkedinUrl", "linkedin_url", "linkedin"]);
+    const first = asString(deepFind(r, ["firstName", "first_name", "FirstName", "given_name", "givenName", "forename"]));
+    const last = asString(deepFind(r, ["lastName", "last_name", "LastName", "family_name", "familyName", "surname", "lastname"]));
+    const fullName = asString(deepFind(r, ["name", "fullName", "full_name", "candidateName", "candidate_name", "displayName"]));
+    const email = asString(deepFind(r, ["email", "emailAddress", "email_address", "primary_email", "primaryEmail", "workEmail", "work_email", "personalEmail", "personal_email"]));
+    const phone = asString(deepFind(r, ["phone", "mobile", "phone_number", "phoneNumber", "primary_phone", "primaryPhone", "mobileNumber"]));
+    const jobTitle = asString(deepFind(r, ["jobTitle", "job_title", "title", "currentTitle", "current_title", "position", "current_position", "currentPosition", "role", "current_role"]));
+    let employer = asString(deepFind(r, ["currentEmployer", "current_employer", "company", "companyName", "company_name", "employer", "employerName", "current_company", "currentCompany", "organisation", "organization"]));
+    if (!employer) employer = findEmployerFromHistory(r);
+    const salary = asNumber(
+      deepFind(
+        r,
+        [
+          "salary", "currentSalary", "current_salary", "salaryCurrent", "salary_current",
+          "salaryExpectation", "salary_expectation", "expectedSalary", "expected_salary",
+          "desiredSalary", "desired_salary", "remuneration", "compensation", "package",
+        ],
+        (v) =>
+          typeof v === "number" ||
+          (typeof v === "string" && /\d/.test(v)) ||
+          (!!v && typeof v === "object"),
+      ),
+    );
+    const location = asString(deepFind(r, ["location", "city", "town", "address_city", "currentLocation", "current_location"]));
+    const linkedin = asString(deepFind(r, ["linkedinUrl", "linkedin_url", "linkedin", "linkedInUrl"]));
 
-    const name = fullName || [first, last].filter(Boolean).join(" ").trim() || email || "Unknown";
+    const name =
+      fullName ||
+      [first, last].filter(Boolean).join(" ").trim() ||
+      email ||
+      "Unknown";
 
     if (!email && !fullName && !first && !last) {
       results.push({ ok: false, error: "Missing name and email" });
@@ -198,6 +217,7 @@ Deno.serve(async (req) => {
         phone: phone ?? null,
         job_title: jobTitle ?? null,
         current_employer: employer ?? null,
+        salary_current: salary ?? null,
         location: location ?? null,
         linkedin_url: linkedin ?? null,
         source: "Inbound",
@@ -213,6 +233,7 @@ Deno.serve(async (req) => {
       results.push({ ok: true, id: data.id, email });
     }
   }
+
 
   const inserted = results.filter((r) => r.ok && r.error !== "duplicate-skipped").length;
   return json({ received: records.length, inserted, results }, 200);
