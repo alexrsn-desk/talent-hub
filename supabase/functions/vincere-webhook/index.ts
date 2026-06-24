@@ -113,6 +113,61 @@ function findEmployerFromHistory(data: unknown): string | undefined {
   return undefined;
 }
 
+// Pull the current/most-recent job title from work-history arrays.
+// Vincere often stores titles inside work_history[*].job_title rather than a flat field.
+function findJobTitleFromHistory(data: unknown): string | undefined {
+  const history = deepFind(
+    data,
+    [
+      "work_history", "workHistory",
+      "work_experience", "workExperience",
+      "employment_history", "employmentHistory",
+      "experience", "experiences",
+      "positions", "jobs", "roles",
+    ],
+    (v) => Array.isArray(v) && v.length > 0,
+  ) as unknown[] | undefined;
+  if (!Array.isArray(history) || history.length === 0) return undefined;
+
+  const titleOf = (h: unknown): string | undefined => {
+    if (!h || typeof h !== "object") return undefined;
+    const o = h as Record<string, unknown>;
+    return (
+      asString(o.job_title) ??
+      asString(o.jobTitle) ??
+      asString(o.title) ??
+      asString(o.position) ??
+      asString(o.role) ??
+      asString(o.positionTitle) ??
+      asString(o.position_title)
+    );
+  };
+
+  // Prefer the current role (current/is_current flag or no end date).
+  const current = history.find((h) => {
+    if (!h || typeof h !== "object") return false;
+    const o = h as Record<string, unknown>;
+    return (
+      o.current === true ||
+      o.is_current === true ||
+      o.isCurrent === true ||
+      ((o.end_date == null && o.endDate == null) && titleOf(o) !== undefined)
+    );
+  });
+  if (current) {
+    const t = titleOf(current);
+    if (t) return t;
+  }
+
+  // Otherwise the first (latest) entry, then fall back through the array.
+  for (const h of history) {
+    const t = titleOf(h);
+    if (t) return t;
+  }
+  // Finally try the last entry explicitly.
+  return titleOf(history[history.length - 1]);
+}
+
 function json(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), {
     status,
@@ -162,7 +217,9 @@ Deno.serve(async (req) => {
     const fullName = asString(deepFind(r, ["name", "fullName", "full_name", "candidateName", "candidate_name", "displayName"]));
     const email = asString(deepFind(r, ["email", "emailAddress", "email_address", "primary_email", "primaryEmail", "workEmail", "work_email", "personalEmail", "personal_email"]));
     const phone = asString(deepFind(r, ["phone", "mobile", "phone_number", "phoneNumber", "primary_phone", "primaryPhone", "mobileNumber"]));
-    const jobTitle = asString(deepFind(r, ["jobTitle", "job_title", "title", "currentTitle", "current_title", "position", "current_position", "currentPosition", "role", "current_role"]));
+    let jobTitle = asString(deepFind(r, ["jobTitle", "job_title", "currentTitle", "current_title", "current_position", "currentPosition", "current_role", "currentRole"]));
+    if (!jobTitle) jobTitle = findJobTitleFromHistory(r);
+    if (!jobTitle) jobTitle = asString(deepFind(r, ["title", "position", "role"]));
     let employer = asString(deepFind(r, ["currentEmployer", "current_employer", "company", "companyName", "company_name", "employer", "employerName", "current_company", "currentCompany", "organisation", "organization"]));
     if (!employer) employer = findEmployerFromHistory(r);
     const salary = asNumber(
