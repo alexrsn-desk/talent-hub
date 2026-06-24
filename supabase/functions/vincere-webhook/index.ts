@@ -308,6 +308,8 @@ Deno.serve(async (req) => {
   }
 
 
-  const inserted = results.filter((r) => r.ok && r.error !== "duplicate-skipped").length;
-  return json({ received: records.length, inserted, results }, 200);
+  const inserted = results.filter((r) => r.ok && r.error === undefined).length;
+  const updated = results.filter((r) => r.ok && r.error === "updated-existing").length;
+  return json({ received: records.length, inserted, updated, results }, 200);
+
 });
