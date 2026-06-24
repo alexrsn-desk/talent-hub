@@ -250,19 +250,35 @@ Deno.serve(async (req) => {
       continue;
     }
 
-    // De-dupe on email per owner
-    if (email && owner) {
+    // Match on both email AND name per owner; update existing if both match, otherwise insert
+    if (email && name && owner) {
       const { data: existing } = await supabase
         .from("candidates")
         .select("id")
         .eq("owner_user_id", owner)
-        .ilike("email", email)
+        .eq("email", email)
+        .eq("name", name)
         .maybeSingle();
       if (existing?.id) {
-        results.push({ ok: true, id: existing.id, email, error: "duplicate-skipped" });
+        const { error: updateError } = await supabase
+          .from("candidates")
+          .update({
+            job_title: jobTitle ?? null,
+            current_employer: employer ?? null,
+            salary_current: salary ?? null,
+          })
+          .eq("id", existing.id)
+          .select("id")
+          .single();
+        if (updateError) {
+          results.push({ ok: false, email, error: updateError.message });
+        } else {
+          results.push({ ok: true, id: existing.id, email, error: "updated-existing" });
+        }
         continue;
       }
     }
+
 
     const { data, error } = await supabase
       .from("candidates")
