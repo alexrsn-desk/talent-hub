@@ -795,7 +795,7 @@ export default function CandidatesPage() {
                   />
                 </th>
                 <th className="text-left px-4 py-3 font-medium text-muted-foreground">Name</th>
-                <th className="text-left px-4 py-3 font-medium text-muted-foreground">Title</th>
+                <th className="text-left px-4 py-3 font-medium text-muted-foreground">Job Title</th>
                 <th className="text-left px-4 py-3 font-medium text-muted-foreground">Employer</th>
                 <th className="text-left px-4 py-3 font-medium text-muted-foreground">Salary</th>
                 <th className="text-left px-4 py-3 font-medium text-muted-foreground">Location</th>
