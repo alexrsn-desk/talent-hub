@@ -26,6 +26,93 @@ function pick(obj: Record<string, unknown>, keys: string[]): string | undefined 
   return undefined;
 }
 
+// Recursively search a payload for the first value at any matching key (case-insensitive).
+// Supports nested objects and arrays so we can dig through Vincere's raw envelopes.
+function deepFind(
+  data: unknown,
+  keys: string[],
+  predicate: (v: unknown) => boolean = (v) =>
+    (typeof v === "string" && v.trim().length > 0) || typeof v === "number",
+  depth = 0,
+): unknown {
+  if (data == null || depth > 6) return undefined;
+  const wanted = keys.map((k) => k.toLowerCase());
+  if (Array.isArray(data)) {
+    for (const item of data) {
+      const found = deepFind(item, keys, predicate, depth + 1);
+      if (found !== undefined) return found;
+    }
+    return undefined;
+  }
+  if (typeof data === "object") {
+    const obj = data as Record<string, unknown>;
+    // direct hits first
+    for (const [k, v] of Object.entries(obj)) {
+      if (wanted.includes(k.toLowerCase()) && predicate(v)) return v;
+    }
+    // then recurse
+    for (const v of Object.values(obj)) {
+      if (v && typeof v === "object") {
+        const found = deepFind(v, keys, predicate, depth + 1);
+        if (found !== undefined) return found;
+      }
+    }
+  }
+  return undefined;
+}
+
+function asString(v: unknown): string | undefined {
+  if (typeof v === "string" && v.trim()) return v.trim();
+  if (typeof v === "number") return String(v);
+  return undefined;
+}
+
+// Extract a numeric salary from numbers, strings ("$95,000 per year"), or objects ({amount, currency}).
+function asNumber(v: unknown): number | undefined {
+  if (typeof v === "number" && isFinite(v)) return Math.round(v);
+  if (typeof v === "string") {
+    const m = v.replace(/[, ]/g, "").match(/-?\d+(\.\d+)?/);
+    if (m) return Math.round(parseFloat(m[0]));
+  }
+  if (v && typeof v === "object") {
+    const o = v as Record<string, unknown>;
+    for (const k of ["amount", "value", "salary", "min", "from"]) {
+      const n = asNumber(o[k]);
+      if (n !== undefined) return n;
+    }
+  }
+  return undefined;
+}
+
+// Pull the current/most-recent employer from work-history arrays if no flat field exists.
+function findEmployerFromHistory(data: unknown): string | undefined {
+  const history = deepFind(
+    data,
+    ["work_experience", "workExperience", "experience", "employmentHistory", "employment_history", "positions", "jobs"],
+    (v) => Array.isArray(v) && v.length > 0,
+  ) as unknown[] | undefined;
+  if (!Array.isArray(history)) return undefined;
+  // Prefer current role (no end_date / current flag), else first entry.
+  const current =
+    history.find((h) => {
+      if (!h || typeof h !== "object") return false;
+      const o = h as Record<string, unknown>;
+      return o.current === true || o.is_current === true || o.endDate == null && o.end_date == null && (o.company || o.employer || o.companyName);
+    }) ?? history[0];
+  if (current && typeof current === "object") {
+    const o = current as Record<string, unknown>;
+    return (
+      asString(o.company) ??
+      asString(o.companyName) ??
+      asString(o.company_name) ??
+      asString(o.employer) ??
+      asString(o.organisation) ??
+      asString(o.organization)
+    );
+  }
+  return undefined;
+}
+
 function json(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), {
     status,
@@ -70,17 +157,36 @@ Deno.serve(async (req) => {
   const results: Array<{ ok: boolean; id?: string; email?: string; error?: string }> = [];
 
   for (const r of records) {
-    const first = pick(r, ["firstName", "first_name", "FirstName", "given_name"]);
-    const last = pick(r, ["lastName", "last_name", "LastName", "family_name", "surname"]);
-    const fullName = pick(r, ["name", "fullName", "full_name"]);
-    const email = pick(r, ["email", "Email", "email_address", "emailAddress"]);
-    const phone = pick(r, ["phone", "Phone", "mobile", "phone_number"]);
-    const jobTitle = pick(r, ["jobTitle", "job_title", "title", "currentTitle"]);
-    const employer = pick(r, ["currentEmployer", "current_employer", "company", "employer"]);
-    const location = pick(r, ["location", "city"]);
-    const linkedin = pick(r, ["linkedinUrl", "linkedin_url", "linkedin"]);
+    const first = asString(deepFind(r, ["firstName", "first_name", "FirstName", "given_name", "givenName", "forename"]));
+    const last = asString(deepFind(r, ["lastName", "last_name", "LastName", "family_name", "familyName", "surname", "lastname"]));
+    const fullName = asString(deepFind(r, ["name", "fullName", "full_name", "candidateName", "candidate_name", "displayName"]));
+    const email = asString(deepFind(r, ["email", "emailAddress", "email_address", "primary_email", "primaryEmail", "workEmail", "work_email", "personalEmail", "personal_email"]));
+    const phone = asString(deepFind(r, ["phone", "mobile", "phone_number", "phoneNumber", "primary_phone", "primaryPhone", "mobileNumber"]));
+    const jobTitle = asString(deepFind(r, ["jobTitle", "job_title", "title", "currentTitle", "current_title", "position", "current_position", "currentPosition", "role", "current_role"]));
+    let employer = asString(deepFind(r, ["currentEmployer", "current_employer", "company", "companyName", "company_name", "employer", "employerName", "current_company", "currentCompany", "organisation", "organization"]));
+    if (!employer) employer = findEmployerFromHistory(r);
+    const salary = asNumber(
+      deepFind(
+        r,
+        [
+          "salary", "currentSalary", "current_salary", "salaryCurrent", "salary_current",
+          "salaryExpectation", "salary_expectation", "expectedSalary", "expected_salary",
+          "desiredSalary", "desired_salary", "remuneration", "compensation", "package",
+        ],
+        (v) =>
+          typeof v === "number" ||
+          (typeof v === "string" && /\d/.test(v)) ||
+          (!!v && typeof v === "object"),
+      ),
+    );
+    const location = asString(deepFind(r, ["location", "city", "town", "address_city", "currentLocation", "current_location"]));
+    const linkedin = asString(deepFind(r, ["linkedinUrl", "linkedin_url", "linkedin", "linkedInUrl"]));
 
-    const name = fullName || [first, last].filter(Boolean).join(" ").trim() || email || "Unknown";
+    const name =
+      fullName ||
+      [first, last].filter(Boolean).join(" ").trim() ||
+      email ||
+      "Unknown";
 
     if (!email && !fullName && !first && !last) {
       results.push({ ok: false, error: "Missing name and email" });
@@ -111,6 +217,7 @@ Deno.serve(async (req) => {
         phone: phone ?? null,
         job_title: jobTitle ?? null,
         current_employer: employer ?? null,
+        salary_current: salary ?? null,
         location: location ?? null,
         linkedin_url: linkedin ?? null,
         source: "Inbound",
@@ -126,6 +233,7 @@ Deno.serve(async (req) => {
       results.push({ ok: true, id: data.id, email });
     }
   }
+
 
   const inserted = results.filter((r) => r.ok && r.error !== "duplicate-skipped").length;
   return json({ received: records.length, inserted, results }, 200);
