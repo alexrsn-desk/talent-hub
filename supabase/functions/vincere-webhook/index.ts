@@ -113,6 +113,61 @@ function findEmployerFromHistory(data: unknown): string | undefined {
   return undefined;
 }
 
+// Pull the current/most-recent job title from work-history arrays.
+// Vincere often stores titles inside work_history[*].job_title rather than a flat field.
+function findJobTitleFromHistory(data: unknown): string | undefined {
+  const history = deepFind(
+    data,
+    [
+      "work_history", "workHistory",
+      "work_experience", "workExperience",
+      "employment_history", "employmentHistory",
+      "experience", "experiences",
+      "positions", "jobs", "roles",
+    ],
+    (v) => Array.isArray(v) && v.length > 0,
+  ) as unknown[] | undefined;
+  if (!Array.isArray(history) || history.length === 0) return undefined;
+
+  const titleOf = (h: unknown): string | undefined => {
+    if (!h || typeof h !== "object") return undefined;
+    const o = h as Record<string, unknown>;
+    return (
+      asString(o.job_title) ??
+      asString(o.jobTitle) ??
+      asString(o.title) ??
+      asString(o.position) ??
+      asString(o.role) ??
+      asString(o.positionTitle) ??
+      asString(o.position_title)
+    );
+  };
+
+  // Prefer the current role (current/is_current flag or no end date).
+  const current = history.find((h) => {
+    if (!h || typeof h !== "object") return false;
+    const o = h as Record<string, unknown>;
+    return (
+      o.current === true ||
+      o.is_current === true ||
+      o.isCurrent === true ||
+      ((o.end_date == null && o.endDate == null) && titleOf(o) !== undefined)
+    );
+  });
+  if (current) {
+    const t = titleOf(current);
+    if (t) return t;
+  }
+
+  // Otherwise the first (latest) entry, then fall back through the array.
+  for (const h of history) {
+    const t = titleOf(h);
+    if (t) return t;
+  }
+  // Finally try the last entry explicitly.
+  return titleOf(history[history.length - 1]);
+}
+
 function json(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), {
     status,
