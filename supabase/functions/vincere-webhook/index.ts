@@ -26,6 +26,93 @@ function pick(obj: Record<string, unknown>, keys: string[]): string | undefined 
   return undefined;
 }
 
+// Recursively search a payload for the first value at any matching key (case-insensitive).
+// Supports nested objects and arrays so we can dig through Vincere's raw envelopes.
+function deepFind(
+  data: unknown,
+  keys: string[],
+  predicate: (v: unknown) => boolean = (v) =>
+    (typeof v === "string" && v.trim().length > 0) || typeof v === "number",
+  depth = 0,
+): unknown {
+  if (data == null || depth > 6) return undefined;
+  const wanted = keys.map((k) => k.toLowerCase());
+  if (Array.isArray(data)) {
+    for (const item of data) {
+      const found = deepFind(item, keys, predicate, depth + 1);
+      if (found !== undefined) return found;
+    }
+    return undefined;
+  }
+  if (typeof data === "object") {
+    const obj = data as Record<string, unknown>;
+    // direct hits first
+    for (const [k, v] of Object.entries(obj)) {
+      if (wanted.includes(k.toLowerCase()) && predicate(v)) return v;
+    }
+    // then recurse
+    for (const v of Object.values(obj)) {
+      if (v && typeof v === "object") {
+        const found = deepFind(v, keys, predicate, depth + 1);
+        if (found !== undefined) return found;
+      }
+    }
+  }
+  return undefined;
+}
+
+function asString(v: unknown): string | undefined {
+  if (typeof v === "string" && v.trim()) return v.trim();
+  if (typeof v === "number") return String(v);
+  return undefined;
+}
+
+// Extract a numeric salary from numbers, strings ("$95,000 per year"), or objects ({amount, currency}).
+function asNumber(v: unknown): number | undefined {
+  if (typeof v === "number" && isFinite(v)) return Math.round(v);
+  if (typeof v === "string") {
+    const m = v.replace(/[, ]/g, "").match(/-?\d+(\.\d+)?/);
+    if (m) return Math.round(parseFloat(m[0]));
+  }
+  if (v && typeof v === "object") {
+    const o = v as Record<string, unknown>;
+    for (const k of ["amount", "value", "salary", "min", "from"]) {
+      const n = asNumber(o[k]);
+      if (n !== undefined) return n;
+    }
+  }
+  return undefined;
+}
+
+// Pull the current/most-recent employer from work-history arrays if no flat field exists.
+function findEmployerFromHistory(data: unknown): string | undefined {
+  const history = deepFind(
+    data,
+    ["work_experience", "workExperience", "experience", "employmentHistory", "employment_history", "positions", "jobs"],
+    (v) => Array.isArray(v) && v.length > 0,
+  ) as unknown[] | undefined;
+  if (!Array.isArray(history)) return undefined;
+  // Prefer current role (no end_date / current flag), else first entry.
+  const current =
+    history.find((h) => {
+      if (!h || typeof h !== "object") return false;
+      const o = h as Record<string, unknown>;
+      return o.current === true || o.is_current === true || o.endDate == null && o.end_date == null && (o.company || o.employer || o.companyName);
+    }) ?? history[0];
+  if (current && typeof current === "object") {
+    const o = current as Record<string, unknown>;
+    return (
+      asString(o.company) ??
+      asString(o.companyName) ??
+      asString(o.company_name) ??
+      asString(o.employer) ??
+      asString(o.organisation) ??
+      asString(o.organization)
+    );
+  }
+  return undefined;
+}
+
 function json(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), {
     status,
