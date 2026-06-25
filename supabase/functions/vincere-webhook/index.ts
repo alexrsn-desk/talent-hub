@@ -243,6 +243,74 @@ function findJobTitleFromHistory(data: unknown): string | undefined {
   return titleOf(history[history.length - 1]);
 }
 
+// Pull SourceWhale / Vincere call-log notes from any of: comments, notes, note,
+// or an activities[] array. Concatenates multiple entries (newest first when
+// dates are present) so the recruiter sees the full call-log thread.
+function extractCommentText(v: unknown): string | undefined {
+  if (v == null) return undefined;
+  if (typeof v === "string") return v.trim() || undefined;
+  if (typeof v === "number") return String(v);
+  if (Array.isArray(v)) {
+    const parts = v.map(extractCommentText).filter((s): s is string => !!s);
+    return parts.length ? parts.join("\n\n---\n\n") : undefined;
+  }
+  if (typeof v === "object") {
+    const o = v as Record<string, unknown>;
+    const body =
+      asString(o.text) ??
+      asString(o.body) ??
+      asString(o.content) ??
+      asString(o.note) ??
+      asString(o.notes) ??
+      asString(o.comment) ??
+      asString(o.comments) ??
+      asString(o.description) ??
+      asString(o.message) ??
+      asString(o.summary);
+    const meta = [
+      asString(o.type) ?? asString(o.activity_type) ?? asString(o.activityType),
+      asString(o.date) ?? asString(o.created_at) ?? asString(o.createdAt) ?? asString(o.timestamp),
+      asString(o.author) ?? asString(o.user) ?? asString(o.created_by) ?? asString(o.createdBy),
+    ].filter(Boolean).join(" • ");
+    if (body) return meta ? `[${meta}]\n${body}` : body;
+  }
+  return undefined;
+}
+
+function extractComments(data: unknown): string | undefined {
+  if (!data || typeof data !== "object") return undefined;
+  const buckets: string[] = [];
+  const seen = new Set<string>();
+  const pushFrom = (val: unknown) => {
+    const text = extractCommentText(val);
+    if (text && !seen.has(text)) {
+      seen.add(text);
+      buckets.push(text);
+    }
+  };
+
+  const wanted = ["comments", "notes", "note", "activities", "activity", "activity_log", "activityLog", "call_logs", "callLogs"];
+  const visit = (node: unknown, depth = 0) => {
+    if (node == null || depth > 6) return;
+    if (Array.isArray(node)) {
+      for (const item of node) visit(item, depth + 1);
+      return;
+    }
+    if (typeof node === "object") {
+      const obj = node as Record<string, unknown>;
+      for (const [k, v] of Object.entries(obj)) {
+        if (wanted.includes(k.toLowerCase())) pushFrom(v);
+      }
+      for (const v of Object.values(obj)) {
+        if (v && typeof v === "object") visit(v, depth + 1);
+      }
+    }
+  };
+  visit(data);
+  if (!buckets.length) return undefined;
+  return buckets.join("\n\n---\n\n").slice(0, 20000);
+}
+
 function json(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), {
     status,
