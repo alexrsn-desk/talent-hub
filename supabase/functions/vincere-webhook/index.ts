@@ -351,15 +351,27 @@ Deno.serve(async (req) => {
       continue;
     }
 
-    const { data: existing } = await supabase
-      .from("candidates")
-      .select("id")
-      .eq("owner_user_id", owner)
-      .eq("email", email)
-      .eq("name", name)
-      .maybeSingle();
+    // Normalize names so trivial spacing/casing differences still match.
+    const normalizeName = (s: string) =>
+      s.toLowerCase().replace(/\s+/g, " ").trim();
+    const normalizedName = normalizeName(name);
 
-    if (existing?.id) {
+    // Fetch candidates for this owner with the same email (case-insensitive),
+    // then match in code on normalized name so "  John  Doe" == "john doe".
+    let existingId: string | undefined;
+    if (email) {
+      const { data: candidatesByEmail } = await supabase
+        .from("candidates")
+        .select("id, name")
+        .eq("owner_user_id", owner)
+        .ilike("email", email);
+      const match = (candidatesByEmail ?? []).find(
+        (c) => c.name && normalizeName(c.name) === normalizedName,
+      );
+      existingId = match?.id;
+    }
+
+    if (existingId) {
       const { error: updateError } = await supabase
         .from("candidates")
         .update({
@@ -368,13 +380,13 @@ Deno.serve(async (req) => {
           salary_current: salary ?? null,
           updated_at: new Date().toISOString(),
         })
-        .eq("id", existing.id)
+        .eq("id", existingId)
         .select("id")
         .single();
       if (updateError) {
         results.push({ ok: false, email, error: updateError.message });
       } else {
-        results.push({ ok: true, id: existing.id, email, action: "updated" });
+        results.push({ ok: true, id: existingId, email, action: "updated" });
       }
       continue;
     }
