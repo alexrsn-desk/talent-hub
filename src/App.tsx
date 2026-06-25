@@ -159,6 +159,7 @@ function AppRoutes() {
           <Route path="/calls" element={<CallsMeetings />} />
           <Route path="/sequences" element={<Sequences />} />
           <Route path="/settings" element={<Settings />} />
+          <Route path="/sourcewhale" element={<SourceWhaleContacts />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </AppLayout>
