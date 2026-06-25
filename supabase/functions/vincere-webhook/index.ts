@@ -88,6 +88,21 @@ function deepFindByPriority(data: unknown, keyGroups: string[][]): string | unde
   return undefined;
 }
 
+function directFindByPriority(data: unknown, keyGroups: string[][]): string | undefined {
+  if (!data || typeof data !== "object" || Array.isArray(data)) return undefined;
+  const obj = data as Record<string, unknown>;
+  for (const keys of keyGroups) {
+    const wanted = keys.map((k) => k.toLowerCase());
+    for (const [k, v] of Object.entries(obj)) {
+      if (wanted.includes(k.toLowerCase())) {
+        const found = asTitleString(v);
+        if (found) return found;
+      }
+    }
+  }
+  return undefined;
+}
+
 function parseHistoryDate(v: unknown): number {
   if (!v) return 0;
   if (typeof v === "number") return v;
@@ -277,7 +292,7 @@ Deno.serve(async (req) => {
     const fullName = asString(deepFind(r, ["name", "fullName", "full_name", "candidateName", "candidate_name", "displayName"]));
     const email = asString(deepFind(r, ["email", "emailAddress", "email_address", "primary_email", "primaryEmail", "workEmail", "work_email", "personalEmail", "personal_email"]));
     const phone = asString(deepFind(r, ["phone", "mobile", "phone_number", "phoneNumber", "primary_phone", "primaryPhone", "mobileNumber"]));
-    let jobTitle = deepFindByPriority(r, [
+    let jobTitle = directFindByPriority(r, [
       ["current_job_title", "currentJobTitle"],
       ["job_title", "jobTitle"],
     ]);
