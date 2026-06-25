@@ -27,6 +27,7 @@ import Auth from "./pages/Auth";
 import Portal from "./pages/Portal";
 import LiveConversations from "./pages/LiveConversations";
 import BillersWorkflow from "./pages/BillersWorkflow";
+import SourceWhaleContacts from "./pages/SourceWhaleContacts";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -158,6 +159,7 @@ function AppRoutes() {
           <Route path="/calls" element={<CallsMeetings />} />
           <Route path="/sequences" element={<Sequences />} />
           <Route path="/settings" element={<Settings />} />
+          <Route path="/sourcewhale" element={<SourceWhaleContacts />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </AppLayout>

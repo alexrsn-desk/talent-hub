@@ -1,6 +1,6 @@
 import { NavLink } from "@/components/NavLink";
 import { useLocation } from "react-router-dom";
-import { LayoutDashboard, Users, Building2, UserCircle, Briefcase, TrendingUp, Sparkles, Settings, BarChart3, PhoneCall, Link2, Award, MessagesSquare, Target } from "lucide-react";
+import { LayoutDashboard, Users, Building2, UserCircle, Briefcase, TrendingUp, Sparkles, Settings, BarChart3, PhoneCall, Link2, Award, MessagesSquare, Target, Waves } from "lucide-react";
 import {
   Sidebar,
   SidebarContent,
@@ -28,6 +28,7 @@ const items = [
   { title: "Sequences", url: "/sequences", icon: Link2 },
   { title: "AI Coach", url: "/coach", icon: Sparkles },
   { title: "Weekly Intel", url: "/weekly", icon: BarChart3 },
+  { title: "SourceWhale", url: "/sourcewhale", icon: Waves },
   { title: "Settings", url: "/settings", icon: Settings },
 ];
 
