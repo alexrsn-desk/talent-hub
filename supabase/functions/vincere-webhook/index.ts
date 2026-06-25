@@ -289,7 +289,7 @@ function extractComments(data: unknown): string | undefined {
     }
   };
 
-  const wanted = ["comments", "notes", "note", "activities", "activity", "activity_log", "activityLog", "call_logs", "callLogs"];
+  const wanted = ["comment", "comments", "notes", "note", "activities", "activity", "activity_log", "activityLog", "call_logs", "callLogs"];
   const visit = (node: unknown, depth = 0) => {
     if (node == null || depth > 6) return;
     if (Array.isArray(node)) {
