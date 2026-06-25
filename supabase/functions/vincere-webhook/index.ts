@@ -474,6 +474,7 @@ Deno.serve(async (req) => {
         salary_current: salary ?? null,
         location: location ?? null,
         linkedin_url: linkedin ?? null,
+        comments: comments ?? null,
         source: "Inbound",
         status: "New",
         owner_user_id: owner,
