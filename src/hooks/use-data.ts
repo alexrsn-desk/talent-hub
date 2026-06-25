@@ -120,6 +120,9 @@ export function useCandidates() {
       if (error) throw error;
       return data as Candidate[];
     },
+    // Auto-pick up new rows from the hourly SourceWhale background sync
+    refetchInterval: 5 * 60 * 1000,
+    refetchOnWindowFocus: true,
   });
 }
 
