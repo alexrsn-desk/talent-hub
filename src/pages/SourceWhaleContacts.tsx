@@ -15,12 +15,14 @@ import {
   ArrowDown,
   ArrowUp,
   ArrowUpDown,
+  DownloadCloud,
   Loader2,
   RefreshCw,
   Search,
   Waves,
 } from "lucide-react";
 import { toast } from "sonner";
+
 
 type Contact = Record<string, any> & {
   id?: string;
@@ -63,6 +65,27 @@ export default function SourceWhaleContacts() {
   const [sortKey, setSortKey] = useState<SortKey>("name");
   const [sortDir, setSortDir] = useState<SortDir>("asc");
   const [lastFetched, setLastFetched] = useState<Date | null>(null);
+  const [importing, setImporting] = useState(false);
+
+  async function importToCandidates() {
+    setImporting(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("sourcewhale-contacts?action=import", {
+        method: "POST",
+      });
+      if (error) throw error;
+      const { inserted = 0, updated = 0, skipped = 0, total = 0 } = data ?? {};
+      toast.success("Imported to Candidates", {
+        description: `${inserted} new, ${updated} updated, ${skipped} skipped (of ${total}).`,
+      });
+    } catch (err: any) {
+      console.error(err);
+      toast.error("Import failed", { description: err?.message ?? "Unknown error" });
+    } finally {
+      setImporting(false);
+    }
+  }
+
 
   async function load() {
     setLoading(true);
@@ -172,6 +195,14 @@ export default function SourceWhaleContacts() {
               className="pl-8 w-72"
             />
           </div>
+          <Button onClick={importToCandidates} disabled={importing || loading}>
+            {importing ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <DownloadCloud className="h-4 w-4" />
+            )}
+            <span className="ml-2">Sync to Candidates</span>
+          </Button>
           <Button onClick={load} disabled={loading} variant="secondary">
             {loading ? (
               <Loader2 className="h-4 w-4 animate-spin" />
@@ -180,6 +211,7 @@ export default function SourceWhaleContacts() {
             )}
             <span className="ml-2">Refresh</span>
           </Button>
+
         </div>
       </header>
 
