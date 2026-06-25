@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -67,6 +68,8 @@ export default function SourceWhaleContacts() {
   const [lastFetched, setLastFetched] = useState<Date | null>(null);
   const [importing, setImporting] = useState(false);
 
+  const qc = useQueryClient();
+
   async function importToCandidates() {
     setImporting(true);
     try {
@@ -75,7 +78,9 @@ export default function SourceWhaleContacts() {
       });
       if (error) throw error;
       const { inserted = 0, updated = 0, skipped = 0, total = 0 } = data ?? {};
-      toast.success("Imported to Candidates", {
+      // Refresh the Candidates tab so newly merged contacts appear immediately
+      await qc.invalidateQueries({ queryKey: ["candidates"] });
+      toast.success("Synced to Candidates", {
         description: `${inserted} new, ${updated} updated, ${skipped} skipped (of ${total}).`,
       });
     } catch (err: any) {
