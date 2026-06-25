@@ -42,6 +42,68 @@ async function fetchSourceWhale(apiKey: string, qs: URLSearchParams) {
   return { ok: upstream.ok, status: upstream.status, payload };
 }
 
+async function importForOwner(admin: any, apiKey: string, userId: string) {
+  const qs = new URLSearchParams();
+  qs.set('limit', '200');
+  const { ok, status, payload } = await fetchSourceWhale(apiKey, qs);
+  if (!ok) {
+    console.error('SourceWhale upstream error', status);
+    return { ok: false, status, inserted: 0, updated: 0, skipped: 0, total: 0 };
+  }
+  const contacts = normalizeList(payload);
+  let inserted = 0, updated = 0, skipped = 0;
+
+  for (const c of contacts) {
+    const name = buildName(c);
+    const email = pick<string>(c, ['email', 'email_address', 'work_email', 'personal_email']);
+    if (!name && !email) { skipped++; continue; }
+
+    const job_title = pick<string>(c, ['job_title', 'current_job_title', 'title', 'position']);
+    const current_employer = pick<string>(c, ['company', 'company_name', 'current_employer', 'employer', 'organisation', 'organization']);
+    const linkedin_url = pick<string>(c, ['linkedin_url', 'linkedin', 'linkedinUrl']);
+    const phone = pick<string>(c, ['phone', 'phone_number', 'mobile']);
+    const location = pick<string>(c, ['location', 'city', 'country']);
+
+    let existing: any = null;
+    if (email) {
+      const { data } = await admin.from('candidates')
+        .select('id,name,email')
+        .eq('owner_user_id', userId)
+        .ilike('email', email)
+        .limit(50);
+      existing = (data ?? []).find((r: any) => !name || normName(r.name) === normName(name)) ?? null;
+    }
+
+    if (existing) {
+      const patch: any = { source: 'Inbound' };
+      if (job_title) patch.job_title = job_title;
+      if (current_employer) patch.current_employer = current_employer;
+      if (linkedin_url) patch.linkedin_url = linkedin_url;
+      if (phone) patch.phone = phone;
+      if (location) patch.location = location;
+      const { error } = await admin.from('candidates').update(patch).eq('id', existing.id);
+      if (error) { skipped++; continue; }
+      updated++;
+    } else {
+      const { error } = await admin.from('candidates').insert({
+        owner_user_id: userId,
+        name: name || (email as string),
+        email: email ?? null,
+        job_title: job_title ?? null,
+        current_employer: current_employer ?? null,
+        linkedin_url: linkedin_url ?? null,
+        phone: phone ?? null,
+        location: location ?? null,
+        status: 'New',
+        source: 'Inbound',
+      });
+      if (error) { skipped++; continue; }
+      inserted++;
+    }
+  }
+  return { ok: true, total: contacts.length, inserted, updated, skipped };
+}
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
 
@@ -52,15 +114,39 @@ Deno.serve(async (req) => {
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
 
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+    const anonKey = Deno.env.get('SUPABASE_ANON_KEY')!;
+    const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+    const admin = createClient(supabaseUrl, serviceKey);
+
+    const url = new URL(req.url);
+    const action = url.searchParams.get('action') ?? (req.method === 'POST' ? 'import' : 'list');
+
+    // ===== Cron / scheduled mode: runs for all known recruiters =====
+    const cronSecret = Deno.env.get('SOURCEWHALE_CRON_SECRET');
+    const cronHeader = req.headers.get('x-cron-secret');
+    if (action === 'cron') {
+      if (!cronSecret || cronHeader !== cronSecret) {
+        return new Response(JSON.stringify({ error: 'Forbidden' }),
+          { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+      }
+      const { data: profiles } = await admin.from('recruiter_profiles').select('user_id');
+      const owners = (profiles ?? []).map((p: any) => p.user_id).filter(Boolean);
+      const summary: any[] = [];
+      for (const owner of owners) {
+        const r = await importForOwner(admin, apiKey, owner);
+        summary.push({ owner, ...r });
+      }
+      return new Response(JSON.stringify({ ok: true, ran: summary.length, summary }),
+        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    }
+
+    // ===== User-authenticated mode =====
     const authHeader = req.headers.get('Authorization') ?? '';
     if (!authHeader.startsWith('Bearer ')) {
       return new Response(JSON.stringify({ error: 'Unauthorized' }),
         { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
-
-    // Resolve current user from JWT
-    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-    const anonKey = Deno.env.get('SUPABASE_ANON_KEY')!;
     const userClient = createClient(supabaseUrl, anonKey, {
       global: { headers: { Authorization: authHeader } },
     });
@@ -70,9 +156,6 @@ Deno.serve(async (req) => {
       return new Response(JSON.stringify({ error: 'Unauthorized' }),
         { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
-
-    const url = new URL(req.url);
-    const action = url.searchParams.get('action') ?? (req.method === 'POST' ? 'import' : 'list');
 
     const qs = new URLSearchParams();
     qs.set('limit', String(Math.min(Number(url.searchParams.get('limit') ?? '100'), 200)));
