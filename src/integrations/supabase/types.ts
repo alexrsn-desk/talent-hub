@@ -334,6 +334,7 @@ export type Database = {
       candidates: {
         Row: {
           availability: string | null
+          comments: string | null
           created_at: string
           current_employer: string | null
           dnc_channel: string | null
@@ -372,6 +373,7 @@ export type Database = {
         }
         Insert: {
           availability?: string | null
+          comments?: string | null
           created_at?: string
           current_employer?: string | null
           dnc_channel?: string | null
@@ -410,6 +412,7 @@ export type Database = {
         }
         Update: {
           availability?: string | null
+          comments?: string | null
           created_at?: string
           current_employer?: string | null
           dnc_channel?: string | null
