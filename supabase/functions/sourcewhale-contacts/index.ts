@@ -177,68 +177,10 @@ Deno.serve(async (req) => {
       });
     }
 
-    // action === 'import' — upsert into candidates
-    const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-    const admin = createClient(supabaseUrl, serviceKey);
-
-    const contacts = normalizeList(payload);
-    let inserted = 0, updated = 0, skipped = 0;
-    const results: any[] = [];
-
-    for (const c of contacts) {
-      const name = buildName(c);
-      const email = pick<string>(c, ['email', 'email_address', 'work_email', 'personal_email']);
-      if (!name && !email) { skipped++; continue; }
-
-      const job_title = pick<string>(c, ['job_title', 'current_job_title', 'title', 'position']);
-      const current_employer = pick<string>(c, ['company', 'company_name', 'current_employer', 'employer', 'organisation', 'organization']);
-      const linkedin_url = pick<string>(c, ['linkedin_url', 'linkedin', 'linkedinUrl']);
-      const phone = pick<string>(c, ['phone', 'phone_number', 'mobile']);
-      const location = pick<string>(c, ['location', 'city', 'country']);
-
-      let existing: any = null;
-      if (email) {
-        const { data } = await admin.from('candidates')
-          .select('id,name,email')
-          .eq('owner_user_id', userId)
-          .ilike('email', email)
-          .limit(50);
-        existing = (data ?? []).find((r) => !name || normName(r.name) === normName(name)) ?? null;
-      }
-
-      if (existing) {
-        const patch: any = { source: 'Inbound' };
-        if (job_title) patch.job_title = job_title;
-        if (current_employer) patch.current_employer = current_employer;
-        if (linkedin_url) patch.linkedin_url = linkedin_url;
-        if (phone) patch.phone = phone;
-        if (location) patch.location = location;
-        const { error } = await admin.from('candidates').update(patch).eq('id', existing.id);
-        if (error) { console.error('update error', error); skipped++; continue; }
-        updated++;
-        results.push({ id: existing.id, action: 'updated' });
-      } else {
-        const { data, error } = await admin.from('candidates').insert({
-          owner_user_id: userId,
-          name: name || (email as string),
-          email: email ?? null,
-          job_title: job_title ?? null,
-          current_employer: current_employer ?? null,
-          linkedin_url: linkedin_url ?? null,
-          phone: phone ?? null,
-          location: location ?? null,
-          status: 'New',
-          source: 'Inbound',
-        }).select('id').single();
-        if (error) { console.error('insert error', error); skipped++; continue; }
-        inserted++;
-        results.push({ id: data?.id, action: 'inserted' });
-      }
-    }
-
-    return new Response(JSON.stringify({
-      ok: true, total: contacts.length, inserted, updated, skipped, results,
-    }), { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    // action === 'import' — upsert into candidates for the signed-in user
+    const r = await importForOwner(admin, apiKey, userId);
+    return new Response(JSON.stringify({ ok: true, ...r }),
+      { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
   } catch (err) {
     console.error('sourcewhale-contacts failure', err);
     return new Response(JSON.stringify({ error: (err as Error).message }),
