@@ -334,7 +334,6 @@ export type Database = {
       candidates: {
         Row: {
           availability: string | null
-          comments: string | null
           created_at: string
           current_employer: string | null
           dnc_channel: string | null
@@ -355,6 +354,7 @@ export type Database = {
           linkedin_url: string | null
           location: string | null
           name: string
+          note: string | null
           notice_period: string | null
           owner_user_id: string | null
           phone: string | null
@@ -373,7 +373,6 @@ export type Database = {
         }
         Insert: {
           availability?: string | null
-          comments?: string | null
           created_at?: string
           current_employer?: string | null
           dnc_channel?: string | null
@@ -394,6 +393,7 @@ export type Database = {
           linkedin_url?: string | null
           location?: string | null
           name: string
+          note?: string | null
           notice_period?: string | null
           owner_user_id?: string | null
           phone?: string | null
@@ -412,7 +412,6 @@ export type Database = {
         }
         Update: {
           availability?: string | null
-          comments?: string | null
           created_at?: string
           current_employer?: string | null
           dnc_channel?: string | null
@@ -433,6 +432,7 @@ export type Database = {
           linkedin_url?: string | null
           location?: string | null
           name?: string
+          note?: string | null
           notice_period?: string | null
           owner_user_id?: string | null
           phone?: string | null
