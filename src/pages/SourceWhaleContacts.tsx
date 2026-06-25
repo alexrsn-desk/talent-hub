@@ -195,6 +195,14 @@ export default function SourceWhaleContacts() {
               className="pl-8 w-72"
             />
           </div>
+          <Button onClick={importToCandidates} disabled={importing || loading}>
+            {importing ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <DownloadCloud className="h-4 w-4" />
+            )}
+            <span className="ml-2">Sync to Candidates</span>
+          </Button>
           <Button onClick={load} disabled={loading} variant="secondary">
             {loading ? (
               <Loader2 className="h-4 w-4 animate-spin" />
@@ -203,6 +211,7 @@ export default function SourceWhaleContacts() {
             )}
             <span className="ml-2">Refresh</span>
           </Button>
+
         </div>
       </header>
 
