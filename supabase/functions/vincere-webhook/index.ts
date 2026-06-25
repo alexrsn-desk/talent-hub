@@ -332,6 +332,7 @@ Deno.serve(async (req) => {
     );
     const location = asString(deepFind(r, ["location", "city", "town", "address_city", "currentLocation", "current_location"]));
     const linkedin = asString(deepFind(r, ["linkedinUrl", "linkedin_url", "linkedin", "linkedInUrl"]));
+    const comments = extractComments(r);
 
     const name =
       fullName ||
