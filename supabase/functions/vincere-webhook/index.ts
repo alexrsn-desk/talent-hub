@@ -447,7 +447,7 @@ Deno.serve(async (req) => {
           job_title: jobTitle ?? null,
           current_employer: employer ?? null,
           salary_current: salary ?? null,
-          ...(comments ? { comments } : {}),
+          ...(note ? { note } : {}),
           updated_at: new Date().toISOString(),
         })
         .eq("id", existingId)
@@ -474,7 +474,7 @@ Deno.serve(async (req) => {
         salary_current: salary ?? null,
         location: location ?? null,
         linkedin_url: linkedin ?? null,
-        comments: comments ?? null,
+        note: note ?? null,
         source: "Inbound",
         status: "New",
         owner_user_id: owner,
