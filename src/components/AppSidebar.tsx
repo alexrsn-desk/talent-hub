@@ -28,6 +28,7 @@ const items = [
   { title: "Sequences", url: "/sequences", icon: Link2 },
   { title: "AI Coach", url: "/coach", icon: Sparkles },
   { title: "Weekly Intel", url: "/weekly", icon: BarChart3 },
+  { title: "SourceWhale", url: "/sourcewhale", icon: Waves },
   { title: "Settings", url: "/settings", icon: Settings },
 ];
 
