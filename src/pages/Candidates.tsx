@@ -744,8 +744,9 @@ export default function CandidatesPage() {
                      </div>
                        {c.job_title && <p className="text-xs text-muted-foreground truncate">{c.job_title}{c.current_employer ? ` at ${c.current_employer}` : ""}</p>}
                        {c.email && <p className="text-[10px] text-muted-foreground truncate">{c.email}</p>}
-                       {c.comments && (
-                         <p className="text-[10px] text-muted-foreground/90 mt-1 whitespace-pre-wrap line-clamp-3" title={c.comments}>{c.comments}</p>
+                      {c.note && (
+                        <p className="text-[10px] text-muted-foreground/90 mt-1 whitespace-pre-wrap line-clamp-3" title={c.note}>{c.note}</p>
+
                        )}
                       {reasonById?.get(c.id) && (
                         <p className="text-[10px] text-primary/90 mt-1 flex items-start gap-1"><Sparkles className="h-2.5 w-2.5 mt-0.5 shrink-0" /><span className="line-clamp-2">{reasonById.get(c.id)}</span></p>
