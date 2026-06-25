@@ -21,6 +21,7 @@ export type Candidate = {
   salary_expectation: number | null;
   availability: string | null;
   summary?: string | null;
+  comments?: string | null;
   priority_flag: boolean;
   priority_reason: string | null;
   priority_flagged_at: string | null;
