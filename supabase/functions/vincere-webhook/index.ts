@@ -447,6 +447,7 @@ Deno.serve(async (req) => {
           job_title: jobTitle ?? null,
           current_employer: employer ?? null,
           salary_current: salary ?? null,
+          ...(comments ? { comments } : {}),
           updated_at: new Date().toISOString(),
         })
         .eq("id", existingId)
