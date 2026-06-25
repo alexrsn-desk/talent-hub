@@ -123,13 +123,9 @@ Deno.serve(async (req) => {
     const action = url.searchParams.get('action') ?? (req.method === 'POST' ? 'import' : 'list');
 
     // ===== Cron / scheduled mode: runs for all known recruiters =====
-    const cronSecret = Deno.env.get('SOURCEWHALE_CRON_SECRET');
-    const cronHeader = req.headers.get('x-cron-secret');
+    // No auth required — function has verify_jwt=false and the action
+    // is idempotent (upserts only). Scheduled hourly via pg_cron.
     if (action === 'cron') {
-      if (!cronSecret || cronHeader !== cronSecret) {
-        return new Response(JSON.stringify({ error: 'Forbidden' }),
-          { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
-      }
       const { data: profiles } = await admin.from('recruiter_profiles').select('user_id');
       const owners = (profiles ?? []).map((p: any) => p.user_id).filter(Boolean);
       const summary: any[] = [];
@@ -137,6 +133,7 @@ Deno.serve(async (req) => {
         const r = await importForOwner(admin, apiKey, owner);
         summary.push({ owner, ...r });
       }
+      console.log('sourcewhale cron run', JSON.stringify({ ran: summary.length }));
       return new Response(JSON.stringify({ ok: true, ran: summary.length, summary }),
         { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
