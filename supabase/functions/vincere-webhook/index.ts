@@ -289,7 +289,7 @@ function extractComments(data: unknown): string | undefined {
     }
   };
 
-  const wanted = ["comments", "notes", "note", "activities", "activity", "activity_log", "activityLog", "call_logs", "callLogs"];
+  const wanted = ["comment", "comments", "notes", "note", "activities", "activity", "activity_log", "activityLog", "call_logs", "callLogs"];
   const visit = (node: unknown, depth = 0) => {
     if (node == null || depth > 6) return;
     if (Array.isArray(node)) {
@@ -400,7 +400,7 @@ Deno.serve(async (req) => {
     );
     const location = asString(deepFind(r, ["location", "city", "town", "address_city", "currentLocation", "current_location"]));
     const linkedin = asString(deepFind(r, ["linkedinUrl", "linkedin_url", "linkedin", "linkedInUrl"]));
-    const comments = extractComments(r);
+    const note = extractComments(r);
 
     const name =
       fullName ||
@@ -447,7 +447,7 @@ Deno.serve(async (req) => {
           job_title: jobTitle ?? null,
           current_employer: employer ?? null,
           salary_current: salary ?? null,
-          ...(comments ? { comments } : {}),
+          ...(note ? { note } : {}),
           updated_at: new Date().toISOString(),
         })
         .eq("id", existingId)
@@ -474,7 +474,7 @@ Deno.serve(async (req) => {
         salary_current: salary ?? null,
         location: location ?? null,
         linkedin_url: linkedin ?? null,
-        comments: comments ?? null,
+        note: note ?? null,
         source: "Inbound",
         status: "New",
         owner_user_id: owner,
