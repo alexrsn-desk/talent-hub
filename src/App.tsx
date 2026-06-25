@@ -27,6 +27,7 @@ import Auth from "./pages/Auth";
 import Portal from "./pages/Portal";
 import LiveConversations from "./pages/LiveConversations";
 import BillersWorkflow from "./pages/BillersWorkflow";
+import SourceWhaleContacts from "./pages/SourceWhaleContacts";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
