@@ -65,6 +65,27 @@ export default function SourceWhaleContacts() {
   const [sortKey, setSortKey] = useState<SortKey>("name");
   const [sortDir, setSortDir] = useState<SortDir>("asc");
   const [lastFetched, setLastFetched] = useState<Date | null>(null);
+  const [importing, setImporting] = useState(false);
+
+  async function importToCandidates() {
+    setImporting(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("sourcewhale-contacts?action=import", {
+        method: "POST",
+      });
+      if (error) throw error;
+      const { inserted = 0, updated = 0, skipped = 0, total = 0 } = data ?? {};
+      toast.success("Imported to Candidates", {
+        description: `${inserted} new, ${updated} updated, ${skipped} skipped (of ${total}).`,
+      });
+    } catch (err: any) {
+      console.error(err);
+      toast.error("Import failed", { description: err?.message ?? "Unknown error" });
+    } finally {
+      setImporting(false);
+    }
+  }
+
 
   async function load() {
     setLoading(true);
