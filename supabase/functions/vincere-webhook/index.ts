@@ -332,35 +332,40 @@ Deno.serve(async (req) => {
       continue;
     }
 
-    // Match on both email AND name per owner; update existing if both match, otherwise insert
-    if (email && name && owner) {
-      const { data: existing } = await supabase
-        .from("candidates")
-        .select("id")
-        .eq("owner_user_id", owner)
-        .eq("email", email)
-        .eq("name", name)
-        .maybeSingle();
-      if (existing?.id) {
-        const { error: updateError } = await supabase
-          .from("candidates")
-          .update({
-            job_title: jobTitle ?? null,
-            current_employer: employer ?? null,
-            salary_current: salary ?? null,
-          })
-          .eq("id", existing.id)
-          .select("id")
-          .single();
-        if (updateError) {
-          results.push({ ok: false, email, error: updateError.message });
-        } else {
-          results.push({ ok: true, id: existing.id, email, error: "updated-existing" });
-        }
-        continue;
-      }
+    // UPSERT: match existing candidate by email AND name (scoped to owner), then
+    // update job_title, employer, and salary; otherwise insert as a new candidate.
+    if (!owner) {
+      results.push({ ok: false, email, error: "Missing owner: provide x-webhook-key header or owner_user_id" });
+      continue;
     }
 
+    const { data: existing } = await supabase
+      .from("candidates")
+      .select("id")
+      .eq("owner_user_id", owner)
+      .eq("email", email)
+      .eq("name", name)
+      .maybeSingle();
+
+    if (existing?.id) {
+      const { error: updateError } = await supabase
+        .from("candidates")
+        .update({
+          job_title: jobTitle ?? null,
+          current_employer: employer ?? null,
+          salary_current: salary ?? null,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", existing.id)
+        .select("id")
+        .single();
+      if (updateError) {
+        results.push({ ok: false, email, error: updateError.message });
+      } else {
+        results.push({ ok: true, id: existing.id, email, action: "updated" });
+      }
+      continue;
+    }
 
     const { data, error } = await supabase
       .from("candidates")
@@ -385,13 +390,12 @@ Deno.serve(async (req) => {
     if (error) {
       results.push({ ok: false, email, error: error.message });
     } else {
-      results.push({ ok: true, id: data.id, email });
+      results.push({ ok: true, id: data.id, email, action: "inserted" });
     }
   }
 
-
-  const inserted = results.filter((r) => r.ok && r.error === undefined).length;
-  const updated = results.filter((r) => r.ok && r.error === "updated-existing").length;
+  const inserted = results.filter((r) => r.ok && r.action === "inserted").length;
+  const updated = results.filter((r) => r.ok && r.action === "updated").length;
   return json({ received: records.length, inserted, updated, results }, 200);
 
 });
