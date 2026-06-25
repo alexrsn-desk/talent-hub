@@ -67,6 +67,52 @@ function asString(v: unknown): string | undefined {
   return undefined;
 }
 
+function asTitleString(v: unknown): string | undefined {
+  const direct = asString(v);
+  if (direct) return direct;
+  if (v && typeof v === "object" && !Array.isArray(v)) {
+    const o = v as Record<string, unknown>;
+    for (const key of ["job_title", "jobTitle", "title", "text", "value", "name", "label", "position"]) {
+      const nested = asString(o[key]);
+      if (nested) return nested;
+    }
+  }
+  return undefined;
+}
+
+function deepFindByPriority(data: unknown, keyGroups: string[][]): string | undefined {
+  for (const keys of keyGroups) {
+    const found = asTitleString(deepFind(data, keys, (v) => asTitleString(v) !== undefined));
+    if (found) return found;
+  }
+  return undefined;
+}
+
+function directFindByPriority(data: unknown, keyGroups: string[][]): string | undefined {
+  if (!data || typeof data !== "object" || Array.isArray(data)) return undefined;
+  const obj = data as Record<string, unknown>;
+  for (const keys of keyGroups) {
+    const wanted = keys.map((k) => k.toLowerCase());
+    for (const [k, v] of Object.entries(obj)) {
+      if (wanted.includes(k.toLowerCase())) {
+        const found = asTitleString(v);
+        if (found) return found;
+      }
+    }
+  }
+  return undefined;
+}
+
+function parseHistoryDate(v: unknown): number {
+  if (!v) return 0;
+  if (typeof v === "number") return v;
+  if (typeof v === "string") {
+    const t = Date.parse(v);
+    return Number.isFinite(t) ? t : 0;
+  }
+  return 0;
+}
+
 // Extract a numeric salary from numbers, strings ("$95,000 per year"), or objects ({amount, currency}).
 function asNumber(v: unknown): number | undefined {
   if (typeof v === "number" && isFinite(v)) return Math.round(v);
@@ -133,13 +179,16 @@ function findJobTitleFromHistory(data: unknown): string | undefined {
     if (!h || typeof h !== "object") return undefined;
     const o = h as Record<string, unknown>;
     return (
-      asString(o.job_title) ??
-      asString(o.jobTitle) ??
-      asString(o.title) ??
-      asString(o.position) ??
-      asString(o.role) ??
-      asString(o.positionTitle) ??
-      asString(o.position_title)
+      asTitleString(o.job_title) ??
+      asTitleString(o.jobTitle) ??
+      asTitleString(o.current_job_title) ??
+      asTitleString(o.currentJobTitle) ??
+      asTitleString(o.title) ??
+      asTitleString(o.position) ??
+      asTitleString(o.role) ??
+      asTitleString(o.positionTitle) ??
+      asTitleString(o.position_title) ??
+      deepFindByPriority(o, [["job_title", "jobTitle"], ["title"], ["position", "role", "positionTitle", "position_title"]])
     );
   };
 
@@ -156,6 +205,32 @@ function findJobTitleFromHistory(data: unknown): string | undefined {
   });
   if (current) {
     const t = titleOf(current);
+    if (t) return t;
+  }
+
+  const latest = [...history]
+    .filter((h) => titleOf(h) !== undefined)
+    .sort((a, b) => {
+      const ao = a && typeof a === "object" ? (a as Record<string, unknown>) : {};
+      const bo = b && typeof b === "object" ? (b as Record<string, unknown>) : {};
+      const aDate = Math.max(
+        parseHistoryDate(ao.start_date),
+        parseHistoryDate(ao.startDate),
+        parseHistoryDate(ao.date_from),
+        parseHistoryDate(ao.dateFrom),
+        parseHistoryDate(ao.from),
+      );
+      const bDate = Math.max(
+        parseHistoryDate(bo.start_date),
+        parseHistoryDate(bo.startDate),
+        parseHistoryDate(bo.date_from),
+        parseHistoryDate(bo.dateFrom),
+        parseHistoryDate(bo.from),
+      );
+      return bDate - aDate;
+    })[0];
+  if (latest) {
+    const t = titleOf(latest);
     if (t) return t;
   }
 
@@ -217,9 +292,16 @@ Deno.serve(async (req) => {
     const fullName = asString(deepFind(r, ["name", "fullName", "full_name", "candidateName", "candidate_name", "displayName"]));
     const email = asString(deepFind(r, ["email", "emailAddress", "email_address", "primary_email", "primaryEmail", "workEmail", "work_email", "personalEmail", "personal_email"]));
     const phone = asString(deepFind(r, ["phone", "mobile", "phone_number", "phoneNumber", "primary_phone", "primaryPhone", "mobileNumber"]));
-    let jobTitle = asString(deepFind(r, ["job_title", "jobTitle", "current_job_title", "currentJobTitle", "currentTitle", "current_title", "current_position", "currentPosition", "current_role", "currentRole", "functional_expertise", "functionalExpertise"]));
+    let jobTitle = directFindByPriority(r, [
+      ["current_job_title", "currentJobTitle"],
+      ["job_title", "jobTitle"],
+    ]);
     if (!jobTitle) jobTitle = findJobTitleFromHistory(r);
-    if (!jobTitle) jobTitle = asString(deepFind(r, ["title", "position", "role"]));
+    if (!jobTitle) jobTitle = deepFindByPriority(r, [
+      ["job_title", "jobTitle"],
+      ["title"],
+      ["position", "role", "currentTitle", "current_title", "current_position", "currentPosition", "current_role", "currentRole", "functional_expertise", "functionalExpertise"],
+    ]);
     let employer = asString(deepFind(r, ["currentEmployer", "current_employer", "company", "companyName", "company_name", "employer", "employerName", "current_company", "currentCompany", "organisation", "organization"]));
     if (!employer) employer = findEmployerFromHistory(r);
     const salary = asNumber(
