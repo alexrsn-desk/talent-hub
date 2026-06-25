@@ -261,7 +261,19 @@ async function resolveOwner(req: Request, body: Record<string, unknown>): Promis
     if (data?.user_id) return data.user_id as string;
   }
   const fromBody = pick(body, ["owner_user_id", "ownerUserId", "user_id"]);
-  return fromBody ?? null;
+  if (fromBody) return fromBody;
+
+  // Fallback: if there is exactly one configured webhook owner, assign to them.
+  // This keeps Zapier integrations working when no x-webhook-key is sent (e.g.
+  // raw unmapped payloads) so records always appear on the dashboard.
+  const { data: owners } = await supabase
+    .from("webhook_settings")
+    .select("user_id")
+    .limit(2);
+  if (owners && owners.length === 1 && owners[0]?.user_id) {
+    return owners[0].user_id as string;
+  }
+  return null;
 }
 
 Deno.serve(async (req) => {
