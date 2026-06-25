@@ -1,7 +1,7 @@
 import { corsHeaders } from 'npm:@supabase/supabase-js@2/cors';
 import { createClient } from 'npm:@supabase/supabase-js@2';
 
-const SOURCEWHALE_BASE = 'https://api.sourcewhale.com/public/v1';
+const SOURCEWHALE_BASE = 'https://api.sourcewhale.app/public/v1';
 
 function pick<T = any>(obj: any, keys: string[]): T | undefined {
   for (const k of keys) {
