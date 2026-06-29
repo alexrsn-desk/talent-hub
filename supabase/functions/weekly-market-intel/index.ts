@@ -140,6 +140,8 @@ ${searchResults.length > 0 ? `## Live web search results (last 7 days)\n${JSON.s
 
 ${desk ? `## The recruiter's own desk intel this week (to inform contentIdeas only — DO NOT copy verbatim, do not include real names)\n${JSON.stringify(desk, null, 2)}` : ""}
 
+${screeningAgg ? `## Proprietary intel captured by the recruiter on candidate calls (last 14 days, from the Screening Framework — Sections 7/8/9). Use this to ground 'candidateMarket', 'companiesToWatch', and 'contentIdeas'. Anonymise names in output. Treat AI usage entries as a standing theme.\n${JSON.stringify(screeningAgg, null, 2)}` : ""}
+
 Generate the market intel brief now.`;
 
     const aiRes = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
