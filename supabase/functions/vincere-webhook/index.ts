@@ -474,8 +474,8 @@ Deno.serve(async (req) => {
       .from("candidates")
       .insert({
         name,
-        first_name: first ?? null,
-        last_name: last ?? null,
+        first_name: firstFinal,
+        last_name: lastFinal,
         email: email ?? null,
         phone: phone ?? null,
         job_title: jobTitle ?? null,
