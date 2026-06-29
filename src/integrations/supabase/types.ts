@@ -344,13 +344,13 @@ export type Database = {
           dnc_set_by: string | null
           do_not_contact: boolean
           email: string | null
-          first_name: string | null
+          first_name: string
           gdpr_deleted: boolean
           gdpr_deleted_at: string | null
           id: string
           incomplete_profile: boolean
           job_title: string | null
-          last_name: string | null
+          last_name: string
           linkedin_url: string | null
           location: string | null
           name: string
@@ -383,13 +383,13 @@ export type Database = {
           dnc_set_by?: string | null
           do_not_contact?: boolean
           email?: string | null
-          first_name?: string | null
+          first_name?: string
           gdpr_deleted?: boolean
           gdpr_deleted_at?: string | null
           id?: string
           incomplete_profile?: boolean
           job_title?: string | null
-          last_name?: string | null
+          last_name?: string
           linkedin_url?: string | null
           location?: string | null
           name: string
@@ -422,13 +422,13 @@ export type Database = {
           dnc_set_by?: string | null
           do_not_contact?: boolean
           email?: string | null
-          first_name?: string | null
+          first_name?: string
           gdpr_deleted?: boolean
           gdpr_deleted_at?: string | null
           id?: string
           incomplete_profile?: boolean
           job_title?: string | null
-          last_name?: string | null
+          last_name?: string
           linkedin_url?: string | null
           location?: string | null
           name?: string
@@ -816,13 +816,13 @@ export type Database = {
           dnc_set_by: string | null
           do_not_contact: boolean
           email: string | null
-          first_name: string | null
+          first_name: string
           gdpr_deleted: boolean
           gdpr_deleted_at: string | null
           id: string
           incomplete_profile: boolean
           job_title: string | null
-          last_name: string | null
+          last_name: string
           linkedin_url: string | null
           mobile_phone: string | null
           name: string
@@ -846,13 +846,13 @@ export type Database = {
           dnc_set_by?: string | null
           do_not_contact?: boolean
           email?: string | null
-          first_name?: string | null
+          first_name?: string
           gdpr_deleted?: boolean
           gdpr_deleted_at?: string | null
           id?: string
           incomplete_profile?: boolean
           job_title?: string | null
-          last_name?: string | null
+          last_name?: string
           linkedin_url?: string | null
           mobile_phone?: string | null
           name: string
@@ -876,13 +876,13 @@ export type Database = {
           dnc_set_by?: string | null
           do_not_contact?: boolean
           email?: string | null
-          first_name?: string | null
+          first_name?: string
           gdpr_deleted?: boolean
           gdpr_deleted_at?: string | null
           id?: string
           incomplete_profile?: boolean
           job_title?: string | null
-          last_name?: string | null
+          last_name?: string
           linkedin_url?: string | null
           mobile_phone?: string | null
           name?: string
