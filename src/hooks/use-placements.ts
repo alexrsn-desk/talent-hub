@@ -224,6 +224,7 @@ export const STATUS_LABELS: Record<Placement["status"], string> = {
   pre_start: "Pre-start",
   active: "Active",
   guaranteed: "Guaranteed",
+  settled: "Settled",
   at_risk: "At risk",
   fallen_through: "Fallen through",
 };
@@ -232,6 +233,45 @@ export const STATUS_COLORS: Record<Placement["status"], string> = {
   pre_start: "bg-muted text-muted-foreground",
   active: "bg-emerald-500/15 text-emerald-400 border-emerald-500/30",
   guaranteed: "bg-blue-500/15 text-blue-400 border-blue-500/30",
+  settled: "bg-teal-500/15 text-teal-400 border-teal-500/30",
   at_risk: "bg-red-500/15 text-red-400 border-red-500/30",
   fallen_through: "bg-zinc-700/40 text-zinc-400 border-zinc-600/30",
 };
+
+// --- Tracking events ---
+export function useTrackingEvents(placementId: string | undefined) {
+  return useQuery({
+    queryKey: ["placement_tracking_events", placementId],
+    enabled: !!placementId,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("placement_tracking_events" as any)
+        .select("*")
+        .eq("placement_id", placementId!)
+        .order("occurred_at", { ascending: false });
+      if (error) throw error;
+      return (data ?? []) as unknown as PlacementTrackingEvent[];
+    },
+  });
+}
+
+export function useCreateTrackingEvent() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: Omit<PlacementTrackingEvent, "id" | "owner_user_id" | "created_at">) => {
+      const { data: user } = await supabase.auth.getUser();
+      const owner = user.user?.id;
+      if (!owner) throw new Error("Not authenticated");
+      const { data, error } = await supabase
+        .from("placement_tracking_events" as any)
+        .insert({ ...input, owner_user_id: owner } as any)
+        .select()
+        .single();
+      if (error) throw error;
+      return data as unknown as PlacementTrackingEvent;
+    },
+    onSuccess: (data) => {
+      qc.invalidateQueries({ queryKey: ["placement_tracking_events", data.placement_id] });
+    },
+  });
+}
