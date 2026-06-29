@@ -15,6 +15,7 @@ import { ClickToEditField } from "@/components/ClickToEditField";
 import { SummaryField } from "@/components/SummaryField";
 import { TagsSection } from "@/components/TagsSection";
 import { TalentPoolSelector } from "@/components/TalentPoolSelector";
+import { ScreeningCompleteness } from "@/components/ScreeningCompleteness";
 import { ActiveSequencesSection } from "@/components/ActiveSequencesSection";
 import { AddToSequencePanel } from "@/components/AddToSequencePanel";
 import { ReengageInlineEditor, formatReengageDate } from "@/components/ReengageDate";
@@ -439,6 +440,7 @@ export function CandidateDetail({ candidate, onUpdate, onDelete }: Props) {
         />
       )}
 
+      <ScreeningCompleteness candidateId={candidate.id} />
       <TalentPoolSelector candidateId={candidate.id} />
       <TagsSection entityType="candidate" entityId={candidate.id} />
       <ActiveSequencesSection entityType="candidate" entityId={candidate.id} entityName={candidate.name} />
