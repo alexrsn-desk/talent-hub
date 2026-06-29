@@ -75,7 +75,8 @@ export function CandidateDetail({ candidate, onUpdate, onDelete }: Props) {
   const updateCandidate = useUpdateCandidate();
 
   const [form, setForm] = useState(() => ({
-    name: candidate.name || "",
+    first_name: candidate.first_name || "",
+    last_name: candidate.last_name || "",
     job_title: candidate.job_title || "",
     current_employer: candidate.current_employer || "",
     location: candidate.location || "",
