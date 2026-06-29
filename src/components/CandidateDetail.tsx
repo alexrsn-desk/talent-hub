@@ -243,12 +243,15 @@ export function CandidateDetail({ candidate, onUpdate, onDelete }: Props) {
       <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
         <div className="min-w-0">
           {editing ? (
-            <Input value={form.name} onChange={(e) => setForm(f => ({ ...f, name: e.target.value }))} className="text-xl font-semibold h-auto py-1" />
+            <div className="grid grid-cols-2 gap-2">
+              <Input value={form.first_name} placeholder="First name" onChange={(e) => setForm(f => ({ ...f, first_name: e.target.value }))} className="text-base font-semibold h-auto py-1" />
+              <Input value={form.last_name} placeholder="Last name" onChange={(e) => setForm(f => ({ ...f, last_name: e.target.value }))} className="text-base font-semibold h-auto py-1" />
+            </div>
           ) : (
             <>
               <h2 className="text-xl font-semibold flex items-center gap-2">
                 {candidate.priority_flag && <PriorityStarIcon />}
-                {candidate.name}
+                {`${candidate.first_name || ""} ${candidate.last_name || ""}`.replace(/\s+/g, " ").trim() || candidate.name}
               </h2>
               <p className="text-muted-foreground">{candidate.job_title || "No title"} {candidate.current_employer ? `at ${candidate.current_employer}` : ""}</p>
             </>
