@@ -12,6 +12,7 @@ import { useFeatureLimit, useLogUsage } from "@/hooks/use-usage";
 import { FeatureLockButton } from "@/components/UsageLimitGuard";
 import { IntakeCallCompanion } from "@/components/IntakeCallCompanion";
 import { CallNotesPad } from "@/components/CallNotesPad";
+import { ScreeningFrameworkChecklist } from "@/components/ScreeningFrameworkChecklist";
 
 interface Phase {
   number: number;
@@ -200,8 +201,13 @@ function CallPrepDialog({ entityType, entityId, entityName, open, onOpenChange }
                 />
               ))}
             </div>
-            <div className="border-t md:border-t-0 md:border-l border-border md:pl-4 pt-4 md:pt-0">
+            <div className="border-t md:border-t-0 md:border-l border-border md:pl-4 pt-4 md:pt-0 space-y-4 max-h-[75vh] overflow-y-auto">
               <CallNotesPad entityType={entityType} entityId={entityId} />
+              {entityType === "candidate" && (
+                <div className="pt-3 border-t border-border">
+                  <ScreeningFrameworkChecklist candidateId={entityId} compact />
+                </div>
+              )}
             </div>
           </div>
         )}

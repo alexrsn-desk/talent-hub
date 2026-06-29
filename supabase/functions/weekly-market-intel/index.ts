@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -52,6 +53,51 @@ serve(async (req) => {
       "general tech news",
     ];
     const desk = body.desk || null;
+    const userId: string | null = body.user_id || null;
+
+    // Aggregate Sections 7 (market intel), 8 (current role insights + AI usage), 9 (referrals)
+    // from the recruiter's screening framework captures in the last 14 days.
+    let screeningAgg: any = null;
+    if (userId) {
+      const sb = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
+      const since = new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString();
+      const { data: rows } = await sb
+        .from("screening_framework_items")
+        .select("section, item_key, value, captured_at, candidate_id, candidates(name, current_employer)")
+        .eq("owner_user_id", userId)
+        .in("section", [7, 8, 9])
+        .gte("captured_at", since)
+        .not("value", "is", null)
+        .neq("value", "✓ covered")
+        .order("captured_at", { ascending: false })
+        .limit(200);
+      if (rows && rows.length > 0) {
+        const marketFeedback: any[] = [];
+        const companyInsights: Record<string, any[]> = {};
+        const aiUsage: any[] = [];
+        const referrals: any[] = [];
+        const AI_KEYS = new Set(["ai_usage_today", "ai_tools_used", "ai_changing_role", "ai_view"]);
+        for (const r of rows as any[]) {
+          const entry = {
+            value: r.value,
+            candidate: r.candidates?.name || null,
+            employer: r.candidates?.current_employer || null,
+            item: r.item_key,
+            date: r.captured_at,
+          };
+          if (r.section === 7) marketFeedback.push(entry);
+          else if (r.section === 9) referrals.push(entry);
+          else if (r.section === 8) {
+            if (AI_KEYS.has(r.item_key)) aiUsage.push(entry);
+            else {
+              const company = entry.employer || "Unknown company";
+              (companyInsights[company] ||= []).push(entry);
+            }
+          }
+        }
+        screeningAgg = { marketFeedback, companyInsights, aiUsage, referrals };
+      }
+    }
 
     const nicheStr = niche.length ? niche.join(", ") : "tech and digital recruitment";
 
@@ -93,6 +139,8 @@ Sources to consider: ${sources.join(", ")}
 ${searchResults.length > 0 ? `## Live web search results (last 7 days)\n${JSON.stringify(searchResults, null, 2)}` : `## No live web search available — use your general sector knowledge with appropriate caution.`}
 
 ${desk ? `## The recruiter's own desk intel this week (to inform contentIdeas only — DO NOT copy verbatim, do not include real names)\n${JSON.stringify(desk, null, 2)}` : ""}
+
+${screeningAgg ? `## Proprietary intel captured by the recruiter on candidate calls (last 14 days, from the Screening Framework — Sections 7/8/9). Use this to ground 'candidateMarket', 'companiesToWatch', and 'contentIdeas'. Anonymise names in output. Treat AI usage entries as a standing theme.\n${JSON.stringify(screeningAgg, null, 2)}` : ""}
 
 Generate the market intel brief now.`;
 

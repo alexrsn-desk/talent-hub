@@ -292,6 +292,7 @@ export default function WeeklyIntel() {
       setLoadingMessage("Searching the market…");
       const marketRes = await supabase.functions.invoke("weekly-market-intel", {
         body: {
+          user_id: user?.id,
           keywords: prefs.keywords,
           sources: sourceList(),
           desk: deskData?.summary?.desk || null,
