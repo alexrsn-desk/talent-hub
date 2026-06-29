@@ -102,6 +102,30 @@ serve(async (req) => {
     const linkedJobs = jobsRes.data || [];
     const profile = profileRes.data;
 
+    // Screening framework gaps — used to nudge coverage on this call.
+    const SECTION_TITLES: Record<number, string> = {
+      1: "Who they are", 2: "The money", 3: "Why they're looking", 4: "What they want",
+      5: "What they won't do", 6: "Skills and background", 7: "Market feedback",
+      8: "Current role insights", 9: "Referrals",
+    };
+    let screeningGapsContext = "";
+    if (entity_type === "candidate") {
+      const { data: sfi } = await supabase
+        .from("screening_framework_items")
+        .select("section, value")
+        .eq("candidate_id", entity_id);
+      const covered = new Set<number>();
+      for (const r of (sfi || []) as any[]) {
+        if (r.value && r.value.trim().length > 0) covered.add(r.section);
+      }
+      const missing = [1,2,3,4,5,6,7,8,9].filter((s) => !covered.has(s));
+      if (missing.length > 0) {
+        screeningGapsContext = `SCREENING FRAMEWORK — sections still missing for this candidate: ${missing.map((s) => `${s} ${SECTION_TITLES[s]}`).join("; ")}. Weave at least 1-2 questions from each missing section into the phases below.`;
+      } else {
+        screeningGapsContext = `SCREENING FRAMEWORK — all nine sections already captured. Focus on what has changed since last contact.`;
+      }
+    }
+
     // Build context
     const notesContext = notes.map((n: any) =>
       `[${n.created_at?.split("T")[0]}] ${n.activity_type}: ${n.content}${n.outcome ? ` | Outcome: ${n.outcome}` : ""}${n.transcript ? ` | Transcript excerpt: ${n.transcript.slice(0, 500)}` : ""}`
@@ -134,6 +158,8 @@ ${entity_type === "candidate" ? `LINKED JOBS:\n${jobsContext || "None"}` : ""}
 
 RECRUITER PROFILE:
 ${profileContext || "No profile data"}
+
+${screeningGapsContext}
 
 TODAY: ${new Date().toLocaleDateString("en-GB", { weekday: "long", year: "numeric", month: "long", day: "numeric" })}
 
