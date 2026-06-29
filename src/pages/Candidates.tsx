@@ -528,10 +528,12 @@ export default function CandidatesPage() {
   const handleCreate = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const fd = new FormData(e.currentTarget);
+    const first = ((fd.get("first_name") as string) || "").trim();
+    const last = ((fd.get("last_name") as string) || "").trim();
     const result = await createCandidate.mutateAsync({
-      name: fd.get("name") as string,
-      first_name: null,
-      last_name: null,
+      name: `${first} ${last}`.replace(/\s+/g, " ").trim(),
+      first_name: first,
+      last_name: last,
       job_title: (fd.get("job_title") as string) || null,
       current_employer: (fd.get("current_employer") as string) || null,
       location: (fd.get("location") as string) || null,
