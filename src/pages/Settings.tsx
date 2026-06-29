@@ -7,6 +7,7 @@ import { Slider } from "@/components/ui/slider";
 import { toast } from "sonner";
 import { Save, Loader2, Upload, Palette, Lightbulb } from "lucide-react";
 import { DataImport } from "@/components/DataImport";
+import { ImportWizard } from "@/components/ImportWizard";
 import { TidyUp } from "@/components/TidyUp";
 import { MigrationAssistant } from "@/components/MigrationAssistant";
 import { useSignalPerformance } from "@/hooks/use-signals";
@@ -312,12 +313,16 @@ export default function SettingsPage() {
       <TeamSection />
       {/* Data Import */}
       <div className="pt-6 border-t border-border">
-        <Tabs defaultValue="import">
+        <Tabs defaultValue="wizard">
           <TabsList>
-            <TabsTrigger value="import">Import</TabsTrigger>
+            <TabsTrigger value="wizard">Import (Wizard)</TabsTrigger>
+            <TabsTrigger value="advanced">Advanced Import</TabsTrigger>
             <TabsTrigger value="tidy">Tidy Up</TabsTrigger>
           </TabsList>
-          <TabsContent value="import" className="mt-4">
+          <TabsContent value="wizard" className="mt-4">
+            <ImportWizard />
+          </TabsContent>
+          <TabsContent value="advanced" className="mt-4">
             <DataImport />
           </TabsContent>
           <TabsContent value="tidy" className="mt-4">
