@@ -626,7 +626,10 @@ export default function CandidatesPage() {
           <DialogContent className="max-w-md w-[calc(100vw-2rem)]">
             <DialogHeader><DialogTitle>New Candidate</DialogTitle></DialogHeader>
             <form onSubmit={handleCreate} className="space-y-3">
-              <div><Label>Name *</Label><Input name="name" required /></div>
+              <div className="grid grid-cols-2 gap-3">
+                <div><Label>First name *</Label><Input name="first_name" required /></div>
+                <div><Label>Last name *</Label><Input name="last_name" required /></div>
+              </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div><Label>Job Title</Label><Input name="job_title" /></div>
                 <div><Label>Employer</Label><Input name="current_employer" /></div>
