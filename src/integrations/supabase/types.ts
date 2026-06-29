@@ -2039,6 +2039,59 @@ export type Database = {
         }
         Relationships: []
       }
+      screening_framework_items: {
+        Row: {
+          candidate_id: string
+          captured_at: string
+          created_at: string
+          id: string
+          item_key: string
+          notes: string | null
+          owner_user_id: string
+          section: number
+          source: string
+          source_note_id: string | null
+          updated_at: string
+          value: string | null
+        }
+        Insert: {
+          candidate_id: string
+          captured_at?: string
+          created_at?: string
+          id?: string
+          item_key: string
+          notes?: string | null
+          owner_user_id: string
+          section: number
+          source?: string
+          source_note_id?: string | null
+          updated_at?: string
+          value?: string | null
+        }
+        Update: {
+          candidate_id?: string
+          captured_at?: string
+          created_at?: string
+          id?: string
+          item_key?: string
+          notes?: string | null
+          owner_user_id?: string
+          section?: number
+          source?: string
+          source_note_id?: string | null
+          updated_at?: string
+          value?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "screening_framework_items_candidate_id_fkey"
+            columns: ["candidate_id"]
+            isOneToOne: false
+            referencedRelation: "candidates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       screening_notes: {
         Row: {
           availability_confirmed: string | null
