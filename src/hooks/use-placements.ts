@@ -27,13 +27,43 @@ export type Placement = {
   invoice_raised_at: string | null;
   invoice_paid: boolean;
   invoice_paid_at: string | null;
-  status: "pre_start" | "active" | "guaranteed" | "at_risk" | "fallen_through";
+  status: "pre_start" | "active" | "guaranteed" | "settled" | "at_risk" | "fallen_through";
   source: string | null;
   notes: string | null;
   fall_through_reason: string | null;
   fall_through_at: string | null;
   created_at: string;
   updated_at: string;
+  // Candidate tracking (BD intelligence)
+  still_at_client: boolean | null;
+  settled_status: string | null;
+  relationship_health: string | null;
+  tracking_notes: string | null;
+  new_company: string | null;
+  new_job_title: string | null;
+  new_manager_name: string | null;
+  new_manager_linkedin: string | null;
+  move_date: string | null;
+  reason_for_leaving: string | null;
+  still_in_contact: boolean | null;
+  reengage_frequency_months: number | null;
+  last_tracking_checkin_at: string | null;
+  bd_new_company_client_id: string | null;
+  bd_new_manager_contact_id: string | null;
+  bd_old_role_logged_at: string | null;
+  bd_prompts_dismissed: Record<string, boolean> | null;
+};
+
+export type PlacementTrackingEvent = {
+  id: string;
+  placement_id: string;
+  owner_user_id: string;
+  event_type: "check_in" | "moved" | "still_confirmed" | "note" | "bd_action" | "reengage_set";
+  title: string;
+  notes: string | null;
+  metadata: Record<string, any>;
+  occurred_at: string;
+  created_at: string;
 };
 
 export type PlacementCheckin = {
