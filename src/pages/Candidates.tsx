@@ -478,7 +478,10 @@ export default function CandidatesPage() {
       if (aiResults) return 0; // preserve AI ranking
       if (a.priority_flag && !b.priority_flag) return -1;
       if (!a.priority_flag && b.priority_flag) return 1;
-      return 0;
+      const al = (a.last_name || "").toLowerCase();
+      const bl = (b.last_name || "").toLowerCase();
+      if (al !== bl) return al.localeCompare(bl);
+      return (a.first_name || "").toLowerCase().localeCompare((b.first_name || "").toLowerCase());
     });
 
   // Keyboard shortcuts
