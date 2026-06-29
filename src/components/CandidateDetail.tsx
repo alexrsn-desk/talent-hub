@@ -120,7 +120,8 @@ export function CandidateDetail({ candidate, onUpdate, onDelete }: Props) {
     const updates: Partial<Candidate> = {};
     const changes: string[] = [];
     const fieldMap: Record<string, { old: any; new: any; label: string }> = {
-      name: { old: candidate.name, new: form.name, label: "Name" },
+      first_name: { old: candidate.first_name || "", new: form.first_name, label: "First name" },
+      last_name: { old: candidate.last_name || "", new: form.last_name, label: "Last name" },
       job_title: { old: candidate.job_title || "", new: form.job_title, label: "Job title" },
       current_employer: { old: candidate.current_employer || "", new: form.current_employer, label: "Employer" },
       location: { old: candidate.location || "", new: form.location, label: "Location" },
@@ -134,7 +135,7 @@ export function CandidateDetail({ candidate, onUpdate, onDelete }: Props) {
 
     for (const [key, { old, new: newVal, label }] of Object.entries(fieldMap)) {
       if (old !== newVal) {
-        (updates as any)[key] = newVal || null;
+        (updates as any)[key] = newVal || (key === "first_name" || key === "last_name" ? "" : null);
         changes.push(`${label}: ${old || "—"} → ${newVal || "—"}`);
       }
     }
@@ -147,10 +148,10 @@ export function CandidateDetail({ candidate, onUpdate, onDelete }: Props) {
 
     if (changes.length === 0) { setEditing(false); return; }
 
-    if (updates.name) {
-      const parts = (updates.name as string).trim().split(/\s+/);
-      (updates as any).first_name = parts[0];
-      (updates as any).last_name = parts.slice(1).join(" ") || null;
+    if ((updates as any).first_name !== undefined || (updates as any).last_name !== undefined) {
+      const first = ((updates as any).first_name ?? candidate.first_name ?? "").trim();
+      const last = ((updates as any).last_name ?? candidate.last_name ?? "").trim();
+      (updates as any).name = `${first} ${last}`.replace(/\s+/g, " ").trim();
     }
 
     await onUpdate(updates);
