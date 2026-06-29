@@ -1805,8 +1805,56 @@ export type Database = {
           },
         ]
       }
+      placement_tracking_events: {
+        Row: {
+          created_at: string
+          event_type: string
+          id: string
+          metadata: Json
+          notes: string | null
+          occurred_at: string
+          owner_user_id: string
+          placement_id: string
+          title: string
+        }
+        Insert: {
+          created_at?: string
+          event_type: string
+          id?: string
+          metadata?: Json
+          notes?: string | null
+          occurred_at?: string
+          owner_user_id: string
+          placement_id: string
+          title: string
+        }
+        Update: {
+          created_at?: string
+          event_type?: string
+          id?: string
+          metadata?: Json
+          notes?: string | null
+          occurred_at?: string
+          owner_user_id?: string
+          placement_id?: string
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "placement_tracking_events_placement_id_fkey"
+            columns: ["placement_id"]
+            isOneToOne: false
+            referencedRelation: "placements"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       placements: {
         Row: {
+          bd_new_company_client_id: string | null
+          bd_new_manager_contact_id: string | null
+          bd_old_role_logged_at: string | null
+          bd_prompts_dismissed: Json
           candidate_id: string
           candidate_job_id: string | null
           candidate_name_snapshot: string | null
@@ -1829,17 +1877,34 @@ export type Database = {
           invoice_raised_at: string | null
           job_id: string | null
           job_title_snapshot: string | null
+          last_tracking_checkin_at: string | null
+          move_date: string | null
+          new_company: string | null
+          new_job_title: string | null
+          new_manager_linkedin: string | null
+          new_manager_name: string | null
           notes: string | null
           offer_accepted_date: string | null
           owner_user_id: string
           payment_terms_days: number
+          reason_for_leaving: string | null
+          reengage_frequency_months: number | null
+          relationship_health: string | null
           salary_placed_at: number | null
+          settled_status: string | null
           source: string | null
           start_date: string | null
           status: string
+          still_at_client: boolean | null
+          still_in_contact: boolean | null
+          tracking_notes: string | null
           updated_at: string
         }
         Insert: {
+          bd_new_company_client_id?: string | null
+          bd_new_manager_contact_id?: string | null
+          bd_old_role_logged_at?: string | null
+          bd_prompts_dismissed?: Json
           candidate_id: string
           candidate_job_id?: string | null
           candidate_name_snapshot?: string | null
@@ -1862,17 +1927,34 @@ export type Database = {
           invoice_raised_at?: string | null
           job_id?: string | null
           job_title_snapshot?: string | null
+          last_tracking_checkin_at?: string | null
+          move_date?: string | null
+          new_company?: string | null
+          new_job_title?: string | null
+          new_manager_linkedin?: string | null
+          new_manager_name?: string | null
           notes?: string | null
           offer_accepted_date?: string | null
           owner_user_id: string
           payment_terms_days?: number
+          reason_for_leaving?: string | null
+          reengage_frequency_months?: number | null
+          relationship_health?: string | null
           salary_placed_at?: number | null
+          settled_status?: string | null
           source?: string | null
           start_date?: string | null
           status?: string
+          still_at_client?: boolean | null
+          still_in_contact?: boolean | null
+          tracking_notes?: string | null
           updated_at?: string
         }
         Update: {
+          bd_new_company_client_id?: string | null
+          bd_new_manager_contact_id?: string | null
+          bd_old_role_logged_at?: string | null
+          bd_prompts_dismissed?: Json
           candidate_id?: string
           candidate_job_id?: string | null
           candidate_name_snapshot?: string | null
@@ -1895,17 +1977,45 @@ export type Database = {
           invoice_raised_at?: string | null
           job_id?: string | null
           job_title_snapshot?: string | null
+          last_tracking_checkin_at?: string | null
+          move_date?: string | null
+          new_company?: string | null
+          new_job_title?: string | null
+          new_manager_linkedin?: string | null
+          new_manager_name?: string | null
           notes?: string | null
           offer_accepted_date?: string | null
           owner_user_id?: string
           payment_terms_days?: number
+          reason_for_leaving?: string | null
+          reengage_frequency_months?: number | null
+          relationship_health?: string | null
           salary_placed_at?: number | null
+          settled_status?: string | null
           source?: string | null
           start_date?: string | null
           status?: string
+          still_at_client?: boolean | null
+          still_in_contact?: boolean | null
+          tracking_notes?: string | null
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "placements_bd_new_company_client_id_fkey"
+            columns: ["bd_new_company_client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "placements_bd_new_manager_contact_id_fkey"
+            columns: ["bd_new_manager_contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       quick_notes: {
         Row: {
