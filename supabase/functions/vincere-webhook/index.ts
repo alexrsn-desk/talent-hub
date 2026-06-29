@@ -408,6 +408,15 @@ Deno.serve(async (req) => {
       email ||
       "Unknown";
 
+    // Derive first/last from full name if not provided explicitly
+    let firstFinal = first ?? "";
+    let lastFinal = last ?? "";
+    if (!firstFinal && !lastFinal && (fullName || name)) {
+      const parts = (fullName || name).trim().split(/\s+/);
+      firstFinal = parts[0] || "";
+      lastFinal = parts.slice(1).join(" ");
+    }
+
     if (!email && !fullName && !first && !last) {
       results.push({ ok: false, error: "Missing name and email" });
       continue;
@@ -465,8 +474,8 @@ Deno.serve(async (req) => {
       .from("candidates")
       .insert({
         name,
-        first_name: first ?? null,
-        last_name: last ?? null,
+        first_name: firstFinal,
+        last_name: lastFinal,
         email: email ?? null,
         phone: phone ?? null,
         job_title: jobTitle ?? null,

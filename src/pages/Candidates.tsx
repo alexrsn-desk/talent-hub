@@ -478,7 +478,10 @@ export default function CandidatesPage() {
       if (aiResults) return 0; // preserve AI ranking
       if (a.priority_flag && !b.priority_flag) return -1;
       if (!a.priority_flag && b.priority_flag) return 1;
-      return 0;
+      const al = (a.last_name || "").toLowerCase();
+      const bl = (b.last_name || "").toLowerCase();
+      if (al !== bl) return al.localeCompare(bl);
+      return (a.first_name || "").toLowerCase().localeCompare((b.first_name || "").toLowerCase());
     });
 
   // Keyboard shortcuts
@@ -528,10 +531,12 @@ export default function CandidatesPage() {
   const handleCreate = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const fd = new FormData(e.currentTarget);
+    const first = ((fd.get("first_name") as string) || "").trim();
+    const last = ((fd.get("last_name") as string) || "").trim();
     const result = await createCandidate.mutateAsync({
-      name: fd.get("name") as string,
-      first_name: null,
-      last_name: null,
+      name: `${first} ${last}`.replace(/\s+/g, " ").trim(),
+      first_name: first,
+      last_name: last,
       job_title: (fd.get("job_title") as string) || null,
       current_employer: (fd.get("current_employer") as string) || null,
       location: (fd.get("location") as string) || null,
@@ -624,7 +629,10 @@ export default function CandidatesPage() {
           <DialogContent className="max-w-md w-[calc(100vw-2rem)]">
             <DialogHeader><DialogTitle>New Candidate</DialogTitle></DialogHeader>
             <form onSubmit={handleCreate} className="space-y-3">
-              <div><Label>Name *</Label><Input name="name" required /></div>
+              <div className="grid grid-cols-2 gap-3">
+                <div><Label>First name *</Label><Input name="first_name" required /></div>
+                <div><Label>Last name *</Label><Input name="last_name" required /></div>
+              </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div><Label>Job Title</Label><Input name="job_title" /></div>
                 <div><Label>Employer</Label><Input name="current_employer" /></div>
