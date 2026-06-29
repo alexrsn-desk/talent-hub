@@ -91,7 +91,12 @@ export default function ContactsPage() {
     }
     const matched = applyContactFilters(searchableRecords, search, advFilters);
     const ids = new Set(matched.map(r => r.id));
-    return contacts.filter(c => ids.has(c.id));
+    return contacts.filter(c => ids.has(c.id)).sort((a, b) => {
+      const al = (a.last_name || "").toLowerCase();
+      const bl = (b.last_name || "").toLowerCase();
+      if (al !== bl) return al.localeCompare(bl);
+      return (a.first_name || "").toLowerCase().localeCompare((b.first_name || "").toLowerCase());
+    });
   }, [aiResults, searchableRecords, search, advFilters, contacts]);
 
   const handleCreate = async (e: React.FormEvent<HTMLFormElement>) => {
