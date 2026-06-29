@@ -408,6 +408,15 @@ Deno.serve(async (req) => {
       email ||
       "Unknown";
 
+    // Derive first/last from full name if not provided explicitly
+    let firstFinal = first ?? "";
+    let lastFinal = last ?? "";
+    if (!firstFinal && !lastFinal && (fullName || name)) {
+      const parts = (fullName || name).trim().split(/\s+/);
+      firstFinal = parts[0] || "";
+      lastFinal = parts.slice(1).join(" ");
+    }
+
     if (!email && !fullName && !first && !last) {
       results.push({ ok: false, error: "Missing name and email" });
       continue;
