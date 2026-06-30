@@ -575,6 +575,21 @@ function RoleStep({ job, onContinue, onEdit }: { job: any; onContinue: () => voi
         </div>
       </Card>
 
+      <Card className="p-4 space-y-2">
+        <JobSpecUploader
+          value={jdDraft}
+          onChange={setJdDraft}
+          label="Job spec — upload or paste"
+          rows={6}
+          helper="Used by the AI assessment in step 3."
+        />
+        <div className="flex justify-end">
+          <Button size="sm" onClick={saveJd} disabled={savingJd || jdDraft === (job.description || "")}>
+            {savingJd ? "Saving…" : "Save job spec"}
+          </Button>
+        </div>
+      </Card>
+
       {(!hasJD || !hasIntake) && (
         <Card className="p-4 border-yellow-500/30 bg-yellow-500/5 flex items-start gap-3">
           <AlertCircle className="h-5 w-5 text-yellow-400 flex-shrink-0 mt-0.5" />
