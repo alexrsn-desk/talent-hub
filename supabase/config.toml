@@ -23,3 +23,12 @@ verify_jwt = true
 
 [functions.reactivation-send]
 verify_jwt = true
+
+[functions.job-launch-match-candidates]
+verify_jwt = true
+
+[functions.job-launch-generate]
+verify_jwt = true
+
+[functions.job-launch-send]
+verify_jwt = true
