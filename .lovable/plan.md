@@ -1,61 +1,50 @@
-## Goal
-Complete visual redesign of Desky to feel like a performance intelligence tool. Light theme everywhere except Biller's Workflow (stays dark). Zero functionality changes — tokens, spacing, typography, and key page chrome only.
+## Job Launch Workflow
 
-## Scope of change
-- Global design tokens (light theme by default, semantic colors with meaning)
-- Sidebar (dark `#111827`, sectioned, badge styles)
-- My Desk / Dashboard (morning brief, stats bar, action cards)
-- Candidate Profile header + Profile tab layout
-- Biller's Workflow (already dark cockpit — retune to spec palette/spacing)
-- Shared primitives: Card, Button, Badge variants
+A 5-step guided wizard that turns a new job into a launched search in ~10 minutes. Warm → cold ordering throughout.
 
-Everything else (Jobs, Clients, Placements, Pipelines, etc.) inherits the new tokens automatically and gets light styling without layout rework.
+### Access points
+1. **Post-create prompt** — `AddJobDialog` success toast becomes a small modal: "Job created. Ready to launch the search? [Launch search workflow →] [Do this later]".
+2. **Job action bar** — `[Launch search]` button in `JobFullView` header (next to Compare & Submit).
+3. **Coach / Biller's Workflow** — new trigger `ftb-launch` for jobs created >0 days ago with no launch record.
 
-## Plan
+### Route
+`/jobs/:jobId/launch` → `src/pages/JobLaunch.tsx` with top step tracker (① Brief ② Who You Know ③ Generate ④ Review ⑤ Launch). Draft state persisted in `localStorage` keyed by job id (matches Compare & Submit pattern).
 
-### 1. Tokens — `src/index.css` + `tailwind.config.ts`
-Rewrite `:root` to the light palette:
-- bg `#F9FAFB`, card `#FFFFFF`, border `#E5E7EB`
-- text `#111827` / `#6B7280` / `#9CA3AF`
-- primary `#3B82F6`, destructive `#EF4444`, warning `#F59E0B`, success `#10B981`
-- sidebar bg `#111827`, sidebar fg `#9CA3AF`, sidebar primary `#3B82F6`
-Add `--cockpit-*` tokens for Biller's Workflow dark surfaces so that page keeps its identity.
-Set base font to Inter, default radius 6px. Add small typography utility classes (`.text-display`, `.text-h1`, `.text-h2`, `.text-micro`).
+### Data model (one migration)
+- `jobs` — add `launch_hook text` (what makes role interesting), `ideal_candidate_line text`, `search_launched_at timestamptz`, `launch_summary jsonb`.
+- `recruiter_profiles` — add `linkedin_post_template`, `personal_candidate_template`, `li_connection_template`, `campaign_outreach_template`, `client_confirmation_template` (all text). Reuse existing template-learning pattern from `submission_email_template` / `reactivation_email_template`.
+- `job_launches` table — `id, owner_user_id, job_id, launched_at, known_count, li_count, post_text, campaign_subject, campaign_body, client_email_sent boolean, outputs jsonb`. RLS by owner + GRANTs.
 
-### 2. Card / Button / Badge
-- `card.tsx`: padding 16, radius 8, border `#E5E7EB`, shadow `0 1px 3px rgba(0,0,0,0.06)`. Remove heavy outlines.
-- `button.tsx`: tighten primary/secondary/ghost variants to spec (no gradient/shadow, 13px semibold, 6px radius, hover states).
-- `badge.tsx`: add status variants (active/passive/li/hold/cold/dnc) matching the spec pills.
+### Edge functions (vendor-neutral via Lovable AI Gateway, default `google/gemini-2.5-flash` — works identically with Claude through the gateway; no Gemini-specific APIs)
+1. `job-launch-match-candidates` — finds top matches from `candidates` table, groups into **Spoken to** (status Active/Passive) and **LI Connections** (status "LI Connection"). Returns match % + one-line reason.
+2. `job-launch-generate` — single call returning all 5 outputs as strict JSON: `{ knownMessages[], liMessages[], linkedinPost, campaign: {subject, body}, clientEmail }`. Inputs: job + hook + ideal line + per-candidate context (notes excerpt, motivations, quick profile) + saved templates.
+3. `job-launch-send` — handles sending known/LI messages via Outlook connector with natural spacing (30m / 2h / today), logs touchpoints, adds candidates to pipeline at `Contact` stage (no "Longlist" in current stage list — using Contact as the warm-touch stage), records `job_launches` row, sets `jobs.search_launched_at`, logs activity.
 
-### 3. Sidebar — `src/components/AppSidebar.tsx`
-- Dark `#111827`, 220px width, Desky logo in blue
-- Section dividers with uppercase 10px labels (`WORKSPACE` / `DATA` / `TOOLS`) grouping existing nav items
-- Active state: blue icon + light label + `rgba(59,130,246,0.1)` bg
-- Badge counts as pills (urgent red / info blue)
+### UI components
+- `src/pages/JobLaunch.tsx` — wizard shell + step tracker (clickable back to completed steps).
+- `src/components/joblaunch/StepBrief.tsx` — shows job fields read-only, JD presence indicator, two new textareas (`launch_hook`, `ideal_candidate_line`). Persists to `jobs` table.
+- `src/components/joblaunch/StepWhoYouKnow.tsx` — two grouped lists with checkboxes, green/blue indicators, search-to-add, move between groups.
+- `src/components/joblaunch/StepGenerate.tsx` — loading state with rotating status lines while edge function runs.
+- `src/components/joblaunch/StepReview.tsx` — 5 tabs (Known / LI / Post / Campaign / Client). Each message card: Edit (inline textarea) / Skip / Regenerate (per-item regen call). Character counts where relevant. Copy buttons (Sourcewhale/Interseller/plain/LinkedIn).
+- `src/components/joblaunch/StepLaunch.tsx` — summary + per-output launch buttons + [Launch all] + email spacing selector.
+- `src/components/PostJobCreatePrompt.tsx` — small modal triggered by `AddJobDialog`.
 
-### 4. My Desk (`src/pages/Dashboard.tsx`)
-- Drop card chrome from morning brief; greeting `28px bold`, AI summary `14px #374151`
-- Horizontal stats bar (5 numbers) with colored emphasis only when meaningful
-- "Actions" header + action cards (white, 3px left border in urgency color, pill action button right)
-- "My list" using same card style with checkbox left
+### Integrations
+- `AddJobDialog.tsx` — after successful create, open `PostJobCreatePrompt` (passes job id).
+- `Jobs.tsx` `JobFullView` — add `[Launch search]` button; show "Search launched: <date>" badge when `search_launched_at` set.
+- `use-billers-workflow.ts` — add `ftb-launch` trigger (jobs Active with no `search_launched_at` and pipeline empty).
+- `Coach` morning brief data source — include un-launched active jobs.
+- `Settings.tsx` — add **My Templates** section with 5 editable textareas + first-use "paste your examples" capture.
 
-### 5. Candidate Profile (`src/components/CandidateDetail.tsx`)
-- Header without card: 48px blue initials circle, name 22px bold, role line, key facts line, action buttons right
-- Tabs with 2px blue underline active state
-- Profile tab: 60/40 split, inline-edit fields with uppercase labels, motivations paragraph, skill pills, "not interested in" red pills, industries tags
+### Template learning
+On every Regenerate or Edit + Save in review step, store the edited final text on the user's `recruiter_profiles.*_template` field (only if user clicks "Save my style"). Same pattern already used by Compare & Submit / Reactivation.
 
-### 6. Biller's Workflow (`src/pages/BillersWorkflow.tsx`)
-Retune existing cockpit to exact spec: page `#0F172A`, coach banner `#1E293B` with `⚡`, two 48% columns with amber/green header tinted blocks, subsection labels `11px uppercase #475569`, item cards `#1E293B` with 3px left urgency border, 8px urgency dot top-right, subtle "Done" bottom-right, green empty state.
+### Technical notes
+- All AI calls use Lovable AI Gateway with structured JSON output via plain `response_format: json_object` + schema in the prompt — no Gemini-specific tool calls or grounding.
+- Touchpoint logging reuses `logActivity` + `notes` insert pattern already in `compare-submit-email`.
+- Pipeline stage on send: `Contact` (closest existing stage to "Longlist"; documented stages are Contact → Screening → Shortlist → ...).
+- Email spacing implemented client-side by staggering `job-launch-send` calls with `setTimeout`; server records each send individually.
 
-### 7. Visual sweep
-Spot-check Jobs / Clients / Placements / Pipelines / Settings to confirm new tokens render cleanly (no hard-coded dark colors leaking). Replace any `bg-black` / `text-white` literals found with semantic tokens. No layout changes.
-
-## Non-goals
-- No feature changes, no new components, no data model edits
-- No copy changes beyond labels explicitly in the spec ("Actions", section headers)
-- Pages outside the highlighted set get token-level updates only
-
-## Technical notes
-- All colors live in `index.css` as HSL; Tailwind classes (`bg-background`, `text-foreground`, `border-border`, `bg-primary`, `text-destructive`, etc.) continue to work — most files need zero edits.
-- Cockpit dark surfaces stay scoped to `BillersWorkflow.tsx` via inline `style` or a `.cockpit` utility class so they don't bleed.
-- Typography utilities added once in `index.css` to keep usage consistent.
+### Out of scope (this iteration)
+- Actual LinkedIn API posting — we only generate text + "Open LinkedIn" deep link + clipboard copy (no LinkedIn write API in current connectors).
+- Sourcewhale/Interseller direct push — copy-to-clipboard only (matches existing pattern).

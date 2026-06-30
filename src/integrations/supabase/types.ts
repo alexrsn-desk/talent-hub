@@ -1330,6 +1330,59 @@ export type Database = {
         }
         Relationships: []
       }
+      job_launches: {
+        Row: {
+          campaign_body: string | null
+          campaign_subject: string | null
+          client_email_sent: boolean
+          created_at: string
+          id: string
+          job_id: string
+          known_count: number
+          launched_at: string
+          li_count: number
+          outputs: Json | null
+          owner_user_id: string
+          post_text: string | null
+        }
+        Insert: {
+          campaign_body?: string | null
+          campaign_subject?: string | null
+          client_email_sent?: boolean
+          created_at?: string
+          id?: string
+          job_id: string
+          known_count?: number
+          launched_at?: string
+          li_count?: number
+          outputs?: Json | null
+          owner_user_id: string
+          post_text?: string | null
+        }
+        Update: {
+          campaign_body?: string | null
+          campaign_subject?: string | null
+          client_email_sent?: boolean
+          created_at?: string
+          id?: string
+          job_id?: string
+          known_count?: number
+          launched_at?: string
+          li_count?: number
+          outputs?: Json | null
+          owner_user_id?: string
+          post_text?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "job_launches_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "jobs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       job_score_history: {
         Row: {
           created_at: string
@@ -1408,15 +1461,19 @@ export type Database = {
           fee_type: string | null
           fee_value: number | null
           id: string
+          ideal_candidate_line: string | null
           incomplete_profile: boolean
           intake_captured_at: string | null
           intake_notes: Json | null
           intake_summary: string | null
           job_type: string
+          launch_hook: string | null
+          launch_summary: Json | null
           location: string | null
           owner_user_id: string | null
           salary_max: number | null
           salary_min: number | null
+          search_launched_at: string | null
           status: string
           title: string
           updated_at: string
@@ -1429,15 +1486,19 @@ export type Database = {
           fee_type?: string | null
           fee_value?: number | null
           id?: string
+          ideal_candidate_line?: string | null
           incomplete_profile?: boolean
           intake_captured_at?: string | null
           intake_notes?: Json | null
           intake_summary?: string | null
           job_type?: string
+          launch_hook?: string | null
+          launch_summary?: Json | null
           location?: string | null
           owner_user_id?: string | null
           salary_max?: number | null
           salary_min?: number | null
+          search_launched_at?: string | null
           status?: string
           title: string
           updated_at?: string
@@ -1450,15 +1511,19 @@ export type Database = {
           fee_type?: string | null
           fee_value?: number | null
           id?: string
+          ideal_candidate_line?: string | null
           incomplete_profile?: boolean
           intake_captured_at?: string | null
           intake_notes?: Json | null
           intake_summary?: string | null
           job_type?: string
+          launch_hook?: string | null
+          launch_summary?: Json | null
           location?: string | null
           owner_user_id?: string | null
           salary_max?: number | null
           salary_min?: number | null
+          search_launched_at?: string | null
           status?: string
           title?: string
           updated_at?: string
@@ -2161,16 +2226,21 @@ export type Database = {
           bd_approach: string | null
           biggest_challenge: string | null
           brand_color: string | null
+          campaign_outreach_template: string | null
+          client_confirmation_template: string | null
           created_at: string
           display_name: string | null
           enrichment_budget_pence: number
           id: string
           ideal_candidate: string | null
+          li_connection_template: string | null
+          linkedin_post_template: string | null
           location_regional_detail: string | null
           locations: string[] | null
           niche_other: string | null
           niches: string[] | null
           onboarding_completed: boolean
+          personal_candidate_template: string | null
           placement_type: string | null
           reactivation_email_template: string | null
           salary_max: number | null
@@ -2185,16 +2255,21 @@ export type Database = {
           bd_approach?: string | null
           biggest_challenge?: string | null
           brand_color?: string | null
+          campaign_outreach_template?: string | null
+          client_confirmation_template?: string | null
           created_at?: string
           display_name?: string | null
           enrichment_budget_pence?: number
           id?: string
           ideal_candidate?: string | null
+          li_connection_template?: string | null
+          linkedin_post_template?: string | null
           location_regional_detail?: string | null
           locations?: string[] | null
           niche_other?: string | null
           niches?: string[] | null
           onboarding_completed?: boolean
+          personal_candidate_template?: string | null
           placement_type?: string | null
           reactivation_email_template?: string | null
           salary_max?: number | null
@@ -2209,16 +2284,21 @@ export type Database = {
           bd_approach?: string | null
           biggest_challenge?: string | null
           brand_color?: string | null
+          campaign_outreach_template?: string | null
+          client_confirmation_template?: string | null
           created_at?: string
           display_name?: string | null
           enrichment_budget_pence?: number
           id?: string
           ideal_candidate?: string | null
+          li_connection_template?: string | null
+          linkedin_post_template?: string | null
           location_regional_detail?: string | null
           locations?: string[] | null
           niche_other?: string | null
           niches?: string[] | null
           onboarding_completed?: boolean
+          personal_candidate_template?: string | null
           placement_type?: string | null
           reactivation_email_template?: string | null
           salary_max?: number | null

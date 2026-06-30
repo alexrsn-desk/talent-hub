@@ -1,9 +1,10 @@
 import { useState, useMemo, useRef, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Plus, AlertTriangle } from "lucide-react";
+import { Plus, AlertTriangle, Rocket } from "lucide-react";
 import { useClients, useCreateClient, useCreateJob, useContacts, useCreateContact } from "@/hooks/use-data";
 import { toast } from "sonner";
 
@@ -18,6 +19,7 @@ type NewClientData = {
 };
 
 export function AddJobDialog() {
+  const navigate = useNavigate();
   const { data: clients = [] } = useClients();
   const { data: allContacts = [] } = useContacts();
   const createJob = useCreateJob();
@@ -35,6 +37,7 @@ export function AddJobDialog() {
   });
   const [duplicateWarning, setDuplicateWarning] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [launchPrompt, setLaunchPrompt] = useState<{ jobId: string; title: string } | null>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -173,7 +176,7 @@ export function AddJobDialog() {
         toast.success(`New client "${newClient.company_name}" created and linked`);
       }
 
-      await createJob.mutateAsync({
+      const created = await createJob.mutateAsync({
         title: fd.get("title") as string,
         client_id: clientId,
         location: (fd.get("location") as string) || null,
@@ -187,8 +190,12 @@ export function AddJobDialog() {
         description: (fd.get("description") as string)?.trim() || null,
       } as any);
 
+      const title = fd.get("title") as string;
       resetForm();
       setOpen(false);
+      if ((created as any)?.id) {
+        setLaunchPrompt({ jobId: (created as any).id, title });
+      }
     } catch (err) {
       toast.error("Failed to create job");
     } finally {
@@ -393,6 +400,34 @@ export function AddJobDialog() {
           </Button>
         </form>
       </DialogContent>
+
+      {/* Post-create Launch prompt */}
+      <Dialog open={!!launchPrompt} onOpenChange={(v) => { if (!v) setLaunchPrompt(null); }}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2"><Rocket className="h-5 w-5 text-primary" /> Job created</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-muted-foreground">
+            <span className="font-medium text-foreground">{launchPrompt?.title}</span> has been created. Ready to launch the search?
+          </p>
+          <p className="text-xs text-muted-foreground">
+            10-minute guided flow generates warm messages to candidates you know, your LinkedIn post, a campaign message, and a client confirmation.
+          </p>
+          <div className="flex gap-2 justify-end pt-2">
+            <Button variant="ghost" onClick={() => setLaunchPrompt(null)}>Do this later</Button>
+            <Button
+              onClick={() => {
+                const id = launchPrompt?.jobId;
+                setLaunchPrompt(null);
+                if (id) navigate(`/jobs/${id}/launch`);
+              }}
+              className="gap-1"
+            >
+              Launch search workflow <Rocket className="h-4 w-4" />
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </Dialog>
   );
 }
