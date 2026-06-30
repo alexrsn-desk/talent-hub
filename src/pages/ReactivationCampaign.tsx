@@ -357,7 +357,7 @@ export default function ReactivationCampaign() {
           <p className="text-muted-foreground mt-2">
             {sendMethod === "queue"
               ? `${followCount} messages queued for manual sending.`
-              : `${sentCount} message${sentCount === 1 ? "" : "s"} sent. Follow-up reminders set for ${followupDays} day${followupDays === 1 ? "" : "s"}.`}
+              : `${sentCount} message${sentCount === 1 ? "" : "s"} sent. Follow-up reminders set for ${followupDays} days.`}
           </p>
         </div>
         <div className="flex justify-center gap-2">
