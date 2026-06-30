@@ -15,6 +15,7 @@ import {
   Loader2, Plus, Search, Send, Sparkles, Trash2, Upload, X, GripVertical, AlertCircle,
 } from "lucide-react";
 import { toast } from "sonner";
+import { JobSpecUploader } from "@/components/JobSpecUploader";
 import {
   useJobs, useCandidates, useCreateCandidate, useCandidateJobs,
   useCreateCandidateJob, useUpdateCandidateJob, useCreateNote, type Candidate, type Job,
