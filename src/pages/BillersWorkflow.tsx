@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   RefreshCw, Loader2, Phone, AlertTriangle, Zap, PartyPopper, Settings,
-  MoreVertical, Check, Clock, CheckCircle2,
+  MoreVertical, Check, Clock, CheckCircle2, Sparkles,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
