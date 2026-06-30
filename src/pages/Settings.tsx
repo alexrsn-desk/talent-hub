@@ -345,6 +345,10 @@ export default function SettingsPage() {
       {/* Screening Notes Template */}
       <ScreeningTemplateSettings />
 
+      {/* My Templates — Reactivation */}
+      <ReactivationTemplateSection />
+
+
       {/* Tag Management */}
       <div className="pt-6 border-t border-border">
         <TagManagement />
