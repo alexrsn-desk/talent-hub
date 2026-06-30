@@ -2047,6 +2047,113 @@ export type Database = {
         }
         Relationships: []
       }
+      reactivation_campaigns: {
+        Row: {
+          created_at: string
+          flagged_count: number
+          followup_days: number | null
+          id: string
+          name: string | null
+          owner_user_id: string
+          sent_count: number
+          skipped_count: number
+          source_trigger: string | null
+          status: string
+          total_contacts: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          flagged_count?: number
+          followup_days?: number | null
+          id?: string
+          name?: string | null
+          owner_user_id: string
+          sent_count?: number
+          skipped_count?: number
+          source_trigger?: string | null
+          status?: string
+          total_contacts?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          flagged_count?: number
+          followup_days?: number | null
+          id?: string
+          name?: string | null
+          owner_user_id?: string
+          sent_count?: number
+          skipped_count?: number
+          source_trigger?: string | null
+          status?: string
+          total_contacts?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      reactivation_messages: {
+        Row: {
+          body: string | null
+          campaign_id: string
+          contact_company: string | null
+          contact_email: string | null
+          contact_id: string | null
+          contact_kind: string
+          contact_name: string | null
+          created_at: string
+          followup_due_at: string | null
+          id: string
+          message_type: string | null
+          owner_user_id: string
+          sent_at: string | null
+          status: string
+          subject: string | null
+        }
+        Insert: {
+          body?: string | null
+          campaign_id: string
+          contact_company?: string | null
+          contact_email?: string | null
+          contact_id?: string | null
+          contact_kind: string
+          contact_name?: string | null
+          created_at?: string
+          followup_due_at?: string | null
+          id?: string
+          message_type?: string | null
+          owner_user_id: string
+          sent_at?: string | null
+          status?: string
+          subject?: string | null
+        }
+        Update: {
+          body?: string | null
+          campaign_id?: string
+          contact_company?: string | null
+          contact_email?: string | null
+          contact_id?: string | null
+          contact_kind?: string
+          contact_name?: string | null
+          created_at?: string
+          followup_due_at?: string | null
+          id?: string
+          message_type?: string | null
+          owner_user_id?: string
+          sent_at?: string | null
+          status?: string
+          subject?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reactivation_messages_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "reactivation_campaigns"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       recruiter_profiles: {
         Row: {
           agency_logo_url: string | null
@@ -2065,6 +2172,7 @@ export type Database = {
           niches: string[] | null
           onboarding_completed: boolean
           placement_type: string | null
+          reactivation_email_template: string | null
           salary_max: number | null
           salary_min: number | null
           submission_email_template: string | null
@@ -2088,6 +2196,7 @@ export type Database = {
           niches?: string[] | null
           onboarding_completed?: boolean
           placement_type?: string | null
+          reactivation_email_template?: string | null
           salary_max?: number | null
           salary_min?: number | null
           submission_email_template?: string | null
@@ -2111,6 +2220,7 @@ export type Database = {
           niches?: string[] | null
           onboarding_completed?: boolean
           placement_type?: string | null
+          reactivation_email_template?: string | null
           salary_max?: number | null
           salary_min?: number | null
           submission_email_template?: string | null
