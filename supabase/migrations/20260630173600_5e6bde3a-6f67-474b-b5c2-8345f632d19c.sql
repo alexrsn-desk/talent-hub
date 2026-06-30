@@ -1,0 +1,1 @@
+ALTER TABLE public.recruiter_profiles ADD COLUMN IF NOT EXISTS submission_email_template TEXT;
