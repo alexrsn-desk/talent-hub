@@ -421,3 +421,61 @@ function SignalPerformanceSection() {
     </div>
   );
 }
+
+function ReactivationTemplateSection() {
+  const { user } = useAuth();
+  const [value, setValue] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (!user) return;
+    (async () => {
+      const { data } = await supabase
+        .from("recruiter_profiles")
+        .select("reactivation_email_template")
+        .eq("user_id", user.id)
+        .maybeSingle();
+      setValue(((data as any)?.reactivation_email_template) || "");
+      setLoading(false);
+    })();
+  }, [user]);
+
+  const save = async () => {
+    if (!user) return;
+    setSaving(true);
+    const { error } = await supabase
+      .from("recruiter_profiles")
+      .update({ reactivation_email_template: value } as any)
+      .eq("user_id", user.id);
+    setSaving(false);
+    if (error) toast.error(error.message); else toast.success("Reactivation template saved");
+  };
+
+  return (
+    <div className="pt-6 border-t border-border space-y-3">
+      <h2 className="text-sm font-medium">My Templates — Reactivation message</h2>
+      <p className="text-xs text-muted-foreground">
+        How you usually write reconnection messages to dormant clients/contacts. Warmer and more personal than your submission template. AI mirrors your tone.
+      </p>
+      {loading ? (
+        <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+      ) : (
+        <>
+          <textarea
+            value={value}
+            onChange={(e) => setValue(e.target.value)}
+            rows={6}
+            className="w-full rounded-lg border border-border bg-background p-3 text-sm font-mono"
+            placeholder="Hi [name], it's been a while — I was thinking about [thing] the other day and wanted to drop you a quick note..."
+          />
+          <Button size="sm" onClick={save} disabled={saving}>
+            {saving ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-1" /> : <Save className="h-3.5 w-3.5 mr-1" />}
+            Save template
+          </Button>
+        </>
+      )}
+    </div>
+  );
+}
+
