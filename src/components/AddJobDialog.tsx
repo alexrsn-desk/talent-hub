@@ -19,6 +19,7 @@ type NewClientData = {
 };
 
 export function AddJobDialog() {
+  const navigate = useNavigate();
   const { data: clients = [] } = useClients();
   const { data: allContacts = [] } = useContacts();
   const createJob = useCreateJob();
@@ -36,6 +37,7 @@ export function AddJobDialog() {
   });
   const [duplicateWarning, setDuplicateWarning] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [launchPrompt, setLaunchPrompt] = useState<{ jobId: string; title: string } | null>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
