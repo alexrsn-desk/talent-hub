@@ -120,6 +120,7 @@ export default function DashboardPage() {
           <GdprAuditPrompt />
 
       {/* 2. AI ACTIONS */}
+      <ReactivationNudge />
       <DailyFocus />
       <OfferBackupActions />
 
