@@ -511,7 +511,7 @@ export default function JobLaunch() {
                   </Button>
                   <Button size="sm" variant="outline" asChild className="gap-1">
                     <a href="https://www.linkedin.com/feed/?shareActive=true" target="_blank" rel="noreferrer">
-                      <Linkedin className="h-3.5 w-3.5" /> Open LinkedIn
+                      <ExternalLink className="h-3.5 w-3.5" /> Open LinkedIn
                     </a>
                   </Button>
                 </div>
