@@ -189,7 +189,7 @@ export function AddJobDialog() {
         fee_type: (fd.get("fee_type") as string) || "Percentage",
         fee_value: fd.get("fee_value") ? Number(fd.get("fee_value")) : null,
         date_opened: new Date().toISOString().split("T")[0],
-        description: (fd.get("description") as string)?.trim() || null,
+        description: description.trim() || null,
       } as any);
 
       const title = fd.get("title") as string;
