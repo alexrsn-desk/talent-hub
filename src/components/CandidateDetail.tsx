@@ -1,10 +1,12 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Pencil, X, Save, ExternalLink, Trash2, PhoneCall, Phone, AlertCircle, Ban, Lock } from "lucide-react";
+import { Pencil, X, Save, ExternalLink, Trash2, PhoneCall, Phone, AlertCircle, Ban, Lock, Sparkles } from "lucide-react";
 import { useUpdateCandidate, type Candidate } from "@/hooks/use-data";
 import { PriorityFlagButton, PriorityStarIcon } from "@/components/PriorityFlag";
 import { ProfileTabs } from "@/components/ProfileTabs";
@@ -73,6 +75,8 @@ export function CandidateDetail({ candidate, onUpdate, onDelete }: Props) {
   const [dncOpen, setDncOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
   const updateCandidate = useUpdateCandidate();
+  const navigate = useNavigate();
+
 
   const [form, setForm] = useState(() => ({
     first_name: candidate.first_name || "",
@@ -272,7 +276,18 @@ export function CandidateDetail({ candidate, onUpdate, onDelete }: Props) {
               <Button size="sm" variant="outline" onClick={handleStartEdit} className="gap-1.5">
                 <Pencil className="h-3.5 w-3.5" /> Edit
               </Button>
+              {!isDNC && (
+                <Button
+                  size="sm"
+                  onClick={() => navigate(`/candidates/${candidate.id}/pitch`)}
+                  className="gap-1.5 bg-primary text-primary-foreground"
+                >
+                  <Sparkles className="h-3.5 w-3.5" />
+                  Find opportunities for {candidate.first_name || candidate.name.split(" ")[0]}
+                </Button>
+              )}
               {!isDNC && <PriorityFlagButton candidate={candidate} size="sm" />}
+
               {!isDNC && candidate.phone && (
                 <a href={`tel:${candidate.phone}`}>
                   <Button size="sm" variant="default" className="gap-1.5"><Phone className="h-3.5 w-3.5" /> Call Now</Button>
