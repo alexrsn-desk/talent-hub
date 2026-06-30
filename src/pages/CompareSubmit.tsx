@@ -519,6 +519,21 @@ export default function CompareSubmitPage() {
 
 // ───────────────────────── Step 1 ─────────────────────────
 function RoleStep({ job, onContinue, onEdit }: { job: any; onContinue: () => void; onEdit: () => void }) {
+  const [jdDraft, setJdDraft] = useState<string>(job.description || "");
+  const [savingJd, setSavingJd] = useState(false);
+  async function saveJd() {
+    setSavingJd(true);
+    try {
+      const { error } = await supabase.from("jobs").update({ description: jdDraft || null }).eq("id", job.id);
+      if (error) throw error;
+      job.description = jdDraft;
+      toast.success("Job spec saved");
+    } catch (e: any) {
+      toast.error(e?.message || "Could not save");
+    } finally {
+      setSavingJd(false);
+    }
+  }
   const hasJD = (job.description || "").trim().length > 50;
   const hasIntake = (job.intake_summary || "").trim().length > 30;
   const salary = job.salary_min || job.salary_max
