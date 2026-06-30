@@ -28,6 +28,7 @@ import Portal from "./pages/Portal";
 import LiveConversations from "./pages/LiveConversations";
 import BillersWorkflow from "./pages/BillersWorkflow";
 import SourceWhaleContacts from "./pages/SourceWhaleContacts";
+import CompareSubmit from "./pages/CompareSubmit";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -152,6 +153,7 @@ function AppRoutes() {
           <Route path="/clients" element={<Clients />} />
           <Route path="/contacts" element={<Contacts />} />
           <Route path="/jobs" element={<Jobs />} />
+          <Route path="/jobs/:jobId/compare" element={<CompareSubmit />} />
           <Route path="/placements" element={<Placements />} />
           <Route path="/bd-pipeline" element={<BDPipeline />} />
           <Route path="/coach" element={<Coach />} />

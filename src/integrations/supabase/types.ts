@@ -2067,6 +2067,7 @@ export type Database = {
           placement_type: string | null
           salary_max: number | null
           salary_min: number | null
+          submission_email_template: string | null
           updated_at: string
           user_id: string
         }
@@ -2089,6 +2090,7 @@ export type Database = {
           placement_type?: string | null
           salary_max?: number | null
           salary_min?: number | null
+          submission_email_template?: string | null
           updated_at?: string
           user_id: string
         }
@@ -2111,6 +2113,7 @@ export type Database = {
           placement_type?: string | null
           salary_max?: number | null
           salary_min?: number | null
+          submission_email_template?: string | null
           updated_at?: string
           user_id?: string
         }
