@@ -1,9 +1,10 @@
 import { useState, useMemo, useRef, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Plus, AlertTriangle } from "lucide-react";
+import { Plus, AlertTriangle, Rocket } from "lucide-react";
 import { useClients, useCreateClient, useCreateJob, useContacts, useCreateContact } from "@/hooks/use-data";
 import { toast } from "sonner";
 
