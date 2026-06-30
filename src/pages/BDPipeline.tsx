@@ -111,6 +111,7 @@ function heatLabel(heat: string | null | undefined): string {
 }
 
 export default function BDPipelinePage() {
+  const nav = useNavigate();
   const { data: clients = [], isLoading } = useClients();
   const { data: allContacts = [] } = useContacts();
   const updateClient = useUpdateClient();
