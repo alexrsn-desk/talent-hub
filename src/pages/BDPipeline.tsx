@@ -11,7 +11,8 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { useClients, useUpdateClient, useDeleteClient, useCreateClient, useContacts, useCreateContact, useDeleteContact, type Client, type Contact } from "@/hooks/use-data";
 import { NotesSection } from "@/components/NotesSection";
 import { BDTipsButton } from "@/components/BDTipsPanel";
-import { Calendar as CalendarIcon, AlertTriangle, Plus, Trash2, ExternalLink, Users, CalendarPlus, Info, GitBranch } from "lucide-react";
+import { Calendar as CalendarIcon, AlertTriangle, Plus, Trash2, ExternalLink, Users, CalendarPlus, Info, GitBranch, Sparkles } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import { AddToSequencePanel } from "@/components/AddToSequencePanel";
 import { ActiveSequencesSection } from "@/components/ActiveSequencesSection";
 
@@ -110,6 +111,7 @@ function heatLabel(heat: string | null | undefined): string {
 }
 
 export default function BDPipelinePage() {
+  const nav = useNavigate();
   const { data: clients = [], isLoading } = useClients();
   const { data: allContacts = [] } = useContacts();
   const updateClient = useUpdateClient();
@@ -161,7 +163,12 @@ export default function BDPipelinePage() {
     <div className="space-y-6 h-full">
       <div className="flex items-center justify-between gap-3">
         <h1 className="text-2xl font-semibold tracking-tight">BD Pipeline</h1>
-        <BDTipsButton />
+        <div className="flex items-center gap-2">
+          <Button size="sm" onClick={() => nav("/reactivation")} className="gap-1.5">
+            <Sparkles className="h-3.5 w-3.5" /> Reactivation Campaign
+          </Button>
+          <BDTipsButton />
+        </div>
       </div>
 
       {isLoading ? (

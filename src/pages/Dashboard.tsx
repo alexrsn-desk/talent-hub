@@ -17,6 +17,7 @@ import { GdprAuditPrompt } from "@/components/GdprAuditPrompt";
 import { NewRecordsSection } from "@/components/NewRecordsSection";
 import { PlacementsDashboardSection } from "@/components/PlacementsDashboardSection";
 import { OffersDashboardSection } from "@/components/OffersDashboardSection";
+import { ReactivationNudge } from "@/components/ReactivationNudge";
 import { WeekStatsBar } from "@/components/WeekStatsBar";
 
 const activityIcon: Record<string, typeof FileText> = {
@@ -120,6 +121,7 @@ export default function DashboardPage() {
           <GdprAuditPrompt />
 
       {/* 2. AI ACTIONS */}
+      <ReactivationNudge />
       <DailyFocus />
       <OfferBackupActions />
 

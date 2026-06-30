@@ -30,6 +30,7 @@ import BillersWorkflow from "./pages/BillersWorkflow";
 import SourceWhaleContacts from "./pages/SourceWhaleContacts";
 import CompareSubmit from "./pages/CompareSubmit";
 import PitchCandidate from "./pages/PitchCandidate";
+import ReactivationCampaign from "./pages/ReactivationCampaign";
 import NotFound from "./pages/NotFound";
 
 
@@ -166,6 +167,7 @@ function AppRoutes() {
           <Route path="/sequences" element={<Sequences />} />
           <Route path="/settings" element={<Settings />} />
           <Route path="/sourcewhale" element={<SourceWhaleContacts />} />
+          <Route path="/reactivation" element={<ReactivationCampaign />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </AppLayout>

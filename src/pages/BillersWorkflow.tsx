@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   RefreshCw, Loader2, Phone, AlertTriangle, Zap, PartyPopper, Settings,
-  MoreVertical, Check, Clock, CheckCircle2,
+  MoreVertical, Check, Clock, CheckCircle2, Sparkles,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -152,6 +152,21 @@ function CockpitCard({
       </button>
 
       <div className="flex items-center justify-end gap-2 mt-3">
+        {(item.id.startsWith("ftb-bd") || item.id.startsWith("ftb-ref") || item.id.startsWith("ftb-warm") || item.id.startsWith("ftb-silver")) && (
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              const group = item.id.startsWith("ftb-bd") ? "past_clients"
+                : item.id.startsWith("ftb-ref") ? "placed_candidates"
+                : item.id.startsWith("ftb-warm") ? "warm_prospects" : "";
+              nav(`/reactivation${group ? `?group=${group}` : ""}`);
+            }}
+            className="h-7 px-3 rounded-full text-[12px] font-semibold inline-flex items-center gap-1.5 transition-colors"
+            style={{ background: `${COCKPIT.blue}26`, color: COCKPIT.blue }}
+          >
+            <Sparkles className="h-3 w-3" /> Build campaign
+          </button>
+        )}
         {canLog && (
           <button
             onClick={(e) => { e.stopPropagation(); onLogCall(item); }}

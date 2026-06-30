@@ -14,3 +14,12 @@ verify_jwt = true
 
 [functions.pitch-draft-message]
 verify_jwt = true
+
+[functions.reactivation-build-list]
+verify_jwt = true
+
+[functions.reactivation-draft-messages]
+verify_jwt = true
+
+[functions.reactivation-send]
+verify_jwt = true
