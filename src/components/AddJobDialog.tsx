@@ -83,6 +83,7 @@ export function AddJobDialog() {
     setNewClient({ company_name: "", contact_name: "", contact_email: "", contact_phone: "", contact_job_title: "" });
     setDuplicateWarning(false);
     setShowDropdown(false);
+    setDescription("");
   };
 
   const handleSelectClient = (id: string) => {
