@@ -31,6 +31,7 @@ import SourceWhaleContacts from "./pages/SourceWhaleContacts";
 import CompareSubmit from "./pages/CompareSubmit";
 import PitchCandidate from "./pages/PitchCandidate";
 import ReactivationCampaign from "./pages/ReactivationCampaign";
+import JobLaunch from "./pages/JobLaunch";
 import NotFound from "./pages/NotFound";
 
 
@@ -159,6 +160,7 @@ function AppRoutes() {
           <Route path="/contacts" element={<Contacts />} />
           <Route path="/jobs" element={<Jobs />} />
           <Route path="/jobs/:jobId/compare" element={<CompareSubmit />} />
+          <Route path="/jobs/:jobId/launch" element={<JobLaunch />} />
           <Route path="/placements" element={<Placements />} />
           <Route path="/bd-pipeline" element={<BDPipeline />} />
           <Route path="/coach" element={<Coach />} />
