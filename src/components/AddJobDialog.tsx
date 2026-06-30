@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Plus, AlertTriangle, Rocket } from "lucide-react";
 import { useClients, useCreateClient, useCreateJob, useContacts, useCreateContact } from "@/hooks/use-data";
+import { JobSpecUploader } from "@/components/JobSpecUploader";
 import { toast } from "sonner";
 
 const JOB_TYPES = ["Perm", "Contract"] as const;
@@ -38,6 +39,7 @@ export function AddJobDialog() {
   const [duplicateWarning, setDuplicateWarning] = useState(false);
   const [saving, setSaving] = useState(false);
   const [launchPrompt, setLaunchPrompt] = useState<{ jobId: string; title: string } | null>(null);
+  const [description, setDescription] = useState("");
   const dropdownRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -81,6 +83,7 @@ export function AddJobDialog() {
     setNewClient({ company_name: "", contact_name: "", contact_email: "", contact_phone: "", contact_job_title: "" });
     setDuplicateWarning(false);
     setShowDropdown(false);
+    setDescription("");
   };
 
   const handleSelectClient = (id: string) => {
@@ -187,7 +190,7 @@ export function AddJobDialog() {
         fee_type: (fd.get("fee_type") as string) || "Percentage",
         fee_value: fd.get("fee_value") ? Number(fd.get("fee_value")) : null,
         date_opened: new Date().toISOString().split("T")[0],
-        description: (fd.get("description") as string)?.trim() || null,
+        description: description.trim() || null,
       } as any);
 
       const title = fd.get("title") as string;
@@ -385,16 +388,14 @@ export function AddJobDialog() {
             </div>
           </div>
           <div><Label>Fee Value</Label><Input name="fee_value" type="number" step="0.1" /></div>
-          <div>
-            <Label>Job Description</Label>
-            <textarea
-              name="description"
-              rows={5}
-              placeholder="Paste the JD — AI will auto-match candidates when you save."
-              className="flex w-full rounded-md border border-input bg-background px-3 py-2 text-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-            />
-            <p className="text-[11px] text-muted-foreground mt-1">Optional, but unlocks AI candidate matching.</p>
-          </div>
+          <JobSpecUploader
+            value={description}
+            onChange={setDescription}
+            label="Job Description"
+            rows={5}
+            placeholder="Upload a PDF/Word/TXT, or paste the JD — AI will auto-match candidates when you save."
+            helper="Optional, but unlocks AI candidate matching."
+          />
           <Button type="submit" className="w-full" disabled={saving}>
             {saving ? "Creating..." : "Create Job"}
           </Button>

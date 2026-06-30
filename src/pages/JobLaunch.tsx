@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
 import { ArrowLeft, ArrowRight, Check, Loader2, Sparkles, Copy, ExternalLink, RotateCw, ChevronRight } from "lucide-react";
+import { JobSpecUploader } from "@/components/JobSpecUploader";
 
 type MatchCandidate = {
   id: string;
@@ -33,6 +34,7 @@ export default function JobLaunch() {
   const [job, setJob] = useState<any>(null);
   const [hook, setHook] = useState("");
   const [ideal, setIdeal] = useState("");
+  const [jobSpec, setJobSpec] = useState("");
   const [loadingJob, setLoadingJob] = useState(true);
 
   const [matching, setMatching] = useState(false);
@@ -68,6 +70,7 @@ export default function JobLaunch() {
         setJob(data);
         setHook((data as any).launch_hook || "");
         setIdeal((data as any).ideal_candidate_line || "");
+        setJobSpec((data as any).description || "");
       }
       setLoadingJob(false);
     })();
@@ -77,7 +80,7 @@ export default function JobLaunch() {
   async function goToStep2() {
     // persist brief inputs to job
     if (!jobId) return;
-    await supabase.from("jobs").update({ launch_hook: hook, ideal_candidate_line: ideal } as any).eq("id", jobId);
+    await supabase.from("jobs").update({ launch_hook: hook, ideal_candidate_line: ideal, description: jobSpec || null } as any).eq("id", jobId);
     setStep(1);
     setMatching(true);
     try {
@@ -292,12 +295,14 @@ export default function JobLaunch() {
             <Info label="Salary" value={job.salary_min || job.salary_max ? `£${job.salary_min || "?"} – £${job.salary_max || "?"}` : "—"} />
           </div>
 
-          {(!job.description || !job.intake_summary) && (
-            <div className="rounded-lg border border-amber-500/40 bg-amber-500/10 p-3 text-xs text-amber-200">
-              Adding a job spec and intake context will significantly improve the quality of everything generated.{" "}
-              <Link className="underline" to={`/jobs?focus=${job.id}`}>Add now</Link> · or continue without it.
-            </div>
-          )}
+          <JobSpecUploader
+            value={jobSpec}
+            onChange={setJobSpec}
+            label="Job spec"
+            rows={6}
+            placeholder="Upload a PDF/Word/TXT, or paste the job spec here…"
+            helper="Adding a job spec significantly improves the quality of everything generated."
+          />
 
           <div>
             <Label className="text-xs">What makes this role genuinely interesting?</Label>

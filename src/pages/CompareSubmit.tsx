@@ -15,6 +15,7 @@ import {
   Loader2, Plus, Search, Send, Sparkles, Trash2, Upload, X, GripVertical, AlertCircle,
 } from "lucide-react";
 import { toast } from "sonner";
+import { JobSpecUploader } from "@/components/JobSpecUploader";
 import {
   useJobs, useCandidates, useCreateCandidate, useCandidateJobs,
   useCreateCandidateJob, useUpdateCandidateJob, useCreateNote, type Candidate, type Job,
@@ -518,6 +519,21 @@ export default function CompareSubmitPage() {
 
 // ───────────────────────── Step 1 ─────────────────────────
 function RoleStep({ job, onContinue, onEdit }: { job: any; onContinue: () => void; onEdit: () => void }) {
+  const [jdDraft, setJdDraft] = useState<string>(job.description || "");
+  const [savingJd, setSavingJd] = useState(false);
+  async function saveJd() {
+    setSavingJd(true);
+    try {
+      const { error } = await supabase.from("jobs").update({ description: jdDraft || null }).eq("id", job.id);
+      if (error) throw error;
+      job.description = jdDraft;
+      toast.success("Job spec saved");
+    } catch (e: any) {
+      toast.error(e?.message || "Could not save");
+    } finally {
+      setSavingJd(false);
+    }
+  }
   const hasJD = (job.description || "").trim().length > 50;
   const hasIntake = (job.intake_summary || "").trim().length > 30;
   const salary = job.salary_min || job.salary_max
@@ -556,6 +572,21 @@ function RoleStep({ job, onContinue, onEdit }: { job: any; onContinue: () => voi
             {hasIntake ? <Badge variant="outline" className="text-green-400 border-green-500/40">Loaded</Badge>
                        : <Badge variant="outline" className="text-yellow-400 border-yellow-500/40">Missing</Badge>}
           </div>
+        </div>
+      </Card>
+
+      <Card className="p-4 space-y-2">
+        <JobSpecUploader
+          value={jdDraft}
+          onChange={setJdDraft}
+          label="Job spec — upload or paste"
+          rows={6}
+          helper="Used by the AI assessment in step 3."
+        />
+        <div className="flex justify-end">
+          <Button size="sm" onClick={saveJd} disabled={savingJd || jdDraft === (job.description || "")}>
+            {savingJd ? "Saving…" : "Save job spec"}
+          </Button>
         </div>
       </Card>
 
