@@ -70,6 +70,7 @@ export default function JobLaunch() {
         setJob(data);
         setHook((data as any).launch_hook || "");
         setIdeal((data as any).ideal_candidate_line || "");
+        setJobSpec((data as any).description || "");
       }
       setLoadingJob(false);
     })();
