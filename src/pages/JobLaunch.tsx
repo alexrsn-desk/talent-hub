@@ -295,12 +295,14 @@ export default function JobLaunch() {
             <Info label="Salary" value={job.salary_min || job.salary_max ? `£${job.salary_min || "?"} – £${job.salary_max || "?"}` : "—"} />
           </div>
 
-          {(!job.description || !job.intake_summary) && (
-            <div className="rounded-lg border border-amber-500/40 bg-amber-500/10 p-3 text-xs text-amber-200">
-              Adding a job spec and intake context will significantly improve the quality of everything generated.{" "}
-              <Link className="underline" to={`/jobs?focus=${job.id}`}>Add now</Link> · or continue without it.
-            </div>
-          )}
+          <JobSpecUploader
+            value={jobSpec}
+            onChange={setJobSpec}
+            label="Job spec"
+            rows={6}
+            placeholder="Upload a PDF/Word/TXT, or paste the job spec here…"
+            helper="Adding a job spec significantly improves the quality of everything generated."
+          />
 
           <div>
             <Label className="text-xs">What makes this role genuinely interesting?</Label>
