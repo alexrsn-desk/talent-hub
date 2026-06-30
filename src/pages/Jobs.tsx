@@ -6,7 +6,8 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
-import { Search, Trash2, ArrowLeft, XCircle, Check } from "lucide-react";
+import { Search, Trash2, ArrowLeft, XCircle, Check, GitCompare } from "lucide-react";
+import { Link } from "react-router-dom";
 import { useJobs, useUpdateJob, useDeleteJob, useCandidateJobs, useUpdateCandidateJob, useCreateNote, type Job } from "@/hooks/use-data";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { NotesSection } from "@/components/NotesSection";
@@ -315,6 +316,9 @@ export function JobFullView({ job, onBack, onUpdate, onDelete, backLabel }: {
           )}
         </div>
         <IntakeCallCompanionButton jobId={job.id} jobTitle={job.title} />
+        <Button asChild variant="default" size="sm" className="gap-1">
+          <Link to={`/jobs/${job.id}/compare`}><GitCompare className="h-4 w-4" /> Compare & Submit Candidates</Link>
+        </Button>
         {!["Filled", "Closed", "Cancelled"].includes(job.status) && (
           <Button variant="outline" size="sm" onClick={() => setCloseOpen(true)} className="gap-1">
             <XCircle className="h-4 w-4" /> Close Job
