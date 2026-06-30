@@ -100,28 +100,29 @@ export default function PitchCandidate() {
       if (d) {
         setStory(d.story || "");
         setWhyNow(d.whyNow || "");
-        setSearchProfile(d.searchProfile || { product: "", stage: "", sector: data.sector || "", hiring: true });
+        setSearchProfile(d.searchProfile || { product: "", stage: "", sector: cand.sector || "", hiring: true });
         setPicked(d.picked || {});
       } else {
         // prefill
-        const motiv = data.summary || data.note || "";
+        const motiv = cand.summary || cand.note || "";
         setStory(
           [
-            data.job_title && data.current_employer ? `${data.job_title} at ${data.current_employer}.` : "",
+            cand.job_title && cand.current_employer ? `${cand.job_title} at ${cand.current_employer}.` : "",
             motiv ? motiv.slice(0, 240) : "",
           ].filter(Boolean).join(" ").trim()
         );
         setWhyNow(
-          data.status === "Active" ? "Actively looking — likely to move quickly" :
-          data.availability ? `Available ${data.availability}` : ""
+          cand.status === "Active" ? "Actively looking — likely to move quickly" :
+          cand.availability ? `Available ${cand.availability}` : ""
         );
         setSearchProfile({
-          product: data.summary ? data.summary.split(/[.\n]/)[0].slice(0, 120) : (data.job_title || ""),
+          product: cand.summary ? cand.summary.split(/[.\n]/)[0].slice(0, 120) : (cand.job_title || ""),
           stage: "",
-          sector: data.sector || "",
+          sector: cand.sector || "",
           hiring: true,
         });
       }
+
       setLoading(false);
     })();
   }, [candidateId, navigate]);
