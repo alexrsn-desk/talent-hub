@@ -34,6 +34,7 @@ export default function JobLaunch() {
   const [job, setJob] = useState<any>(null);
   const [hook, setHook] = useState("");
   const [ideal, setIdeal] = useState("");
+  const [jobSpec, setJobSpec] = useState("");
   const [loadingJob, setLoadingJob] = useState(true);
 
   const [matching, setMatching] = useState(false);
