@@ -253,30 +253,32 @@ export default function PitchCandidate() {
     const sel = picked[key];
     if (!sel || !candidate) return;
     const drf = drafts[key];
+    const meta = {
+      kind: sel.kind,
+      pitch_type: sel.category,
+      target: sel.label,
+      subject: drf?.subject || "",
+      body: drf?.body || "",
+    };
     try {
       if (sel.kind === "client") {
-        await logActivity({
-          activity_type: "Email",
-          content: `Warm pitch — ${candidate.name}\n\n${drf?.subject || ""}\n\n${drf?.body || ""}`,
-          client_id: sel.payload?.id,
-        } as any);
+        await logActivity({ action_type: "bd_contact_made", client_id: sel.payload?.id, candidate_id: candidate.id, metadata: meta });
       } else if (sel.kind === "contact") {
-        await logActivity({
-          activity_type: "Email",
-          content: `Warm pitch — ${candidate.name}\n\n${drf?.subject || ""}\n\n${drf?.body || ""}`,
-          contact_id: sel.payload?.id,
-        } as any);
+        await logActivity({ action_type: "bd_contact_made", candidate_id: candidate.id, metadata: { ...meta, contact_id: sel.payload?.id } });
+        // Reset relationship decay by updating last_contacted_at
+        try { await supabase.from("contacts").update({ last_contacted_at: new Date().toISOString() } as any).eq("id", sel.payload?.id); } catch {/* ignore */}
       } else if (sel.kind === "market") {
-        await logActivity({
-          activity_type: "Email",
-          content: `Cold pitch (market lead — ${sel.payload?.name}) for ${candidate.name}\n\n${drf?.subject || ""}\n\n${drf?.body || ""}`,
-          candidate_id: candidate.id,
-        } as any);
+        await logActivity({ action_type: "bd_contact_made", candidate_id: candidate.id, metadata: { ...meta, market_company: sel.payload?.name } });
+      }
+      // Reset decay on clients too
+      if (sel.kind === "client") {
+        try { await supabase.from("clients").update({ last_activity_date: new Date().toISOString() } as any).eq("id", sel.payload?.id); } catch {/* ignore */}
       }
     } catch { /* ignore log errors */ }
     setSentSet(s => new Set(s).add(key));
-    toast.success("Marked as sent");
+    toast.success("Marked as sent — touchpoint logged");
   }
+
 
   async function addMarketToBD(co: MarketCo) {
     try {
