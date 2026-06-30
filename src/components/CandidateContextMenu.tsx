@@ -1,6 +1,8 @@
 import { useState } from "react";
-import { MoreHorizontal, Eye, Trash2 } from "lucide-react";
+import { MoreHorizontal, Eye, Trash2, Sparkles } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
+
 import { Button } from "@/components/ui/button";
 import { useDeleteCandidate, type Candidate } from "@/hooks/use-data";
 import { toast } from "sonner";
@@ -24,6 +26,8 @@ interface Props {
 export function CandidateContextMenu({ candidate, onViewProfile, triggerClassName }: Props) {
   const [deleteOpen, setDeleteOpen] = useState(false);
   const deleteCandidate = useDeleteCandidate();
+  const navigate = useNavigate();
+
 
   return (
     <>
@@ -39,11 +43,15 @@ export function CandidateContextMenu({ candidate, onViewProfile, triggerClassNam
               <Eye className="h-3.5 w-3.5 mr-2" /> View Profile
             </DropdownMenuItem>
           )}
+          <DropdownMenuItem onClick={() => navigate(`/candidates/${candidate.id}/pitch`)}>
+            <Sparkles className="h-3.5 w-3.5 mr-2" /> Find opportunities
+          </DropdownMenuItem>
           <DropdownMenuSeparator />
           <DropdownMenuItem className="text-destructive" onClick={() => setDeleteOpen(true)}>
             <Trash2 className="h-3.5 w-3.5 mr-2" /> Remove
           </DropdownMenuItem>
         </DropdownMenuContent>
+
       </DropdownMenu>
       
       <AlertDialog open={deleteOpen} onOpenChange={setDeleteOpen}>
