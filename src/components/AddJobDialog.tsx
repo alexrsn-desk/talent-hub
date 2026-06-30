@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Plus, AlertTriangle, Rocket } from "lucide-react";
 import { useClients, useCreateClient, useCreateJob, useContacts, useCreateContact } from "@/hooks/use-data";
+import { JobSpecUploader } from "@/components/JobSpecUploader";
 import { toast } from "sonner";
 
 const JOB_TYPES = ["Perm", "Contract"] as const;
