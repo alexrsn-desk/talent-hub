@@ -39,6 +39,7 @@ export function AddJobDialog() {
   const [duplicateWarning, setDuplicateWarning] = useState(false);
   const [saving, setSaving] = useState(false);
   const [launchPrompt, setLaunchPrompt] = useState<{ jobId: string; title: string } | null>(null);
+  const [description, setDescription] = useState("");
   const dropdownRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
