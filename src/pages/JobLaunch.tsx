@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
 import { ArrowLeft, ArrowRight, Check, Loader2, Sparkles, Copy, ExternalLink, RotateCw, ChevronRight } from "lucide-react";
+import { JobSpecUploader } from "@/components/JobSpecUploader";
 
 type MatchCandidate = {
   id: string;
