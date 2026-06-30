@@ -348,6 +348,10 @@ export default function SettingsPage() {
       {/* My Templates — Reactivation */}
       <ReactivationTemplateSection />
 
+      {/* My Templates — Job Launch (5 templates) */}
+      <LaunchTemplatesSection />
+
+
 
       {/* Tag Management */}
       <div className="pt-6 border-t border-border">
@@ -472,6 +476,107 @@ function ReactivationTemplateSection() {
           <Button size="sm" onClick={save} disabled={saving}>
             {saving ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-1" /> : <Save className="h-3.5 w-3.5 mr-1" />}
             Save template
+          </Button>
+        </>
+      )}
+    </div>
+  );
+}
+
+const LAUNCH_TEMPLATES: { key: string; label: string; hint: string; placeholder: string }[] = [
+  {
+    key: "linkedin_post_template",
+    label: "LinkedIn post style",
+    hint: "Paste 2-3 LinkedIn posts you've written that performed well. AI learns tone, structure, length, opener, CTA, hashtag usage.",
+    placeholder: "One of the more interesting infrastructure challenges I've seen in a while...",
+  },
+  {
+    key: "personal_candidate_template",
+    label: "Personal candidate message style",
+    hint: "How you'd message a candidate you know about a new role. Warm, personal, short.",
+    placeholder: "Hi [first name] — saw this and thought of you straight away...",
+  },
+  {
+    key: "li_connection_template",
+    label: "LI connection DM style",
+    hint: "Short LinkedIn DM to a connection you haven't spoken with. Brief, soft ask.",
+    placeholder: "Hi [first name] — quick one. Working on something that might land well for you...",
+  },
+  {
+    key: "campaign_outreach_template",
+    label: "Campaign outreach style",
+    hint: "An outreach message that actually gets replies. Subject + hook + CTA.",
+    placeholder: "Subject: Worth a 15 min chat?\n\nHi {first_name} — saw {current_company} is...",
+  },
+  {
+    key: "client_confirmation_template",
+    label: "Client confirmation style",
+    hint: "How you confirm a brief back to a client. Confident, organised, professional.",
+    placeholder: "Hi [name] — thanks for the call earlier. Confirming what I'll be doing for you...",
+  },
+];
+
+function LaunchTemplatesSection() {
+  const { user } = useAuth();
+  const [values, setValues] = useState<Record<string, string>>({});
+  const [saving, setSaving] = useState(false);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (!user) return;
+    (async () => {
+      const { data } = await supabase
+        .from("recruiter_profiles")
+        .select(LAUNCH_TEMPLATES.map((t) => t.key).join(","))
+        .eq("user_id", user.id)
+        .maybeSingle();
+      const v: Record<string, string> = {};
+      for (const t of LAUNCH_TEMPLATES) v[t.key] = ((data as any) || {})[t.key] || "";
+      setValues(v);
+      setLoading(false);
+    })();
+  }, [user]);
+
+  const save = async () => {
+    if (!user) return;
+    setSaving(true);
+    const { error } = await supabase
+      .from("recruiter_profiles")
+      .update(values as any)
+      .eq("user_id", user.id);
+    setSaving(false);
+    if (error) toast.error(error.message);
+    else toast.success("Launch templates saved");
+  };
+
+  return (
+    <div className="pt-6 border-t border-border space-y-4">
+      <div>
+        <h2 className="text-sm font-medium">My Templates — Job Launch</h2>
+        <p className="text-xs text-muted-foreground">
+          Five templates the AI mirrors when you launch a new job search. Each one is optional — AI uses good defaults if blank.
+        </p>
+      </div>
+      {loading ? (
+        <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+      ) : (
+        <>
+          {LAUNCH_TEMPLATES.map((t) => (
+            <div key={t.key} className="space-y-1.5">
+              <Label className="text-xs">{t.label}</Label>
+              <p className="text-[11px] text-muted-foreground">{t.hint}</p>
+              <textarea
+                value={values[t.key] || ""}
+                onChange={(e) => setValues((v) => ({ ...v, [t.key]: e.target.value }))}
+                rows={4}
+                className="w-full rounded-lg border border-border bg-background p-3 text-sm font-mono"
+                placeholder={t.placeholder}
+              />
+            </div>
+          ))}
+          <Button size="sm" onClick={save} disabled={saving}>
+            {saving ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-1" /> : <Save className="h-3.5 w-3.5 mr-1" />}
+            Save launch templates
           </Button>
         </>
       )}
