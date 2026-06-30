@@ -163,7 +163,12 @@ export default function BDPipelinePage() {
     <div className="space-y-6 h-full">
       <div className="flex items-center justify-between gap-3">
         <h1 className="text-2xl font-semibold tracking-tight">BD Pipeline</h1>
-        <BDTipsButton />
+        <div className="flex items-center gap-2">
+          <Button size="sm" onClick={() => nav("/reactivation")} className="gap-1.5">
+            <Sparkles className="h-3.5 w-3.5" /> Reactivation Campaign
+          </Button>
+          <BDTipsButton />
+        </div>
       </div>
 
       {isLoading ? (
