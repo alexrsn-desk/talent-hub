@@ -92,7 +92,9 @@ export default function PitchCandidate() {
       setLoading(true);
       const { data, error } = await supabase.from("candidates").select("*").eq("id", candidateId).maybeSingle();
       if (error || !data) { toast.error("Candidate not found"); navigate("/candidates"); return; }
-      setCandidate(data);
+      const cand = data as any;
+      setCandidate(cand);
+
       // restore draft
       const d = loadDraft<any>(candidateId);
       if (d) {
