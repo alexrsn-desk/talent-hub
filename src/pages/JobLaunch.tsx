@@ -80,7 +80,7 @@ export default function JobLaunch() {
   async function goToStep2() {
     // persist brief inputs to job
     if (!jobId) return;
-    await supabase.from("jobs").update({ launch_hook: hook, ideal_candidate_line: ideal } as any).eq("id", jobId);
+    await supabase.from("jobs").update({ launch_hook: hook, ideal_candidate_line: ideal, description: jobSpec || null } as any).eq("id", jobId);
     setStep(1);
     setMatching(true);
     try {
