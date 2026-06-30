@@ -5,3 +5,12 @@ verify_jwt = false
 
 [functions.vincere-webhook]
 verify_jwt = false
+
+[functions.pitch-find-opportunities]
+verify_jwt = true
+
+[functions.pitch-market-search]
+verify_jwt = true
+
+[functions.pitch-draft-message]
+verify_jwt = true
