@@ -400,6 +400,34 @@ export function AddJobDialog() {
           </Button>
         </form>
       </DialogContent>
+
+      {/* Post-create Launch prompt */}
+      <Dialog open={!!launchPrompt} onOpenChange={(v) => { if (!v) setLaunchPrompt(null); }}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2"><Rocket className="h-5 w-5 text-primary" /> Job created</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-muted-foreground">
+            <span className="font-medium text-foreground">{launchPrompt?.title}</span> has been created. Ready to launch the search?
+          </p>
+          <p className="text-xs text-muted-foreground">
+            10-minute guided flow generates warm messages to candidates you know, your LinkedIn post, a campaign message, and a client confirmation.
+          </p>
+          <div className="flex gap-2 justify-end pt-2">
+            <Button variant="ghost" onClick={() => setLaunchPrompt(null)}>Do this later</Button>
+            <Button
+              onClick={() => {
+                const id = launchPrompt?.jobId;
+                setLaunchPrompt(null);
+                if (id) navigate(`/jobs/${id}/launch`);
+              }}
+              className="gap-1"
+            >
+              Launch search workflow <Rocket className="h-4 w-4" />
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </Dialog>
   );
 }
