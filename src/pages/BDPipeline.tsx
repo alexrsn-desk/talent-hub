@@ -11,7 +11,8 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { useClients, useUpdateClient, useDeleteClient, useCreateClient, useContacts, useCreateContact, useDeleteContact, type Client, type Contact } from "@/hooks/use-data";
 import { NotesSection } from "@/components/NotesSection";
 import { BDTipsButton } from "@/components/BDTipsPanel";
-import { Calendar as CalendarIcon, AlertTriangle, Plus, Trash2, ExternalLink, Users, CalendarPlus, Info, GitBranch } from "lucide-react";
+import { Calendar as CalendarIcon, AlertTriangle, Plus, Trash2, ExternalLink, Users, CalendarPlus, Info, GitBranch, Sparkles } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import { AddToSequencePanel } from "@/components/AddToSequencePanel";
 import { ActiveSequencesSection } from "@/components/ActiveSequencesSection";
 
