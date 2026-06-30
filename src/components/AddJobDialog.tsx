@@ -176,7 +176,7 @@ export function AddJobDialog() {
         toast.success(`New client "${newClient.company_name}" created and linked`);
       }
 
-      await createJob.mutateAsync({
+      const created = await createJob.mutateAsync({
         title: fd.get("title") as string,
         client_id: clientId,
         location: (fd.get("location") as string) || null,
@@ -190,8 +190,12 @@ export function AddJobDialog() {
         description: (fd.get("description") as string)?.trim() || null,
       } as any);
 
+      const title = fd.get("title") as string;
       resetForm();
       setOpen(false);
+      if ((created as any)?.id) {
+        setLaunchPrompt({ jobId: (created as any).id, title });
+      }
     } catch (err) {
       toast.error("Failed to create job");
     } finally {
