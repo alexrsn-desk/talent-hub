@@ -799,8 +799,48 @@ export function useBillersWorkflow(viewUserId?: string | null, thresholds: Bille
         });
       }
 
+      // TRIGGER 7 — STRONG ACTIVE CANDIDATE, NO LIVE ROLE MATCH (Pitch speculatively)
+      const candsOnActivePipelines = new Set<string>();
+      for (const cj of cjs) {
+        if (ACTIVE_STAGES.includes(cj.stage)) candsOnActivePipelines.add(cj.candidate_id);
+      }
+      for (const c of candidates as any[]) {
+        if (!c.priority_flag) continue;
+        if (c.do_not_contact || c.status === "Do Not Contact") continue;
+        if (candsOnActivePipelines.has(c.id)) continue;
+        if (placedCandIds.has(c.id)) continue;
+        // rough match count against active jobs (tag-based or title-token-based)
+        const candTagSet = tagsByCand.get(c.id) || new Set();
+        let matchCount = 0;
+        const ct = (c.job_title || "").toLowerCase();
+        for (const aj of activeJobsList) {
+          const jt = tagsByJob.get(aj.id);
+          let share = false;
+          if (jt) for (const t of jt) if (candTagSet.has(t)) { share = true; break; }
+          if (!share) {
+            const tok = (aj.title || "").toLowerCase().split(/\s+/).filter((t: string) => t.length > 3);
+            share = tok.some((t: string) => ct.includes(t));
+          }
+          if (share) matchCount += 1;
+        }
+        feedTheBeast.push({
+          id: `ftb-pitch-${c.id}`,
+          tone: "green", section: "feed",
+          title: `${c.name} is a strong candidate with no current role to submit to`,
+          sub: matchCount > 0
+            ? `${matchCount} potential match${matchCount === 1 ? "" : "es"} found — worth pitching speculatively`
+            : `No live match in your DB — worth pitching speculatively into the market`,
+          signal: "Strong active candidate, no current pipeline",
+          action: "Find opportunities →",
+          href: `/candidates/${c.id}/pitch`,
+          urgency: 55 + Math.min(matchCount * 3, 20),
+          logEntityType: "candidate",
+          logEntityId: c.id,
+          logEntityName: c.name,
+        });
+      }
 
-      // ============================================================
+
       // META
       // ============================================================
       let lastBdTouch: string | null = null;
