@@ -14,12 +14,13 @@ import {
 import { toast } from "sonner";
 import {
   ArrowLeft, ArrowRight, Sparkles, Loader2, Briefcase, Users, Globe,
-  CheckCircle2, Phone, Mail, Linkedin, Send, AlertCircle, ExternalLink, Plus, Pencil,
+  CheckCircle2, Phone, Mail, Send, AlertCircle, ExternalLink, Plus, Pencil,
 } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { logActivity } from "@/lib/activity-log";
 
 type Candidate = any;
+
 type Step = 1 | 2 | 3 | 4 | 5;
 
 type LiveRole = { job_id: string; score: number; reason: string; job: any };
