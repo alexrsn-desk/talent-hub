@@ -131,7 +131,7 @@ export function useBillersWorkflow(viewUserId?: string | null, thresholds: Bille
     queryFn: async (): Promise<BillersWorkflowData> => {
       const [cjRes, jobsRes, clientsRes, candsRes, notesRes, jobTagsRes, candTagsRes, tagDefsRes, poolsRes, poolMembersRes, placementsRes, offersRes, signalsRes] = await Promise.all([
         supabase.from("candidate_jobs").select("id,candidate_id,job_id,stage,stage_changed_at,created_at,owner_user_id"),
-        supabase.from("jobs").select("id,title,status,client_id,owner_user_id,date_opened,created_at,location,clients(company_name,contact_name)"),
+        supabase.from("jobs").select("id,title,status,client_id,owner_user_id,date_opened,created_at,location,search_launched_at,clients(company_name,contact_name)"),
         supabase.from("clients").select("id,company_name,contact_name,status,heat,last_activity_date,owner_user_id"),
         supabase.from("candidates").select("id,name,job_title,status,notice_period,owner_user_id"),
         supabase.from("notes").select("id,candidate_id,client_id,activity_type,content,created_at").order("created_at",{ ascending: false }).limit(1500),
@@ -840,8 +840,30 @@ export function useBillersWorkflow(viewUserId?: string | null, thresholds: Bille
         });
       }
 
-
-      // META
+      // TRIGGER 8 — JOB CREATED BUT SEARCH NOT LAUNCHED
+      for (const aj of activeJobsList) {
+        if ((aj as any).search_launched_at) continue;
+        const createdDays = daysSince(aj.created_at);
+        if (createdDays > 21) continue; // stale jobs handled elsewhere
+        const pipelineCount = (cjs as any[]).filter((cj) => cj.job_id === aj.id).length;
+        const clientName = (aj as any).clients?.company_name || "—";
+        feedTheBeast.push({
+          id: `ftb-launch-${aj.id}`,
+          tone: pipelineCount === 0 ? "amber" : "green",
+          section: "feed",
+          title: `${aj.title} — search not launched yet`,
+          sub: pipelineCount === 0
+            ? `Pipeline empty at ${clientName}. Run the 10-min launch workflow to generate warm messages, post, campaign, and client confirmation.`
+            : `Added ${createdDays}d ago at ${clientName}. Launch the search to send warm messages and create your campaign.`,
+          signal: "New job awaiting launch",
+          action: "Launch search →",
+          href: `/jobs/${aj.id}/launch`,
+          urgency: pipelineCount === 0 ? 75 : 50,
+          logEntityType: "client",
+          logEntityId: aj.client_id,
+          logEntityName: clientName,
+        });
+      }
       // ============================================================
       let lastBdTouch: string | null = null;
       for (const n of notes as any[]) {
