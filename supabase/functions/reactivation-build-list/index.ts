@@ -133,7 +133,7 @@ Deno.serve(async (req) => {
         const d = daysSince(ln?.created_at);
         if (!bucketMatches(d, filters.lastContactBucket)) continue;
         const p = placements.find((x: any) => x.candidate_id === cand.id);
-        const company = p?.client_name_snapshot || cand.current_company || "—";
+        const company = p?.client_name_snapshot || cand.current_employer || "—";
         const months = p ? Math.max(1, Math.floor(daysSince(p.offer_accepted_date || p.start_date) / 30)) : 0;
         rows.push({
           kind: "placed_candidate", id: cand.id,
