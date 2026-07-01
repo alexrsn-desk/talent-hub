@@ -149,13 +149,16 @@ Deno.serve(async (req) => {
 
     if (filters.kinds.includes("cold_contact") || filters.kinds.includes("general")) {
       for (const c of contacts as any[]) {
-        const d = daysSince(c.last_contacted_at);
+        // contacts table has no last_contacted_at — approximate via most recent related client note
+        const relatedNote = c.client_id ? (notesByClient.get(c.client_id) || [])[0] : undefined;
+        const d = daysSince(relatedNote?.created_at || c.created_at);
         if (!bucketMatches(d, filters.lastContactBucket)) continue;
-        const tps = (notesByContact.get(c.id) || []).length;
+        const tps = c.client_id ? (notesByClient.get(c.client_id) || []).length : 0;
+        const company = (c as any).clients?.company_name || "—";
         rows.push({
           kind: "cold_contact", id: c.id,
           name: c.name || `${c.first_name || ""} ${c.last_name || ""}`.trim(),
-          company: c.company_name || "—",
+          company,
           email: c.email,
           lastContactedDays: d,
           contextLine: tps > 0 ? `${tps} touchpoint${tps === 1 ? "" : "s"} logged` : "Network contact",
