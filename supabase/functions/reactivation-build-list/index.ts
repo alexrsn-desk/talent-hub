@@ -63,11 +63,9 @@ Deno.serve(async (req) => {
 
     const notesByClient = new Map<string, any[]>();
     const notesByCand = new Map<string, any[]>();
-    const notesByContact = new Map<string, any[]>();
     for (const n of notes) {
       if (n.client_id) { const a = notesByClient.get(n.client_id) || []; a.push(n); notesByClient.set(n.client_id, a); }
       if (n.candidate_id) { const a = notesByCand.get(n.candidate_id) || []; a.push(n); notesByCand.set(n.candidate_id, a); }
-      if (n.contact_id) { const a = notesByContact.get(n.contact_id) || []; a.push(n); notesByContact.set(n.contact_id, a); }
     }
 
     const placedClientIds = new Set(placements.map((p: any) => p.client_id));
