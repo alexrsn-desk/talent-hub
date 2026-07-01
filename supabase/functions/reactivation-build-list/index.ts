@@ -48,11 +48,11 @@ Deno.serve(async (req) => {
 
     // Pull all relevant context for this owner
     const [clientsRes, contactsRes, candidatesRes, placementsRes, notesRes] = await Promise.all([
-      supabase.from("clients").select("id,company_name,contact_name,contact_email,status,last_activity_date,created_at").eq("owner_user_id", user.id),
-      supabase.from("contacts").select("id,first_name,last_name,name,company_name,email,status,last_contacted_at,created_at").eq("owner_user_id", user.id),
-      supabase.from("candidates").select("id,name,first_name,last_name,email,current_company,job_title,status,created_at").eq("owner_user_id", user.id),
+      supabase.from("clients").select("id,company_name,contact_name,email,status,last_activity_date,created_at").eq("owner_user_id", user.id),
+      supabase.from("contacts").select("id,first_name,last_name,name,client_id,email,status,created_at,clients(company_name)").eq("owner_user_id", user.id),
+      supabase.from("candidates").select("id,name,first_name,last_name,email,current_employer,job_title,status,created_at").eq("owner_user_id", user.id),
       supabase.from("placements").select("id,client_id,candidate_id,client_name_snapshot,candidate_name_snapshot,offer_accepted_date,start_date,status").eq("owner_user_id", user.id),
-      supabase.from("notes").select("id,client_id,candidate_id,contact_id,content,created_at").eq("owner_user_id", user.id).order("created_at", { ascending: false }).limit(2000),
+      supabase.from("notes").select("id,client_id,candidate_id,content,created_at").eq("owner_user_id", user.id).order("created_at", { ascending: false }).limit(2000),
     ]);
 
     const clients = clientsRes.data || [];
