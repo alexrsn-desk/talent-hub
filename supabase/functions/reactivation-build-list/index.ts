@@ -117,7 +117,7 @@ Deno.serve(async (req) => {
         rows.push({
           kind: "warm_prospect", id: c.id,
           name: c.contact_name || c.company_name, company: c.company_name,
-          email: c.contact_email,
+          email: c.email,
           lastContactedDays: d,
           contextLine: lastNote ? `Last note: ${lastNote.slice(0, 80)}` : "Warm prospect — went quiet",
           touchpoints: (notesByClient.get(c.id) || []).length,
