@@ -32,6 +32,9 @@ import CompareSubmit from "./pages/CompareSubmit";
 import PitchCandidate from "./pages/PitchCandidate";
 import ReactivationCampaign from "./pages/ReactivationCampaign";
 import JobLaunch from "./pages/JobLaunch";
+import JobLaunchSelector from "./pages/JobLaunchSelector";
+import CompareSubmitSelector from "./pages/CompareSubmitSelector";
+import PitchCandidateSelector from "./pages/PitchCandidateSelector";
 import NotFound from "./pages/NotFound";
 
 
@@ -155,10 +158,13 @@ function AppRoutes() {
           <Route path="/live" element={<LiveConversations />} />
           <Route path="/candidates" element={<Candidates />} />
           <Route path="/candidates/:candidateId/pitch" element={<PitchCandidate />} />
+          <Route path="/pitch" element={<PitchCandidateSelector />} />
 
           <Route path="/clients" element={<Clients />} />
           <Route path="/contacts" element={<Contacts />} />
           <Route path="/jobs" element={<Jobs />} />
+          <Route path="/compare" element={<CompareSubmitSelector />} />
+          <Route path="/jobs/launch" element={<JobLaunchSelector />} />
           <Route path="/jobs/:jobId/compare" element={<CompareSubmit />} />
           <Route path="/jobs/:jobId/launch" element={<JobLaunch />} />
           <Route path="/placements" element={<Placements />} />
