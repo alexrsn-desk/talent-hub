@@ -96,7 +96,7 @@ Deno.serve(async (req) => {
         rows.push({
           kind: "past_client", id: c.id,
           name: c.contact_name || c.company_name, company: c.company_name,
-          email: c.contact_email,
+          email: c.email,
           lastContactedDays: d,
           contextLine: months ? `Placed here ${months} month${months === 1 ? "" : "s"} ago` : "Past client",
           touchpoints: (notesByClient.get(c.id) || []).length,
