@@ -59,7 +59,7 @@ Deno.serve(async (req) => {
     const [{ data: jobs }, { data: clients }, { data: contacts }, { data: rejectedCJ }] = await Promise.all([
       sb.from("jobs").select("id,title,description,intake_summary,location,salary_min,salary_max,status,client_id,clients(company_name,sector)").eq("status", "Active").limit(100),
       sb.from("clients").select("id,company_name,sector,status,last_activity_date,contact_name,job_title").limit(200),
-      sb.from("contacts").select("id,name,email,job_title,company,sector,status,last_contacted_at").limit(200),
+      sb.from("contacts").select("id,name,email,job_title,status,client_id,clients(company_name,sector)").limit(200),
       sb.from("candidate_jobs").select("job_id,stage,candidates(job_title,current_employer,sector)").in("stage", ["Rejected", "Not Suitable"]).limit(100),
     ]);
 
