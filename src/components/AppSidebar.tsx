@@ -1,6 +1,5 @@
 import { NavLink } from "@/components/NavLink";
-import { useLocation } from "react-router-dom";
-import { LayoutDashboard, Users, Building2, UserCircle, Briefcase, TrendingUp, Sparkles, Settings, BarChart3, PhoneCall, Link2, Award, MessagesSquare, Target, Waves } from "lucide-react";
+import { LayoutDashboard, Users, Building2, UserCircle, Briefcase, TrendingUp, Sparkles, Settings, BarChart3, PhoneCall, Link2, Award, MessagesSquare, Target, Waves, Rocket, Columns, RefreshCw } from "lucide-react";
 import {
   Sidebar,
   SidebarContent,
@@ -13,23 +12,47 @@ import {
 } from "@/components/ui/sidebar";
 import { useActivePlacementCount } from "@/hooks/use-placements";
 import { useLiveConversationsOverdueCount } from "@/hooks/use-live-conversations";
+import { useWorkflowCounts } from "@/hooks/use-workflow-counts";
 
-const items = [
+type BadgeKey = "live" | "placements" | "wf-launch" | "wf-compare" | "wf-reactivation";
+type Item = { title: string; url: string; icon: any; badge?: BadgeKey };
+
+const workspaceItems: Item[] = [
   { title: "Dashboard", url: "/", icon: LayoutDashboard },
   { title: "Biller's Workflow", url: "/billers-workflow", icon: Target },
-  { title: "Live Conversations", url: "/live", icon: MessagesSquare, badge: "live" as const },
+  { title: "Live Conversations", url: "/live", icon: MessagesSquare, badge: "live" },
+  { title: "AI Coach", url: "/coach", icon: Sparkles },
+  { title: "Weekly Intel", url: "/weekly", icon: BarChart3 },
+];
+
+const workflowItems: Item[] = [
+  { title: "Job Launch", url: "/jobs/launch", icon: Rocket, badge: "wf-launch" },
+  { title: "Compare & Submit", url: "/compare", icon: Columns, badge: "wf-compare" },
+  { title: "Reactivation Campaign", url: "/reactivation", icon: RefreshCw, badge: "wf-reactivation" },
+  { title: "Who Do I Pitch", url: "/pitch", icon: Target },
+];
+
+const dataItems: Item[] = [
   { title: "Candidates", url: "/candidates", icon: Users },
   { title: "Clients", url: "/clients", icon: Building2 },
   { title: "Contacts", url: "/contacts", icon: UserCircle },
   { title: "Jobs", url: "/jobs", icon: Briefcase },
-  { title: "Placements", url: "/placements", icon: Award, badge: "placements" as const },
+  { title: "Placements", url: "/placements", icon: Award, badge: "placements" },
+];
+
+const toolItems: Item[] = [
   { title: "BD Pipeline", url: "/bd-pipeline", icon: TrendingUp },
   { title: "Calls & Meetings", url: "/calls", icon: PhoneCall },
   { title: "Sequences", url: "/sequences", icon: Link2 },
-  { title: "AI Coach", url: "/coach", icon: Sparkles },
-  { title: "Weekly Intel", url: "/weekly", icon: BarChart3 },
   { title: "SourceWhale", url: "/sourcewhale", icon: Waves },
   { title: "Settings", url: "/settings", icon: Settings },
+];
+
+const SECTIONS: { label: string; items: Item[] }[] = [
+  { label: "My Desk", items: workspaceItems },
+  { label: "Workflows", items: workflowItems },
+  { label: "Data", items: dataItems },
+  { label: "Tools", items: toolItems },
 ];
 
 export function AppSidebar() {
@@ -37,6 +60,18 @@ export function AppSidebar() {
   const collapsed = state === "collapsed";
   const placementCount = useActivePlacementCount();
   const liveOverdue = useLiveConversationsOverdueCount();
+  const wf = useWorkflowCounts();
+
+  const getBadge = (key?: BadgeKey) => {
+    switch (key) {
+      case "live": return { count: liveOverdue, color: "bg-[#EF4444]" };
+      case "placements": return { count: placementCount, color: "bg-primary" };
+      case "wf-launch": return { count: wf.jobLaunch, color: "bg-amber-500" };
+      case "wf-compare": return { count: wf.compare, color: "bg-primary" };
+      case "wf-reactivation": return { count: wf.reactivation, color: "bg-amber-500" };
+      default: return { count: 0, color: "" };
+    }
+  };
 
   return (
     <Sidebar collapsible="icon">
@@ -56,10 +91,8 @@ export function AppSidebar() {
             <SidebarGroupContent>
               <SidebarMenu>
                 {section.items.map((item) => {
-                  const badgeCount =
-                    item.badge === "placements" ? placementCount :
-                    item.badge === "live" ? liveOverdue : 0;
-                  const showBadge = badgeCount > 0;
+                  const b = getBadge(item.badge);
+                  const showBadge = b.count > 0;
                   return (
                     <SidebarMenuItem key={item.title}>
                       <SidebarMenuButton asChild className="rounded-md">
@@ -73,11 +106,9 @@ export function AppSidebar() {
                           {!collapsed && <span className="flex-1">{item.title}</span>}
                           {!collapsed && showBadge && (
                             <span
-                              className={`ml-auto inline-flex min-w-[18px] h-[18px] items-center justify-center rounded-full px-1.5 text-[10px] font-semibold text-white ${
-                                item.badge === "live" ? "bg-[#EF4444]" : "bg-primary"
-                              }`}
+                              className={`ml-auto inline-flex min-w-[18px] h-[18px] items-center justify-center rounded-full px-1.5 text-[10px] font-semibold text-white ${b.color}`}
                             >
-                              {badgeCount}
+                              {b.count}
                             </span>
                           )}
                         </NavLink>
@@ -93,24 +124,3 @@ export function AppSidebar() {
     </Sidebar>
   );
 }
-
-const SECTIONS: { label: string; items: typeof items }[] = [
-  {
-    label: "Workspace",
-    items: items.filter((i) =>
-      ["Dashboard", "Biller's Workflow", "Live Conversations", "AI Coach", "Weekly Intel"].includes(i.title),
-    ),
-  },
-  {
-    label: "Data",
-    items: items.filter((i) =>
-      ["Candidates", "Clients", "Contacts", "Jobs", "Placements"].includes(i.title),
-    ),
-  },
-  {
-    label: "Tools",
-    items: items.filter((i) =>
-      ["BD Pipeline", "Calls & Meetings", "Sequences", "SourceWhale", "Settings"].includes(i.title),
-    ),
-  },
-];
