@@ -48,11 +48,11 @@ Deno.serve(async (req) => {
 
     // Pull all relevant context for this owner
     const [clientsRes, contactsRes, candidatesRes, placementsRes, notesRes] = await Promise.all([
-      supabase.from("clients").select("id,company_name,contact_name,contact_email,status,last_activity_date,created_at").eq("owner_user_id", user.id),
-      supabase.from("contacts").select("id,first_name,last_name,name,company_name,email,status,last_contacted_at,created_at").eq("owner_user_id", user.id),
-      supabase.from("candidates").select("id,name,first_name,last_name,email,current_company,job_title,status,created_at").eq("owner_user_id", user.id),
+      supabase.from("clients").select("id,company_name,contact_name,email,status,last_activity_date,created_at").eq("owner_user_id", user.id),
+      supabase.from("contacts").select("id,first_name,last_name,name,client_id,email,status,created_at,clients(company_name)").eq("owner_user_id", user.id),
+      supabase.from("candidates").select("id,name,first_name,last_name,email,current_employer,job_title,status,created_at").eq("owner_user_id", user.id),
       supabase.from("placements").select("id,client_id,candidate_id,client_name_snapshot,candidate_name_snapshot,offer_accepted_date,start_date,status").eq("owner_user_id", user.id),
-      supabase.from("notes").select("id,client_id,candidate_id,contact_id,content,created_at").eq("owner_user_id", user.id).order("created_at", { ascending: false }).limit(2000),
+      supabase.from("notes").select("id,client_id,candidate_id,content,created_at").eq("owner_user_id", user.id).order("created_at", { ascending: false }).limit(2000),
     ]);
 
     const clients = clientsRes.data || [];
@@ -63,11 +63,9 @@ Deno.serve(async (req) => {
 
     const notesByClient = new Map<string, any[]>();
     const notesByCand = new Map<string, any[]>();
-    const notesByContact = new Map<string, any[]>();
     for (const n of notes) {
       if (n.client_id) { const a = notesByClient.get(n.client_id) || []; a.push(n); notesByClient.set(n.client_id, a); }
       if (n.candidate_id) { const a = notesByCand.get(n.candidate_id) || []; a.push(n); notesByCand.set(n.candidate_id, a); }
-      if (n.contact_id) { const a = notesByContact.get(n.contact_id) || []; a.push(n); notesByContact.set(n.contact_id, a); }
     }
 
     const placedClientIds = new Set(placements.map((p: any) => p.client_id));
@@ -98,7 +96,7 @@ Deno.serve(async (req) => {
         rows.push({
           kind: "past_client", id: c.id,
           name: c.contact_name || c.company_name, company: c.company_name,
-          email: c.contact_email,
+          email: c.email,
           lastContactedDays: d,
           contextLine: months ? `Placed here ${months} month${months === 1 ? "" : "s"} ago` : "Past client",
           touchpoints: (notesByClient.get(c.id) || []).length,
@@ -119,7 +117,7 @@ Deno.serve(async (req) => {
         rows.push({
           kind: "warm_prospect", id: c.id,
           name: c.contact_name || c.company_name, company: c.company_name,
-          email: c.contact_email,
+          email: c.email,
           lastContactedDays: d,
           contextLine: lastNote ? `Last note: ${lastNote.slice(0, 80)}` : "Warm prospect — went quiet",
           touchpoints: (notesByClient.get(c.id) || []).length,
@@ -135,7 +133,7 @@ Deno.serve(async (req) => {
         const d = daysSince(ln?.created_at);
         if (!bucketMatches(d, filters.lastContactBucket)) continue;
         const p = placements.find((x: any) => x.candidate_id === cand.id);
-        const company = p?.client_name_snapshot || cand.current_company || "—";
+        const company = p?.client_name_snapshot || cand.current_employer || "—";
         const months = p ? Math.max(1, Math.floor(daysSince(p.offer_accepted_date || p.start_date) / 30)) : 0;
         rows.push({
           kind: "placed_candidate", id: cand.id,
@@ -151,13 +149,16 @@ Deno.serve(async (req) => {
 
     if (filters.kinds.includes("cold_contact") || filters.kinds.includes("general")) {
       for (const c of contacts as any[]) {
-        const d = daysSince(c.last_contacted_at);
+        // contacts table has no last_contacted_at — approximate via most recent related client note
+        const relatedNote = c.client_id ? (notesByClient.get(c.client_id) || [])[0] : undefined;
+        const d = daysSince(relatedNote?.created_at || c.created_at);
         if (!bucketMatches(d, filters.lastContactBucket)) continue;
-        const tps = (notesByContact.get(c.id) || []).length;
+        const tps = c.client_id ? (notesByClient.get(c.client_id) || []).length : 0;
+        const company = (c as any).clients?.company_name || "—";
         rows.push({
           kind: "cold_contact", id: c.id,
           name: c.name || `${c.first_name || ""} ${c.last_name || ""}`.trim(),
-          company: c.company_name || "—",
+          company,
           email: c.email,
           lastContactedDays: d,
           contextLine: tps > 0 ? `${tps} touchpoint${tps === 1 ? "" : "s"} logged` : "Network contact",

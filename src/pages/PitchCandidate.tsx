@@ -265,8 +265,7 @@ export default function PitchCandidate() {
         await logActivity({ action_type: "bd_contact_made", client_id: sel.payload?.id, candidate_id: candidate.id, metadata: meta });
       } else if (sel.kind === "contact") {
         await logActivity({ action_type: "bd_contact_made", candidate_id: candidate.id, metadata: { ...meta, contact_id: sel.payload?.id } });
-        // Reset relationship decay by updating last_contacted_at
-        try { await supabase.from("contacts").update({ last_contacted_at: new Date().toISOString() } as any).eq("id", sel.payload?.id); } catch {/* ignore */}
+        // contacts has no last_contacted_at column — activity_log entry above tracks the touch
       } else if (sel.kind === "market") {
         await logActivity({ action_type: "bd_contact_made", candidate_id: candidate.id, metadata: { ...meta, market_company: sel.payload?.name } });
       }

@@ -50,10 +50,19 @@ Deno.serve(async (req) => {
       .order("created_at", { ascending: false })
       .limit(60);
 
-    const { data: screening = [] } = await sb
-      .from("screening_notes")
-      .select("candidate_id, content, ai_summary")
+    // screening_notes links via candidate_job_id
+    const { data: cjs = [] } = await sb
+      .from("candidate_jobs")
+      .select("id, candidate_id")
       .in("candidate_id", candidate_ids);
+    const cjToCand = new Map<string, string>((cjs as any[]).map((c) => [c.id, c.candidate_id]));
+    const cjIds = (cjs as any[]).map((c) => c.id);
+    const { data: screening = [] } = cjIds.length
+      ? await sb
+          .from("screening_notes")
+          .select("candidate_job_id, why_suitable, key_strengths, concerns")
+          .in("candidate_job_id", cjIds)
+      : { data: [] };
 
     const notesByCand: Record<string, string[]> = {};
     for (const n of notes as any[]) {
@@ -61,8 +70,10 @@ Deno.serve(async (req) => {
       (notesByCand[n.candidate_id] ||= []).push(`[${n.activity_type}] ${String(n.content).slice(0, 400)}`);
     }
     for (const s of screening as any[]) {
-      if (!s.candidate_id) continue;
-      (notesByCand[s.candidate_id] ||= []).push(`[Screening] ${(s.ai_summary || s.content || "").slice(0, 500)}`);
+      const candId = cjToCand.get(s.candidate_job_id);
+      if (!candId) continue;
+      const parts = [s.why_suitable, s.key_strengths, s.concerns].filter(Boolean).join(" · ");
+      if (parts) (notesByCand[candId] ||= []).push(`[Screening] ${parts.slice(0, 500)}`);
     }
 
     const jobCtx = `Role: ${job?.title || "?"} at ${(job as any)?.clients?.company_name || "client"}
