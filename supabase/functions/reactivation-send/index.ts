@@ -93,14 +93,19 @@ Deno.serve(async (req) => {
       if (msg.contact_kind === "past_client" || msg.contact_kind === "warm_prospect") {
         await supabase.from("clients").update({ last_activity_date: now }).eq("id", msg.contact_id).eq("owner_user_id", user.id);
       } else if (msg.contact_kind === "placed_candidate") {
-        // candidates table doesn't have last_activity; insert a brief note as touchpoint
+        // Log outreach as a note against the candidate
         await supabase.from("notes").insert({
           owner_user_id: user.id, candidate_id: msg.contact_id,
           content: `Reactivation message sent: ${msg.subject || "(no subject)"}`,
-          note_type: "reactivation",
+          activity_type: "reactivation",
         } as any);
       } else if (msg.contact_kind === "cold_contact" || msg.contact_kind === "general") {
-        await supabase.from("contacts").update({ last_contacted_at: now }).eq("id", msg.contact_id).eq("owner_user_id", user.id);
+        // contacts has no last_contacted_at column — log via activity_log instead
+        await supabase.from("activity_log").insert({
+          user_id: user.id,
+          action_type: "reactivation_sent",
+          metadata: { contact_id: msg.contact_id, subject: msg.subject } as any,
+        } as any);
       }
     }
 
