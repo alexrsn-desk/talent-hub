@@ -137,7 +137,7 @@ export function useBillersWorkflow(viewUserId?: string | null, thresholds: Bille
         supabase.from("notes").select("id,candidate_id,client_id,activity_type,content,created_at").order("created_at",{ ascending: false }).limit(1500),
         supabase.from("job_tags").select("job_id,tag_definition_id"),
         supabase.from("candidate_tags").select("candidate_id,tag_definition_id"),
-        supabase.from("tag_definitions" as any).select("id,name"),
+        supabase.from("tag_definitions" as any).select("id,label"),
         supabase.from("talent_pools" as any).select("id,name,description,target_size,warning_threshold_days,owner_user_id"),
         supabase.from("candidate_talent_pools" as any).select("candidate_id,pool_id,owner_user_id,added_at"),
         supabase.from("placements" as any).select("id,candidate_id,client_id,job_id,candidate_name_snapshot,client_name_snapshot,job_title_snapshot,offer_accepted_date,start_date,status,owner_user_id"),
@@ -159,7 +159,7 @@ export function useBillersWorkflow(viewUserId?: string | null, thresholds: Bille
       const offers = filterOwner(offersRes.data as any);
       const tagDefs = (tagDefsRes.data || []) as any[];
       const tagNameById = new Map<string, string>();
-      for (const t of tagDefs) tagNameById.set(t.id, t.name);
+      for (const t of tagDefs) tagNameById.set(t.id, (t as any).label);
 
       const jobById = new Map(jobs.map((j: any) => [j.id, j]));
       const candById = new Map(candidates.map((c: any) => [c.id, c]));
