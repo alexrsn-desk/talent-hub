@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { AlertTriangle, Loader2 } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { AlertTriangle, Loader2, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
@@ -11,22 +12,33 @@ export function DangerZoneSection() {
   const [open, setOpen] = useState(false);
   const [confirm, setConfirm] = useState("");
   const [busy, setBusy] = useState(false);
+  const [done, setDone] = useState(false);
   const qc = useQueryClient();
+  const navigate = useNavigate();
+
+  const reset = () => {
+    setConfirm("");
+    setDone(false);
+  };
 
   const handleClear = async () => {
     setBusy(true);
     try {
       const { error } = await supabase.rpc("clear_user_data" as any);
       if (error) throw error;
-      toast.success("All data cleared");
-      setOpen(false);
-      setConfirm("");
       qc.invalidateQueries();
+      setDone(true);
     } catch (e: any) {
       toast.error(e?.message ?? "Failed to clear data");
     } finally {
       setBusy(false);
     }
+  };
+
+  const handleGoToDesk = () => {
+    setOpen(false);
+    reset();
+    navigate("/");
   };
 
   return (
@@ -36,35 +48,60 @@ export function DangerZoneSection() {
         <h2 className="text-sm font-medium text-destructive">Danger Zone</h2>
       </div>
       <p className="text-xs text-muted-foreground">
-        Permanently remove all imported and added data from your account. Your profile, settings and preferences are kept.
+        Permanently remove all imported and added data from your account. Your profile, settings, templates and talent pool definitions are kept.
       </p>
       <Button variant="destructive" size="sm" onClick={() => setOpen(true)}>
         Clear all data
       </Button>
 
-      <Dialog open={open} onOpenChange={(v) => { if (!v) setConfirm(""); setOpen(v); }}>
+      <Dialog open={open} onOpenChange={(v) => { if (!v) reset(); setOpen(v); }}>
         <DialogContent className="max-w-lg">
-          <DialogHeader>
-            <DialogTitle>Clear all data</DialogTitle>
-            <DialogDescription>
-              This will permanently delete all candidates, clients, contacts, jobs, applications, notes, signals and activity from your account.
-              <br /><br />
-              <span className="text-destructive font-medium">This cannot be undone.</span>
-            </DialogDescription>
-          </DialogHeader>
+          {!done ? (
+            <>
+              <DialogHeader>
+                <DialogTitle>Clear all data</DialogTitle>
+                <DialogDescription asChild>
+                  <div className="space-y-2">
+                    <p>
+                      This will permanently delete all candidates, contacts, clients, jobs, applications, notes, signals, activity and placements from your account.
+                    </p>
+                    <p className="text-destructive font-medium">This cannot be undone.</p>
+                  </div>
+                </DialogDescription>
+              </DialogHeader>
 
-          <div className="space-y-2">
-            <label className="text-xs text-muted-foreground">Type DELETE to confirm:</label>
-            <Input value={confirm} onChange={(e) => setConfirm(e.target.value)} placeholder="DELETE" autoFocus />
-          </div>
+              <div className="space-y-2">
+                <label className="text-xs text-muted-foreground">Type DELETE to confirm:</label>
+                <Input value={confirm} onChange={(e) => setConfirm(e.target.value)} placeholder="DELETE" autoFocus />
+              </div>
 
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setOpen(false)} disabled={busy}>Cancel</Button>
-            <Button variant="destructive" onClick={handleClear} disabled={confirm !== "DELETE" || busy}>
-              {busy ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : null}
-              Confirm — clear everything
-            </Button>
-          </DialogFooter>
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setOpen(false)} disabled={busy}>Cancel</Button>
+                <Button variant="destructive" onClick={handleClear} disabled={confirm !== "DELETE" || busy}>
+                  {busy ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : null}
+                  Confirm — clear everything
+                </Button>
+              </DialogFooter>
+            </>
+          ) : (
+            <>
+              <DialogHeader>
+                <div className="flex items-center gap-2">
+                  <CheckCircle2 className="h-5 w-5 text-emerald-500" />
+                  <DialogTitle>All data cleared</DialogTitle>
+                </div>
+                <DialogDescription asChild>
+                  <div className="space-y-1 pt-2">
+                    <p>Your settings and templates have been kept.</p>
+                    <p>Ready for a fresh start.</p>
+                  </div>
+                </DialogDescription>
+              </DialogHeader>
+              <DialogFooter>
+                <Button onClick={handleGoToDesk}>Go to My Desk</Button>
+              </DialogFooter>
+            </>
+          )}
         </DialogContent>
       </Dialog>
     </div>
