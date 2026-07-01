@@ -153,7 +153,7 @@ export function AddJobDialog() {
           email: newClient.contact_email.trim() || null,
           phone: newClient.contact_phone.trim() || null,
           job_title: newClient.contact_job_title.trim() || null,
-          status: "Active",
+          status: "Active Client",
           sector: null,
           linkedin_url: null,
           next_action: null,
