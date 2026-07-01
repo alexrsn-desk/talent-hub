@@ -6,13 +6,11 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Rocket, Plus, Search, ArrowRight } from "lucide-react";
-import { AddJobDialog } from "@/components/AddJobDialog";
 
 export default function JobLaunchSelector() {
   const nav = useNavigate();
   const { data: jobs = [], isLoading } = useJobs();
   const [q, setQ] = useState("");
-  const [openAdd, setOpenAdd] = useState(false);
 
   const filtered = useMemo(() => {
     const s = q.trim().toLowerCase();
@@ -39,7 +37,7 @@ export default function JobLaunchSelector() {
           <Search className="h-4 w-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
           <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search active jobs…" className="pl-9" />
         </div>
-        <Button variant="outline" onClick={() => setOpenAdd(true)}>
+        <Button variant="outline" onClick={() => nav("/jobs")}>
           <Plus className="h-4 w-4 mr-1" /> Create new job
         </Button>
       </div>
@@ -72,8 +70,6 @@ export default function JobLaunchSelector() {
           ))}
         </div>
       )}
-
-      <AddJobDialog open={openAdd} onOpenChange={setOpenAdd} onCreated={(id) => nav(`/jobs/${id}/launch`)} />
     </div>
   );
 }
