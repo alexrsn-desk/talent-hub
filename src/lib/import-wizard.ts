@@ -522,6 +522,10 @@ export async function runWizardImport(opts: {
       if (error) { res.failed++; res.errors.push({ row: idx + 2, reason: error.message, data: rec }); continue; }
       res.imported++;
       res.importedIds.push(inserted.id);
+      if (recordType === "candidates" || recordType === "contacts") {
+        const hasContact = !!(rec.email || rec.phone || rec.personal_email || rec.direct_phone || rec.mobile_phone);
+        if (!hasContact) res.importedNoContact++;
+      }
       await maybeInsertNote(recordType, inserted.id, notesContent, sourceLabel);
     } catch (e: any) {
       res.failed++;
