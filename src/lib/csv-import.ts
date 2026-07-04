@@ -210,17 +210,68 @@ export const BUILT_IN_TEMPLATES: MappingTemplate[] = [
   {
     name: "Generic Spreadsheet", platform: "spreadsheet",
     mappings: {
+      // First name variants
       "first_name": "first_name", "firstname": "first_name", "first name": "first_name",
-      "last_name": "last_name", "lastname": "last_name", "last name": "last_name", "surname": "last_name",
-      "name": "_fullname", "full_name": "_fullname", "full name": "_fullname",
-      "candidate_name": "_fullname", "contact_name": "_contact_fullname",
-      "email": "email", "phone": "phone",
-      "mobile": "phone", "linkedin": "linkedin_url", "job_title": "job_title",
-      "title": "job_title", "company": "current_employer", "employer": "current_employer",
-      "location": "location", "city": "location", "salary": "salary_current",
-      "source": "source", "company_name": "company_name",
-      "sector": "sector", "industry": "sector",
-      "notes": "_notes", "comments": "_notes",
+      "First Name": "first_name", "Firstname": "first_name",
+      "forename": "first_name", "Forename": "first_name",
+      "given name": "first_name", "Given Name": "first_name", "given_name": "first_name",
+      // Last name variants
+      "last_name": "last_name", "lastname": "last_name", "last name": "last_name",
+      "Last Name": "last_name", "Lastname": "last_name",
+      "surname": "last_name", "Surname": "last_name",
+      "family name": "last_name", "Family Name": "last_name", "family_name": "last_name",
+      // Full name (auto-split on first space)
+      "name": "_fullname", "Name": "_fullname",
+      "full_name": "_fullname", "full name": "_fullname", "Full Name": "_fullname",
+      "candidate_name": "_fullname", "Candidate Name": "_fullname",
+      "contact_name": "_contact_fullname", "Contact Name": "_contact_fullname",
+      // Email variants
+      "email": "email", "Email": "email",
+      "email address": "email", "Email Address": "email", "email_address": "email",
+      "e-mail": "email", "E-mail": "email", "E-Mail": "email",
+      // Phone variants
+      "phone": "phone", "Phone": "phone",
+      "phone number": "phone", "Phone Number": "phone", "phone_number": "phone",
+      "telephone": "phone", "Telephone": "phone",
+      "tel": "phone", "Tel": "phone",
+      "mobile": "phone", "Mobile": "phone",
+      // LinkedIn
+      "linkedin": "linkedin_url", "LinkedIn": "linkedin_url",
+      "linkedin url": "linkedin_url", "LinkedIn URL": "linkedin_url",
+      // Job title variants
+      "job_title": "job_title", "job title": "job_title", "Job Title": "job_title",
+      "title": "job_title", "Title": "job_title",
+      "position": "job_title", "Position": "job_title",
+      "current role": "job_title", "Current Role": "job_title",
+      "current position": "job_title", "Current Position": "job_title",
+      // Company / employer variants
+      "company": "current_employer", "Company": "current_employer",
+      "employer": "current_employer", "Employer": "current_employer",
+      "current company": "current_employer", "Current Company": "current_employer",
+      "current employer": "current_employer", "Current Employer": "current_employer",
+      "organisation": "current_employer", "Organisation": "current_employer",
+      "organization": "current_employer", "Organization": "current_employer",
+      // Location
+      "location": "location", "Location": "location",
+      "city": "location", "City": "location",
+      // Salary
+      "salary": "salary_current", "Salary": "salary_current",
+      "current salary": "salary_current", "Current Salary": "salary_current",
+      // Source variants
+      "source": "source", "Source": "source",
+      "lead source": "source", "Lead Source": "source", "lead_source": "source",
+      "origin": "source", "Origin": "source",
+      "how found": "source", "How Found": "source",
+      // Status variants
+      "status": "status", "Status": "status",
+      "candidate status": "status", "Candidate Status": "status",
+      "record status": "status", "Record Status": "status",
+      // Company + sector (for clients)
+      "company_name": "company_name", "Company Name": "company_name",
+      "sector": "sector", "Sector": "sector", "industry": "sector", "Industry": "sector",
+      // Notes
+      "notes": "_notes", "Notes": "_notes",
+      "comments": "_notes", "Comments": "_notes",
     },
   },
   {
@@ -275,25 +326,12 @@ const STATUS_MAPS: Record<string, Record<string, string>> = {
 
 const VALID_STATUSES = ["New", "Contacted", "Screening", "Submitted", "Interviewing", "Placed", "On Hold", "Not Suitable", "Cold", "Archive", "Do Not Contact", "Active", "LI Connection"];
 
-export function mapStatus(raw: string | null, platform?: string): { status: string; flagPriority: boolean; flagged: boolean } {
-  if (!raw) return { status: "Active", flagPriority: false, flagged: false };
-  const lower = raw.toLowerCase().trim();
-
-  // Check platform-specific mapping first
-  if (platform && STATUS_MAPS[platform]) {
-    const mapped = STATUS_MAPS[platform][lower];
-    if (mapped) {
-      const flagPriority = lower === "hot";
-      return { status: mapped, flagPriority, flagged: false };
-    }
-  }
-
-  // Generic mapping
-  const directMatch = VALID_STATUSES.find(s => s.toLowerCase() === lower);
-  if (directMatch) return { status: directMatch, flagPriority: false, flagged: false };
-
-  // Default to Active and flag for review
-  return { status: "Active", flagPriority: false, flagged: true };
+export function mapStatus(raw: string | null, _platform?: string): { status: string; flagPriority: boolean; flagged: boolean } {
+  if (!raw || !raw.trim()) return { status: "Active", flagPriority: false, flagged: false };
+  const trimmed = raw.trim();
+  const flagPriority = trimmed.toLowerCase() === "hot";
+  // No DB constraint — store the source value as-is
+  return { status: trimmed, flagPriority, flagged: false };
 }
 
 // ── Salary cleaning ───────────────────────────────────────────────
