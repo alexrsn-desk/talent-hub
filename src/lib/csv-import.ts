@@ -51,7 +51,7 @@ export const JOB_FIELDS: FieldDef[] = [
 ];
 
 export const CONTACT_FIELDS: FieldDef[] = [
-  { key: "first_name", label: "First Name", required: true },
+  { key: "first_name", label: "First Name", required: false },
   { key: "last_name", label: "Last Name", required: false },
   { key: "_fullname", label: "Full Name (will split)", required: false },
   { key: "job_title", label: "Job Title", required: false },
