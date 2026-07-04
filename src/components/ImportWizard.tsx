@@ -82,17 +82,27 @@ export function ImportWizard() {
       const { headers: h, rows: r } = await parseFile(f);
       if (!h.length) { toast.error("File appears empty"); return; }
       setFile(f); setHeaders(h); setRows(r);
-      const det = detectSource(h);
+      const templatesForType = savedTemplates.filter(t => t.recordType === recordType);
+      const det = detectSource(h, templatesForType);
       setSource(det.source);
       setSourceLabel(det.label);
       setDetectionMessage(det.message);
-      const m = mappingForSource(det.source, h, recordType);
-      setMapping(m);
+      // If a saved template auto-matched, apply its mapping directly
+      const savedName = (det as any).savedTemplateName as string | undefined;
+      const savedTpl = savedName ? templatesForType.find(t => t.name === savedName) : undefined;
+      if (savedTpl) {
+        const m: Record<string, string> = {};
+        for (const header of h) m[header] = savedTpl.mapping[header] || "_skip";
+        setMapping(m);
+      } else {
+        setMapping(mappingForSource(det.source, h, recordType));
+      }
       toast.success(`${f.name} — ${r.length} rows detected`);
     } catch (e: any) {
       toast.error(`Failed to parse file: ${e?.message || e}`);
     }
   };
+
 
   const onDrop = (e: React.DragEvent) => {
     e.preventDefault(); setDragOver(false);

@@ -41,25 +41,46 @@ export interface SourceDetection {
   message: string;
 }
 
+// Signature columns per known CRM export — deterministic detection.
+// Works identically with any LLM downstream since it runs client-side.
 const SIGNATURES: Array<{ source: SourceKey; label: string; markers: string[]; min: number }> = [
-  { source: "vincere", label: "Vincere",
-    markers: ["candidate name", "current employer", "current job title", "consultant", "vincere", "candidate_id"], min: 2 },
   { source: "sourcewhale", label: "SourceWhale",
-    markers: ["sourcewhale", "campaign", "campaign name", "sequence", "replied", "opened", "bounced", "step", "outreach"], min: 2 },
+    markers: ["campaign", "role / job title", "role/job title", "sourced", "sourcer", "opens", "sequence", "step", "outreach"], min: 3 },
+  { source: "vincere", label: "Vincere",
+    markers: ["candidate name", "first name", "last name", "current job title", "current employer", "availability", "consultant"], min: 3 },
   { source: "bullhorn", label: "Bullhorn",
-    markers: ["companyname", "linkedinurl", "dateadded", "bullhorn", "owner corporation", "candidate id"], min: 2 },
+    markers: ["firstname", "lastname", "title", "employername", "primaryemail", "companyname", "linkedinurl", "dateadded"], min: 3 },
   { source: "loxo", label: "Loxo",
-    markers: ["loxo", "current title", "current company", "loxo id"], min: 2 },
+    markers: ["first", "last", "position", "organization", "email address", "loxo id"], min: 3 },
   { source: "jobadder", label: "JobAdder",
-    markers: ["jobadder", "mobile phone", "current employer", "current job title", "stage"], min: 2 },
+    markers: ["given name", "family name", "current position", "current employer", "mobile phone", "email address"], min: 3 },
   { source: "linkedin", label: "LinkedIn Connections",
     markers: ["connected on", "first name", "last name", "company", "position", "email address"], min: 4 },
   { source: "recruitee", label: "Recruitee",
     markers: ["recruitee", "candidate source"], min: 1 },
 ];
 
-export function detectSource(headers: string[]): SourceDetection {
+export function detectSource(
+  headers: string[],
+  savedTemplates: Array<{ name: string; mapping: Record<string, string> }> = [],
+): SourceDetection & { savedTemplateName?: string } {
   const lc = headers.map(h => h.toLowerCase().trim());
+
+  // Saved user templates take priority — if 70%+ of the saved template's
+  // headers appear in this file, auto-apply it.
+  for (const tpl of savedTemplates) {
+    const tplHeaders = Object.keys(tpl.mapping).filter(h => tpl.mapping[h] && tpl.mapping[h] !== "_skip");
+    if (tplHeaders.length < 3) continue;
+    const overlap = tplHeaders.filter(h => headers.includes(h)).length;
+    if (overlap / tplHeaders.length >= 0.7) {
+      return {
+        source: "unknown", label: tpl.name, confidence: "high",
+        message: `Recognised your saved format "${tpl.name}" — columns auto-mapped.`,
+        savedTemplateName: tpl.name,
+      };
+    }
+  }
+
   let best: { source: SourceKey; label: string; score: number } | null = null;
   for (const sig of SIGNATURES) {
     const score = sig.markers.filter(m => lc.some(h => h === m || h.includes(m))).length;
@@ -68,17 +89,51 @@ export function detectSource(headers: string[]): SourceDetection {
     }
   }
   if (best) {
-    const conf: "high" | "medium" | "low" = best.score >= 4 ? "high" : best.score >= 3 ? "medium" : "low";
+    const conf: "high" | "medium" | "low" = best.score >= 5 ? "high" : best.score >= 4 ? "medium" : "low";
     return {
       source: best.source, label: best.label, confidence: conf,
-      message: `This looks like a ${best.label} export. We've pre-mapped the columns for you.`,
+      message: `This looks like a ${best.label} export. We've automatically mapped all columns.`,
     };
   }
-  // Fallback: if headers look like normal spreadsheet headers, treat as spreadsheet
   return {
-    source: "unknown", label: "Unknown format", confidence: "low",
-    message: "We don't recognise this format. Please review the column mapping below.",
+    source: "unknown", label: "Custom format", confidence: "low",
+    message: "We don't recognise this format, but we've mapped columns as best we can. Please review before importing.",
   };
+}
+
+// ── Fuzzy fallback for unknown formats ────────────────────────────
+// Substring rules used when no built-in template matches a header.
+const FUZZY_RULES: Array<{ patterns: string[]; field: string; recordTypes?: RecordType[] }> = [
+  { patterns: ["first", "forename", "given"], field: "first_name" },
+  { patterns: ["last", "surname", "family"], field: "last_name" },
+  { patterns: ["full name", "fullname", "candidate name", "contact name", "name"], field: "_fullname" },
+  { patterns: ["e-mail", "email", "mail"], field: "email" },
+  { patterns: ["personal email", "personal mail"], field: "personal_email", recordTypes: ["contacts"] },
+  { patterns: ["mobile", "cell"], field: "mobile_phone", recordTypes: ["contacts"] },
+  { patterns: ["direct", "work phone", "office phone"], field: "direct_phone", recordTypes: ["contacts"] },
+  { patterns: ["phone", "tel", "mobile", "number"], field: "phone" },
+  { patterns: ["linkedin", "li_url", "li url", "profile url"], field: "linkedin_url" },
+  { patterns: ["title", "role", "position", "job"], field: "job_title" },
+  { patterns: ["company", "employer", "organisation", "organization", "firm"], field: "current_employer" },
+  { patterns: ["location", "city", "town", "region"], field: "location" },
+  { patterns: ["salary", "package", "compensation", "comp"], field: "salary_current" },
+  { patterns: ["notice", "availability", "available"], field: "availability" },
+  { patterns: ["status", "stage", "state"], field: "status" },
+  { patterns: ["source", "origin", "lead source", "how found"], field: "source" },
+  { patterns: ["note", "comment", "activity"], field: "_notes" },
+  { patterns: ["campaign", "tag"], field: "_skip" }, // no tag import path yet
+];
+
+function fuzzyMapHeader(header: string, fields: FieldDef[], recordType: RecordType): string | null {
+  const lc = header.toLowerCase().trim();
+  for (const rule of FUZZY_RULES) {
+    if (rule.recordTypes && !rule.recordTypes.includes(recordType)) continue;
+    if (rule.patterns.some(p => lc.includes(p))) {
+      if (rule.field === "_skip" || rule.field.startsWith("_")) return rule.field;
+      if (fields.some(f => f.key === rule.field)) return rule.field;
+    }
+  }
+  return null;
 }
 
 // ── Platform → mapping ───────────────────────────────────────────
@@ -90,26 +145,41 @@ export function mappingForSource(
   const fields = FIELD_MAP[recordType];
   const platformKey = source === "sourcewhale" ? "spreadsheet" : source === "unknown" ? undefined : source;
   const auto = autoMapHeaders(headers, fields, platformKey);
+
+  // SourceWhale-specific mapping (spec-defined)
   if (source === "sourcewhale") {
-    // SourceWhale headers commonly seen
-    const extras: Record<string, string> = {
-      "first name": "first_name", "last name": "last_name",
-      "email": "email", "personal email": "email",
+    const sw: Record<string, string> = {
+      "first name": "first_name", "last name": "last_name", "full name": "_fullname",
+      "emails": "email", "email": "email", "personal email": "email",
       "phone": "phone", "mobile": "phone",
-      "title": "job_title", "job title": "job_title",
+      "role / job title": "job_title", "role/job title": "job_title", "title": "job_title", "job title": "job_title",
       "company": "current_employer", "current company": "current_employer",
-      "linkedin": "linkedin_url", "linkedin url": "linkedin_url", "profile url": "linkedin_url",
-      "location": "location",
-      "status": "status", "campaign status": "status", "reply status": "status",
-      "notes": "_notes", "comments": "_notes",
+      "linkedin url": "linkedin_url", "linkedin": "linkedin_url", "profile url": "linkedin_url",
+      "location (city)": "location", "location": "location",
+      "stage": "status", "status": "status",
+      "source": "source",
+      "notes": "_notes",
+      // explicitly ignored SourceWhale columns
+      "facebook url": "_skip", "linkedin recruiter url": "_skip",
+      "country": "_skip", "state": "_skip", "school": "_skip",
+      "opens": "_skip", "sourced": "_skip", "sourcer": "_skip",
+      "campaign": "_skip", // no tag import path yet
+      "skills": "_skip",
     };
     for (const h of headers) {
-      if (!auto[h]) {
-        const key = extras[h.toLowerCase().trim()];
-        if (key && fields.some(f => f.key === key)) auto[h] = key;
-      }
+      if (auto[h]) continue;
+      const key = sw[h.toLowerCase().trim()];
+      if (key) auto[h] = key;
     }
   }
+
+  // Fuzzy fallback for anything still unmapped
+  for (const h of headers) {
+    if (auto[h]) continue;
+    const guess = fuzzyMapHeader(h, fields, recordType);
+    if (guess) auto[h] = guess;
+  }
+
   return auto;
 }
 
@@ -122,7 +192,8 @@ const STATUS_MAP_VINCERE: Record<string, string> = {
 };
 const STATUS_MAP_SOURCEWHALE: Record<string, string> = {
   "replied": "Active", "interested": "Active",
-  "opened": "LI Connection", "clicked": "LI Connection",
+  "sent": "Passive", "opened": "Passive", "clicked": "Passive",
+  "connected": "LI Connection",
   "not interested": "Cold", "bounced": "Cold",
   "unsubscribed": "Do Not Contact",
 };
@@ -134,12 +205,13 @@ const STATUS_MAP_GENERIC: Record<string, string> = {
 
 export function mapWizardStatus(raw: string | null | undefined, source: SourceKey): string {
   const v = (raw || "").toLowerCase().trim();
-  if (!v) return "Passive";
+  if (!v) return source === "sourcewhale" ? "Passive" : "Passive";
   const map = source === "vincere" ? STATUS_MAP_VINCERE
     : source === "sourcewhale" ? STATUS_MAP_SOURCEWHALE
     : STATUS_MAP_GENERIC;
-  return map[v] || STATUS_MAP_GENERIC[v] || "Passive";
+  return map[v] || STATUS_MAP_GENERIC[v] || (source === "sourcewhale" ? "Passive" : "Passive");
 }
+
 
 // ── Desky fields exposed in the wizard mapping UI ─────────────────
 export interface DeskyField { key: string; label: string; required?: boolean }
