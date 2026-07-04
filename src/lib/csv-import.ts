@@ -813,22 +813,16 @@ export async function runImportForType(
       ].filter(Boolean).join("\n");
     }
 
-    // Silent skip for rows missing essential identifiers — don't count as errors or attempts
+    // The only reason to skip a person row is no identity at all: no first_name,
+    // no last_name, and no full_name. Everything else (email, phone, job title,
+    // employer, etc.) is optional — the recruiter chose to import the row.
     {
       const fullName = (record.name || "").trim();
       const firstName = (record.first_name || "").trim();
       const lastName = (record.last_name || "").trim();
       const hasAnyName = !!(firstName || lastName || fullName);
 
-      if (recordType === "candidates") {
-        if (!hasAnyName) { res.skippedMissingData++; continue; }
-        // LinkedIn: also skip rows where both Position AND Company are empty
-        if (isLinkedIn) {
-          const pos = (record.job_title || "").trim();
-          const comp = (record.current_employer || "").trim();
-          if (!pos && !comp) { res.skippedMissingData++; continue; }
-        }
-      } else if (recordType === "contacts") {
+      if (recordType === "candidates" || recordType === "contacts") {
         if (!hasAnyName) { res.skippedMissingData++; continue; }
       } else if (recordType === "clients") {
         const companyName = (record.company_name || "").trim();
@@ -836,30 +830,41 @@ export async function runImportForType(
       }
     }
 
-    // LinkedIn extra dedup: skip if same first+last+company (or full name+company) already exists
-    if (isLinkedIn) {
+    // Name+employer dedup for candidates (used when no email available).
+    if (recordType === "candidates") {
       const fn = (record.first_name || "").toLowerCase().trim();
       const ln = (record.last_name || "").toLowerCase().trim();
       const full = (record.name || "").toLowerCase().trim();
       const employer = (record.current_employer || "").toLowerCase().trim();
       const keyA = fn && ln && employer ? `${fn}|${ln}|${employer}` : "";
       const keyB = full && employer ? `${full}|${employer}` : "";
-      if ((keyA && existingCandNameEmployer[keyA]) || (keyB && existingCandNameEmployer[keyB])) {
-        res.skipped++;
-        continue;
+      const dupByNameEmp = (keyA && existingCandNameEmployer[keyA]) || (keyB && existingCandNameEmployer[keyB]);
+      if (dupByNameEmp) {
+        // Treat as duplicate — silent skip (or update depending on action)
+        if (isLinkedIn || duplicateAction === "skip") {
+          res.skipped++;
+          continue;
+        }
+        // For update mode, let the standard duplicate handler below run using this id
+        record._dupId = dupByNameEmp;
       }
     }
 
-
-    const namePresent = record.first_name || record.name;
-    const missingFields = fields.filter(f => {
-      if (f.key === "first_name" && (hasFullnameMapping || namePresent)) return false;
-      return f.required && !record[f.key];
-    });
-    if (missingFields.length > 0) {
-      res.errors.push({ row: i + 2, reason: `Missing required: ${missingFields.map(f => f.label).join(", ")}`, data: record });
-      res.skipped++;
-      continue;
+    // Enforce required fields only for record types where identity is not "name"
+    // (clients: company_name — already checked; jobs: title; applications: multiple).
+    // Candidates / contacts intentionally have no other required fields — a bare
+    // name is enough to import the record.
+    if (recordType !== "candidates" && recordType !== "contacts") {
+      const namePresent = record.first_name || record.name;
+      const missingFields = fields.filter(f => {
+        if (f.key === "first_name" && (hasFullnameMapping || namePresent)) return false;
+        return f.required && !record[f.key];
+      });
+      if (missingFields.length > 0) {
+        res.errors.push({ row: i + 2, reason: `Missing required: ${missingFields.map(f => f.label).join(", ")}`, data: record });
+        res.skipped++;
+        continue;
+      }
     }
 
     if (hasFullnameMapping && record.name) {
