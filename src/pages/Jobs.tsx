@@ -67,6 +67,10 @@ function StatusSelect({
   );
 }
 
+const ACTIVE_STATUSES = new Set(["Active", "Open"]);
+const HOLD_STATUSES = new Set(["On Hold"]);
+const CLOSED_STATUSES = new Set(["Filled", "Closed", "Cancelled"]);
+
 export default function JobsPage() {
   const { data: jobs = [], isLoading } = useJobs();
   const updateJob = useUpdateJob();
@@ -74,11 +78,13 @@ export default function JobsPage() {
   const { data: allCandidateJobs = [] } = useCandidateJobs();
   const placementScores = usePlacementScores();
   const [search, setSearch] = useState("");
-  const [statusFilter, setStatusFilter] = useState<string>("all");
+  // Default view = live desk (Active + On Hold). Toggle reveals filled/closed.
+  const [showHistory, setShowHistory] = useState(false);
+  const [historyExpanded, setHistoryExpanded] = useState(false);
   const [selectedJob, setSelectedJob] = useState<Job | null>(null);
   const [searchParams, setSearchParams] = useSearchParams();
 
-  // Auto-open job from ?jobId= query param (e.g. from dashboard offer-backup alerts)
+  // Auto-open job from ?jobId= query param
   useEffect(() => {
     const jobId = searchParams.get("jobId");
     if (jobId && !selectedJob) {
@@ -91,21 +97,8 @@ export default function JobsPage() {
     }
   }, [jobs, searchParams, selectedJob, setSearchParams]);
 
-  const filtered = jobs.filter((j) => {
-    const matchesSearch = j.title.toLowerCase().includes(search.toLowerCase()) ||
-      ((j.clients as any)?.company_name || "").toLowerCase().includes(search.toLowerCase());
-    const matchesStatus = statusFilter === "all" || j.status === statusFilter;
-    return matchesSearch && matchesStatus;
-  });
-
-  const formatSalary = (min: number | null, max: number | null) => {
-    if (!min && !max) return "—";
-    const fmt = (n: number) => `£${(n / 1000).toFixed(0)}k`;
-    if (min && max) return `${fmt(min)} – ${fmt(max)}`;
-    return min ? fmt(min) : fmt(max!);
-  };
-
   const ACTIVE_STAGES = ["Longlist", "Contact", "Screening", "Shortlist", "Submitted", "Client Review", "First Interview", "Second Interview", "Offer"];
+
   const getInPlayBreakdown = (jobId: string) => {
     const cjs = allCandidateJobs.filter((cj: any) => cj.job_id === jobId && ACTIVE_STAGES.includes(cj.stage));
     const breakdown: Record<string, number> = {};
@@ -118,6 +111,52 @@ export default function JobsPage() {
 
   const inPlayColor = (n: number) => n === 0 ? "text-red-400" : n <= 2 ? "text-yellow-400" : "text-green-400";
 
+  // Urgency tier within Active group (lower = more urgent, surfaces first)
+  const SEVEN_DAYS = 7 * 24 * 60 * 60 * 1000;
+  const urgencyTier = (job: Job) => {
+    const inPlay = getInPlayBreakdown(job.id).total;
+    if (inPlay === 0) return 0; // no candidates — most urgent
+    const score = placementScores.get(job.id)?.score;
+    if (typeof score === "number" && score < 40) return 1; // at-risk
+    const updated = new Date(job.updated_at).getTime();
+    if (Date.now() - updated > SEVEN_DAYS) return 2; // stale
+    return 3; // healthy
+  };
+
+  const bySearch = (j: Job) => {
+    const q = search.toLowerCase();
+    if (!q) return true;
+    return j.title.toLowerCase().includes(q) ||
+      ((j.clients as any)?.company_name || "").toLowerCase().includes(q);
+  };
+
+  const activeJobs = jobs
+    .filter((j) => ACTIVE_STATUSES.has(j.status) && bySearch(j))
+    .sort((a, b) => {
+      const ta = urgencyTier(a), tb = urgencyTier(b);
+      if (ta !== tb) return ta - tb;
+      const sa = placementScores.get(a.id)?.score ?? -1;
+      const sb = placementScores.get(b.id)?.score ?? -1;
+      // Within same tier: lowest score first (highest risk), then most recent
+      if (sa !== sb) return sa - sb;
+      return new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime();
+    });
+
+  const holdJobs = jobs
+    .filter((j) => HOLD_STATUSES.has(j.status) && bySearch(j))
+    .sort((a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime());
+
+  const closedJobs = jobs
+    .filter((j) => CLOSED_STATUSES.has(j.status) && bySearch(j))
+    .sort((a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime());
+
+  const formatSalary = (min: number | null, max: number | null) => {
+    if (!min && !max) return "—";
+    const fmt = (n: number) => `£${(n / 1000).toFixed(0)}k`;
+    if (min && max) return `${fmt(min)} – ${fmt(max)}`;
+    return min ? fmt(min) : fmt(max!);
+  };
+
   if (selectedJob) {
     return (
       <JobFullView
@@ -129,6 +168,68 @@ export default function JobsPage() {
     );
   }
 
+  const renderRow = (j: Job) => {
+    const inPlay = getInPlayBreakdown(j.id);
+    const score = placementScores.get(j.id);
+    return (
+      <tr key={j.id} className="border-b border-border hover:bg-muted/20 cursor-pointer transition-colors" onClick={() => setSelectedJob(j)}>
+        <td className="px-4 py-3 font-medium">{j.title}</td>
+        <td className="px-4 py-3 text-muted-foreground">{(j.clients as any)?.company_name || "—"}</td>
+        <td className="px-4 py-3">
+          <StatusSelect
+            value={j.status}
+            onChange={async (v) => {
+              await updateJob.mutateAsync({ id: j.id, status: v });
+              toast.success(`Status: ${v}`);
+            }}
+          />
+        </td>
+        <td className="px-4 py-3">
+          {score ? <PlacementScoreBadge score={score} /> : <span className="text-xs text-muted-foreground">—</span>}
+        </td>
+        <td className="px-4 py-3" onClick={(e) => { e.stopPropagation(); setSelectedJob(j); }}>
+          <TooltipProvider delayDuration={150}>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <span className={`font-semibold tabular-nums ${inPlayColor(inPlay.total)} hover:underline cursor-pointer`}>
+                  {inPlay.total}
+                </span>
+              </TooltipTrigger>
+              <TooltipContent side="right">
+                {inPlay.total === 0 ? (
+                  <div className="text-xs">No active candidates</div>
+                ) : (
+                  <div className="text-xs space-y-0.5">
+                    {Object.entries(inPlay.breakdown).map(([s, n]) => (
+                      <div key={s} className="flex justify-between gap-3"><span>{s}:</span><span className="tabular-nums">{n}</span></div>
+                    ))}
+                  </div>
+                )}
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        </td>
+        <td className="px-4 py-3 text-muted-foreground">{j.date_opened ? new Date(j.date_opened).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" }) : "—"}</td>
+        <td className="px-4 py-3 text-muted-foreground">{formatSalary(j.salary_min, j.salary_max)}</td>
+        <td className="px-4 py-3 text-muted-foreground">{j.location || "—"}</td>
+      </tr>
+    );
+  };
+
+  const groupHeader = (label: string, count: number, extra?: React.ReactNode) => (
+    <tr className="bg-muted/40">
+      <td colSpan={8} className="px-4 py-2 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+        <div className="flex items-center gap-2">
+          <span>{label}</span>
+          <span className="text-muted-foreground/70">({count})</span>
+          {extra}
+        </div>
+      </td>
+    </tr>
+  );
+
+  const totalVisible = activeJobs.length + holdJobs.length + (showHistory ? closedJobs.length : 0);
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -136,18 +237,22 @@ export default function JobsPage() {
         <AddJobDialog />
       </div>
 
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-3 flex-wrap">
         <div className="relative flex-1 max-w-sm">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input placeholder="Search jobs..." className="pl-9" value={search} onChange={(e) => setSearch(e.target.value)} />
         </div>
-        <Select value={statusFilter} onValueChange={setStatusFilter}>
-          <SelectTrigger className="w-40"><SelectValue /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Statuses</SelectItem>
-            {JOB_STATUSES.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
-          </SelectContent>
-        </Select>
+        <div className="text-xs text-muted-foreground">
+          Showing active jobs <span className="tabular-nums">({activeJobs.length})</span>
+          {holdJobs.length > 0 && <> · on hold <span className="tabular-nums">({holdJobs.length})</span></>}
+        </div>
+        <button
+          type="button"
+          onClick={() => { setShowHistory((v) => !v); if (!showHistory) setHistoryExpanded(false); }}
+          className="text-xs text-primary hover:underline"
+        >
+          {showHistory ? "Hide filled/closed" : "Show all including filled/closed"}
+        </button>
       </div>
 
       {isLoading ? (
@@ -168,55 +273,34 @@ export default function JobsPage() {
               </tr>
             </thead>
             <tbody>
-              {filtered.length === 0 ? (
+              {totalVisible === 0 ? (
                 <tr><td colSpan={8} className="px-4 py-8 text-center text-muted-foreground">No jobs found</td></tr>
-              ) : filtered.map(j => {
-                const inPlay = getInPlayBreakdown(j.id);
-                const score = placementScores.get(j.id);
-                return (
-                <tr key={j.id} className="border-b border-border hover:bg-muted/20 cursor-pointer transition-colors" onClick={() => setSelectedJob(j)}>
-                  <td className="px-4 py-3 font-medium">{j.title}</td>
-                  <td className="px-4 py-3 text-muted-foreground">{(j.clients as any)?.company_name || "—"}</td>
-                  <td className="px-4 py-3">
-                    <StatusSelect
-                      value={j.status}
-                      onChange={async (v) => {
-                        await updateJob.mutateAsync({ id: j.id, status: v });
-                        toast.success(`Status: ${v}`);
-                      }}
-                    />
-                  </td>
-                  <td className="px-4 py-3">
-                    {score ? <PlacementScoreBadge score={score} /> : <span className="text-xs text-muted-foreground">—</span>}
-                  </td>
-                  <td className="px-4 py-3" onClick={(e) => { e.stopPropagation(); setSelectedJob(j); }}>
-                    <TooltipProvider delayDuration={150}>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <span className={`font-semibold tabular-nums ${inPlayColor(inPlay.total)} hover:underline cursor-pointer`}>
-                            {inPlay.total}
-                          </span>
-                        </TooltipTrigger>
-                        <TooltipContent side="right">
-                          {inPlay.total === 0 ? (
-                            <div className="text-xs">No active candidates</div>
-                          ) : (
-                            <div className="text-xs space-y-0.5">
-                              {Object.entries(inPlay.breakdown).map(([s, n]) => (
-                                <div key={s} className="flex justify-between gap-3"><span>{s}:</span><span className="tabular-nums">{n}</span></div>
-                              ))}
-                            </div>
-                          )}
-                        </TooltipContent>
-                      </Tooltip>
-                    </TooltipProvider>
-                  </td>
-                  <td className="px-4 py-3 text-muted-foreground">{j.date_opened ? new Date(j.date_opened).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" }) : "—"}</td>
-                  <td className="px-4 py-3 text-muted-foreground">{formatSalary(j.salary_min, j.salary_max)}</td>
-                  <td className="px-4 py-3 text-muted-foreground">{j.location || "—"}</td>
-                </tr>
-                );
-              })}
+              ) : (
+                <>
+                  {activeJobs.length > 0 && groupHeader("Active", activeJobs.length)}
+                  {activeJobs.map(renderRow)}
+
+                  {holdJobs.length > 0 && groupHeader("On Hold", holdJobs.length)}
+                  {holdJobs.map(renderRow)}
+
+                  {showHistory && closedJobs.length > 0 && (
+                    <>
+                      {groupHeader(
+                        "Filled / Closed",
+                        closedJobs.length,
+                        <button
+                          type="button"
+                          onClick={() => setHistoryExpanded((v) => !v)}
+                          className="ml-2 text-[11px] font-medium text-primary hover:underline normal-case tracking-normal"
+                        >
+                          {historyExpanded ? "Hide" : `Show ${closedJobs.length} filled/closed role${closedJobs.length === 1 ? "" : "s"}`} {historyExpanded ? "▴" : "▾"}
+                        </button>,
+                      )}
+                      {historyExpanded && closedJobs.map(renderRow)}
+                    </>
+                  )}
+                </>
+              )}
             </tbody>
           </table>
         </div>
@@ -224,6 +308,7 @@ export default function JobsPage() {
     </div>
   );
 }
+
 
 export function JobFullView({ job, onBack, onUpdate, onDelete, backLabel }: {
   job: Job;
