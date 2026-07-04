@@ -992,7 +992,12 @@ export async function runImportForType(
         dupId = existingNameCompany[key];
         dupReason = "Duplicate name + company";
       }
+    } else if (record._dupId) {
+      // Name+employer match from earlier pass (candidates with no email)
+      dupId = record._dupId;
+      dupReason = "Duplicate name + employer";
     }
+    delete record._dupId;
 
     if (dupId) {
       // LinkedIn imports always skip duplicates silently — never update existing records
@@ -1027,6 +1032,23 @@ export async function runImportForType(
       importedIds.push(inserted.id);
       if (email) existingEmails[email] = inserted.id;
       if (personalEmail) existingPersonalEmails[personalEmail] = inserted.id;
+
+      // Flag records imported without any reachable contact channel
+      if (recordType === "candidates" || recordType === "contacts") {
+        const hasContact = !!(record.email || record.phone || record.personal_email || record.direct_phone || record.mobile_phone);
+        if (!hasContact) res.importedNoContact++;
+
+        // Register in name+employer dedup so subsequent rows in this batch match
+        if (recordType === "candidates") {
+          const fn = (record.first_name || "").toLowerCase().trim();
+          const ln = (record.last_name || "").toLowerCase().trim();
+          const full = (record.name || "").toLowerCase().trim();
+          const emp = (record.current_employer || "").toLowerCase().trim();
+          if (fn && ln && emp) existingCandNameEmployer[`${fn}|${ln}|${emp}`] = inserted.id;
+          if (full && emp) existingCandNameEmployer[`${full}|${emp}`] = inserted.id;
+        }
+      }
+
       if (recordType === "jobs" && !record.client_id && inserted) {
         unmatchedJobs.push({ id: inserted.id, title: record.title });
       }
