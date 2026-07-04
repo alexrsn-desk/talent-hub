@@ -447,6 +447,8 @@ export interface WizardImportResult {
   skippedNoContact: number;
   skippedDup: number;
   failed: number;
+  /** Records imported without any email or phone — flagged for later follow-up. */
+  importedNoContact: number;
   errors: ImportError[];
   importedIds: string[];
   source: string;
