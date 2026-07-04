@@ -745,9 +745,10 @@ export async function runImportForType(
 
   const isLinkedIn = platform === "linkedin" && recordType === "candidates";
 
-  // For LinkedIn imports: build name+company dedup lookup against existing candidates
+  // For candidates: name+employer dedup lookup (used when no email available).
+  // Applied to all candidate imports, not just LinkedIn.
   let existingCandNameEmployer: Record<string, string> = {};
-  if (isLinkedIn) {
+  if (recordType === "candidates") {
     const { data } = await supabase.from("candidates").select("id, first_name, last_name, name, current_employer");
     (data || []).forEach((c: any) => {
       const fn = (c.first_name || "").toLowerCase().trim();
@@ -756,7 +757,6 @@ export async function runImportForType(
       if (fn && ln && employer) {
         existingCandNameEmployer[`${fn}|${ln}|${employer}`] = c.id;
       }
-      // Also key off full name when first/last not split
       const full = (c.name || "").toLowerCase().trim();
       if (full && employer) {
         existingCandNameEmployer[`${full}|${employer}`] = c.id;
