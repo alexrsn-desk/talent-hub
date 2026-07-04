@@ -467,7 +467,7 @@ export async function runWizardImport(opts: {
   const { recordType, rowMeta, source, sourceLabel, dupMode, matchKeys, onProgress } = opts;
   const res: WizardImportResult = {
     imported: 0, updated: 0, skippedEmpty: 0, skippedNoContact: 0, skippedDup: 0,
-    failed: 0, errors: [], importedIds: [], source: sourceLabel,
+    failed: 0, importedNoContact: 0, errors: [], importedIds: [], source: sourceLabel,
   };
 
   const toImport = rowMeta.map((m, idx) => ({ m, idx }));
