@@ -694,8 +694,14 @@ function ResultsStep(p: {
       </CardHeader>
       <CardContent className="space-y-2 text-sm">
         <Row label="Successfully imported" value={r.imported} />
+        {r.importedNoContact > 0 && (
+          <>
+            <Row label="…of which complete profiles" value={r.imported - r.importedNoContact} muted />
+            <Row label="…of which missing contact details (imported anyway)" value={r.importedNoContact} muted />
+          </>
+        )}
         <Row label="Updated existing records" value={r.updated} />
-        <Row label="Skipped (empty rows / missing name)" value={r.skippedEmpty} muted />
+        <Row label="Skipped (no name at all)" value={r.skippedEmpty} muted />
         <Row label="Skipped (no contact details)" value={r.skippedNoContact} muted />
         <Row label="Skipped (duplicates)" value={r.skippedDup} muted />
         <Row label="Failed (errors)" value={r.failed} muted />
