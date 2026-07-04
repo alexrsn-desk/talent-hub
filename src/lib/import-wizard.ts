@@ -235,8 +235,8 @@ export const WIZARD_FIELDS: Record<RecordType, DeskyField[]> = {
     { key: "source", label: "Source" },
   ],
   contacts: [
-    { key: "first_name", label: "First Name", required: true },
-    { key: "last_name", label: "Last Name", required: true },
+    { key: "first_name", label: "First Name", required: false },
+    { key: "last_name", label: "Last Name", required: false },
     { key: "_fullname", label: "Full Name (will split)" },
     { key: "email", label: "Email (Work)" },
     { key: "personal_email", label: "Email (Personal)" },
