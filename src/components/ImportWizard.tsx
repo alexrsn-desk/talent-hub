@@ -177,7 +177,7 @@ export function ImportWizard() {
       // Save history
       await saveImportHistory(sourceLabel, recordType, {
         imported: res.imported, skipped: res.skippedEmpty + res.skippedNoContact + res.skippedDup,
-        updated: res.updated, skippedMissingData: res.skippedEmpty,
+        updated: res.updated, skippedMissingData: res.skippedEmpty, importedNoContact: res.importedNoContact ?? 0,
         errors: res.errors, nameReviewItems: [],
       }, res.importedIds);
       setStep("results");
