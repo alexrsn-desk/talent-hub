@@ -326,25 +326,12 @@ const STATUS_MAPS: Record<string, Record<string, string>> = {
 
 const VALID_STATUSES = ["New", "Contacted", "Screening", "Submitted", "Interviewing", "Placed", "On Hold", "Not Suitable", "Cold", "Archive", "Do Not Contact", "Active", "LI Connection"];
 
-export function mapStatus(raw: string | null, platform?: string): { status: string; flagPriority: boolean; flagged: boolean } {
-  if (!raw) return { status: "Active", flagPriority: false, flagged: false };
-  const lower = raw.toLowerCase().trim();
-
-  // Check platform-specific mapping first
-  if (platform && STATUS_MAPS[platform]) {
-    const mapped = STATUS_MAPS[platform][lower];
-    if (mapped) {
-      const flagPriority = lower === "hot";
-      return { status: mapped, flagPriority, flagged: false };
-    }
-  }
-
-  // Generic mapping
-  const directMatch = VALID_STATUSES.find(s => s.toLowerCase() === lower);
-  if (directMatch) return { status: directMatch, flagPriority: false, flagged: false };
-
-  // Default to Active and flag for review
-  return { status: "Active", flagPriority: false, flagged: true };
+export function mapStatus(raw: string | null, _platform?: string): { status: string; flagPriority: boolean; flagged: boolean } {
+  if (!raw || !raw.trim()) return { status: "Active", flagPriority: false, flagged: false };
+  const trimmed = raw.trim();
+  const flagPriority = trimmed.toLowerCase() === "hot";
+  // No DB constraint — store the source value as-is
+  return { status: trimmed, flagPriority, flagged: false };
 }
 
 // ── Salary cleaning ───────────────────────────────────────────────
