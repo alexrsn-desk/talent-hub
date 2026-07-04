@@ -280,10 +280,11 @@ export interface WizardFilters {
 }
 
 export const DEFAULT_FILTERS: WizardFilters = {
-  statuses: { active: true, passive: true, inactive: false, unknown: false },
-  lastActivity: "12m",
-  requireContact: true,
-  requireJobTitle: true,
+  statuses: { active: true, passive: true, inactive: true, unknown: true },
+  lastActivity: "all_time",
+  // Permissive by default — a name is all that's required to import.
+  requireContact: false,
+  requireJobTitle: false,
 };
 
 export interface PreviewStats {
