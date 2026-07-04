@@ -10,7 +10,7 @@ export interface FieldDef {
 }
 
 export const CANDIDATE_FIELDS: FieldDef[] = [
-  { key: "first_name", label: "First Name", required: true },
+  { key: "first_name", label: "First Name", required: false },
   { key: "last_name", label: "Last Name", required: false },
   { key: "_fullname", label: "Full Name (will split)", required: false },
   { key: "email", label: "Email", required: false },
@@ -51,7 +51,7 @@ export const JOB_FIELDS: FieldDef[] = [
 ];
 
 export const CONTACT_FIELDS: FieldDef[] = [
-  { key: "first_name", label: "First Name", required: true },
+  { key: "first_name", label: "First Name", required: false },
   { key: "last_name", label: "Last Name", required: false },
   { key: "_fullname", label: "Full Name (will split)", required: false },
   { key: "job_title", label: "Job Title", required: false },
@@ -548,6 +548,8 @@ export interface ImportResult {
   skipped: number;
   updated: number;
   skippedMissingData: number;
+  /** Records imported without any email or phone — flagged for later follow-up. */
+  importedNoContact: number;
   errors: ImportError[];
   nameReviewItems: NameReviewItem[];
 }
@@ -700,7 +702,7 @@ export async function runImportForType(
   confirmedLinkedContacts: number;
 }> {
   const fields = FIELD_MAP[recordType];
-  const res: ImportResult = { imported: 0, skipped: 0, updated: 0, skippedMissingData: 0, errors: [], nameReviewItems: [] };
+  const res: ImportResult = { imported: 0, skipped: 0, updated: 0, skippedMissingData: 0, importedNoContact: 0, errors: [], nameReviewItems: [] };
   const unmatchedJobs: { id: string; title: string }[] = [];
   const unlinkedContacts: { id: string; name: string; companyName: string }[] = [];
   const importedIds: string[] = [];
@@ -743,9 +745,10 @@ export async function runImportForType(
 
   const isLinkedIn = platform === "linkedin" && recordType === "candidates";
 
-  // For LinkedIn imports: build name+company dedup lookup against existing candidates
+  // For candidates: name+employer dedup lookup (used when no email available).
+  // Applied to all candidate imports, not just LinkedIn.
   let existingCandNameEmployer: Record<string, string> = {};
-  if (isLinkedIn) {
+  if (recordType === "candidates") {
     const { data } = await supabase.from("candidates").select("id, first_name, last_name, name, current_employer");
     (data || []).forEach((c: any) => {
       const fn = (c.first_name || "").toLowerCase().trim();
@@ -754,7 +757,6 @@ export async function runImportForType(
       if (fn && ln && employer) {
         existingCandNameEmployer[`${fn}|${ln}|${employer}`] = c.id;
       }
-      // Also key off full name when first/last not split
       const full = (c.name || "").toLowerCase().trim();
       if (full && employer) {
         existingCandNameEmployer[`${full}|${employer}`] = c.id;
@@ -811,22 +813,16 @@ export async function runImportForType(
       ].filter(Boolean).join("\n");
     }
 
-    // Silent skip for rows missing essential identifiers — don't count as errors or attempts
+    // The only reason to skip a person row is no identity at all: no first_name,
+    // no last_name, and no full_name. Everything else (email, phone, job title,
+    // employer, etc.) is optional — the recruiter chose to import the row.
     {
       const fullName = (record.name || "").trim();
       const firstName = (record.first_name || "").trim();
       const lastName = (record.last_name || "").trim();
       const hasAnyName = !!(firstName || lastName || fullName);
 
-      if (recordType === "candidates") {
-        if (!hasAnyName) { res.skippedMissingData++; continue; }
-        // LinkedIn: also skip rows where both Position AND Company are empty
-        if (isLinkedIn) {
-          const pos = (record.job_title || "").trim();
-          const comp = (record.current_employer || "").trim();
-          if (!pos && !comp) { res.skippedMissingData++; continue; }
-        }
-      } else if (recordType === "contacts") {
+      if (recordType === "candidates" || recordType === "contacts") {
         if (!hasAnyName) { res.skippedMissingData++; continue; }
       } else if (recordType === "clients") {
         const companyName = (record.company_name || "").trim();
@@ -834,30 +830,41 @@ export async function runImportForType(
       }
     }
 
-    // LinkedIn extra dedup: skip if same first+last+company (or full name+company) already exists
-    if (isLinkedIn) {
+    // Name+employer dedup for candidates (used when no email available).
+    if (recordType === "candidates") {
       const fn = (record.first_name || "").toLowerCase().trim();
       const ln = (record.last_name || "").toLowerCase().trim();
       const full = (record.name || "").toLowerCase().trim();
       const employer = (record.current_employer || "").toLowerCase().trim();
       const keyA = fn && ln && employer ? `${fn}|${ln}|${employer}` : "";
       const keyB = full && employer ? `${full}|${employer}` : "";
-      if ((keyA && existingCandNameEmployer[keyA]) || (keyB && existingCandNameEmployer[keyB])) {
-        res.skipped++;
-        continue;
+      const dupByNameEmp = (keyA && existingCandNameEmployer[keyA]) || (keyB && existingCandNameEmployer[keyB]);
+      if (dupByNameEmp) {
+        // Treat as duplicate — silent skip (or update depending on action)
+        if (isLinkedIn || duplicateAction === "skip") {
+          res.skipped++;
+          continue;
+        }
+        // For update mode, let the standard duplicate handler below run using this id
+        record._dupId = dupByNameEmp;
       }
     }
 
-
-    const namePresent = record.first_name || record.name;
-    const missingFields = fields.filter(f => {
-      if (f.key === "first_name" && (hasFullnameMapping || namePresent)) return false;
-      return f.required && !record[f.key];
-    });
-    if (missingFields.length > 0) {
-      res.errors.push({ row: i + 2, reason: `Missing required: ${missingFields.map(f => f.label).join(", ")}`, data: record });
-      res.skipped++;
-      continue;
+    // Enforce required fields only for record types where identity is not "name"
+    // (clients: company_name — already checked; jobs: title; applications: multiple).
+    // Candidates / contacts intentionally have no other required fields — a bare
+    // name is enough to import the record.
+    if (recordType !== "candidates" && recordType !== "contacts") {
+      const namePresent = record.first_name || record.name;
+      const missingFields = fields.filter(f => {
+        if (f.key === "first_name" && (hasFullnameMapping || namePresent)) return false;
+        return f.required && !record[f.key];
+      });
+      if (missingFields.length > 0) {
+        res.errors.push({ row: i + 2, reason: `Missing required: ${missingFields.map(f => f.label).join(", ")}`, data: record });
+        res.skipped++;
+        continue;
+      }
     }
 
     if (hasFullnameMapping && record.name) {
@@ -985,7 +992,12 @@ export async function runImportForType(
         dupId = existingNameCompany[key];
         dupReason = "Duplicate name + company";
       }
+    } else if (record._dupId) {
+      // Name+employer match from earlier pass (candidates with no email)
+      dupId = record._dupId;
+      dupReason = "Duplicate name + employer";
     }
+    delete record._dupId;
 
     if (dupId) {
       // LinkedIn imports always skip duplicates silently — never update existing records
@@ -1020,6 +1032,23 @@ export async function runImportForType(
       importedIds.push(inserted.id);
       if (email) existingEmails[email] = inserted.id;
       if (personalEmail) existingPersonalEmails[personalEmail] = inserted.id;
+
+      // Flag records imported without any reachable contact channel
+      if (recordType === "candidates" || recordType === "contacts") {
+        const hasContact = !!(record.email || record.phone || record.personal_email || record.direct_phone || record.mobile_phone);
+        if (!hasContact) res.importedNoContact++;
+
+        // Register in name+employer dedup so subsequent rows in this batch match
+        if (recordType === "candidates") {
+          const fn = (record.first_name || "").toLowerCase().trim();
+          const ln = (record.last_name || "").toLowerCase().trim();
+          const full = (record.name || "").toLowerCase().trim();
+          const emp = (record.current_employer || "").toLowerCase().trim();
+          if (fn && ln && emp) existingCandNameEmployer[`${fn}|${ln}|${emp}`] = inserted.id;
+          if (full && emp) existingCandNameEmployer[`${full}|${emp}`] = inserted.id;
+        }
+      }
+
       if (recordType === "jobs" && !record.client_id && inserted) {
         unmatchedJobs.push({ id: inserted.id, title: record.title });
       }
@@ -1277,7 +1306,7 @@ export async function runApplicationsImport(
   onProgress?: (current: number, total: number) => void,
 ): Promise<ApplicationImportResult> {
   const res: ApplicationImportResult = {
-    imported: 0, skipped: 0, updated: 0, skippedMissingData: 0, errors: [], nameReviewItems: [],
+    imported: 0, skipped: 0, updated: 0, skippedMissingData: 0, importedNoContact: 0, errors: [], nameReviewItems: [],
     candidatesCreated: 0, jobsCreated: 0, importedIds: [], unmatchedCandidates: 0,
   };
 

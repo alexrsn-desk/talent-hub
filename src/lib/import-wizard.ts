@@ -218,8 +218,8 @@ export interface DeskyField { key: string; label: string; required?: boolean }
 
 export const WIZARD_FIELDS: Record<RecordType, DeskyField[]> = {
   candidates: [
-    { key: "first_name", label: "First Name", required: true },
-    { key: "last_name", label: "Last Name", required: true },
+    { key: "first_name", label: "First Name", required: false },
+    { key: "last_name", label: "Last Name", required: false },
     { key: "_fullname", label: "Full Name (will split)" },
     { key: "email", label: "Email" },
     { key: "phone", label: "Phone" },
@@ -235,8 +235,8 @@ export const WIZARD_FIELDS: Record<RecordType, DeskyField[]> = {
     { key: "source", label: "Source" },
   ],
   contacts: [
-    { key: "first_name", label: "First Name", required: true },
-    { key: "last_name", label: "Last Name", required: true },
+    { key: "first_name", label: "First Name", required: false },
+    { key: "last_name", label: "Last Name", required: false },
     { key: "_fullname", label: "Full Name (will split)" },
     { key: "email", label: "Email (Work)" },
     { key: "personal_email", label: "Email (Personal)" },
@@ -280,10 +280,11 @@ export interface WizardFilters {
 }
 
 export const DEFAULT_FILTERS: WizardFilters = {
-  statuses: { active: true, passive: true, inactive: false, unknown: false },
-  lastActivity: "12m",
-  requireContact: true,
-  requireJobTitle: true,
+  statuses: { active: true, passive: true, inactive: true, unknown: true },
+  lastActivity: "all_time",
+  // Permissive by default — a name is all that's required to import.
+  requireContact: false,
+  requireJobTitle: false,
 };
 
 export interface PreviewStats {
@@ -447,6 +448,8 @@ export interface WizardImportResult {
   skippedNoContact: number;
   skippedDup: number;
   failed: number;
+  /** Records imported without any email or phone — flagged for later follow-up. */
+  importedNoContact: number;
   errors: ImportError[];
   importedIds: string[];
   source: string;
@@ -465,7 +468,7 @@ export async function runWizardImport(opts: {
   const { recordType, rowMeta, source, sourceLabel, dupMode, matchKeys, onProgress } = opts;
   const res: WizardImportResult = {
     imported: 0, updated: 0, skippedEmpty: 0, skippedNoContact: 0, skippedDup: 0,
-    failed: 0, errors: [], importedIds: [], source: sourceLabel,
+    failed: 0, importedNoContact: 0, errors: [], importedIds: [], source: sourceLabel,
   };
 
   const toImport = rowMeta.map((m, idx) => ({ m, idx }));
@@ -519,6 +522,10 @@ export async function runWizardImport(opts: {
       if (error) { res.failed++; res.errors.push({ row: idx + 2, reason: error.message, data: rec }); continue; }
       res.imported++;
       res.importedIds.push(inserted.id);
+      if (recordType === "candidates" || recordType === "contacts") {
+        const hasContact = !!(rec.email || rec.phone || rec.personal_email || rec.direct_phone || rec.mobile_phone);
+        if (!hasContact) res.importedNoContact++;
+      }
       await maybeInsertNote(recordType, inserted.id, notesContent, sourceLabel);
     } catch (e: any) {
       res.failed++;

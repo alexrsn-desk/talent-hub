@@ -152,7 +152,7 @@ export function DataImport() {
         setNameReviewItems([]);
         const platformLabel = selectedPlatform?.label || "CSV";
         await saveImportHistory(platformLabel, recordType, {
-          imported: res.imported, skipped: res.skipped, updated: 0, skippedMissingData: 0,
+          imported: res.imported, skipped: res.skipped, updated: 0, skippedMissingData: 0, importedNoContact: 0,
           errors: res.errors, nameReviewItems: [],
         }, res.importedIds);
         setStep("results");
@@ -950,9 +950,20 @@ export function DataImport() {
                 <div className="text-xs text-muted-foreground">Skipped</div>
               </div>
             </div>
+            {(result.imported > 0 && (result.importedNoContact || 0) > 0) && (
+              <div className="rounded-lg border border-amber-500/30 bg-amber-500/5 p-3 text-sm space-y-1">
+                <div>Of the {result.imported} imported:</div>
+                <div className="pl-3 text-xs text-muted-foreground">
+                  ✓ <strong className="text-foreground">{result.imported - (result.importedNoContact || 0)}</strong> with contact details
+                </div>
+                <div className="pl-3 text-xs text-muted-foreground">
+                  ⚠️ <strong className="text-foreground">{result.importedNoContact}</strong> missing email &amp; phone (still imported — add details later)
+                </div>
+              </div>
+            )}
             {result.skippedMissingData > 0 && (
               <div className="rounded-lg border border-border bg-muted/30 p-3 text-sm">
-                <strong>{result.skippedMissingData}</strong> row{result.skippedMissingData === 1 ? "" : "s"} skipped due to missing data (no name, or no email/phone)
+                <strong>{result.skippedMissingData}</strong> row{result.skippedMissingData === 1 ? "" : "s"} skipped — no name at all
               </div>
             )}
 
