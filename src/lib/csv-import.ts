@@ -702,7 +702,7 @@ export async function runImportForType(
   confirmedLinkedContacts: number;
 }> {
   const fields = FIELD_MAP[recordType];
-  const res: ImportResult = { imported: 0, skipped: 0, updated: 0, skippedMissingData: 0, errors: [], nameReviewItems: [] };
+  const res: ImportResult = { imported: 0, skipped: 0, updated: 0, skippedMissingData: 0, importedNoContact: 0, errors: [], nameReviewItems: [] };
   const unmatchedJobs: { id: string; title: string }[] = [];
   const unlinkedContacts: { id: string; name: string; companyName: string }[] = [];
   const importedIds: string[] = [];
