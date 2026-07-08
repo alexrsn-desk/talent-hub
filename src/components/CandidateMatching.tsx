@@ -297,10 +297,23 @@ export function CandidateMatching({ job, autoRun = false }: { job: Job; autoRun?
         </div>
       )}
 
+      {data && sorted.length > 0 && (
+        <div className="flex items-center justify-between gap-2">
+          <span className="text-xs text-muted-foreground">
+            {sorted.length} suggestion{sorted.length === 1 ? "" : "s"}
+          </span>
+          <Button size="sm" variant="outline" onClick={addAllToPipeline} className="h-7 gap-1 text-xs">
+            <ListPlus className="h-3.5 w-3.5" /> Add all to pipeline
+          </Button>
+        </div>
+      )}
+
       {data && filtered ? (
         <div className="space-y-2">
           {filtered.map(m => (
-            <Card key={m.candidate_id} match={m} job={job} checked={selected.has(m.candidate_id)} onToggle={() => toggleSelected(m.candidate_id)} />
+            <Card key={m.candidate_id} match={m} job={job} checked={selected.has(m.candidate_id)} onToggle={() => toggleSelected(m.candidate_id)}
+              existingStage={existingStageByCandidate.get(m.candidate_id) || null}
+              added={locallyAdded.has(m.candidate_id)} adding={addingId === m.candidate_id} onAdd={() => addOne(m)} />
           ))}
           {filtered.length === 0 && <p className="text-xs text-muted-foreground">No matches for "{search}".</p>}
         </div>
@@ -311,7 +324,9 @@ export function CandidateMatching({ job, autoRun = false }: { job: Job; autoRun?
           </div>
           <div className="space-y-2">
             {top5.map(m => (
-              <Card key={m.candidate_id} match={m} job={job} checked={selected.has(m.candidate_id)} onToggle={() => toggleSelected(m.candidate_id)} />
+              <Card key={m.candidate_id} match={m} job={job} checked={selected.has(m.candidate_id)} onToggle={() => toggleSelected(m.candidate_id)}
+                existingStage={existingStageByCandidate.get(m.candidate_id) || null}
+                added={locallyAdded.has(m.candidate_id)} adding={addingId === m.candidate_id} onAdd={() => addOne(m)} />
             ))}
           </div>
 
@@ -328,7 +343,9 @@ export function CandidateMatching({ job, autoRun = false }: { job: Job; autoRun?
           {showMore && (
             <div className="space-y-2">
               {rest.map(m => (
-                <Card key={m.candidate_id} match={m} job={job} checked={selected.has(m.candidate_id)} onToggle={() => toggleSelected(m.candidate_id)} />
+                <Card key={m.candidate_id} match={m} job={job} checked={selected.has(m.candidate_id)} onToggle={() => toggleSelected(m.candidate_id)}
+                  existingStage={existingStageByCandidate.get(m.candidate_id) || null}
+                  added={locallyAdded.has(m.candidate_id)} adding={addingId === m.candidate_id} onAdd={() => addOne(m)} />
               ))}
             </div>
           )}
@@ -339,7 +356,7 @@ export function CandidateMatching({ job, autoRun = false }: { job: Job; autoRun?
               {selectedIds.length} selected
             </span>
             <Button size="sm" variant="outline" disabled={!selectedIds.length} onClick={() => addSelectedToPipeline("AI Suggested")} className="gap-1">
-              <ListPlus className="h-3.5 w-3.5" /> Add to AI Suggested
+              <ListPlus className="h-3.5 w-3.5" /> Add selected to AI Suggested
             </Button>
 
             <Button size="sm" disabled={!selectedIds.length} onClick={() => setSendDialogOpen(true)} className="gap-1">
