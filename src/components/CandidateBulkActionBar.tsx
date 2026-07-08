@@ -35,7 +35,7 @@ export function CandidateBulkActionBar({ selected, onClear }: BulkActionBarProps
       </span>
 
       <div className="flex items-center gap-2">
-        <AddToJobAction selected={selected} />
+        <AddToJobAction selected={selected} onDone={onClear} />
         <AddToPoolAction selected={selected} />
         {!isMobile && <SendCheckinAction selected={selected} />}
         {!isMobile && <AddToSequenceAction selected={selected} />}
@@ -80,58 +80,93 @@ function ActionButton({ children, onClick, className }: { children: React.ReactN
 }
 
 // --- Add to Job ---
-function AddToJobAction({ selected }: { selected: Candidate[] }) {
+const JOB_STAGES = ["Longlist", "Screening", "Shortlist", "Submitted", "First Interview", "Second Interview", "Offer"] as const;
+const ACTIVE_JOB_STATUSES = new Set(["Active", "Open"]);
+
+function AddToJobAction({ selected, onDone }: { selected: Candidate[]; onDone?: () => void }) {
   const { data: jobs = [] } = useJobs();
   const createCandidateJob = useCreateCandidateJob();
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState("");
+  const [pickedJob, setPickedJob] = useState<typeof jobs[0] | null>(null);
+  const [stage, setStage] = useState<string>("Longlist");
 
-  const openJobs = jobs.filter(j => j.status === "Open");
-  const filtered = openJobs.filter(j =>
+  const activeJobs = jobs.filter(j => ACTIVE_JOB_STATUSES.has(j.status));
+  const filtered = activeJobs.filter(j =>
     j.title.toLowerCase().includes(search.toLowerCase()) ||
     (j.clients?.company_name || "").toLowerCase().includes(search.toLowerCase())
   ).slice(0, 8);
 
-  const handleAdd = async (job: typeof jobs[0]) => {
+  const reset = () => { setSearch(""); setPickedJob(null); setStage("Longlist"); };
+
+  const handleConfirm = async () => {
+    if (!pickedJob) return;
     let added = 0;
     for (const c of selected) {
       try {
-        await createCandidateJob.mutateAsync({ candidate_id: c.id, job_id: job.id, stage: "Longlist", source: "manual" });
+        await createCandidateJob.mutateAsync({ candidate_id: c.id, job_id: pickedJob.id, stage, source: "manual" });
         added++;
       } catch { /* already linked */ }
     }
-    toast.success(`${added} candidate${added !== 1 ? "s" : ""} added to ${job.title}`);
+    toast.success(`${added} candidate${added !== 1 ? "s" : ""} added to ${pickedJob.title} at ${stage}`);
     setOpen(false);
-    setSearch("");
+    reset();
+    onDone?.();
   };
 
   return (
-    <Popover open={open} onOpenChange={(o) => { setOpen(o); if (!o) setSearch(""); }}>
+    <Popover open={open} onOpenChange={(o) => { setOpen(o); if (!o) reset(); }}>
       <PopoverTrigger asChild>
         <ActionButton><BriefcaseBusiness className="h-4 w-4 mr-1" /> Add to Job</ActionButton>
       </PopoverTrigger>
-      <PopoverContent className="w-72 p-0" align="center" side="top">
-        <div className="p-3 border-b border-border">
-          <p className="text-sm font-medium mb-2">Add {selected.length} candidates to a job</p>
-          <Input placeholder="Search jobs..." value={search} onChange={(e) => setSearch(e.target.value)} className="h-8 text-sm" autoFocus />
-        </div>
-        <div className="max-h-[280px] overflow-y-auto">
-          {openJobs.length === 0 ? (
-            <p className="text-sm text-muted-foreground p-3">No open jobs</p>
-          ) : filtered.length === 0 ? (
-            <p className="text-sm text-muted-foreground p-3">No matching jobs</p>
-          ) : filtered.map(job => (
-            <button
-              key={job.id}
-              className="w-full text-left px-3 py-2 text-sm hover:bg-muted/40 transition-colors border-b border-border/50 last:border-0"
-              onClick={() => handleAdd(job)}
-              disabled={createCandidateJob.isPending}
-            >
-              <p className="font-medium text-foreground">{job.title}</p>
-              <p className="text-xs text-muted-foreground">{job.clients?.company_name || "No client"}</p>
-            </button>
-          ))}
-        </div>
+      <PopoverContent className="w-80 p-0" align="center" side="top">
+        {!pickedJob ? (
+          <>
+            <div className="p-3 border-b border-border">
+              <p className="text-sm font-medium mb-2">Add {selected.length} candidate{selected.length !== 1 ? "s" : ""} to a job</p>
+              <Input placeholder="Search jobs..." value={search} onChange={(e) => setSearch(e.target.value)} className="h-8 text-sm" autoFocus />
+            </div>
+            <div className="max-h-[280px] overflow-y-auto">
+              {activeJobs.length === 0 ? (
+                <p className="text-sm text-muted-foreground p-3">No active jobs</p>
+              ) : filtered.length === 0 ? (
+                <p className="text-sm text-muted-foreground p-3">No matching jobs</p>
+              ) : filtered.map(job => (
+                <button
+                  key={job.id}
+                  className="w-full text-left px-3 py-2 text-sm hover:bg-muted/40 transition-colors border-b border-border/50 last:border-0"
+                  onClick={() => setPickedJob(job)}
+                >
+                  <p className="font-medium text-foreground">{job.title}</p>
+                  <p className="text-xs text-muted-foreground">{job.clients?.company_name || "No client"}</p>
+                </button>
+              ))}
+            </div>
+          </>
+        ) : (
+          <div className="p-3 space-y-3">
+            <div>
+              <p className="text-xs text-muted-foreground">Adding {selected.length} candidate{selected.length !== 1 ? "s" : ""} to</p>
+              <p className="text-sm font-medium">{pickedJob.title}</p>
+              <p className="text-xs text-muted-foreground">{pickedJob.clients?.company_name || "No client"}</p>
+            </div>
+            <div>
+              <p className="text-xs font-medium mb-1.5">Add to which stage?</p>
+              <Select value={stage} onValueChange={setStage}>
+                <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {JOB_STAGES.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="flex gap-2">
+              <Button variant="outline" size="sm" className="flex-1" onClick={() => setPickedJob(null)}>Back</Button>
+              <Button size="sm" className="flex-1" onClick={handleConfirm} disabled={createCandidateJob.isPending}>
+                {createCandidateJob.isPending ? "Adding..." : "Confirm"}
+              </Button>
+            </div>
+          </div>
+        )}
       </PopoverContent>
     </Popover>
   );
