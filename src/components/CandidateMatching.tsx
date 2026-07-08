@@ -399,13 +399,39 @@ export function CandidateMatching({ job, autoRun = false }: { job: Job; autoRun?
 }
 
 function Card({
-  match, job, checked, onToggle,
+  match, job, checked, onToggle, existingStage, added, adding, onAdd,
 }: {
   match: MatchResult; job: Job; checked: boolean; onToggle: () => void;
+  existingStage: string | null; added: boolean; adding: boolean; onAdd: () => void;
 }) {
   const s = scoreColor(match.score);
   const r = recency(match.last_note_date || match.updated_at);
   const sal = salaryBadge(match.salary_current, job.salary_min, job.salary_max);
+  const isAdded = added || !!existingStage;
+
+  const addBtn = isAdded ? (
+    existingStage ? (
+      <TooltipProvider>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button size="sm" variant="ghost" disabled className="h-7 text-xs gap-1 rounded-full px-2 text-muted-foreground">
+              <Check className="h-3 w-3" /> Already added
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>Already in pipeline at {existingStage}</TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
+    ) : (
+      <Button size="sm" variant="ghost" disabled className="h-7 text-xs gap-1 rounded-full px-2 text-green-500">
+        <Check className="h-3 w-3" /> Added
+      </Button>
+    )
+  ) : (
+    <Button size="sm" variant="outline" disabled={adding} onClick={onAdd}
+      className="h-7 text-xs gap-1 rounded-full px-2 border-primary/40 text-primary hover:bg-primary/10">
+      {adding ? <Loader2 className="h-3 w-3 animate-spin" /> : <Plus className="h-3 w-3" />} Add
+    </Button>
+  );
 
   return (
     <div className={`rounded-lg border p-3 space-y-2 ${s.ring}`}>
@@ -421,11 +447,14 @@ function Card({
             {match.job_title || "No title"}{match.current_employer ? ` at ${match.current_employer}` : ""}
           </p>
         </div>
-        <a href={`/candidates?id=${match.candidate_id}`} className="flex-shrink-0">
-          <Button size="sm" variant="ghost" className="h-7 text-xs gap-1">
-            <ExternalLink className="h-3 w-3" /> View
-          </Button>
-        </a>
+        <div className="flex-shrink-0 flex items-center gap-1">
+          {addBtn}
+          <a href={`/candidates?id=${match.candidate_id}`}>
+            <Button size="sm" variant="ghost" className="h-7 text-xs gap-1">
+              <ExternalLink className="h-3 w-3" /> View
+            </Button>
+          </a>
+        </div>
       </div>
 
       <p className="text-xs text-foreground/80 leading-relaxed pl-7">
