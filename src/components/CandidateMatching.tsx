@@ -9,11 +9,13 @@ import {
   Sparkles, RefreshCw, Loader2, Search, ExternalLink, Clock,
   AlertTriangle, ChevronDown, ChevronUp, Send, ListPlus,
 } from "lucide-react";
-import { useCreateCandidateJob } from "@/hooks/use-data";
+import { useCreateCandidateJob, useCandidateJobs } from "@/hooks/use-data";
 import type { Job } from "@/hooks/use-data";
 import { useFeatureLimit, useLogUsage } from "@/hooks/use-usage";
 import { MultiCandidateSendDialog } from "@/components/MultiCandidateSendDialog";
 import { useAuth } from "@/contexts/AuthContext";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { Check, Plus } from "lucide-react";
 
 interface MatchResult {
   candidate_id: string;
