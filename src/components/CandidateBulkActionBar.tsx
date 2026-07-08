@@ -35,7 +35,7 @@ export function CandidateBulkActionBar({ selected, onClear }: BulkActionBarProps
       </span>
 
       <div className="flex items-center gap-2">
-        <AddToJobAction selected={selected} />
+        <AddToJobAction selected={selected} onDone={onClear} />
         <AddToPoolAction selected={selected} />
         {!isMobile && <SendCheckinAction selected={selected} />}
         {!isMobile && <AddToSequenceAction selected={selected} />}
