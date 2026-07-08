@@ -92,10 +92,16 @@ export type CandidateJob = {
   stage_changed_at: string;
   rejection_reason: string | null;
   interview_date: string | null;
+  ai_suggested?: boolean | null;
+  ai_suggested_at?: string | null;
+  ai_suggested_score?: number | null;
+  ai_suggested_reason?: string | null;
+  ai_suggestion_dismissed_reason?: string | null;
   created_at: string;
   candidates?: Candidate;
   jobs?: Job & { clients?: Client | null };
 };
+
 
 export type Note = {
   id: string;
