@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Plus, Building2, Clock, Calendar, Sparkles, Hand, FastForward, ClipboardList, ChevronDown } from "lucide-react";
+import { Plus, Building2, Clock, Calendar, Sparkles, Hand, FastForward, ClipboardList, ChevronDown, X, ArrowRight } from "lucide-react";
 import { PriorityStarIcon } from "@/components/PriorityFlag";
 import { CandidateContextMenu } from "@/components/CandidateContextMenu";
 import { useCandidateJobs, useCandidates, useCreateCandidateJob, useUpdateCandidateJob, type CandidateJob, type Candidate, type Job } from "@/hooks/use-data";
