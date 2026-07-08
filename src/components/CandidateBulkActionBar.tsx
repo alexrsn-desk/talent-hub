@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, forwardRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -66,18 +66,23 @@ export function CandidateBulkActionBar({ selected, onClear }: BulkActionBarProps
   );
 }
 
-function ActionButton({ children, onClick, className }: { children: React.ReactNode; onClick?: () => void; className?: string }) {
+const ActionButton = forwardRef<
+  HTMLButtonElement,
+  React.ButtonHTMLAttributes<HTMLButtonElement> & { children: React.ReactNode; className?: string }
+>(({ children, className, ...props }, ref) => {
   return (
     <Button
+      ref={ref}
       variant="outline"
       size="sm"
       className={cn("border-white/30 text-white hover:bg-white/10 hover:text-white", className)}
-      onClick={onClick}
+      {...props}
     >
       {children}
     </Button>
   );
-}
+});
+ActionButton.displayName = "ActionButton";
 
 // --- Add to Job ---
 const JOB_STAGES = ["Longlist", "Screening", "Shortlist", "Submitted", "First Interview", "Second Interview", "Offer"] as const;
