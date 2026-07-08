@@ -9,11 +9,13 @@ import {
   Sparkles, RefreshCw, Loader2, Search, ExternalLink, Clock,
   AlertTriangle, ChevronDown, ChevronUp, Send, ListPlus,
 } from "lucide-react";
-import { useCreateCandidateJob } from "@/hooks/use-data";
+import { useCreateCandidateJob, useCandidateJobs } from "@/hooks/use-data";
 import type { Job } from "@/hooks/use-data";
 import { useFeatureLimit, useLogUsage } from "@/hooks/use-usage";
 import { MultiCandidateSendDialog } from "@/components/MultiCandidateSendDialog";
 import { useAuth } from "@/contexts/AuthContext";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { Check, Plus } from "lucide-react";
 
 interface MatchResult {
   candidate_id: string;
@@ -71,6 +73,14 @@ export function CandidateMatching({ job, autoRun = false }: { job: Job; autoRun?
   const [showMore, setShowMore] = useState(false);
 
   const createCandidateJob = useCreateCandidateJob();
+  const { data: existingLinks = [] } = useCandidateJobs(undefined, job.id);
+  const existingStageByCandidate = useMemo(() => {
+    const m = new Map<string, string>();
+    for (const l of existingLinks) m.set(l.candidate_id, l.stage);
+    return m;
+  }, [existingLinks]);
+  const [locallyAdded, setLocallyAdded] = useState<Set<string>>(new Set());
+  const [addingId, setAddingId] = useState<string | null>(null);
   const matchLimit = useFeatureLimit("candidate_match");
   const logUsage = useLogUsage();
   const { user } = useAuth();
@@ -175,6 +185,61 @@ export function CandidateMatching({ job, autoRun = false }: { job: Job; autoRun?
     setSelected(new Set());
   };
 
+  const addOne = async (m: MatchResult) => {
+    if (existingStageByCandidate.has(m.candidate_id) || locallyAdded.has(m.candidate_id)) return;
+    setAddingId(m.candidate_id);
+    try {
+      await createCandidateJob.mutateAsync({
+        candidate_id: m.candidate_id,
+        job_id: job.id,
+        stage: "AI Suggested",
+        source: "ai",
+        ai_suggested: true,
+        ai_suggested_at: new Date().toISOString(),
+        ai_suggested_score: m.score ?? null,
+        ai_suggested_reason: m.explanation ?? null,
+      });
+      setLocallyAdded(prev => new Set(prev).add(m.candidate_id));
+      toast.success(`${m.candidate_name} added to AI Suggested`);
+    } catch (e: any) {
+      if (e?.message?.includes("duplicate")) {
+        setLocallyAdded(prev => new Set(prev).add(m.candidate_id));
+        toast.info(`${m.candidate_name} already in pipeline`);
+      } else {
+        toast.error(e?.message || "Failed to add");
+      }
+    } finally {
+      setAddingId(null);
+    }
+  };
+
+  const addAllToPipeline = async () => {
+    const toAdd = sorted.filter(m => !existingStageByCandidate.has(m.candidate_id) && !locallyAdded.has(m.candidate_id));
+    if (toAdd.length === 0) {
+      toast.info("All suggestions are already in the pipeline");
+      return;
+    }
+    let ok = 0, fail = 0;
+    const now = new Date().toISOString();
+    for (const m of toAdd) {
+      try {
+        await createCandidateJob.mutateAsync({
+          candidate_id: m.candidate_id,
+          job_id: job.id,
+          stage: "AI Suggested",
+          source: "ai",
+          ai_suggested: true,
+          ai_suggested_at: now,
+          ai_suggested_score: m.score ?? null,
+          ai_suggested_reason: m.explanation ?? null,
+        });
+        setLocallyAdded(prev => new Set(prev).add(m.candidate_id));
+        ok++;
+      } catch { fail++; }
+    }
+    toast.success(`${ok} candidates added to AI Suggested${fail ? ` · ${fail} failed` : ""}`);
+  };
+
 
   return (
     <div className="space-y-4 rounded-lg border border-border bg-card/40 p-4">
@@ -232,10 +297,23 @@ export function CandidateMatching({ job, autoRun = false }: { job: Job; autoRun?
         </div>
       )}
 
+      {data && sorted.length > 0 && (
+        <div className="flex items-center justify-between gap-2">
+          <span className="text-xs text-muted-foreground">
+            {sorted.length} suggestion{sorted.length === 1 ? "" : "s"}
+          </span>
+          <Button size="sm" variant="outline" onClick={addAllToPipeline} className="h-7 gap-1 text-xs">
+            <ListPlus className="h-3.5 w-3.5" /> Add all to pipeline
+          </Button>
+        </div>
+      )}
+
       {data && filtered ? (
         <div className="space-y-2">
           {filtered.map(m => (
-            <Card key={m.candidate_id} match={m} job={job} checked={selected.has(m.candidate_id)} onToggle={() => toggleSelected(m.candidate_id)} />
+            <Card key={m.candidate_id} match={m} job={job} checked={selected.has(m.candidate_id)} onToggle={() => toggleSelected(m.candidate_id)}
+              existingStage={existingStageByCandidate.get(m.candidate_id) || null}
+              added={locallyAdded.has(m.candidate_id)} adding={addingId === m.candidate_id} onAdd={() => addOne(m)} />
           ))}
           {filtered.length === 0 && <p className="text-xs text-muted-foreground">No matches for "{search}".</p>}
         </div>
@@ -246,7 +324,9 @@ export function CandidateMatching({ job, autoRun = false }: { job: Job; autoRun?
           </div>
           <div className="space-y-2">
             {top5.map(m => (
-              <Card key={m.candidate_id} match={m} job={job} checked={selected.has(m.candidate_id)} onToggle={() => toggleSelected(m.candidate_id)} />
+              <Card key={m.candidate_id} match={m} job={job} checked={selected.has(m.candidate_id)} onToggle={() => toggleSelected(m.candidate_id)}
+                existingStage={existingStageByCandidate.get(m.candidate_id) || null}
+                added={locallyAdded.has(m.candidate_id)} adding={addingId === m.candidate_id} onAdd={() => addOne(m)} />
             ))}
           </div>
 
@@ -263,7 +343,9 @@ export function CandidateMatching({ job, autoRun = false }: { job: Job; autoRun?
           {showMore && (
             <div className="space-y-2">
               {rest.map(m => (
-                <Card key={m.candidate_id} match={m} job={job} checked={selected.has(m.candidate_id)} onToggle={() => toggleSelected(m.candidate_id)} />
+                <Card key={m.candidate_id} match={m} job={job} checked={selected.has(m.candidate_id)} onToggle={() => toggleSelected(m.candidate_id)}
+                  existingStage={existingStageByCandidate.get(m.candidate_id) || null}
+                  added={locallyAdded.has(m.candidate_id)} adding={addingId === m.candidate_id} onAdd={() => addOne(m)} />
               ))}
             </div>
           )}
@@ -274,7 +356,7 @@ export function CandidateMatching({ job, autoRun = false }: { job: Job; autoRun?
               {selectedIds.length} selected
             </span>
             <Button size="sm" variant="outline" disabled={!selectedIds.length} onClick={() => addSelectedToPipeline("AI Suggested")} className="gap-1">
-              <ListPlus className="h-3.5 w-3.5" /> Add to AI Suggested
+              <ListPlus className="h-3.5 w-3.5" /> Add selected to AI Suggested
             </Button>
 
             <Button size="sm" disabled={!selectedIds.length} onClick={() => setSendDialogOpen(true)} className="gap-1">
@@ -317,13 +399,39 @@ export function CandidateMatching({ job, autoRun = false }: { job: Job; autoRun?
 }
 
 function Card({
-  match, job, checked, onToggle,
+  match, job, checked, onToggle, existingStage, added, adding, onAdd,
 }: {
   match: MatchResult; job: Job; checked: boolean; onToggle: () => void;
+  existingStage: string | null; added: boolean; adding: boolean; onAdd: () => void;
 }) {
   const s = scoreColor(match.score);
   const r = recency(match.last_note_date || match.updated_at);
   const sal = salaryBadge(match.salary_current, job.salary_min, job.salary_max);
+  const isAdded = added || !!existingStage;
+
+  const addBtn = isAdded ? (
+    existingStage ? (
+      <TooltipProvider>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button size="sm" variant="ghost" disabled className="h-7 text-xs gap-1 rounded-full px-2 text-muted-foreground">
+              <Check className="h-3 w-3" /> Already added
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>Already in pipeline at {existingStage}</TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
+    ) : (
+      <Button size="sm" variant="ghost" disabled className="h-7 text-xs gap-1 rounded-full px-2 text-green-500">
+        <Check className="h-3 w-3" /> Added
+      </Button>
+    )
+  ) : (
+    <Button size="sm" variant="outline" disabled={adding} onClick={onAdd}
+      className="h-7 text-xs gap-1 rounded-full px-2 border-primary/40 text-primary hover:bg-primary/10">
+      {adding ? <Loader2 className="h-3 w-3 animate-spin" /> : <Plus className="h-3 w-3" />} Add
+    </Button>
+  );
 
   return (
     <div className={`rounded-lg border p-3 space-y-2 ${s.ring}`}>
@@ -339,11 +447,14 @@ function Card({
             {match.job_title || "No title"}{match.current_employer ? ` at ${match.current_employer}` : ""}
           </p>
         </div>
-        <a href={`/candidates?id=${match.candidate_id}`} className="flex-shrink-0">
-          <Button size="sm" variant="ghost" className="h-7 text-xs gap-1">
-            <ExternalLink className="h-3 w-3" /> View
-          </Button>
-        </a>
+        <div className="flex-shrink-0 flex items-center gap-1">
+          {addBtn}
+          <a href={`/candidates?id=${match.candidate_id}`}>
+            <Button size="sm" variant="ghost" className="h-7 text-xs gap-1">
+              <ExternalLink className="h-3 w-3" /> View
+            </Button>
+          </a>
+        </div>
       </div>
 
       <p className="text-xs text-foreground/80 leading-relaxed pl-7">
