@@ -522,7 +522,75 @@ export function JobPipelineBoard({ job, onJobUpdate }: { job: Job; onJobUpdate?:
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* AI Suggested dismiss dialog */}
+      <Dialog open={!!dismissingCJ} onOpenChange={(o) => !o && setDismissingCJ(null)}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Not right for this role?</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-2 py-2">
+            <p className="text-xs text-muted-foreground">
+              Optional — helps improve future AI suggestions.
+            </p>
+            <div className="flex flex-wrap gap-1.5">
+              {["Wrong skills", "Wrong seniority", "Wrong salary", "Other"].map((r) => (
+                <button
+                  key={r}
+                  type="button"
+                  onClick={() => setDismissReason(r)}
+                  className={`text-xs px-2 py-1 rounded-md border transition-colors ${
+                    dismissReason === r
+                      ? "border-primary bg-primary/10 text-primary"
+                      : "border-border hover:border-primary/40"
+                  }`}
+                >
+                  {r}
+                </button>
+              ))}
+            </div>
+            {dismissReason === "Other" && (
+              <Input
+                autoFocus
+                placeholder="Optional detail…"
+                value={dismissOther}
+                onChange={(e) => setDismissOther(e.target.value)}
+                className="h-8 text-xs"
+              />
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setDismissingCJ(null)}>Cancel</Button>
+            <Button
+              onClick={() => {
+                if (!dismissingCJ) return;
+                const reasonText =
+                  dismissReason === "Other" && dismissOther.trim()
+                    ? `Other: ${dismissOther.trim()}`
+                    : dismissReason || null;
+                updateCandidateJob.mutate(
+                  {
+                    id: dismissingCJ.id,
+                    stage: "Rejected",
+                    rejection_reason: reasonText || "Not right (AI suggested)",
+                    ai_suggestion_dismissed_reason: reasonText,
+                  } as any,
+                  {
+                    onSuccess: () => {
+                      toast.success("Dismissed from AI Suggested");
+                      setDismissingCJ(null);
+                    },
+                  },
+                );
+              }}
+            >
+              Dismiss
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
+
   );
 }
 
