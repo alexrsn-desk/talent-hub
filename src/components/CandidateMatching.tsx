@@ -185,6 +185,61 @@ export function CandidateMatching({ job, autoRun = false }: { job: Job; autoRun?
     setSelected(new Set());
   };
 
+  const addOne = async (m: MatchResult) => {
+    if (existingStageByCandidate.has(m.candidate_id) || locallyAdded.has(m.candidate_id)) return;
+    setAddingId(m.candidate_id);
+    try {
+      await createCandidateJob.mutateAsync({
+        candidate_id: m.candidate_id,
+        job_id: job.id,
+        stage: "AI Suggested",
+        source: "ai",
+        ai_suggested: true,
+        ai_suggested_at: new Date().toISOString(),
+        ai_suggested_score: m.score ?? null,
+        ai_suggested_reason: m.explanation ?? null,
+      });
+      setLocallyAdded(prev => new Set(prev).add(m.candidate_id));
+      toast.success(`${m.candidate_name} added to AI Suggested`);
+    } catch (e: any) {
+      if (e?.message?.includes("duplicate")) {
+        setLocallyAdded(prev => new Set(prev).add(m.candidate_id));
+        toast.info(`${m.candidate_name} already in pipeline`);
+      } else {
+        toast.error(e?.message || "Failed to add");
+      }
+    } finally {
+      setAddingId(null);
+    }
+  };
+
+  const addAllToPipeline = async () => {
+    const toAdd = sorted.filter(m => !existingStageByCandidate.has(m.candidate_id) && !locallyAdded.has(m.candidate_id));
+    if (toAdd.length === 0) {
+      toast.info("All suggestions are already in the pipeline");
+      return;
+    }
+    let ok = 0, fail = 0;
+    const now = new Date().toISOString();
+    for (const m of toAdd) {
+      try {
+        await createCandidateJob.mutateAsync({
+          candidate_id: m.candidate_id,
+          job_id: job.id,
+          stage: "AI Suggested",
+          source: "ai",
+          ai_suggested: true,
+          ai_suggested_at: now,
+          ai_suggested_score: m.score ?? null,
+          ai_suggested_reason: m.explanation ?? null,
+        });
+        setLocallyAdded(prev => new Set(prev).add(m.candidate_id));
+        ok++;
+      } catch { fail++; }
+    }
+    toast.success(`${ok} candidates added to AI Suggested${fail ? ` · ${fail} failed` : ""}`);
+  };
+
 
   return (
     <div className="space-y-4 rounded-lg border border-border bg-card/40 p-4">
