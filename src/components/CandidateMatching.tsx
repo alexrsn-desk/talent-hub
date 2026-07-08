@@ -73,6 +73,14 @@ export function CandidateMatching({ job, autoRun = false }: { job: Job; autoRun?
   const [showMore, setShowMore] = useState(false);
 
   const createCandidateJob = useCreateCandidateJob();
+  const { data: existingLinks = [] } = useCandidateJobs(undefined, job.id);
+  const existingStageByCandidate = useMemo(() => {
+    const m = new Map<string, string>();
+    for (const l of existingLinks) m.set(l.candidate_id, l.stage);
+    return m;
+  }, [existingLinks]);
+  const [locallyAdded, setLocallyAdded] = useState<Set<string>>(new Set());
+  const [addingId, setAddingId] = useState<string | null>(null);
   const matchLimit = useFeatureLimit("candidate_match");
   const logUsage = useLogUsage();
   const { user } = useAuth();
