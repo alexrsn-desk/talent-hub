@@ -887,3 +887,85 @@ function InterviewDatePicker({ candidateJob, onOpenSlotPicker }: { candidateJob:
     </div>
   );
 }
+
+// ============================================================================
+// AI Suggested card — compact inbox-style row
+// ============================================================================
+
+function initials(name?: string | null) {
+  if (!name) return "?";
+  const parts = name.trim().split(/\s+/);
+  return ((parts[0]?.[0] || "") + (parts[1]?.[0] || "")).toUpperCase() || "?";
+}
+
+function AiSuggestedCard({
+  cj,
+  dragProvided,
+  dragSnapshot,
+  onOpenProfile,
+  onAccept,
+  onDismiss,
+}: {
+  cj: CandidateJob;
+  dragProvided: any;
+  dragSnapshot: any;
+  onOpenProfile: () => void;
+  onAccept: () => void;
+  onDismiss: () => void;
+}) {
+  const score = cj.ai_suggested_score;
+  const name = cj.candidates?.name || "Unknown";
+  const role = cj.candidates?.job_title || "";
+  const employer = cj.candidates?.current_employer || "";
+  const meta = [role, employer].filter(Boolean).join(" · ");
+
+  return (
+    <div
+      ref={dragProvided.innerRef}
+      {...dragProvided.draggableProps}
+      {...dragProvided.dragHandleProps}
+      onClick={onOpenProfile}
+      className={`group relative rounded-md border border-border bg-background/70 px-2 py-1.5 cursor-pointer hover:border-blue-400/40 transition-all ${
+        dragSnapshot.isDragging ? "shadow-lg ring-1 ring-primary/30" : ""
+      }`}
+      title={cj.ai_suggested_reason || undefined}
+    >
+      <div className="flex items-center gap-2 min-w-0">
+        <div className="flex-shrink-0 h-6 w-6 rounded-full bg-blue-500/15 text-blue-300 text-[10px] font-medium flex items-center justify-center">
+          {initials(name)}
+        </div>
+        <div className="min-w-0 flex-1">
+          <p className="text-[13px] font-semibold leading-tight truncate">{name}</p>
+          {meta && (
+            <p className="text-[11px] text-muted-foreground leading-tight truncate">{meta}</p>
+          )}
+        </div>
+        {score != null && (
+          <span className="flex-shrink-0 text-[11px] font-semibold text-blue-400">
+            {score}%
+          </span>
+        )}
+      </div>
+
+      {/* Hover actions */}
+      <div className="absolute inset-x-1 bottom-1 hidden group-hover:flex items-center gap-1 justify-end">
+        <button
+          type="button"
+          onClick={(e) => { e.stopPropagation(); onAccept(); }}
+          className="text-[10px] px-1.5 py-0.5 rounded border border-emerald-500/40 text-emerald-400 bg-background hover:bg-emerald-500/10 flex items-center gap-0.5"
+          title="Move to Longlist"
+        >
+          <ArrowRight className="h-2.5 w-2.5" /> Longlist
+        </button>
+        <button
+          type="button"
+          onClick={(e) => { e.stopPropagation(); onDismiss(); }}
+          className="text-[10px] px-1.5 py-0.5 rounded border border-red-500/40 text-red-400 bg-background hover:bg-red-500/10 flex items-center gap-0.5"
+          title="Not right"
+        >
+          <X className="h-2.5 w-2.5" /> Not right
+        </button>
+      </div>
+    </div>
+  );
+}
