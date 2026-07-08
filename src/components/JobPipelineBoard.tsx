@@ -274,38 +274,74 @@ export function JobPipelineBoard({ job, onJobUpdate }: { job: Job; onJobUpdate?:
 
       <DragDropContext onDragEnd={handleDragEnd}>
         <div id={`pipeline-board-${job.id}`} className="flex gap-3 overflow-x-auto pb-4" style={{ minHeight: 320 }}>
-          {PIPELINE_STAGES.map((stage) => (
+          {PIPELINE_STAGES.map((stage) => {
+            const isAiCol = stage === "AI Suggested";
+            const colItems = stageMap[stage] || [];
+            return (
             <div
               key={stage}
               id={`pipeline-col-${stage}-${job.id}`}
-              className={`flex-shrink-0 w-56 rounded-lg border border-border bg-muted/20 border-t-2 ${stageBorder[stage]}`}
+              className={`flex-shrink-0 w-56 rounded-lg border border-border border-t-2 ${stageBorder[stage]} ${
+                isAiCol ? "bg-blue-500/[0.06]" : "bg-muted/20"
+              }`}
             >
               <div className="px-3 py-2 border-b border-border flex items-center justify-between">
-                <span className="text-xs font-medium truncate">{stage}</span>
+                <span className="text-xs font-medium truncate flex items-center gap-1">
+                  {isAiCol && <Sparkles className="h-3 w-3 text-blue-400" />}
+                  {stage}
+                </span>
                 <div className="flex items-center gap-1">
                   <Badge variant="secondary" className="text-[10px] h-5 px-1.5">
-                    {stageMap[stage]?.length || 0}
+                    {colItems.length}
                   </Badge>
-                  <AddCandidateToStageDropdown
-                    jobId={job.id}
-                    stage={stage}
-                    candidateJobs={candidateJobs}
-                  />
+                  {!isAiCol && (
+                    <AddCandidateToStageDropdown
+                      jobId={job.id}
+                      stage={stage}
+                      candidateJobs={candidateJobs}
+                    />
+                  )}
                 </div>
               </div>
+
+              {isAiCol && (
+                <p className="px-3 pt-2 text-[11px] italic text-muted-foreground leading-snug">
+                  AI recommended — review and move forward or dismiss
+                </p>
+              )}
 
               <Droppable droppableId={stage}>
                 {(provided, snapshot) => (
                   <div
                     ref={provided.innerRef}
                     {...provided.droppableProps}
-                    className={`p-2 space-y-2 min-h-[120px] transition-colors ${
+                    className={`${isAiCol ? "p-1.5 space-y-1" : "p-2 space-y-2"} min-h-[120px] transition-colors ${
                       snapshot.isDraggingOver ? "bg-primary/5" : ""
                     }`}
                   >
-                    {(stageMap[stage] || []).map((cj, idx) => (
+                    {isAiCol && colItems.length === 0 && !snapshot.isDraggingOver && (
+                      <div className="text-[11px] text-muted-foreground px-2 py-4 text-center space-y-1">
+                        <p>No AI suggestions yet.</p>
+                        <p>Add a job description to get candidate recommendations.</p>
+                      </div>
+                    )}
+                    {colItems.map((cj, idx) => (
                       <Draggable key={cj.id} draggableId={cj.id} index={idx}>
-                        {(dragProvided, dragSnapshot) => (
+                        {(dragProvided, dragSnapshot) =>
+                          isAiCol ? (
+                            <AiSuggestedCard
+                              cj={cj}
+                              dragProvided={dragProvided}
+                              dragSnapshot={dragSnapshot}
+                              onOpenProfile={() => openProfile(cj)}
+                              onAccept={() => performStageMove(cj, cj.stage, "Longlist")}
+                              onDismiss={() => {
+                                setDismissingCJ(cj);
+                                setDismissReason("");
+                                setDismissOther("");
+                              }}
+                            />
+                          ) : (
                           <PipelineCard
                             cj={cj}
                             stage={stage}
@@ -328,7 +364,8 @@ export function JobPipelineBoard({ job, onJobUpdate }: { job: Job; onJobUpdate?:
                             onOpenOffer={() => setOfferPanel({ cj })}
                             formatSalary={formatSalary}
                           />
-                        )}
+                          )
+                        }
                       </Draggable>
                     ))}
                     {provided.placeholder}
@@ -336,7 +373,9 @@ export function JobPipelineBoard({ job, onJobUpdate }: { job: Job; onJobUpdate?:
                 )}
               </Droppable>
             </div>
-          ))}
+            );
+          })}
+
         </div>
       </DragDropContext>
 
