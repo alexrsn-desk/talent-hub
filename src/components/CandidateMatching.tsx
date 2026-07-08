@@ -273,9 +273,10 @@ export function CandidateMatching({ job, autoRun = false }: { job: Job; autoRun?
             <span className="text-xs text-muted-foreground mr-auto">
               {selectedIds.length} selected
             </span>
-            <Button size="sm" variant="outline" disabled={!selectedIds.length} onClick={() => addSelectedToPipeline("Longlist")} className="gap-1">
-              <ListPlus className="h-3.5 w-3.5" /> Add to pipeline
+            <Button size="sm" variant="outline" disabled={!selectedIds.length} onClick={() => addSelectedToPipeline("AI Suggested")} className="gap-1">
+              <ListPlus className="h-3.5 w-3.5" /> Add to AI Suggested
             </Button>
+
             <Button size="sm" disabled={!selectedIds.length} onClick={() => setSendDialogOpen(true)} className="gap-1">
               <Send className="h-3.5 w-3.5" /> Send to client
             </Button>
