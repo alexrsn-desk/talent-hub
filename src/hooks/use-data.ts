@@ -311,7 +311,16 @@ export function useCandidateJobs(candidateId?: string, jobId?: string) {
 export function useCreateCandidateJob() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (link: { candidate_id: string; job_id: string; stage?: string; source?: string }) => {
+    mutationFn: async (link: {
+      candidate_id: string;
+      job_id: string;
+      stage?: string;
+      source?: string;
+      ai_suggested?: boolean;
+      ai_suggested_at?: string | null;
+      ai_suggested_score?: number | null;
+      ai_suggested_reason?: string | null;
+    }) => {
       const { data: { user } } = await supabase.auth.getUser();
       const { data, error } = await supabase.from("candidate_jobs").insert({ ...link, owner_user_id: user?.id } as any).select().single();
       if (error) throw error;
@@ -320,7 +329,7 @@ export function useCreateCandidateJob() {
         candidate_id: link.candidate_id,
         job_id: link.job_id,
         candidate_job_id: data.id,
-        metadata: { stage: data.stage },
+        metadata: { stage: data.stage, ai_suggested: !!link.ai_suggested, ai_suggested_score: link.ai_suggested_score ?? null },
       });
       return data;
     },
@@ -331,9 +340,13 @@ export function useCreateCandidateJob() {
 export function useUpdateCandidateJob() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async ({ id, ...updates }: { id: string; stage?: string; interview_date?: string | null; rejection_reason?: string | null }) => {
-      // Capture old stage for stage_change logging
-      const { data: old } = await supabase.from("candidate_jobs").select("stage, candidate_id, job_id").eq("id", id).single();
+    mutationFn: async ({ id, ...updates }: { id: string; stage?: string; interview_date?: string | null; rejection_reason?: string | null; ai_suggestion_dismissed_reason?: string | null }) => {
+      // Capture old stage + ai attribution for logging
+      const { data: old } = await supabase
+        .from("candidate_jobs")
+        .select("stage, candidate_id, job_id, ai_suggested, ai_suggested_score")
+        .eq("id", id)
+        .single();
       const { data, error } = await supabase.from("candidate_jobs").update(updates).eq("id", id).select().single();
       if (error) throw error;
       const actionType = updates.stage && old && old.stage !== updates.stage ? "stage_change" : "candidate_job_linked";
@@ -347,11 +360,27 @@ export function useUpdateCandidateJob() {
           ...(updates.interview_date ? { interview_date: updates.interview_date } : {}),
         },
       });
+      // Permanent attribution log when a candidate moves OUT of AI Suggested
+      if (updates.stage && old?.stage === "AI Suggested" && updates.stage !== "AI Suggested") {
+        const score = (old as any)?.ai_suggested_score;
+        await logActivity({
+          action_type: "ai_suggestion_actioned",
+          candidate_id: old?.candidate_id,
+          job_id: old?.job_id,
+          candidate_job_id: id,
+          metadata: {
+            stage_to: updates.stage,
+            ai_suggested_score: score ?? null,
+            summary: `Moved from AI Suggested to ${updates.stage}${score != null ? ` — originally suggested at ${score}% match` : ""}`,
+          },
+        });
+      }
       return data;
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ["candidate_jobs"] }),
   });
 }
+
 
 export function useDeleteCandidateJob() {
   const qc = useQueryClient();
