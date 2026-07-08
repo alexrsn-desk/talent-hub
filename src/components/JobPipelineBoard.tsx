@@ -132,6 +132,12 @@ export function JobPipelineBoard({ job, onJobUpdate }: { job: Job; onJobUpdate?:
   const [placedPrompt, setPlacedPrompt] = useState<{ cj: CandidateJob } | null>(null);
   const [placedBusy, setPlacedBusy] = useState(false);
 
+  // AI Suggested dismiss flow
+  const [dismissingCJ, setDismissingCJ] = useState<CandidateJob | null>(null);
+  const [dismissReason, setDismissReason] = useState<string>("");
+  const [dismissOther, setDismissOther] = useState<string>("");
+
+
   const linkedCandidateIds = candidateJobs.map((cj) => cj.candidate_id);
   const availableCandidates = allCandidates.filter((c) => !linkedCandidateIds.includes(c.id));
 
