@@ -148,9 +148,10 @@ export function CandidateMatching({ job, autoRun = false }: { job: Job; autoRun?
   const noStrong = data && sorted.length > 0 && sorted[0].score < 30;
   const empty = data && sorted.length === 0;
 
-  const addSelectedToPipeline = async (stage: string = "Longlist") => {
+  const addSelectedToPipeline = async (stage: string = "AI Suggested") => {
     if (selectedIds.length === 0) return;
     let ok = 0, dup = 0, fail = 0;
+    const now = new Date().toISOString();
     for (const cid of selectedIds) {
       const m = sorted.find(x => x.candidate_id === cid);
       try {
@@ -159,6 +160,10 @@ export function CandidateMatching({ job, autoRun = false }: { job: Job; autoRun?
           job_id: job.id,
           stage,
           source: "ai",
+          ai_suggested: true,
+          ai_suggested_at: now,
+          ai_suggested_score: m?.score ?? null,
+          ai_suggested_reason: m?.explanation ?? null,
         });
         ok++;
       } catch (e: any) {
@@ -169,6 +174,7 @@ export function CandidateMatching({ job, autoRun = false }: { job: Job; autoRun?
     toast.success(`Added ${ok} to ${stage}${dup ? ` · ${dup} already in pipeline` : ""}${fail ? ` · ${fail} failed` : ""}`);
     setSelected(new Set());
   };
+
 
   return (
     <div className="space-y-4 rounded-lg border border-border bg-card/40 p-4">
@@ -267,9 +273,10 @@ export function CandidateMatching({ job, autoRun = false }: { job: Job; autoRun?
             <span className="text-xs text-muted-foreground mr-auto">
               {selectedIds.length} selected
             </span>
-            <Button size="sm" variant="outline" disabled={!selectedIds.length} onClick={() => addSelectedToPipeline("Longlist")} className="gap-1">
-              <ListPlus className="h-3.5 w-3.5" /> Add to pipeline
+            <Button size="sm" variant="outline" disabled={!selectedIds.length} onClick={() => addSelectedToPipeline("AI Suggested")} className="gap-1">
+              <ListPlus className="h-3.5 w-3.5" /> Add to AI Suggested
             </Button>
+
             <Button size="sm" disabled={!selectedIds.length} onClick={() => setSendDialogOpen(true)} className="gap-1">
               <Send className="h-3.5 w-3.5" /> Send to client
             </Button>

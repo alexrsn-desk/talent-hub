@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Plus, Building2, Clock, Calendar, Sparkles, Hand, FastForward, ClipboardList, ChevronDown } from "lucide-react";
+import { Plus, Building2, Clock, Calendar, Sparkles, Hand, FastForward, ClipboardList, ChevronDown, X, ArrowRight } from "lucide-react";
 import { PriorityStarIcon } from "@/components/PriorityFlag";
 import { CandidateContextMenu } from "@/components/CandidateContextMenu";
 import { useCandidateJobs, useCandidates, useCreateCandidateJob, useUpdateCandidateJob, type CandidateJob, type Candidate, type Job } from "@/hooks/use-data";
@@ -131,6 +131,12 @@ export function JobPipelineBoard({ job, onJobUpdate }: { job: Job; onJobUpdate?:
   // Placed prompt — opens after move to Placed
   const [placedPrompt, setPlacedPrompt] = useState<{ cj: CandidateJob } | null>(null);
   const [placedBusy, setPlacedBusy] = useState(false);
+
+  // AI Suggested dismiss flow
+  const [dismissingCJ, setDismissingCJ] = useState<CandidateJob | null>(null);
+  const [dismissReason, setDismissReason] = useState<string>("");
+  const [dismissOther, setDismissOther] = useState<string>("");
+
 
   const linkedCandidateIds = candidateJobs.map((cj) => cj.candidate_id);
   const availableCandidates = allCandidates.filter((c) => !linkedCandidateIds.includes(c.id));
@@ -268,38 +274,74 @@ export function JobPipelineBoard({ job, onJobUpdate }: { job: Job; onJobUpdate?:
 
       <DragDropContext onDragEnd={handleDragEnd}>
         <div id={`pipeline-board-${job.id}`} className="flex gap-3 overflow-x-auto pb-4" style={{ minHeight: 320 }}>
-          {PIPELINE_STAGES.map((stage) => (
+          {PIPELINE_STAGES.map((stage) => {
+            const isAiCol = stage === "AI Suggested";
+            const colItems = stageMap[stage] || [];
+            return (
             <div
               key={stage}
               id={`pipeline-col-${stage}-${job.id}`}
-              className={`flex-shrink-0 w-56 rounded-lg border border-border bg-muted/20 border-t-2 ${stageBorder[stage]}`}
+              className={`flex-shrink-0 w-56 rounded-lg border border-border border-t-2 ${stageBorder[stage]} ${
+                isAiCol ? "bg-blue-500/[0.06]" : "bg-muted/20"
+              }`}
             >
               <div className="px-3 py-2 border-b border-border flex items-center justify-between">
-                <span className="text-xs font-medium truncate">{stage}</span>
+                <span className="text-xs font-medium truncate flex items-center gap-1">
+                  {isAiCol && <Sparkles className="h-3 w-3 text-blue-400" />}
+                  {stage}
+                </span>
                 <div className="flex items-center gap-1">
                   <Badge variant="secondary" className="text-[10px] h-5 px-1.5">
-                    {stageMap[stage]?.length || 0}
+                    {colItems.length}
                   </Badge>
-                  <AddCandidateToStageDropdown
-                    jobId={job.id}
-                    stage={stage}
-                    candidateJobs={candidateJobs}
-                  />
+                  {!isAiCol && (
+                    <AddCandidateToStageDropdown
+                      jobId={job.id}
+                      stage={stage}
+                      candidateJobs={candidateJobs}
+                    />
+                  )}
                 </div>
               </div>
+
+              {isAiCol && (
+                <p className="px-3 pt-2 text-[11px] italic text-muted-foreground leading-snug">
+                  AI recommended — review and move forward or dismiss
+                </p>
+              )}
 
               <Droppable droppableId={stage}>
                 {(provided, snapshot) => (
                   <div
                     ref={provided.innerRef}
                     {...provided.droppableProps}
-                    className={`p-2 space-y-2 min-h-[120px] transition-colors ${
+                    className={`${isAiCol ? "p-1.5 space-y-1" : "p-2 space-y-2"} min-h-[120px] transition-colors ${
                       snapshot.isDraggingOver ? "bg-primary/5" : ""
                     }`}
                   >
-                    {(stageMap[stage] || []).map((cj, idx) => (
+                    {isAiCol && colItems.length === 0 && !snapshot.isDraggingOver && (
+                      <div className="text-[11px] text-muted-foreground px-2 py-4 text-center space-y-1">
+                        <p>No AI suggestions yet.</p>
+                        <p>Add a job description to get candidate recommendations.</p>
+                      </div>
+                    )}
+                    {colItems.map((cj, idx) => (
                       <Draggable key={cj.id} draggableId={cj.id} index={idx}>
-                        {(dragProvided, dragSnapshot) => (
+                        {(dragProvided, dragSnapshot) =>
+                          isAiCol ? (
+                            <AiSuggestedCard
+                              cj={cj}
+                              dragProvided={dragProvided}
+                              dragSnapshot={dragSnapshot}
+                              onOpenProfile={() => openProfile(cj)}
+                              onAccept={() => performStageMove(cj, cj.stage, "Longlist")}
+                              onDismiss={() => {
+                                setDismissingCJ(cj);
+                                setDismissReason("");
+                                setDismissOther("");
+                              }}
+                            />
+                          ) : (
                           <PipelineCard
                             cj={cj}
                             stage={stage}
@@ -322,7 +364,8 @@ export function JobPipelineBoard({ job, onJobUpdate }: { job: Job; onJobUpdate?:
                             onOpenOffer={() => setOfferPanel({ cj })}
                             formatSalary={formatSalary}
                           />
-                        )}
+                          )
+                        }
                       </Draggable>
                     ))}
                     {provided.placeholder}
@@ -330,7 +373,9 @@ export function JobPipelineBoard({ job, onJobUpdate }: { job: Job; onJobUpdate?:
                 )}
               </Droppable>
             </div>
-          ))}
+            );
+          })}
+
         </div>
       </DragDropContext>
 
@@ -477,7 +522,75 @@ export function JobPipelineBoard({ job, onJobUpdate }: { job: Job; onJobUpdate?:
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* AI Suggested dismiss dialog */}
+      <Dialog open={!!dismissingCJ} onOpenChange={(o) => !o && setDismissingCJ(null)}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Not right for this role?</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-2 py-2">
+            <p className="text-xs text-muted-foreground">
+              Optional — helps improve future AI suggestions.
+            </p>
+            <div className="flex flex-wrap gap-1.5">
+              {["Wrong skills", "Wrong seniority", "Wrong salary", "Other"].map((r) => (
+                <button
+                  key={r}
+                  type="button"
+                  onClick={() => setDismissReason(r)}
+                  className={`text-xs px-2 py-1 rounded-md border transition-colors ${
+                    dismissReason === r
+                      ? "border-primary bg-primary/10 text-primary"
+                      : "border-border hover:border-primary/40"
+                  }`}
+                >
+                  {r}
+                </button>
+              ))}
+            </div>
+            {dismissReason === "Other" && (
+              <Input
+                autoFocus
+                placeholder="Optional detail…"
+                value={dismissOther}
+                onChange={(e) => setDismissOther(e.target.value)}
+                className="h-8 text-xs"
+              />
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setDismissingCJ(null)}>Cancel</Button>
+            <Button
+              onClick={() => {
+                if (!dismissingCJ) return;
+                const reasonText =
+                  dismissReason === "Other" && dismissOther.trim()
+                    ? `Other: ${dismissOther.trim()}`
+                    : dismissReason || null;
+                updateCandidateJob.mutate(
+                  {
+                    id: dismissingCJ.id,
+                    stage: "Rejected",
+                    rejection_reason: reasonText || "Not right (AI suggested)",
+                    ai_suggestion_dismissed_reason: reasonText,
+                  } as any,
+                  {
+                    onSuccess: () => {
+                      toast.success("Dismissed from AI Suggested");
+                      setDismissingCJ(null);
+                    },
+                  },
+                );
+              }}
+            >
+              Dismiss
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
+
   );
 }
 
@@ -771,6 +884,88 @@ function InterviewDatePicker({ candidateJob, onOpenSlotPicker }: { candidateJob:
           </button>
         </div>
       )}
+    </div>
+  );
+}
+
+// ============================================================================
+// AI Suggested card — compact inbox-style row
+// ============================================================================
+
+function initials(name?: string | null) {
+  if (!name) return "?";
+  const parts = name.trim().split(/\s+/);
+  return ((parts[0]?.[0] || "") + (parts[1]?.[0] || "")).toUpperCase() || "?";
+}
+
+function AiSuggestedCard({
+  cj,
+  dragProvided,
+  dragSnapshot,
+  onOpenProfile,
+  onAccept,
+  onDismiss,
+}: {
+  cj: CandidateJob;
+  dragProvided: any;
+  dragSnapshot: any;
+  onOpenProfile: () => void;
+  onAccept: () => void;
+  onDismiss: () => void;
+}) {
+  const score = cj.ai_suggested_score;
+  const name = cj.candidates?.name || "Unknown";
+  const role = cj.candidates?.job_title || "";
+  const employer = cj.candidates?.current_employer || "";
+  const meta = [role, employer].filter(Boolean).join(" · ");
+
+  return (
+    <div
+      ref={dragProvided.innerRef}
+      {...dragProvided.draggableProps}
+      {...dragProvided.dragHandleProps}
+      onClick={onOpenProfile}
+      className={`group relative rounded-md border border-border bg-background/70 px-2 py-1.5 cursor-pointer hover:border-blue-400/40 transition-all ${
+        dragSnapshot.isDragging ? "shadow-lg ring-1 ring-primary/30" : ""
+      }`}
+      title={cj.ai_suggested_reason || undefined}
+    >
+      <div className="flex items-center gap-2 min-w-0">
+        <div className="flex-shrink-0 h-6 w-6 rounded-full bg-blue-500/15 text-blue-300 text-[10px] font-medium flex items-center justify-center">
+          {initials(name)}
+        </div>
+        <div className="min-w-0 flex-1">
+          <p className="text-[13px] font-semibold leading-tight truncate">{name}</p>
+          {meta && (
+            <p className="text-[11px] text-muted-foreground leading-tight truncate">{meta}</p>
+          )}
+        </div>
+        {score != null && (
+          <span className="flex-shrink-0 text-[11px] font-semibold text-blue-400">
+            {score}%
+          </span>
+        )}
+      </div>
+
+      {/* Hover actions */}
+      <div className="absolute inset-x-1 bottom-1 hidden group-hover:flex items-center gap-1 justify-end">
+        <button
+          type="button"
+          onClick={(e) => { e.stopPropagation(); onAccept(); }}
+          className="text-[10px] px-1.5 py-0.5 rounded border border-emerald-500/40 text-emerald-400 bg-background hover:bg-emerald-500/10 flex items-center gap-0.5"
+          title="Move to Longlist"
+        >
+          <ArrowRight className="h-2.5 w-2.5" /> Longlist
+        </button>
+        <button
+          type="button"
+          onClick={(e) => { e.stopPropagation(); onDismiss(); }}
+          className="text-[10px] px-1.5 py-0.5 rounded border border-red-500/40 text-red-400 bg-background hover:bg-red-500/10 flex items-center gap-0.5"
+          title="Not right"
+        >
+          <X className="h-2.5 w-2.5" /> Not right
+        </button>
+      </div>
     </div>
   );
 }
