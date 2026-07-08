@@ -826,6 +826,9 @@ function AnalyticsSummary() {
   const avgDays = days.length ? Math.round(days.reduce((a, b) => a + b, 0) / days.length) : null;
   const avgWeeks = avgDays != null ? Math.max(0, Math.round(avgDays / 7)) : null;
 
+  const aiCount = placements.filter((p) => (p as any).source === "ai").length;
+  const aiPct = total ? Math.round((aiCount / total) * 100) : 0;
+
   const stats = [
     { label: "Total placements", value: total },
     { label: "Total fees", value: formatMoney(totalFees) },
@@ -834,7 +837,9 @@ function AnalyticsSummary() {
     { label: "Still placed & settled", value: settled },
     { label: "Moved on tracked", value: movedOn },
     { label: "Fall-throughs", value: fellThrough },
+    { label: "AI suggested placements", value: total ? `${aiCount} (${aiPct}%)` : aiCount },
   ];
+
 
   return (
     <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
