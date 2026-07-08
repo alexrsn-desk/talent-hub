@@ -160,6 +160,11 @@ export type Database = {
       }
       candidate_jobs: {
         Row: {
+          ai_suggested: boolean
+          ai_suggested_at: string | null
+          ai_suggested_reason: string | null
+          ai_suggested_score: number | null
+          ai_suggestion_dismissed_reason: string | null
           candidate_id: string
           created_at: string
           id: string
@@ -172,6 +177,11 @@ export type Database = {
           stage_changed_at: string
         }
         Insert: {
+          ai_suggested?: boolean
+          ai_suggested_at?: string | null
+          ai_suggested_reason?: string | null
+          ai_suggested_score?: number | null
+          ai_suggestion_dismissed_reason?: string | null
           candidate_id: string
           created_at?: string
           id?: string
@@ -184,6 +194,11 @@ export type Database = {
           stage_changed_at?: string
         }
         Update: {
+          ai_suggested?: boolean
+          ai_suggested_at?: string | null
+          ai_suggested_reason?: string | null
+          ai_suggested_score?: number | null
+          ai_suggestion_dismissed_reason?: string | null
           candidate_id?: string
           created_at?: string
           id?: string
