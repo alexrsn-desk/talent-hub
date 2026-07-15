@@ -6,8 +6,16 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
-import { ArrowLeft, ArrowRight, Check, Loader2, Sparkles, Copy, ExternalLink, RotateCw, ChevronRight } from "lucide-react";
+import { ArrowLeft, ArrowRight, Check, Loader2, Sparkles, Copy, ExternalLink, RotateCw, ChevronRight, X, Plus, Save } from "lucide-react";
 import { JobSpecUploader } from "@/components/JobSpecUploader";
+
+type RoleTemplate = {
+  id: string;
+  name: string;
+  similar_titles: string[];
+  key_skills: string[];
+  ideal_candidate_line: string | null;
+};
 
 type MatchCandidate = {
   id: string;
