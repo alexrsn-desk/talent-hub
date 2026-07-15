@@ -171,6 +171,7 @@ function AppRoutes() {
           <Route path="/placements" element={<Placements />} />
           <Route path="/bd-pipeline" element={<BDPipeline />} />
           <Route path="/coach" element={<Coach />} />
+          <Route path="/ask" element={<AskDesky />} />
           <Route path="/weekly" element={<WeeklyIntel />} />
           <Route path="/calls" element={<CallsMeetings />} />
           <Route path="/sequences" element={<Sequences />} />
