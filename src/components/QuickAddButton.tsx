@@ -209,7 +209,6 @@ function QuickAddBody({ mode, setMode, onClose }: { mode: Mode; setMode: (m: Mod
         {mode === "menu" && <MenuView setMode={setMode} />}
         {mode === "quick_note" && <QuickNoteView onDone={onClose} />}
         {mode === "record_picker" && <RecordPickerView setMode={setMode} />}
-        {mode === "candidate" && <CandidateForm onDone={onClose} />}
         {mode === "client" && <ClientForm onDone={onClose} />}
         {mode === "contact" && <ContactForm onDone={onClose} />}
         {mode === "job" && <JobForm onDone={onClose} />}
