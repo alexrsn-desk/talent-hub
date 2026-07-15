@@ -55,6 +55,7 @@ Deno.serve(async (req) => {
     const eligible = (candidates as any[]).filter(
       (c) => !c.do_not_contact && c.status !== "Do Not Contact" && c.status !== "Not Suitable" && c.status !== "Placed",
     );
+    console.log(`[job-launch-match] user=${user.id} fetched=${candidates.length} eligible=${eligible.length}`);
 
     // Keyword pre-filter to keep the AI prompt bounded — broad, not the final gate.
     const haystack = `${job?.title || ""} ${(job as any)?.description || ""} ${(job as any)?.intake_summary || ""} ${ideal_candidate_line || ""} ${launch_hook || ""} ${effTitles.join(" ")} ${effSkills.join(" ")}`.toLowerCase();
