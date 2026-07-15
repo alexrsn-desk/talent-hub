@@ -545,21 +545,52 @@ export default function CandidatesPage() {
     return candidates.filter(c => ids.has(c.id));
   }, [aiResults, searchableRecords, search, advFilters, candidates]);
 
+  const lastContactFor = (id: string) => aggregates?.candidateNoteMeta.get(id)?.last ?? null;
+
   const filtered = filteredBase
     .slice()
     .filter((c) => {
-      if (poolFilter === "all") return true;
-      return memberships.some((m) => m.candidate_id === c.id && m.pool_id === poolFilter);
+      if (poolFilter !== "all" && !memberships.some((m) => m.candidate_id === c.id && m.pool_id === poolFilter)) return false;
+      // Quick filter
+      if (quickFilter === "active" && !ACTIVE_STATUSES.has(c.status)) return false;
+      if (quickFilter === "passive" && !PASSIVE_STATUSES.has(c.status)) return false;
+      if (quickFilter === "li" && c.status !== "LI Connection") return false;
+      if (quickFilter === "hold" && c.status !== "On Hold") return false;
+      if (quickFilter === "cold" && c.status !== "Cold") return false;
+      // Stage filter
+      if (stageFilter !== "any") {
+        const stages = stageMap?.get(c.id);
+        if (stageFilter === "none") { if (stages && stages.size > 0) return false; }
+        else if (!stages || !stages.has(stageFilter)) return false;
+      }
+      if (!bucketMatch(lastContactFor(c.id), lastContactFilter, true)) return false;
+      if (addedFilter !== "any" && !bucketMatch(c.created_at, addedFilter, false)) return false;
+      return true;
     })
     .sort((a, b) => {
-      if (aiResults) return 0; // preserve AI ranking
-      if (a.priority_flag && !b.priority_flag) return -1;
-      if (!a.priority_flag && b.priority_flag) return 1;
-      const al = (a.last_name || "").toLowerCase();
-      const bl = (b.last_name || "").toLowerCase();
-      if (al !== bl) return al.localeCompare(bl);
-      return (a.first_name || "").toLowerCase().localeCompare((b.first_name || "").toLowerCase());
+      if (aiResults) return 0;
+      const dir = sortDir === "asc" ? 1 : -1;
+      let cmp = 0;
+      switch (sortKey) {
+        case "name": cmp = (a.last_name || a.name || "").localeCompare(b.last_name || b.name || ""); break;
+        case "job_title": cmp = (a.job_title || "").localeCompare(b.job_title || ""); break;
+        case "status": cmp = (a.status || "").localeCompare(b.status || ""); break;
+        case "last_contact": {
+          const ad = lastContactFor(a.id); const bd = lastContactFor(b.id);
+          cmp = (ad ? new Date(ad).getTime() : 0) - (bd ? new Date(bd).getTime() : 0);
+          break;
+        }
+        case "created_at": cmp = new Date(a.created_at).getTime() - new Date(b.created_at).getTime(); break;
+      }
+      return cmp * dir;
     });
+
+  const filtersActive = quickFilter !== "all" || stageFilter !== "any" || poolFilter !== "all" || lastContactFilter !== "any" || addedFilter !== "any";
+  const clearAllFilters = () => {
+    setQuickFilter("all"); setStageFilter("any"); setPoolFilter("all");
+    setLastContactFilter("any"); setAddedFilter("any");
+  };
+
 
   // Keyboard shortcuts
   useEffect(() => {
