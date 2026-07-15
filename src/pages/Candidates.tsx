@@ -749,32 +749,99 @@ export default function CandidatesPage() {
         onAiResultsChange={setAiResults}
       />
 
-      {pools.length > 0 && (
-        <div className="flex items-center gap-2 flex-wrap">
-          <span className="text-xs text-muted-foreground">Talent pool:</span>
-          <Select value={poolFilter} onValueChange={setPoolFilter}>
-            <SelectTrigger className="h-8 w-auto min-w-[220px] text-xs">
-              <SelectValue placeholder="All candidates" />
-            </SelectTrigger>
+      {/* Filter bar */}
+      <div className="space-y-2">
+        <div className="flex flex-wrap items-center gap-2">
+          <div className="flex items-center gap-1 overflow-x-auto">
+            {([
+              ["all", "All"], ["active", "Active"], ["passive", "Passive"],
+              ["li", "LI Connection"], ["hold", "Hold"], ["cold", "Cold"],
+            ] as [QuickFilter, string][]).map(([v, label]) => (
+              <button
+                key={v}
+                onClick={() => setQuickFilter(v)}
+                className={cn(
+                  "px-3 h-7 rounded-full text-xs whitespace-nowrap border transition-colors",
+                  quickFilter === v
+                    ? "bg-primary text-primary-foreground border-primary"
+                    : "border-border text-muted-foreground hover:text-foreground"
+                )}
+              >{label}</button>
+            ))}
+          </div>
+
+          <Select value={stageFilter} onValueChange={(v) => setStageFilter(v as StageFilter)}>
+            <SelectTrigger className="h-8 w-[160px] text-xs"><SelectValue placeholder="Any stage" /></SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">All candidates</SelectItem>
-              {pools.map((p) => {
-                const memberIds = memberships.filter((m) => m.pool_id === p.id).map((m) => m.candidate_id);
-                const members = memberIds.map((cid) => candidates.find((c) => c.id === cid)).filter(Boolean) as any[];
-                const health = computePoolHealth(p, members.map((m) => ({ status: m.status, last_contacted: m.last_contacted_at || null })));
-                return (
-                  <SelectItem key={p.id} value={p.id}>
-                    {p.name} ({members.length}) {HEALTH_DOT[health]}
-                  </SelectItem>
-                );
-              })}
+              <SelectItem value="any">Any stage</SelectItem>
+              <SelectItem value="none">Not in any pipeline</SelectItem>
+              {["AI Suggested","Longlist","Shortlist","Submitted","First Interview","Second Interview","Offer","Placed"].map(s =>
+                <SelectItem key={s} value={s}>{s}</SelectItem>
+              )}
             </SelectContent>
           </Select>
-          {poolFilter !== "all" && (
-            <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => setPoolFilter("all")}>Clear</Button>
+
+          {pools.length > 0 && (
+            <Select value={poolFilter} onValueChange={setPoolFilter}>
+              <SelectTrigger className="h-8 w-[180px] text-xs"><SelectValue placeholder="Any pool" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Any pool</SelectItem>
+                {pools.map((p) => {
+                  const memberIds = memberships.filter((m) => m.pool_id === p.id).map((m) => m.candidate_id);
+                  const members = memberIds.map((cid) => candidates.find((c) => c.id === cid)).filter(Boolean) as any[];
+                  const health = computePoolHealth(p, members.map((m) => ({ status: m.status, last_contacted: m.last_contacted_at || null })));
+                  return <SelectItem key={p.id} value={p.id}>{p.name} ({members.length}) {HEALTH_DOT[health]}</SelectItem>;
+                })}
+              </SelectContent>
+            </Select>
+          )}
+
+          <Select value={lastContactFilter} onValueChange={(v) => setLastContactFilter(v as TimeBucket)}>
+            <SelectTrigger className="h-8 w-[170px] text-xs"><SelectValue placeholder="Last contacted" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="any">Any time</SelectItem>
+              <SelectItem value="today">Today</SelectItem>
+              <SelectItem value="week">This week</SelectItem>
+              <SelectItem value="month">This month</SelectItem>
+              <SelectItem value="3m">Last 3 months</SelectItem>
+              <SelectItem value="over3m">Over 3 months ago</SelectItem>
+              <SelectItem value="never">Never contacted</SelectItem>
+            </SelectContent>
+          </Select>
+
+          <Select value={addedFilter} onValueChange={(v) => setAddedFilter(v as TimeBucket)}>
+            <SelectTrigger className="h-8 w-[150px] text-xs"><SelectValue placeholder="Added" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="any">Any time</SelectItem>
+              <SelectItem value="today">Today</SelectItem>
+              <SelectItem value="week">This week</SelectItem>
+              <SelectItem value="month">This month</SelectItem>
+              <SelectItem value="3m">Last 3 months</SelectItem>
+              <SelectItem value="year">This year</SelectItem>
+            </SelectContent>
+          </Select>
+
+          <div className="flex-1" />
+
+          <Button
+            size="sm" variant="outline" className="h-8 gap-1 text-xs"
+            onClick={() => { setSortKey("created_at"); setSortDir("desc"); }}
+          >
+            Recently added <ArrowDown className="h-3 w-3" />
+          </Button>
+
+          {filtersActive && (
+            <button className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1" onClick={clearAllFilters}>
+              Clear all filters <X className="h-3 w-3" />
+            </button>
           )}
         </div>
-      )}
+
+        <div className="text-xs text-muted-foreground">
+          Showing {filtered.length} candidate{filtered.length === 1 ? "" : "s"}
+        </div>
+      </div>
+
 
       {isLoading ? (
         <div className="text-muted-foreground text-sm">Loading...</div>
