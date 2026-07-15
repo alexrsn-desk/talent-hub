@@ -55,7 +55,7 @@ const SIGNATURES: Array<{ source: SourceKey; label: string; markers: string[]; m
   { source: "jobadder", label: "JobAdder",
     markers: ["given name", "family name", "current position", "current employer", "mobile phone", "email address"], min: 3 },
   { source: "linkedin", label: "LinkedIn Connections",
-    markers: ["connected on", "first name", "last name", "company", "position", "email address"], min: 4 },
+    markers: ["connected on", "url", "first name", "last name", "company", "position", "email address"], min: 3 },
   { source: "recruitee", label: "Recruitee",
     markers: ["recruitee", "candidate source"], min: 1 },
 ];
