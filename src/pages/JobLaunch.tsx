@@ -201,12 +201,33 @@ export default function JobLaunch() {
   async function goToStep2() {
     // persist brief inputs to job
     if (!jobId) return;
-    await supabase.from("jobs").update({ launch_hook: hook, ideal_candidate_line: ideal, description: jobSpec || null } as any).eq("id", jobId);
+    // Flush any pending text in the chip inputs before saving.
+    const pendingTitles = titleInput.split(",").map((p) => p.trim()).filter(Boolean);
+    const pendingSkills = skillInput.split(",").map((p) => p.trim().toLowerCase()).filter(Boolean);
+    const finalTitles = Array.from(new Set([...similarTitles, ...pendingTitles]));
+    const finalSkills = Array.from(new Set([...keySkills, ...pendingSkills]));
+    setSimilarTitles(finalTitles);
+    setKeySkills(finalSkills);
+    setTitleInput("");
+    setSkillInput("");
+    await supabase.from("jobs").update({
+      launch_hook: hook,
+      ideal_candidate_line: ideal,
+      description: jobSpec || null,
+      similar_titles: finalTitles,
+      key_skills: finalSkills,
+    } as any).eq("id", jobId);
     setStep(1);
     setMatching(true);
     try {
       const { data, error } = await supabase.functions.invoke("job-launch-match-candidates", {
-        body: { job_id: jobId, launch_hook: hook, ideal_candidate_line: ideal },
+        body: {
+          job_id: jobId,
+          launch_hook: hook,
+          ideal_candidate_line: ideal,
+          similar_titles: finalTitles,
+          key_skills: finalSkills,
+        },
       });
       if (error) throw error;
       const k: MatchCandidate[] = data?.spoken || data?.known || [];
