@@ -247,6 +247,7 @@ async function semanticCandidateSearch(
   apiKey: string,
   args: any,
 ) {
+  console.log("[semantic] args", JSON.stringify(args));
   const limit = Math.min(Math.max(Number(args?.limit) || 5, 1), 25);
   const sectors: string[] = Array.isArray(args?.sectors) ? args.sectors.filter(Boolean) : [];
   const excludeSectors: string[] = Array.isArray(args?.not_interested_in) ? args.not_interested_in.filter(Boolean) : [];
