@@ -377,6 +377,22 @@ export function CandidateDetail({ candidate, onUpdate, onDelete }: Props) {
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
+              {candidate.linkedin_url && (
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <a
+                      href={candidate.linkedin_url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex h-8 w-8 items-center justify-center rounded-md text-[#0A66C2] hover:bg-[#0A66C2]/10 transition-colors"
+                      aria-label="Open LinkedIn profile"
+                    >
+                      <LinkedinIcon className="h-4 w-4" />
+                    </a>
+                  </TooltipTrigger>
+                  <TooltipContent className="text-xs">Open LinkedIn profile</TooltipContent>
+                </Tooltip>
+              )}
               <Button variant="ghost" size="icon" onClick={onDelete}><Trash2 className="h-4 w-4 text-destructive" /></Button>
             </>
           )}
