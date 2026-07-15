@@ -113,11 +113,12 @@ export default function JobLaunch() {
     setStep(2);
     setGenerating(true);
     try {
-      setGenStage(`Personalising messages to ${pickedKnown.size} candidates you know...`);
+      const warmIds = Array.from(new Set([...pickedKnown, ...pickedDb]));
+      setGenStage(`Personalising messages to ${warmIds.length} candidates from your database...`);
       const { data, error } = await supabase.functions.invoke("job-launch-generate", {
         body: {
           job_id: jobId,
-          known_candidate_ids: Array.from(pickedKnown),
+          known_candidate_ids: warmIds,
           li_candidate_ids: Array.from(pickedLi),
           launch_hook: hook,
           ideal_candidate_line: ideal,
