@@ -81,6 +81,22 @@ function useCandidateStageMap() {
   });
 }
 
+function SortableTh({ label, sortKey, activeKey, dir, onClick }: {
+  label: string; sortKey: SortKey; activeKey: SortKey; dir: SortDir; onClick: (k: SortKey) => void;
+}) {
+  const active = activeKey === sortKey;
+  return (
+    <th
+      className="text-left px-4 py-3 font-medium text-muted-foreground cursor-pointer select-none hover:text-foreground"
+      onClick={() => onClick(sortKey)}
+    >
+      <span className="inline-flex items-center gap-1">
+        {label}
+        {active && (dir === "asc" ? <ArrowUp className="h-3 w-3" /> : <ArrowDown className="h-3 w-3" />)}
+      </span>
+    </th>
+  );
+
 const STATUSES = ["New", "Contacted", "Screening", "Submitted", "Interviewing", "Placed", "On Hold", "Not Suitable", "Cold", "Archive", "Do Not Contact", "LI Connection"] as const;
 const SOURCES = ["LinkedIn", "Referral", "Job Board", "Inbound"] as const;
 
