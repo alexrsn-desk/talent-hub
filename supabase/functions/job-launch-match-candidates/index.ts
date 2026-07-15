@@ -57,8 +57,8 @@ Deno.serve(async (req) => {
     );
 
     // Keyword pre-filter to keep the AI prompt bounded — broad, not the final gate.
-    const haystack = `${job?.title || ""} ${(job as any)?.description || ""} ${(job as any)?.intake_summary || ""} ${ideal_candidate_line || ""} ${launch_hook || ""}`.toLowerCase();
-    const tokens = Array.from(new Set(haystack.split(/[^a-z0-9+]+/).filter((t) => t.length > 3))).slice(0, 60);
+    const haystack = `${job?.title || ""} ${(job as any)?.description || ""} ${(job as any)?.intake_summary || ""} ${ideal_candidate_line || ""} ${launch_hook || ""} ${effTitles.join(" ")} ${effSkills.join(" ")}`.toLowerCase();
+    const tokens = Array.from(new Set(haystack.split(/[^a-z0-9+]+/).filter((t) => t.length > 3))).slice(0, 80);
     function kwScore(c: any): number {
       const blob = `${c.job_title || ""} ${c.current_employer || ""} ${c.summary || ""} ${c.note || ""}`.toLowerCase();
       if (!blob) return 0;
