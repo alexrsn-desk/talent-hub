@@ -39,8 +39,10 @@ export default function JobLaunch() {
 
   const [matching, setMatching] = useState(false);
   const [known, setKnown] = useState<MatchCandidate[]>([]);
+  const [db, setDb] = useState<MatchCandidate[]>([]);
   const [li, setLi] = useState<MatchCandidate[]>([]);
   const [pickedKnown, setPickedKnown] = useState<Set<string>>(new Set());
+  const [pickedDb, setPickedDb] = useState<Set<string>>(new Set());
   const [pickedLi, setPickedLi] = useState<Set<string>>(new Set());
 
   const [generating, setGenerating] = useState(false);
@@ -88,12 +90,18 @@ export default function JobLaunch() {
         body: { job_id: jobId, launch_hook: hook, ideal_candidate_line: ideal },
       });
       if (error) throw error;
-      const k: MatchCandidate[] = data?.known || [];
-      const l: MatchCandidate[] = data?.li || [];
+      const k: MatchCandidate[] = data?.spoken || data?.known || [];
+      const dbList: MatchCandidate[] = data?.db || [];
+      const l: MatchCandidate[] = data?.wider || data?.li || [];
       setKnown(k);
+      setDb(dbList);
       setLi(l);
       setPickedKnown(new Set(k.map((c) => c.id))); // pre-ticked
+      setPickedDb(new Set()); // relevant but no recent conversation — recruiter opts in
       setPickedLi(new Set());
+      if (k.length + dbList.length + l.length === 0) {
+        toast.info("No candidates in your database matched this role at 40%+ relevance.");
+      }
     } catch (e: any) {
       toast.error(e?.message || "Could not match candidates");
     } finally {
@@ -105,11 +113,12 @@ export default function JobLaunch() {
     setStep(2);
     setGenerating(true);
     try {
-      setGenStage(`Personalising messages to ${pickedKnown.size} candidates you know...`);
+      const warmIds = Array.from(new Set([...pickedKnown, ...pickedDb]));
+      setGenStage(`Personalising messages to ${warmIds.length} candidates from your database...`);
       const { data, error } = await supabase.functions.invoke("job-launch-generate", {
         body: {
           job_id: jobId,
-          known_candidate_ids: Array.from(pickedKnown),
+          known_candidate_ids: warmIds,
           li_candidate_ids: Array.from(pickedLi),
           launch_hook: hook,
           ideal_candidate_line: ideal,
@@ -341,17 +350,23 @@ export default function JobLaunch() {
         <div className="space-y-5">
           <div className="rounded-xl border border-border bg-card/60 p-6">
             <h2 className="text-lg font-semibold mb-1">Who do you already know?</h2>
-            <p className="text-sm text-muted-foreground mb-4">Warm to cold — your spoken-to relationships first, then your wider network.</p>
+            <p className="text-sm text-muted-foreground mb-4">
+              Only candidates scoring 40%+ relevance to this role are shown. Relationship status decides the section, not whether they appear.
+            </p>
 
             {matching ? (
               <div className="flex items-center gap-2 text-sm text-muted-foreground py-12 justify-center">
-                <Loader2 className="h-4 w-4 animate-spin" /> Searching your database for matches…
+                <Loader2 className="h-4 w-4 animate-spin" /> Scoring your database against this role…
+              </div>
+            ) : known.length + db.length + li.length === 0 ? (
+              <div className="text-sm text-muted-foreground py-12 text-center">
+                No candidates in your database matched this role at 40%+ relevance. Try broadening the ideal-candidate line, or launch as a pure external search.
               </div>
             ) : (
               <div className="space-y-6">
                 <Group
                   title="Spoken to — warm relationships"
-                  hint="Pre-ticked. Will receive a personalised, warm message."
+                  hint="Relevant and spoken to in the last 90 days. Pre-ticked. Will receive a personalised, warm message."
                   dotClass="bg-green-500"
                   candidates={known}
                   picked={pickedKnown}
@@ -364,8 +379,22 @@ export default function JobLaunch() {
                   }
                 />
                 <Group
-                  title="LI connections — network you haven't spoken with"
-                  hint="Not pre-ticked. Will receive a short LinkedIn DM."
+                  title="In your database — no recent conversation"
+                  hint="Relevant, but you haven't spoken with them recently. Opt in to send a re-engagement email."
+                  dotClass="bg-amber-500"
+                  candidates={db}
+                  picked={pickedDb}
+                  onToggle={(id) =>
+                    setPickedDb((s) => {
+                      const n = new Set(s);
+                      n.has(id) ? n.delete(id) : n.add(id);
+                      return n;
+                    })
+                  }
+                />
+                <Group
+                  title="Wider network — LI connections & uncontacted"
+                  hint="Relevant, no direct relationship yet. Will receive a short LinkedIn DM."
                   dotClass="bg-blue-500"
                   candidates={li}
                   picked={pickedLi}
@@ -384,7 +413,7 @@ export default function JobLaunch() {
           <div className="flex justify-between">
             <Button variant="ghost" onClick={() => setStep(0)}>Back</Button>
             <Button onClick={goToStep3} disabled={matching} className="gap-1">
-              Continue with {pickedKnown.size + pickedLi.size} candidate{pickedKnown.size + pickedLi.size === 1 ? "" : "s"}
+              Continue with {pickedKnown.size + pickedDb.size + pickedLi.size} candidate{pickedKnown.size + pickedDb.size + pickedLi.size === 1 ? "" : "s"}
               <ArrowRight className="h-4 w-4" />
             </Button>
           </div>
