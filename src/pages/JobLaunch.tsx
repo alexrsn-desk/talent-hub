@@ -6,8 +6,16 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
-import { ArrowLeft, ArrowRight, Check, Loader2, Sparkles, Copy, ExternalLink, RotateCw, ChevronRight } from "lucide-react";
+import { ArrowLeft, ArrowRight, Check, Loader2, Sparkles, Copy, ExternalLink, RotateCw, ChevronRight, X, Plus, Save } from "lucide-react";
 import { JobSpecUploader } from "@/components/JobSpecUploader";
+
+type RoleTemplate = {
+  id: string;
+  name: string;
+  similar_titles: string[];
+  key_skills: string[];
+  ideal_candidate_line: string | null;
+};
 
 type MatchCandidate = {
   id: string;
@@ -35,6 +43,16 @@ export default function JobLaunch() {
   const [hook, setHook] = useState("");
   const [ideal, setIdeal] = useState("");
   const [jobSpec, setJobSpec] = useState("");
+  const [similarTitles, setSimilarTitles] = useState<string[]>([]);
+  const [keySkills, setKeySkills] = useState<string[]>([]);
+  const [titleInput, setTitleInput] = useState("");
+  const [skillInput, setSkillInput] = useState("");
+  const [suggestedTitles, setSuggestedTitles] = useState<string[]>([]);
+  const [suggestedSkills, setSuggestedSkills] = useState<string[]>([]);
+  const [suggesting, setSuggesting] = useState(false);
+  const [templates, setTemplates] = useState<RoleTemplate[]>([]);
+  const [templateLoaded, setTemplateLoaded] = useState<string | null>(null);
+  const [savingTemplate, setSavingTemplate] = useState(false);
   const [loadingJob, setLoadingJob] = useState(true);
 
   const [matching, setMatching] = useState(false);
@@ -65,7 +83,7 @@ export default function JobLaunch() {
     (async () => {
       const { data } = await supabase
         .from("jobs")
-        .select("id, title, description, intake_summary, location, salary_min, salary_max, job_type, status, search_launched_at, launch_hook, ideal_candidate_line, clients(company_name, contact_name)")
+        .select("id, title, description, intake_summary, location, salary_min, salary_max, job_type, status, search_launched_at, launch_hook, ideal_candidate_line, similar_titles, key_skills, clients(company_name, contact_name)")
         .eq("id", jobId)
         .single();
       if (data) {
@@ -73,21 +91,143 @@ export default function JobLaunch() {
         setHook((data as any).launch_hook || "");
         setIdeal((data as any).ideal_candidate_line || "");
         setJobSpec((data as any).description || "");
+        setSimilarTitles(((data as any).similar_titles || []) as string[]);
+        setKeySkills(((data as any).key_skills || []) as string[]);
       }
       setLoadingJob(false);
     })();
+    // load role templates
+    (async () => {
+      const { data } = await supabase
+        .from("role_type_templates")
+        .select("id, name, similar_titles, key_skills, ideal_candidate_line")
+        .order("updated_at", { ascending: false });
+      if (data) setTemplates(data as RoleTemplate[]);
+    })();
   }, [jobId]);
+
+  // -------------------- AI signal suggestions
+  async function fetchSuggestions() {
+    if (!job?.title && !jobSpec) return;
+    setSuggesting(true);
+    try {
+      const { data } = await supabase.functions.invoke("job-launch-suggest-signals", {
+        body: { title: job?.title, description: jobSpec, ideal_candidate_line: ideal },
+      });
+      setSuggestedTitles((data?.titles || []) as string[]);
+      setSuggestedSkills((data?.skills || []) as string[]);
+    } catch {
+      // silent — suggestions are optional
+    } finally {
+      setSuggesting(false);
+    }
+  }
+  // fetch once when job first loads
+  useEffect(() => {
+    if (job?.title && suggestedTitles.length === 0 && suggestedSkills.length === 0) {
+      fetchSuggestions();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [job?.id]);
+
+  function addChip(kind: "title" | "skill", value: string) {
+    const v = value.trim();
+    if (!v) return;
+    if (kind === "title") {
+      setSimilarTitles((arr) => (arr.some((x) => x.toLowerCase() === v.toLowerCase()) ? arr : [...arr, v]));
+    } else {
+      const lower = v.toLowerCase();
+      setKeySkills((arr) => (arr.some((x) => x.toLowerCase() === lower) ? arr : [...arr, lower]));
+    }
+  }
+  function removeChip(kind: "title" | "skill", value: string) {
+    if (kind === "title") setSimilarTitles((arr) => arr.filter((x) => x !== value));
+    else setKeySkills((arr) => arr.filter((x) => x !== value));
+  }
+  function handleChipInput(kind: "title" | "skill", raw: string, commit = false) {
+    if (raw.includes(",") || commit) {
+      const parts = raw.split(",").map((p) => p.trim()).filter(Boolean);
+      parts.forEach((p) => addChip(kind, p));
+      if (kind === "title") setTitleInput("");
+      else setSkillInput("");
+    } else {
+      if (kind === "title") setTitleInput(raw);
+      else setSkillInput(raw);
+    }
+  }
+
+  async function saveTemplate() {
+    if (!similarTitles.length && !keySkills.length) {
+      toast.info("Add some titles or skills first.");
+      return;
+    }
+    const defaultName = job?.title || "Role template";
+    const name = window.prompt("Template name?", defaultName);
+    if (!name) return;
+    setSavingTemplate(true);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("Not signed in");
+      const { data, error } = await supabase
+        .from("role_type_templates")
+        .insert({
+          owner_user_id: user.id,
+          name,
+          similar_titles: similarTitles,
+          key_skills: keySkills,
+          ideal_candidate_line: ideal || null,
+        })
+        .select("id, name, similar_titles, key_skills, ideal_candidate_line")
+        .single();
+      if (error) throw error;
+      if (data) setTemplates((t) => [data as RoleTemplate, ...t]);
+      toast.success(`Saved template "${name}"`);
+    } catch (e: any) {
+      toast.error(e?.message || "Could not save template");
+    } finally {
+      setSavingTemplate(false);
+    }
+  }
+  function loadTemplate(t: RoleTemplate) {
+    setSimilarTitles(t.similar_titles || []);
+    setKeySkills(t.key_skills || []);
+    if (!ideal && t.ideal_candidate_line) setIdeal(t.ideal_candidate_line);
+    setTemplateLoaded(t.id);
+    toast.success(`Loaded template "${t.name}"`);
+  }
+
 
   // -------------------- Step transitions
   async function goToStep2() {
     // persist brief inputs to job
     if (!jobId) return;
-    await supabase.from("jobs").update({ launch_hook: hook, ideal_candidate_line: ideal, description: jobSpec || null } as any).eq("id", jobId);
+    // Flush any pending text in the chip inputs before saving.
+    const pendingTitles = titleInput.split(",").map((p) => p.trim()).filter(Boolean);
+    const pendingSkills = skillInput.split(",").map((p) => p.trim().toLowerCase()).filter(Boolean);
+    const finalTitles = Array.from(new Set([...similarTitles, ...pendingTitles]));
+    const finalSkills = Array.from(new Set([...keySkills, ...pendingSkills]));
+    setSimilarTitles(finalTitles);
+    setKeySkills(finalSkills);
+    setTitleInput("");
+    setSkillInput("");
+    await supabase.from("jobs").update({
+      launch_hook: hook,
+      ideal_candidate_line: ideal,
+      description: jobSpec || null,
+      similar_titles: finalTitles,
+      key_skills: finalSkills,
+    } as any).eq("id", jobId);
     setStep(1);
     setMatching(true);
     try {
       const { data, error } = await supabase.functions.invoke("job-launch-match-candidates", {
-        body: { job_id: jobId, launch_hook: hook, ideal_candidate_line: ideal },
+        body: {
+          job_id: jobId,
+          launch_hook: hook,
+          ideal_candidate_line: ideal,
+          similar_titles: finalTitles,
+          key_skills: finalSkills,
+        },
       });
       if (error) throw error;
       const k: MatchCandidate[] = data?.spoken || data?.known || [];
@@ -337,8 +477,109 @@ export default function JobLaunch() {
             />
           </div>
 
-          <div className="flex justify-end">
-            <Button onClick={goToStep2} disabled={!hook.trim() && !ideal.trim()} className="gap-1">
+          {/* Template banner */}
+          {templates.length > 0 && !templateLoaded && (
+            <div className="rounded-lg border border-border bg-muted/30 p-3 text-xs flex items-center gap-2 flex-wrap">
+              <span className="text-muted-foreground">We have templates for similar roles:</span>
+              {templates.slice(0, 4).map((t) => (
+                <button
+                  key={t.id}
+                  type="button"
+                  onClick={() => loadTemplate(t)}
+                  className="rounded-full bg-primary/15 text-primary px-2 py-0.5 hover:bg-primary/25"
+                >
+                  Load "{t.name}"
+                </button>
+              ))}
+            </div>
+          )}
+
+          {/* FIELD 2 — SIMILAR JOB TITLES */}
+          <div>
+            <Label className="text-xs">Similar job titles to search</Label>
+            <p className="text-[11px] text-muted-foreground mb-2">
+              What titles might the right person have? Separate with commas. These are the PRIMARY matching signal — candidates with these or semantically similar titles score highest.
+            </p>
+            <ChipInput
+              chips={similarTitles}
+              value={titleInput}
+              onChange={(v) => handleChipInput("title", v)}
+              onCommit={() => handleChipInput("title", titleInput, true)}
+              onRemove={(v) => removeChip("title", v)}
+              placeholder="e.g. Service Designer, UX Researcher, CX Designer, Design Researcher, Interaction Designer"
+            />
+            {(suggestedTitles.length > 0 || suggesting) && (
+              <div className="mt-2 text-[11px]">
+                <span className="text-muted-foreground">AI suggestions based on your job title{suggesting ? " (loading…)" : ""}: </span>
+                <div className="flex flex-wrap gap-1.5 mt-1">
+                  {suggestedTitles
+                    .filter((s) => !similarTitles.some((x) => x.toLowerCase() === s.toLowerCase()))
+                    .map((s) => (
+                      <button
+                        key={s}
+                        type="button"
+                        onClick={() => addChip("title", s)}
+                        className="rounded-full border border-dashed border-border bg-background px-2 py-0.5 hover:bg-primary/10 hover:border-primary/40"
+                      >
+                        <Plus className="h-3 w-3 inline -mt-0.5" /> {s}
+                      </button>
+                    ))}
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* FIELD 3 — KEY SKILLS */}
+          <div>
+            <Label className="text-xs">Key skills or experience words to look for</Label>
+            <p className="text-[11px] text-muted-foreground mb-2">
+              What would typically appear in a strong candidate's profile or CV? Separate with commas. Checked against job titles, skills tags, notes, transcripts, CV content and employer type.
+            </p>
+            <ChipInput
+              chips={keySkills}
+              value={skillInput}
+              onChange={(v) => handleChipInput("skill", v)}
+              onCommit={() => handleChipInput("skill", skillInput, true)}
+              onRemove={(v) => removeChip("skill", v)}
+              placeholder="e.g. service design, user research, social impact, design thinking, stakeholder management, agency experience"
+            />
+            {(suggestedSkills.length > 0 || suggesting) && (
+              <div className="mt-2 text-[11px]">
+                <span className="text-muted-foreground">Suggested skills to look for{suggesting ? " (loading…)" : ""}: </span>
+                <div className="flex flex-wrap gap-1.5 mt-1">
+                  {suggestedSkills
+                    .filter((s) => !keySkills.some((x) => x.toLowerCase() === s.toLowerCase()))
+                    .map((s) => (
+                      <button
+                        key={s}
+                        type="button"
+                        onClick={() => addChip("skill", s)}
+                        className="rounded-full border border-dashed border-border bg-background px-2 py-0.5 hover:bg-primary/10 hover:border-primary/40"
+                      >
+                        <Plus className="h-3 w-3 inline -mt-0.5" /> {s}
+                      </button>
+                    ))}
+                </div>
+              </div>
+            )}
+            <div className="flex justify-end mt-2">
+              <Button size="sm" variant="ghost" onClick={fetchSuggestions} disabled={suggesting} className="gap-1 text-xs">
+                <RotateCw className={`h-3 w-3 ${suggesting ? "animate-spin" : ""}`} /> Refresh AI suggestions
+              </Button>
+            </div>
+          </div>
+
+          <div className="flex items-center justify-between pt-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={saveTemplate}
+              disabled={savingTemplate || (!similarTitles.length && !keySkills.length)}
+              className="gap-1"
+            >
+              <Save className="h-3.5 w-3.5" /> Save as role template
+            </Button>
+            <Button onClick={goToStep2} disabled={!hook.trim() && !ideal.trim() && !similarTitles.length} className="gap-1">
               Continue <ArrowRight className="h-4 w-4" />
             </Button>
           </div>
@@ -768,6 +1009,60 @@ function MessageCard({
           <RotateCw className="h-3.5 w-3.5" /> Regenerate
         </Button>
       </div>
+    </div>
+  );
+}
+
+function ChipInput({
+  chips,
+  value,
+  onChange,
+  onCommit,
+  onRemove,
+  placeholder,
+}: {
+  chips: string[];
+  value: string;
+  onChange: (v: string) => void;
+  onCommit: () => void;
+  onRemove: (v: string) => void;
+  placeholder?: string;
+}) {
+  return (
+    <div className="flex flex-wrap items-center gap-1.5 rounded-lg border border-border bg-background px-2 py-2">
+      {chips.map((c) => (
+        <span
+          key={c}
+          className="inline-flex items-center gap-1 rounded-full bg-primary/15 text-primary text-xs px-2 py-0.5"
+        >
+          {c}
+          <button
+            type="button"
+            aria-label={`Remove ${c}`}
+            onClick={() => onRemove(c)}
+            className="hover:text-red-400"
+          >
+            <X className="h-3 w-3" />
+          </button>
+        </span>
+      ))}
+      <input
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        onBlur={onCommit}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" || e.key === "Tab") {
+            if (value.trim()) {
+              e.preventDefault();
+              onCommit();
+            }
+          } else if (e.key === "Backspace" && !value && chips.length) {
+            onRemove(chips[chips.length - 1]);
+          }
+        }}
+        placeholder={chips.length === 0 ? placeholder : ""}
+        className="flex-1 min-w-[160px] bg-transparent text-sm outline-none py-0.5"
+      />
     </div>
   );
 }

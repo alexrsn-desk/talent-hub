@@ -1482,6 +1482,7 @@ export type Database = {
           intake_notes: Json | null
           intake_summary: string | null
           job_type: string
+          key_skills: string[]
           launch_hook: string | null
           launch_summary: Json | null
           location: string | null
@@ -1489,6 +1490,7 @@ export type Database = {
           salary_max: number | null
           salary_min: number | null
           search_launched_at: string | null
+          similar_titles: string[]
           status: string
           title: string
           updated_at: string
@@ -1507,6 +1509,7 @@ export type Database = {
           intake_notes?: Json | null
           intake_summary?: string | null
           job_type?: string
+          key_skills?: string[]
           launch_hook?: string | null
           launch_summary?: Json | null
           location?: string | null
@@ -1514,6 +1517,7 @@ export type Database = {
           salary_max?: number | null
           salary_min?: number | null
           search_launched_at?: string | null
+          similar_titles?: string[]
           status?: string
           title: string
           updated_at?: string
@@ -1532,6 +1536,7 @@ export type Database = {
           intake_notes?: Json | null
           intake_summary?: string | null
           job_type?: string
+          key_skills?: string[]
           launch_hook?: string | null
           launch_summary?: Json | null
           location?: string | null
@@ -1539,6 +1544,7 @@ export type Database = {
           salary_max?: number | null
           salary_min?: number | null
           search_launched_at?: string | null
+          similar_titles?: string[]
           status?: string
           title?: string
           updated_at?: string
@@ -2321,6 +2327,39 @@ export type Database = {
           submission_email_template?: string | null
           updated_at?: string
           user_id?: string
+        }
+        Relationships: []
+      }
+      role_type_templates: {
+        Row: {
+          created_at: string
+          id: string
+          ideal_candidate_line: string | null
+          key_skills: string[]
+          name: string
+          owner_user_id: string
+          similar_titles: string[]
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          ideal_candidate_line?: string | null
+          key_skills?: string[]
+          name: string
+          owner_user_id: string
+          similar_titles?: string[]
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          ideal_candidate_line?: string | null
+          key_skills?: string[]
+          name?: string
+          owner_user_id?: string
+          similar_titles?: string[]
+          updated_at?: string
         }
         Relationships: []
       }

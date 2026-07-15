@@ -20,7 +20,10 @@ Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: cors });
   try {
     const apiKey = Deno.env.get("LOVABLE_API_KEY");
-    const { job_id, ideal_candidate_line, launch_hook, model } = await req.json();
+    const body = await req.json();
+    const { job_id, ideal_candidate_line, launch_hook, model } = body;
+    const similar_titles: string[] = Array.isArray(body.similar_titles) ? body.similar_titles.filter(Boolean) : [];
+    const key_skills: string[] = Array.isArray(body.key_skills) ? body.key_skills.filter(Boolean) : [];
     if (!job_id) return json({ error: "job_id required" }, 400);
 
     const authHeader = req.headers.get("Authorization") || "";
@@ -35,9 +38,13 @@ Deno.serve(async (req) => {
 
     const { data: job } = await sb
       .from("jobs")
-      .select("id, title, description, intake_summary, location, salary_min, salary_max, job_type, clients(company_name, sector)")
+      .select("id, title, description, intake_summary, location, salary_min, salary_max, job_type, similar_titles, key_skills, clients(company_name, sector)")
       .eq("id", job_id)
       .single();
+
+    // Fall back to job-persisted signals when the caller didn't pass them.
+    const effTitles: string[] = similar_titles.length ? similar_titles : ((job as any)?.similar_titles || []);
+    const effSkills: string[] = key_skills.length ? key_skills : ((job as any)?.key_skills || []);
 
     const { data: candidates = [] } = await sb
       .from("candidates")
@@ -50,8 +57,8 @@ Deno.serve(async (req) => {
     );
 
     // Keyword pre-filter to keep the AI prompt bounded — broad, not the final gate.
-    const haystack = `${job?.title || ""} ${(job as any)?.description || ""} ${(job as any)?.intake_summary || ""} ${ideal_candidate_line || ""} ${launch_hook || ""}`.toLowerCase();
-    const tokens = Array.from(new Set(haystack.split(/[^a-z0-9+]+/).filter((t) => t.length > 3))).slice(0, 60);
+    const haystack = `${job?.title || ""} ${(job as any)?.description || ""} ${(job as any)?.intake_summary || ""} ${ideal_candidate_line || ""} ${launch_hook || ""} ${effTitles.join(" ")} ${effSkills.join(" ")}`.toLowerCase();
+    const tokens = Array.from(new Set(haystack.split(/[^a-z0-9+]+/).filter((t) => t.length > 3))).slice(0, 80);
     function kwScore(c: any): number {
       const blob = `${c.job_title || ""} ${c.current_employer || ""} ${c.summary || ""} ${c.note || ""}`.toLowerCase();
       if (!blob) return 0;
@@ -131,19 +138,18 @@ Deno.serve(async (req) => {
       });
       const system = `You score recruitment candidates for RELEVANCE to a specific role.
 
-READ EVERY FIELD on the candidate. Weight them:
-- HIGHEST: Current Job Title, Skills, Sector Experience
-- MEDIUM: Motivations, What They Want, Summary, Current Employer
-- LOW: Location, Salary
+SCORE 0-100 as a WEIGHTED COMBINATION of three checks:
+  A. TITLE MATCH (40% of score) — Does the candidate's current job title match, or SEMANTICALLY relate to, any of the "SIMILAR JOB TITLES" listed? Exact = full marks. Semantic (e.g. "Service Design Lead" vs "Service Designer") = high. Adjacent discipline (e.g. "UX Designer" vs "Service Designer") = medium. Unrelated = 0.
+  B. SKILLS MATCH (35% of score) — How many of the "KEY SKILLS / EXPERIENCE WORDS" appear or are strongly implied in the candidate's skills, sector experience, current employer type, summary, notes or CV content? More matches = higher.
+  C. IDEAL CANDIDATE FIT (25% of score) — Read the candidate holistically against the one-line ideal description. Semantic reading, not keyword.
 
-Score 0-100. SEMANTIC MATCHING, not keyword matching. Understand related disciplines:
-- "Human Centred Designer" ≈ Service Designer, UX Designer, User Researcher, CX Designer, Design Researcher, Interaction Designer, Experience Designer.
-- "Social impact" ≈ charity, public sector, NGO, social enterprise, third sector, government, community projects.
-- "Agency/consultancy" = external client project experience; "in-house" = internal projects.
+If NO similar titles or key skills were provided, fall back to weighing Title 55% and Ideal-fit 45%.
+
+SEMANTIC MATCHING, not keyword matching. Understand adjacent disciplines and synonyms (e.g. "Human Centred Designer" ≈ Service Designer, UX Designer, Design Researcher, CX Designer; "social impact" ≈ charity, public sector, NGO, third sector, government; "agency" = external client work, "in-house" = internal).
 
 Be strict. A Marketing Manager against a DevOps role must score below 20. Only candidates whose actual background could plausibly do THIS job score 40+.
 
-Return ONLY JSON: {"matches":[{"id":"<id>","score":<0-100>,"reason":"<one short sentence citing a SPECIFIC field from their profile, e.g. current title, a skill, or sector experience>"}]}. Include EVERY candidate id from the input, even those scoring 0.`;
+Return ONLY JSON: {"matches":[{"id":"<id>","score":<0-100>,"reason":"<one short sentence citing a SPECIFIC field, e.g. 'Title match: Service Design Lead' or 'Skills: user research, design thinking'>"}]}. Include EVERY candidate id from the input, even those scoring 0.`;
       const userPrompt = `ROLE: ${job?.title || "?"} at ${(job as any)?.clients?.company_name || "?"}
 SECTOR: ${(job as any)?.clients?.sector || "?"}
 LOCATION: ${job?.location || "?"}
@@ -152,6 +158,8 @@ JD: ${(job as any)?.description?.slice(0, 1800) || "—"}
 INTAKE: ${(job as any)?.intake_summary?.slice(0, 800) || "—"}
 HOOK: ${launch_hook || "—"}
 IDEAL CANDIDATE: ${ideal_candidate_line || "—"}
+SIMILAR JOB TITLES (primary signal): ${effTitles.length ? effTitles.join(", ") : "—"}
+KEY SKILLS / EXPERIENCE WORDS: ${effSkills.length ? effSkills.join(", ") : "—"}
 
 CANDIDATES (${compact.length}):
 ${compact.map((c) => `- id:${c.id}
