@@ -38,9 +38,13 @@ Deno.serve(async (req) => {
 
     const { data: job } = await sb
       .from("jobs")
-      .select("id, title, description, intake_summary, location, salary_min, salary_max, job_type, clients(company_name, sector)")
+      .select("id, title, description, intake_summary, location, salary_min, salary_max, job_type, similar_titles, key_skills, clients(company_name, sector)")
       .eq("id", job_id)
       .single();
+
+    // Fall back to job-persisted signals when the caller didn't pass them.
+    const effTitles: string[] = similar_titles.length ? similar_titles : ((job as any)?.similar_titles || []);
+    const effSkills: string[] = key_skills.length ? key_skills : ((job as any)?.key_skills || []);
 
     const { data: candidates = [] } = await sb
       .from("candidates")
