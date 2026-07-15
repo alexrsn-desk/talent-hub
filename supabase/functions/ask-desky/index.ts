@@ -284,6 +284,7 @@ async function semanticCandidateSearch(
       .from("candidate_tags")
       .select("candidate_id, tag_definitions(category, label)")
       .in("candidate_id", ids);
+    const cTags = cTagsData || [];
     for (const t of cTags as any[]) {
       const cat = t.tag_definitions?.category;
       const label = t.tag_definitions?.label;
@@ -302,21 +303,22 @@ async function semanticCandidateSearch(
       .from("clients")
       .select("id, company_name")
       .in("company_name", employers);
+    const matched = matchedData || [];
     const clientIds = (matched as any[]).map((c) => c.id);
-    const idToName: Record<string, string> = {};
-    for (const c of matched as any[]) idToName[c.id] = c.company_name;
     const industries: Record<string, string | null> = {};
     if (clientIds.length) {
       const { data: intelsData } = await sb
         .from("company_intel")
         .select("client_id, industry")
         .in("client_id", clientIds);
+      const intels = intelsData || [];
       for (const i of intels as any[]) industries[i.client_id] = i.industry || null;
     }
     for (const c of matched as any[]) {
       clientByEmployer[c.company_name.toLowerCase()] = { id: c.id, industry: industries[c.id] || null };
     }
   }
+
 
   // 4. Employer sector inference (LLM classification) — only when a sector was queried
   //    AND we didn't already confirm it from company_intel.industry.
