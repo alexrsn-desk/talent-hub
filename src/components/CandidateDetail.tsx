@@ -38,6 +38,8 @@ import { DoNotContactDialog } from "@/components/DoNotContactDialog";
 import { RequestDeletionDialog } from "@/components/RequestDeletionDialog";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
 import { ShieldAlert, MoreVertical } from "lucide-react";
+import { useEmployerContext } from "@/hooks/use-employer-context";
+
 import {
   AlertDialog,
   AlertDialogAction,
