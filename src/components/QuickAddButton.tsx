@@ -26,6 +26,7 @@ import {
   useCandidates,
   useContacts,
 } from "@/hooks/use-data";
+import { CandidateQuickAddDrawer } from "@/components/CandidateQuickAddDrawer";
 
 type Mode =
   | null
