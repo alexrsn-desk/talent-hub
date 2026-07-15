@@ -259,7 +259,7 @@ async function semanticCandidateSearch(
   let q = sb
     .from("candidates")
     .select(
-      "id,name,first_name,last_name,job_title,current_employer,location,summary,note,skills,salary_expectation,availability,status,do_not_contact,gdpr_deleted,updated_at,email,linkedin_url",
+      "id,name,first_name,last_name,job_title,current_employer,location,summary,note,salary_expectation,availability,status,do_not_contact,gdpr_deleted,updated_at,email,linkedin_url",
     )
     .eq("owner_user_id", userId)
     .eq("do_not_contact", false)
