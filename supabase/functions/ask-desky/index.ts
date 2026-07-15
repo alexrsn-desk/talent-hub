@@ -269,7 +269,7 @@ async function semanticCandidateSearch(
   if (args?.location_contains) q = q.ilike("location", `%${args.location_contains}%`);
   if (typeof args?.salary_min === "number") q = q.gte("salary_expectation", args.salary_min);
   if (typeof args?.salary_max === "number") q = q.lte("salary_expectation", args.salary_max);
-  const { data: candidatesRaw = [], error: candErr } = await q;
+  const { data: cRawData, error: candErr } = await q; const candidatesRaw = cRawData || [];
   if (candErr) return { error: candErr.message };
   const candidates = (candidatesRaw as any[]).filter(
     (c) => c.status !== "Not Suitable" && c.status !== "Placed",
@@ -280,7 +280,7 @@ async function semanticCandidateSearch(
   const ids = candidates.map((c) => c.id);
   const sectorsByCand: Record<string, string[]> = {};
   {
-    const { data: cTags = [] } = await sb
+    const { data: cTagsData } = await sb
       .from("candidate_tags")
       .select("candidate_id, tag_definitions(category, label)")
       .in("candidate_id", ids);
@@ -298,7 +298,7 @@ async function semanticCandidateSearch(
   const employers = Array.from(new Set(candidates.map((c) => (c.current_employer || "").trim()).filter(Boolean)));
   const clientByEmployer: Record<string, { id: string; industry: string | null }> = {};
   if (employers.length) {
-    const { data: matched = [] } = await sb
+    const { data: matchedData } = await sb
       .from("clients")
       .select("id, company_name")
       .in("company_name", employers);
@@ -307,7 +307,7 @@ async function semanticCandidateSearch(
     for (const c of matched as any[]) idToName[c.id] = c.company_name;
     const industries: Record<string, string | null> = {};
     if (clientIds.length) {
-      const { data: intels = [] } = await sb
+      const { data: intelsData } = await sb
         .from("company_intel")
         .select("client_id, industry")
         .in("client_id", clientIds);
