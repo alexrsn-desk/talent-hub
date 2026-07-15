@@ -138,19 +138,18 @@ Deno.serve(async (req) => {
       });
       const system = `You score recruitment candidates for RELEVANCE to a specific role.
 
-READ EVERY FIELD on the candidate. Weight them:
-- HIGHEST: Current Job Title, Skills, Sector Experience
-- MEDIUM: Motivations, What They Want, Summary, Current Employer
-- LOW: Location, Salary
+SCORE 0-100 as a WEIGHTED COMBINATION of three checks:
+  A. TITLE MATCH (40% of score) — Does the candidate's current job title match, or SEMANTICALLY relate to, any of the "SIMILAR JOB TITLES" listed? Exact = full marks. Semantic (e.g. "Service Design Lead" vs "Service Designer") = high. Adjacent discipline (e.g. "UX Designer" vs "Service Designer") = medium. Unrelated = 0.
+  B. SKILLS MATCH (35% of score) — How many of the "KEY SKILLS / EXPERIENCE WORDS" appear or are strongly implied in the candidate's skills, sector experience, current employer type, summary, notes or CV content? More matches = higher.
+  C. IDEAL CANDIDATE FIT (25% of score) — Read the candidate holistically against the one-line ideal description. Semantic reading, not keyword.
 
-Score 0-100. SEMANTIC MATCHING, not keyword matching. Understand related disciplines:
-- "Human Centred Designer" ≈ Service Designer, UX Designer, User Researcher, CX Designer, Design Researcher, Interaction Designer, Experience Designer.
-- "Social impact" ≈ charity, public sector, NGO, social enterprise, third sector, government, community projects.
-- "Agency/consultancy" = external client project experience; "in-house" = internal projects.
+If NO similar titles or key skills were provided, fall back to weighing Title 55% and Ideal-fit 45%.
+
+SEMANTIC MATCHING, not keyword matching. Understand adjacent disciplines and synonyms (e.g. "Human Centred Designer" ≈ Service Designer, UX Designer, Design Researcher, CX Designer; "social impact" ≈ charity, public sector, NGO, third sector, government; "agency" = external client work, "in-house" = internal).
 
 Be strict. A Marketing Manager against a DevOps role must score below 20. Only candidates whose actual background could plausibly do THIS job score 40+.
 
-Return ONLY JSON: {"matches":[{"id":"<id>","score":<0-100>,"reason":"<one short sentence citing a SPECIFIC field from their profile, e.g. current title, a skill, or sector experience>"}]}. Include EVERY candidate id from the input, even those scoring 0.`;
+Return ONLY JSON: {"matches":[{"id":"<id>","score":<0-100>,"reason":"<one short sentence citing a SPECIFIC field, e.g. 'Title match: Service Design Lead' or 'Skills: user research, design thinking'>"}]}. Include EVERY candidate id from the input, even those scoring 0.`;
       const userPrompt = `ROLE: ${job?.title || "?"} at ${(job as any)?.clients?.company_name || "?"}
 SECTOR: ${(job as any)?.clients?.sector || "?"}
 LOCATION: ${job?.location || "?"}
@@ -159,6 +158,8 @@ JD: ${(job as any)?.description?.slice(0, 1800) || "—"}
 INTAKE: ${(job as any)?.intake_summary?.slice(0, 800) || "—"}
 HOOK: ${launch_hook || "—"}
 IDEAL CANDIDATE: ${ideal_candidate_line || "—"}
+SIMILAR JOB TITLES (primary signal): ${effTitles.length ? effTitles.join(", ") : "—"}
+KEY SKILLS / EXPERIENCE WORDS: ${effSkills.length ? effSkills.join(", ") : "—"}
 
 CANDIDATES (${compact.length}):
 ${compact.map((c) => `- id:${c.id}
