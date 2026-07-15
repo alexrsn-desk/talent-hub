@@ -26,6 +26,35 @@ const intelSchema = {
     last_valuation: { type: "string" },
     revenue_range: { type: "string" },
     tech_stack: { type: "array", items: { type: "string" } },
+    product_types: {
+      type: "string",
+      description: "What type of products/services this company builds. Be specific — e.g. 'Patient-facing NHS mobile apps, clinical staff tools, NHS data platforms' NOT just 'healthcare software'.",
+    },
+    who_uses_products: {
+      type: "string",
+      description: "Who the end users are — e.g. 'NHS trusts, ICBs, GP practices, patients' or 'Enterprise HR teams and their employees'.",
+    },
+    internal_external: {
+      type: "string",
+      description: "Whether products are internal tools, external/customer-facing products, or both. One short sentence.",
+    },
+    current_focus: {
+      type: "string",
+      description: "What the company appears to be currently working on or prioritising in 2024/2025. One or two sentences.",
+    },
+    design_approach: {
+      type: "string",
+      description: "Design methodology if publicly known — e.g. 'GDS standards, human-centred design, agile delivery'. Leave empty if unknown.",
+    },
+    tech_context: {
+      type: "string",
+      description: "Technology context if publicly known — e.g. 'Cloud-native, React, NHS interoperability standards'. Leave empty if unknown.",
+    },
+    enrichment_confidence: {
+      type: "string",
+      enum: ["high", "medium", "low"],
+      description: "high = multiple consistent sources, well-documented; medium = some info, possibly incomplete; low = limited public information.",
+    },
     recent_signals: {
       type: "array",
       description: "Significant company events from the last ~12 months",
@@ -59,8 +88,9 @@ const intelSchema = {
       },
     },
   },
-  required: ["description", "recent_signals"],
+  required: ["description", "product_types", "who_uses_products", "enrichment_confidence", "recent_signals"],
 };
+
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
