@@ -8,10 +8,12 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Label } from "@/components/ui/label";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Plus, Search, Star, ClipboardList, Phone, BriefcaseBusiness, Check, CalendarClock, Sparkles } from "lucide-react";
+import { Plus, Search, Star, ClipboardList, Phone, BriefcaseBusiness, Check, CalendarClock, Sparkles, ArrowUp, ArrowDown, X } from "lucide-react";
 import { useCandidates, useCreateCandidate, useUpdateCandidate, useDeleteCandidate, useJobs, useCreateCandidateJob, useCandidateJobs, useCreateNote, type Candidate } from "@/hooks/use-data";
 import { AdvancedSearchBar, applyCandidateFilters, EMPTY_CANDIDATE_FILTERS, type CandidateFilters, type SearchableRecord } from "@/components/AdvancedSearchBar";
 import { useSearchAggregates } from "@/hooks/use-search-aggregates";
+import { supabase } from "@/integrations/supabase/client";
+import { useQuery } from "@tanstack/react-query";
 import { Textarea } from "@/components/ui/textarea";
 import { PriorityStarIcon } from "@/components/PriorityFlag";
 import { CandidateDetail } from "@/components/CandidateDetail";
@@ -25,6 +27,78 @@ import { logActivity } from "@/lib/activity-log";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { usePools, usePoolMemberships, computePoolHealth, HEALTH_DOT } from "@/hooks/use-talent-pools";
+
+// Sort + filter types
+type SortKey = "name" | "job_title" | "status" | "last_contact" | "created_at";
+type SortDir = "asc" | "desc";
+type QuickFilter = "all" | "active" | "passive" | "li" | "hold" | "cold";
+const STAGE_OPTIONS = ["any", "none", "AI Suggested", "Longlist", "Shortlist", "Submitted", "First Interview", "Second Interview", "Offer", "Placed"] as const;
+type StageFilter = typeof STAGE_OPTIONS[number];
+type TimeBucket = "any" | "today" | "week" | "month" | "3m" | "over3m" | "year" | "never";
+
+const ACTIVE_STATUSES = new Set(["New", "Contacted", "Screening", "Submitted", "Interviewing"]);
+const PASSIVE_STATUSES = new Set(["Placed", "Not Suitable", "Archive"]);
+
+const PERSIST_KEY = "candidates:view:v1";
+function loadPersisted() {
+  try { return JSON.parse(sessionStorage.getItem(PERSIST_KEY) || "{}"); } catch { return {}; }
+}
+
+function bucketMatch(date: string | null | undefined, bucket: TimeBucket, allowNever: boolean): boolean {
+  if (bucket === "any") return true;
+  if (!date) return bucket === "never";
+  if (bucket === "never") return false;
+  const days = (Date.now() - new Date(date).getTime()) / 86400000;
+  switch (bucket) {
+    case "today": return days < 1;
+    case "week": return days <= 7;
+    case "month": return days <= 31;
+    case "3m": return days <= 90;
+    case "over3m": return days > 90;
+    case "year": return days <= 365;
+  }
+  return true;
+}
+
+function useCandidateStageMap() {
+  return useQuery({
+    queryKey: ["candidate-stages-map"],
+    staleTime: 30_000,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("candidate_jobs")
+        .select("candidate_id,stage,ai_suggested,created_at")
+        .order("created_at", { ascending: false });
+      const map = new Map<string, Set<string>>();
+      for (const r of (data || []) as any[]) {
+        const set = map.get(r.candidate_id) || new Set<string>();
+        const stage = r.ai_suggested ? "AI Suggested" : r.stage;
+        if (stage) set.add(stage);
+        map.set(r.candidate_id, set);
+      }
+      return map;
+    },
+  });
+}
+
+function SortableTh({ label, sortKey, activeKey, dir, onClick }: {
+  label: string; sortKey: SortKey; activeKey: SortKey; dir: SortDir; onClick: (k: SortKey) => void;
+}) {
+  const active = activeKey === sortKey;
+  return (
+    <th
+      className="text-left px-4 py-3 font-medium text-muted-foreground cursor-pointer select-none hover:text-foreground"
+      onClick={() => onClick(sortKey)}
+    >
+      <span className="inline-flex items-center gap-1">
+        {label}
+        {active && (dir === "asc" ? <ArrowUp className="h-3 w-3" /> : <ArrowDown className="h-3 w-3" />)}
+      </span>
+    </th>
+  );
+}
+
+
 
 const STATUSES = ["New", "Contacted", "Screening", "Submitted", "Interviewing", "Placed", "On Hold", "Not Suitable", "Cold", "Archive", "Do Not Contact", "LI Connection"] as const;
 const SOURCES = ["LinkedIn", "Referral", "Job Board", "Inbound"] as const;
@@ -411,9 +485,30 @@ export default function CandidatesPage() {
   const [touchpointCandidate, setTouchpointCandidate] = useState<Candidate | null>(null);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const lastClickedIndex = useRef<number | null>(null);
-  const [poolFilter, setPoolFilter] = useState<string>("all");
+  const persisted = useMemo(loadPersisted, []);
+  const [poolFilter, setPoolFilter] = useState<string>(persisted.pool ?? "all");
+  const [quickFilter, setQuickFilter] = useState<QuickFilter>(persisted.quick ?? "all");
+  const [stageFilter, setStageFilter] = useState<StageFilter>(persisted.stage ?? "any");
+  const [lastContactFilter, setLastContactFilter] = useState<TimeBucket>(persisted.lastContact ?? "any");
+  const [addedFilter, setAddedFilter] = useState<TimeBucket>(persisted.added ?? "any");
+  const [sortKey, setSortKey] = useState<SortKey>(persisted.sortKey ?? "created_at");
+  const [sortDir, setSortDir] = useState<SortDir>(persisted.sortDir ?? "desc");
   const { data: pools = [] } = usePools();
   const { data: memberships = [] } = usePoolMemberships();
+  const { data: stageMap } = useCandidateStageMap();
+
+  useEffect(() => {
+    sessionStorage.setItem(PERSIST_KEY, JSON.stringify({
+      pool: poolFilter, quick: quickFilter, stage: stageFilter,
+      lastContact: lastContactFilter, added: addedFilter, sortKey, sortDir,
+    }));
+  }, [poolFilter, quickFilter, stageFilter, lastContactFilter, addedFilter, sortKey, sortDir]);
+
+  const toggleSort = (key: SortKey) => {
+    if (sortKey === key) setSortDir(d => d === "asc" ? "desc" : "asc");
+    else { setSortKey(key); setSortDir(key === "created_at" || key === "last_contact" ? "desc" : "asc"); }
+  };
+
 
   const handleTogglePriority = useCallback((c: Candidate) => {
     if (c.priority_flag) {
@@ -469,21 +564,52 @@ export default function CandidatesPage() {
     return candidates.filter(c => ids.has(c.id));
   }, [aiResults, searchableRecords, search, advFilters, candidates]);
 
+  const lastContactFor = (id: string) => aggregates?.candidateNoteMeta.get(id)?.last ?? null;
+
   const filtered = filteredBase
     .slice()
     .filter((c) => {
-      if (poolFilter === "all") return true;
-      return memberships.some((m) => m.candidate_id === c.id && m.pool_id === poolFilter);
+      if (poolFilter !== "all" && !memberships.some((m) => m.candidate_id === c.id && m.pool_id === poolFilter)) return false;
+      // Quick filter
+      if (quickFilter === "active" && !ACTIVE_STATUSES.has(c.status)) return false;
+      if (quickFilter === "passive" && !PASSIVE_STATUSES.has(c.status)) return false;
+      if (quickFilter === "li" && c.status !== "LI Connection") return false;
+      if (quickFilter === "hold" && c.status !== "On Hold") return false;
+      if (quickFilter === "cold" && c.status !== "Cold") return false;
+      // Stage filter
+      if (stageFilter !== "any") {
+        const stages = stageMap?.get(c.id);
+        if (stageFilter === "none") { if (stages && stages.size > 0) return false; }
+        else if (!stages || !stages.has(stageFilter)) return false;
+      }
+      if (!bucketMatch(lastContactFor(c.id), lastContactFilter, true)) return false;
+      if (addedFilter !== "any" && !bucketMatch(c.created_at, addedFilter, false)) return false;
+      return true;
     })
     .sort((a, b) => {
-      if (aiResults) return 0; // preserve AI ranking
-      if (a.priority_flag && !b.priority_flag) return -1;
-      if (!a.priority_flag && b.priority_flag) return 1;
-      const al = (a.last_name || "").toLowerCase();
-      const bl = (b.last_name || "").toLowerCase();
-      if (al !== bl) return al.localeCompare(bl);
-      return (a.first_name || "").toLowerCase().localeCompare((b.first_name || "").toLowerCase());
+      if (aiResults) return 0;
+      const dir = sortDir === "asc" ? 1 : -1;
+      let cmp = 0;
+      switch (sortKey) {
+        case "name": cmp = (a.last_name || a.name || "").localeCompare(b.last_name || b.name || ""); break;
+        case "job_title": cmp = (a.job_title || "").localeCompare(b.job_title || ""); break;
+        case "status": cmp = (a.status || "").localeCompare(b.status || ""); break;
+        case "last_contact": {
+          const ad = lastContactFor(a.id); const bd = lastContactFor(b.id);
+          cmp = (ad ? new Date(ad).getTime() : 0) - (bd ? new Date(bd).getTime() : 0);
+          break;
+        }
+        case "created_at": cmp = new Date(a.created_at).getTime() - new Date(b.created_at).getTime(); break;
+      }
+      return cmp * dir;
     });
+
+  const filtersActive = quickFilter !== "all" || stageFilter !== "any" || poolFilter !== "all" || lastContactFilter !== "any" || addedFilter !== "any";
+  const clearAllFilters = () => {
+    setQuickFilter("all"); setStageFilter("any"); setPoolFilter("all");
+    setLastContactFilter("any"); setAddedFilter("any");
+  };
+
 
   // Keyboard shortcuts
   useEffect(() => {
@@ -642,32 +768,99 @@ export default function CandidatesPage() {
         onAiResultsChange={setAiResults}
       />
 
-      {pools.length > 0 && (
-        <div className="flex items-center gap-2 flex-wrap">
-          <span className="text-xs text-muted-foreground">Talent pool:</span>
-          <Select value={poolFilter} onValueChange={setPoolFilter}>
-            <SelectTrigger className="h-8 w-auto min-w-[220px] text-xs">
-              <SelectValue placeholder="All candidates" />
-            </SelectTrigger>
+      {/* Filter bar */}
+      <div className="space-y-2">
+        <div className="flex flex-wrap items-center gap-2">
+          <div className="flex items-center gap-1 overflow-x-auto">
+            {([
+              ["all", "All"], ["active", "Active"], ["passive", "Passive"],
+              ["li", "LI Connection"], ["hold", "Hold"], ["cold", "Cold"],
+            ] as [QuickFilter, string][]).map(([v, label]) => (
+              <button
+                key={v}
+                onClick={() => setQuickFilter(v)}
+                className={cn(
+                  "px-3 h-7 rounded-full text-xs whitespace-nowrap border transition-colors",
+                  quickFilter === v
+                    ? "bg-primary text-primary-foreground border-primary"
+                    : "border-border text-muted-foreground hover:text-foreground"
+                )}
+              >{label}</button>
+            ))}
+          </div>
+
+          <Select value={stageFilter} onValueChange={(v) => setStageFilter(v as StageFilter)}>
+            <SelectTrigger className="h-8 w-[160px] text-xs"><SelectValue placeholder="Any stage" /></SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">All candidates</SelectItem>
-              {pools.map((p) => {
-                const memberIds = memberships.filter((m) => m.pool_id === p.id).map((m) => m.candidate_id);
-                const members = memberIds.map((cid) => candidates.find((c) => c.id === cid)).filter(Boolean) as any[];
-                const health = computePoolHealth(p, members.map((m) => ({ status: m.status, last_contacted: m.last_contacted_at || null })));
-                return (
-                  <SelectItem key={p.id} value={p.id}>
-                    {p.name} ({members.length}) {HEALTH_DOT[health]}
-                  </SelectItem>
-                );
-              })}
+              <SelectItem value="any">Any stage</SelectItem>
+              <SelectItem value="none">Not in any pipeline</SelectItem>
+              {["AI Suggested","Longlist","Shortlist","Submitted","First Interview","Second Interview","Offer","Placed"].map(s =>
+                <SelectItem key={s} value={s}>{s}</SelectItem>
+              )}
             </SelectContent>
           </Select>
-          {poolFilter !== "all" && (
-            <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => setPoolFilter("all")}>Clear</Button>
+
+          {pools.length > 0 && (
+            <Select value={poolFilter} onValueChange={setPoolFilter}>
+              <SelectTrigger className="h-8 w-[180px] text-xs"><SelectValue placeholder="Any pool" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Any pool</SelectItem>
+                {pools.map((p) => {
+                  const memberIds = memberships.filter((m) => m.pool_id === p.id).map((m) => m.candidate_id);
+                  const members = memberIds.map((cid) => candidates.find((c) => c.id === cid)).filter(Boolean) as any[];
+                  const health = computePoolHealth(p, members.map((m) => ({ status: m.status, last_contacted: m.last_contacted_at || null })));
+                  return <SelectItem key={p.id} value={p.id}>{p.name} ({members.length}) {HEALTH_DOT[health]}</SelectItem>;
+                })}
+              </SelectContent>
+            </Select>
+          )}
+
+          <Select value={lastContactFilter} onValueChange={(v) => setLastContactFilter(v as TimeBucket)}>
+            <SelectTrigger className="h-8 w-[170px] text-xs"><SelectValue placeholder="Last contacted" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="any">Any time</SelectItem>
+              <SelectItem value="today">Today</SelectItem>
+              <SelectItem value="week">This week</SelectItem>
+              <SelectItem value="month">This month</SelectItem>
+              <SelectItem value="3m">Last 3 months</SelectItem>
+              <SelectItem value="over3m">Over 3 months ago</SelectItem>
+              <SelectItem value="never">Never contacted</SelectItem>
+            </SelectContent>
+          </Select>
+
+          <Select value={addedFilter} onValueChange={(v) => setAddedFilter(v as TimeBucket)}>
+            <SelectTrigger className="h-8 w-[150px] text-xs"><SelectValue placeholder="Added" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="any">Any time</SelectItem>
+              <SelectItem value="today">Today</SelectItem>
+              <SelectItem value="week">This week</SelectItem>
+              <SelectItem value="month">This month</SelectItem>
+              <SelectItem value="3m">Last 3 months</SelectItem>
+              <SelectItem value="year">This year</SelectItem>
+            </SelectContent>
+          </Select>
+
+          <div className="flex-1" />
+
+          <Button
+            size="sm" variant="outline" className="h-8 gap-1 text-xs"
+            onClick={() => { setSortKey("created_at"); setSortDir("desc"); }}
+          >
+            Recently added <ArrowDown className="h-3 w-3" />
+          </Button>
+
+          {filtersActive && (
+            <button className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1" onClick={clearAllFilters}>
+              Clear all filters <X className="h-3 w-3" />
+            </button>
           )}
         </div>
-      )}
+
+        <div className="text-xs text-muted-foreground">
+          Showing {filtered.length} candidate{filtered.length === 1 ? "" : "s"}
+        </div>
+      </div>
+
 
       {isLoading ? (
         <div className="text-muted-foreground text-sm">Loading...</div>
@@ -758,12 +951,12 @@ export default function CandidatesPage() {
                     aria-label="Select all"
                   />
                 </th>
-                <th className="text-left px-4 py-3 font-medium text-muted-foreground">Name</th>
-                <th className="text-left px-4 py-3 font-medium text-muted-foreground">Job Title</th>
-                <th className="text-left px-4 py-3 font-medium text-muted-foreground">Employer</th>
-                <th className="text-left px-4 py-3 font-medium text-muted-foreground">Salary</th>
-                <th className="text-left px-4 py-3 font-medium text-muted-foreground">Location</th>
-                <th className="text-left px-4 py-3 font-medium text-muted-foreground">Status</th>
+               <SortableTh label="Name" sortKey="name" activeKey={sortKey} dir={sortDir} onClick={toggleSort} />
+               <SortableTh label="Job Title" sortKey="job_title" activeKey={sortKey} dir={sortDir} onClick={toggleSort} />
+               <th className="text-left px-4 py-3 font-medium text-muted-foreground">Employer</th>
+               <th className="text-left px-4 py-3 font-medium text-muted-foreground">Salary</th>
+               <th className="text-left px-4 py-3 font-medium text-muted-foreground">Location</th>
+               <SortableTh label="Status" sortKey="status" activeKey={sortKey} dir={sortDir} onClick={toggleSort} />
                 <th className="px-4 py-3 w-64"></th>
               </tr>
             </thead>
