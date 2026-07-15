@@ -3,6 +3,7 @@
 // Only candidates scoring >=40 proceed. Relationship status then decides the section.
 // Vendor-neutral: uses standard OpenAI-compatible chat completions (works with Gemini and Claude).
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
+import { scoreCandidatesSemantic, type CandidateForMatch } from "../_shared/semantic-match.ts";
 
 const cors = {
   "Access-Control-Allow-Origin": "*",
