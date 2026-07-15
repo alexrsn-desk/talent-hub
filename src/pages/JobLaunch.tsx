@@ -39,8 +39,10 @@ export default function JobLaunch() {
 
   const [matching, setMatching] = useState(false);
   const [known, setKnown] = useState<MatchCandidate[]>([]);
+  const [db, setDb] = useState<MatchCandidate[]>([]);
   const [li, setLi] = useState<MatchCandidate[]>([]);
   const [pickedKnown, setPickedKnown] = useState<Set<string>>(new Set());
+  const [pickedDb, setPickedDb] = useState<Set<string>>(new Set());
   const [pickedLi, setPickedLi] = useState<Set<string>>(new Set());
 
   const [generating, setGenerating] = useState(false);
