@@ -8,10 +8,12 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Label } from "@/components/ui/label";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Plus, Search, Star, ClipboardList, Phone, BriefcaseBusiness, Check, CalendarClock, Sparkles } from "lucide-react";
+import { Plus, Search, Star, ClipboardList, Phone, BriefcaseBusiness, Check, CalendarClock, Sparkles, ArrowUp, ArrowDown, X } from "lucide-react";
 import { useCandidates, useCreateCandidate, useUpdateCandidate, useDeleteCandidate, useJobs, useCreateCandidateJob, useCandidateJobs, useCreateNote, type Candidate } from "@/hooks/use-data";
 import { AdvancedSearchBar, applyCandidateFilters, EMPTY_CANDIDATE_FILTERS, type CandidateFilters, type SearchableRecord } from "@/components/AdvancedSearchBar";
 import { useSearchAggregates } from "@/hooks/use-search-aggregates";
+import { supabase } from "@/integrations/supabase/client";
+import { useQuery } from "@tanstack/react-query";
 import { Textarea } from "@/components/ui/textarea";
 import { PriorityStarIcon } from "@/components/PriorityFlag";
 import { CandidateDetail } from "@/components/CandidateDetail";
@@ -25,6 +27,59 @@ import { logActivity } from "@/lib/activity-log";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { usePools, usePoolMemberships, computePoolHealth, HEALTH_DOT } from "@/hooks/use-talent-pools";
+
+// Sort + filter types
+type SortKey = "name" | "job_title" | "status" | "last_contact" | "created_at";
+type SortDir = "asc" | "desc";
+type QuickFilter = "all" | "active" | "passive" | "li" | "hold" | "cold";
+const STAGE_OPTIONS = ["any", "none", "AI Suggested", "Longlist", "Shortlist", "Submitted", "First Interview", "Second Interview", "Offer", "Placed"] as const;
+type StageFilter = typeof STAGE_OPTIONS[number];
+type TimeBucket = "any" | "today" | "week" | "month" | "3m" | "over3m" | "year" | "never";
+
+const ACTIVE_STATUSES = new Set(["New", "Contacted", "Screening", "Submitted", "Interviewing"]);
+const PASSIVE_STATUSES = new Set(["Placed", "Not Suitable", "Archive"]);
+
+const PERSIST_KEY = "candidates:view:v1";
+function loadPersisted() {
+  try { return JSON.parse(sessionStorage.getItem(PERSIST_KEY) || "{}"); } catch { return {}; }
+}
+
+function bucketMatch(date: string | null | undefined, bucket: TimeBucket, allowNever: boolean): boolean {
+  if (bucket === "any") return true;
+  if (!date) return bucket === "never";
+  if (bucket === "never") return false;
+  const days = (Date.now() - new Date(date).getTime()) / 86400000;
+  switch (bucket) {
+    case "today": return days < 1;
+    case "week": return days <= 7;
+    case "month": return days <= 31;
+    case "3m": return days <= 90;
+    case "over3m": return days > 90;
+    case "year": return days <= 365;
+  }
+  return true;
+}
+
+function useCandidateStageMap() {
+  return useQuery({
+    queryKey: ["candidate-stages-map"],
+    staleTime: 30_000,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("candidate_jobs")
+        .select("candidate_id,stage,ai_suggested,created_at")
+        .order("created_at", { ascending: false });
+      const map = new Map<string, Set<string>>();
+      for (const r of (data || []) as any[]) {
+        const set = map.get(r.candidate_id) || new Set<string>();
+        const stage = r.ai_suggested ? "AI Suggested" : r.stage;
+        if (stage) set.add(stage);
+        map.set(r.candidate_id, set);
+      }
+      return map;
+    },
+  });
+}
 
 const STATUSES = ["New", "Contacted", "Screening", "Submitted", "Interviewing", "Placed", "On Hold", "Not Suitable", "Cold", "Archive", "Do Not Contact", "LI Connection"] as const;
 const SOURCES = ["LinkedIn", "Referral", "Job Board", "Inbound"] as const;
