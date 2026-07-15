@@ -275,7 +275,9 @@ export function CandidateDetail({ candidate, onUpdate, onDelete }: Props) {
                 {`${candidate.first_name || ""} ${candidate.last_name || ""}`.replace(/\s+/g, " ").trim() || candidate.name}
               </h2>
               <p className="text-muted-foreground">{candidate.job_title || "No title"} {candidate.current_employer ? `at ${candidate.current_employer}` : ""}</p>
+              <EmployerContextLine employer={candidate.current_employer} />
             </>
+
           )}
         </div>
         <div className="flex gap-2 items-start flex-wrap flex-shrink-0">
