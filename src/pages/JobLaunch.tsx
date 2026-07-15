@@ -43,6 +43,16 @@ export default function JobLaunch() {
   const [hook, setHook] = useState("");
   const [ideal, setIdeal] = useState("");
   const [jobSpec, setJobSpec] = useState("");
+  const [similarTitles, setSimilarTitles] = useState<string[]>([]);
+  const [keySkills, setKeySkills] = useState<string[]>([]);
+  const [titleInput, setTitleInput] = useState("");
+  const [skillInput, setSkillInput] = useState("");
+  const [suggestedTitles, setSuggestedTitles] = useState<string[]>([]);
+  const [suggestedSkills, setSuggestedSkills] = useState<string[]>([]);
+  const [suggesting, setSuggesting] = useState(false);
+  const [templates, setTemplates] = useState<RoleTemplate[]>([]);
+  const [templateLoaded, setTemplateLoaded] = useState<string | null>(null);
+  const [savingTemplate, setSavingTemplate] = useState(false);
   const [loadingJob, setLoadingJob] = useState(true);
 
   const [matching, setMatching] = useState(false);
