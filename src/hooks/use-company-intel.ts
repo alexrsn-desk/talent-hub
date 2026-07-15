@@ -32,11 +32,19 @@ export type CompanyIntel = {
   last_valuation: string | null;
   revenue_range: string | null;
   tech_stack: string[] | null;
+  product_types: string | null;
+  who_uses_products: string | null;
+  internal_external: string | null;
+  current_focus: string | null;
+  design_approach: string | null;
+  tech_context: string | null;
+  enrichment_confidence: "high" | "medium" | "low" | null;
   recent_signals: CompanySignal[];
   current_job_postings: JobPosting[];
   enrichment_source: string | null;
   last_enriched_at: string | null;
   field_status: Record<string, "unconfirmed" | "confirmed" | "manual"> | null;
+
 };
 
 export const TRACKED_INTEL_FIELDS = [
