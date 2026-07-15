@@ -115,6 +115,66 @@ export function CompanyIntelPanel({ clientId, companyName }: { clientId: string;
         </div>
       </div>
 
+      {/* What they build — product & work context */}
+      {(intel.product_types || intel.who_uses_products || intel.internal_external || intel.current_focus || intel.design_approach || intel.tech_context) && (
+        <section className="rounded-lg border border-primary/30 bg-primary/5 p-4 space-y-3">
+          <div className="flex items-center justify-between">
+            <h3 className="text-sm font-semibold">What they build</h3>
+            {intel.enrichment_confidence && (
+              <Badge
+                variant="secondary"
+                className={`text-[10px] ${
+                  intel.enrichment_confidence === "high" ? "bg-success/20 text-green-400" :
+                  intel.enrichment_confidence === "medium" ? "bg-amber-500/20 text-amber-300" :
+                  "bg-muted/40 text-muted-foreground"
+                }`}
+              >
+                {intel.enrichment_confidence} confidence
+              </Badge>
+            )}
+          </div>
+          <div className={`grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm ${intel.enrichment_confidence === "low" ? "text-muted-foreground" : ""}`}>
+            {intel.product_types && (
+              <div>
+                <div className="text-xs text-muted-foreground mb-0.5">What they build</div>
+                <p>{intel.product_types}</p>
+              </div>
+            )}
+            {intel.who_uses_products && (
+              <div>
+                <div className="text-xs text-muted-foreground mb-0.5">Who uses it</div>
+                <p>{intel.who_uses_products}</p>
+              </div>
+            )}
+            {intel.internal_external && (
+              <div>
+                <div className="text-xs text-muted-foreground mb-0.5">Internal / external</div>
+                <p>{intel.internal_external}</p>
+              </div>
+            )}
+            {intel.current_focus && (
+              <div>
+                <div className="text-xs text-muted-foreground mb-0.5">Current focus</div>
+                <p>{intel.current_focus}</p>
+              </div>
+            )}
+            {intel.design_approach && (
+              <div>
+                <div className="text-xs text-muted-foreground mb-0.5">Design approach</div>
+                <p>{intel.design_approach}</p>
+              </div>
+            )}
+            {intel.tech_context && (
+              <div>
+                <div className="text-xs text-muted-foreground mb-0.5">Tech context</div>
+                <p>{intel.tech_context}</p>
+              </div>
+            )}
+          </div>
+        </section>
+      )}
+
+
       {/* Overview */}
       <section className="rounded-lg border border-border p-4 space-y-3">
         <h3 className="text-sm font-semibold">Overview</h3>
