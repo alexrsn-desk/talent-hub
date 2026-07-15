@@ -173,6 +173,22 @@ export function mappingForSource(
     }
   }
 
+  // LinkedIn-specific mapping (URL column is the LinkedIn profile)
+  if (source === "linkedin") {
+    const li: Record<string, string> = {
+      "first name": "first_name", "last name": "last_name",
+      "email address": "email", "email": "email",
+      "url": "linkedin_url", "profile url": "linkedin_url",
+      "company": "current_employer", "position": "job_title",
+      "connected on": "_skip",
+    };
+    for (const h of headers) {
+      if (auto[h]) continue;
+      const key = li[h.toLowerCase().trim()];
+      if (key) auto[h] = key;
+    }
+  }
+
   // Fuzzy fallback for anything still unmapped
   for (const h of headers) {
     if (auto[h]) continue;
