@@ -156,10 +156,12 @@ Deno.serve(async (req) => {
       const compact = shortlist.map((x) => {
         const tc = tagsByCand[x.c.id] || {};
         const fc = fwByCand[x.c.id] || {};
+        const empKey = (x.c.current_employer || "").toLowerCase();
         return {
           id: x.c.id,
           title: x.c.job_title,
           employer: x.c.current_employer,
+          employer_context: employerContext[empKey] || "",
           loc: x.c.location,
           salary: x.c.salary_expectation,
           skills: (fc["skills"] || []).join("; ").slice(0, 300),
@@ -169,6 +171,7 @@ Deno.serve(async (req) => {
           summary: (x.c.summary || x.c.note || "").slice(0, 300),
         };
       });
+
       const system = `You score recruitment candidates for RELEVANCE to a specific role.
 
 SCORE 0-100 as a WEIGHTED COMBINATION of three checks:
