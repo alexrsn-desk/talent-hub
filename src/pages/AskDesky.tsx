@@ -307,15 +307,51 @@ function MessageBlock({ msg }: { msg: Msg }) {
 }
 
 function CandidateCards({ items }: { items: CandidateCardItem[] }) {
+  const [confirmed, setConfirmed] = useState<Record<string, boolean>>({});
   const exportCsv = () => {
-    const rows = [["Name", "Title", "Employer", "Location", "Salary"]];
-    for (const it of items) rows.push([it.name || "", it.title || "", it.employer || "", it.location || "", it.salary ? String(it.salary) : ""]);
+    const rows = [["Name", "Title", "Employer", "Location", "Salary", "Match", "Inferred"]];
+    for (const it of items) rows.push([
+      it.name || "", it.title || "", it.employer || "", it.location || "",
+      it.salary ? String(it.salary) : "",
+      it.match_score ? String(it.match_score) : "",
+      it.inferred ? (it.inferred_reason || "yes") : "",
+    ]);
     const csv = rows.map((r) => r.map((v) => `"${(v || "").replace(/"/g, '""')}"`).join(",")).join("\n");
     const blob = new Blob([csv], { type: "text/csv" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url; a.download = "candidates.csv"; a.click(); URL.revokeObjectURL(url);
   };
+
+  async function confirmSector(it: CandidateCardItem) {
+    if (!it.inferred_sector) return;
+    try {
+      const { data: session } = await supabase.auth.getSession();
+      const jwt = session.session?.access_token;
+      const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/ask-desky`;
+      // Send a hidden instruction that triggers the confirm_company_sector tool.
+      const r = await fetch(url, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${jwt}`,
+          apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY as string,
+        },
+        body: JSON.stringify({
+          messages: [{
+            role: "user",
+            content: `Please call the confirm_company_sector tool with client_id="${it.inferred_client_id || ""}", employer_name="${it.employer || ""}", sector="${it.inferred_sector}". Then reply with just "Confirmed." — nothing else.`,
+          }],
+        }),
+      });
+      if (!r.ok) throw new Error(await r.text());
+      setConfirmed((prev) => ({ ...prev, [it.id]: true }));
+      toast({ title: "Confirmed", description: `${it.employer} tagged as ${it.inferred_sector}.` });
+    } catch (e: any) {
+      toast({ title: "Couldn't confirm", description: String(e?.message ?? e), variant: "destructive" });
+    }
+  }
+
   return (
     <div className="space-y-2">
       <div className="flex items-center justify-between">
@@ -326,17 +362,44 @@ function CandidateCards({ items }: { items: CandidateCardItem[] }) {
       </div>
       <div className="grid gap-2">
         {items.map((it) => (
-          <div key={it.id} className="flex items-center gap-3 rounded-md border bg-background p-3">
+          <div
+            key={it.id}
+            className={cn(
+              "flex items-center gap-3 rounded-md border bg-background p-3",
+              it.inferred && "border-amber-500/40 bg-amber-500/5",
+            )}
+          >
             <div className="h-8 w-8 rounded-full bg-muted flex items-center justify-center">
               <User className="h-4 w-4 text-muted-foreground" />
             </div>
             <div className="flex-1 min-w-0">
-              <div className="text-sm font-medium truncate">{it.name}</div>
+              <div className="flex items-center gap-2 flex-wrap">
+                <div className="text-sm font-medium truncate">{it.name}</div>
+                {typeof it.match_score === "number" && (
+                  <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-primary/10 text-primary">{it.match_score}%</span>
+                )}
+                {it.inferred && (
+                  <span className="text-[10px] px-1.5 py-0.5 rounded bg-amber-500/15 text-amber-700 dark:text-amber-400 border border-amber-500/30">
+                    {it.inferred_reason || `inferred ${it.inferred_sector}`}
+                  </span>
+                )}
+              </div>
               <div className="text-xs text-muted-foreground truncate">
                 {[it.title, it.employer, it.location].filter(Boolean).join(" · ")}
                 {typeof it.salary === "number" && ` · £${it.salary.toLocaleString()}`}
               </div>
+              {it.match_reason && (
+                <div className="text-xs text-muted-foreground mt-0.5 truncate">{it.match_reason}</div>
+              )}
             </div>
+            {it.inferred && !confirmed[it.id] && (
+              <Button variant="outline" size="sm" onClick={() => confirmSector(it)}>
+                Confirm — yes it's {it.inferred_sector}
+              </Button>
+            )}
+            {confirmed[it.id] && (
+              <span className="text-xs text-muted-foreground">Confirmed ✓</span>
+            )}
             <Button variant="ghost" size="sm" asChild>
               <a href={`/candidates?open=${it.id}`}>View</a>
             </Button>
