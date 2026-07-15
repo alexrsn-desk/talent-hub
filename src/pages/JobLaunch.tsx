@@ -477,8 +477,109 @@ export default function JobLaunch() {
             />
           </div>
 
-          <div className="flex justify-end">
-            <Button onClick={goToStep2} disabled={!hook.trim() && !ideal.trim()} className="gap-1">
+          {/* Template banner */}
+          {templates.length > 0 && !templateLoaded && (
+            <div className="rounded-lg border border-border bg-muted/30 p-3 text-xs flex items-center gap-2 flex-wrap">
+              <span className="text-muted-foreground">We have templates for similar roles:</span>
+              {templates.slice(0, 4).map((t) => (
+                <button
+                  key={t.id}
+                  type="button"
+                  onClick={() => loadTemplate(t)}
+                  className="rounded-full bg-primary/15 text-primary px-2 py-0.5 hover:bg-primary/25"
+                >
+                  Load "{t.name}"
+                </button>
+              ))}
+            </div>
+          )}
+
+          {/* FIELD 2 — SIMILAR JOB TITLES */}
+          <div>
+            <Label className="text-xs">Similar job titles to search</Label>
+            <p className="text-[11px] text-muted-foreground mb-2">
+              What titles might the right person have? Separate with commas. These are the PRIMARY matching signal — candidates with these or semantically similar titles score highest.
+            </p>
+            <ChipInput
+              chips={similarTitles}
+              value={titleInput}
+              onChange={(v) => handleChipInput("title", v)}
+              onCommit={() => handleChipInput("title", titleInput, true)}
+              onRemove={(v) => removeChip("title", v)}
+              placeholder="e.g. Service Designer, UX Researcher, CX Designer, Design Researcher, Interaction Designer"
+            />
+            {(suggestedTitles.length > 0 || suggesting) && (
+              <div className="mt-2 text-[11px]">
+                <span className="text-muted-foreground">AI suggestions based on your job title{suggesting ? " (loading…)" : ""}: </span>
+                <div className="flex flex-wrap gap-1.5 mt-1">
+                  {suggestedTitles
+                    .filter((s) => !similarTitles.some((x) => x.toLowerCase() === s.toLowerCase()))
+                    .map((s) => (
+                      <button
+                        key={s}
+                        type="button"
+                        onClick={() => addChip("title", s)}
+                        className="rounded-full border border-dashed border-border bg-background px-2 py-0.5 hover:bg-primary/10 hover:border-primary/40"
+                      >
+                        <Plus className="h-3 w-3 inline -mt-0.5" /> {s}
+                      </button>
+                    ))}
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* FIELD 3 — KEY SKILLS */}
+          <div>
+            <Label className="text-xs">Key skills or experience words to look for</Label>
+            <p className="text-[11px] text-muted-foreground mb-2">
+              What would typically appear in a strong candidate's profile or CV? Separate with commas. Checked against job titles, skills tags, notes, transcripts, CV content and employer type.
+            </p>
+            <ChipInput
+              chips={keySkills}
+              value={skillInput}
+              onChange={(v) => handleChipInput("skill", v)}
+              onCommit={() => handleChipInput("skill", skillInput, true)}
+              onRemove={(v) => removeChip("skill", v)}
+              placeholder="e.g. service design, user research, social impact, design thinking, stakeholder management, agency experience"
+            />
+            {(suggestedSkills.length > 0 || suggesting) && (
+              <div className="mt-2 text-[11px]">
+                <span className="text-muted-foreground">Suggested skills to look for{suggesting ? " (loading…)" : ""}: </span>
+                <div className="flex flex-wrap gap-1.5 mt-1">
+                  {suggestedSkills
+                    .filter((s) => !keySkills.some((x) => x.toLowerCase() === s.toLowerCase()))
+                    .map((s) => (
+                      <button
+                        key={s}
+                        type="button"
+                        onClick={() => addChip("skill", s)}
+                        className="rounded-full border border-dashed border-border bg-background px-2 py-0.5 hover:bg-primary/10 hover:border-primary/40"
+                      >
+                        <Plus className="h-3 w-3 inline -mt-0.5" /> {s}
+                      </button>
+                    ))}
+                </div>
+              </div>
+            )}
+            <div className="flex justify-end mt-2">
+              <Button size="sm" variant="ghost" onClick={fetchSuggestions} disabled={suggesting} className="gap-1 text-xs">
+                <RotateCw className={`h-3 w-3 ${suggesting ? "animate-spin" : ""}`} /> Refresh AI suggestions
+              </Button>
+            </div>
+          </div>
+
+          <div className="flex items-center justify-between pt-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={saveTemplate}
+              disabled={savingTemplate || (!similarTitles.length && !keySkills.length)}
+              className="gap-1"
+            >
+              <Save className="h-3.5 w-3.5" /> Save as role template
+            </Button>
+            <Button onClick={goToStep2} disabled={!hook.trim() && !ideal.trim() && !similarTitles.length} className="gap-1">
               Continue <ArrowRight className="h-4 w-4" />
             </Button>
           </div>
