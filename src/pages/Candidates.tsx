@@ -622,61 +622,11 @@ export default function CandidatesPage() {
     <div className="space-y-4 sm:space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <h1 className="text-xl sm:text-2xl font-semibold tracking-tight">Candidates</h1>
-        <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-          <DialogTrigger asChild>
-            <Button size="sm" className="w-full sm:w-auto"><Plus className="mr-1 h-4 w-4" />Add Candidate</Button>
-          </DialogTrigger>
-          <DialogContent className="max-w-md w-[calc(100vw-2rem)]">
-            <DialogHeader><DialogTitle>New Candidate</DialogTitle></DialogHeader>
-            <form onSubmit={handleCreate} className="space-y-3">
-              <div className="grid grid-cols-2 gap-3">
-                <div><Label>First name *</Label><Input name="first_name" required /></div>
-                <div><Label>Last name *</Label><Input name="last_name" required /></div>
-              </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div><Label>Job Title</Label><Input name="job_title" /></div>
-                <div><Label>Employer</Label><Input name="current_employer" /></div>
-              </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div><Label>Location</Label><Input name="location" /></div>
-                <div><Label>Email</Label><Input name="email" type="email" /></div>
-              </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div><Label>Phone</Label><Input name="phone" /></div>
-                <div><Label>LinkedIn URL</Label><Input name="linkedin_url" /></div>
-              </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div><Label>Current Salary</Label><Input name="salary_current" type="number" placeholder="e.g. 85000" /></div>
-                <div>
-                  <Label>Salary Expectation</Label>
-                  <Input name="salary_expectation" type="number" placeholder="e.g. 95000" />
-                  <p className="text-xs text-muted-foreground mt-1">Enter numbers only — no £ signs or commas</p>
-                </div>
-              </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div>
-                  <Label>Status</Label>
-                  <select name="status" defaultValue="New" className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm">
-                    {STATUSES.map(s => <option key={s} value={s}>{s}</option>)}
-                  </select>
-                </div>
-                <div>
-                  <Label>Source</Label>
-                  <select name="source" defaultValue="LinkedIn" className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm">
-                    {SOURCES.map(s => <option key={s} value={s}>{s}</option>)}
-                  </select>
-                </div>
-              </div>
-              <div>
-                <Label>Notes</Label>
-                <Textarea name="notes" placeholder="Add any notes about this candidate — source, how you know them, first impressions..." className="min-h-[80px]" />
-              </div>
-              <Button type="submit" className="w-full" disabled={createCandidate.isPending}>
-                {createCandidate.isPending ? "Creating..." : "Create Candidate"}
-              </Button>
-            </form>
-          </DialogContent>
-        </Dialog>
+        <Button size="sm" className="w-full sm:w-auto" onClick={() => setDialogOpen(true)}>
+          <Plus className="mr-1 h-4 w-4" />Add Candidate
+        </Button>
+        <CandidateQuickAddDrawer open={dialogOpen} onOpenChange={setDialogOpen} />
+
       </div>
 
       <AdvancedSearchBar
