@@ -96,6 +96,9 @@ function SortableTh({ label, sortKey, activeKey, dir, onClick }: {
       </span>
     </th>
   );
+}
+
+
 
 const STATUSES = ["New", "Contacted", "Screening", "Submitted", "Interviewing", "Placed", "On Hold", "Not Suitable", "Cold", "Archive", "Do Not Contact", "LI Connection"] as const;
 const SOURCES = ["LinkedIn", "Referral", "Job Board", "Inbound"] as const;
