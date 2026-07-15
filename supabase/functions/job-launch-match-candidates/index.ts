@@ -151,10 +151,10 @@ Deno.serve(async (req) => {
     }
 
 
-    // AI relevance scoring — single call, standard chat completions + JSON object.
-    const scores: Record<string, { score: number; reason: string }> = {};
+    // AI relevance scoring — shared with ask-desky via _shared/semantic-match.ts
+    let scores: Record<string, { score: number; reason: string }> = {};
     if (apiKey && shortlist.length) {
-      const compact = shortlist.map((x) => {
+      const compact: CandidateForMatch[] = shortlist.map((x) => {
         const tc = tagsByCand[x.c.id] || {};
         const fc = fwByCand[x.c.id] || {};
         const empKey = (x.c.current_employer || "").toLowerCase();
@@ -163,7 +163,7 @@ Deno.serve(async (req) => {
           title: x.c.job_title,
           employer: x.c.current_employer,
           employer_context: employerContext[empKey] || "",
-          loc: x.c.location,
+          location: x.c.location,
           salary: x.c.salary_expectation,
           skills: (fc["skills"] || []).join("; ").slice(0, 300),
           sectors: (tc["sector_preference"] || []).join(", "),
@@ -173,62 +173,25 @@ Deno.serve(async (req) => {
         };
       });
 
-      const system = `You score recruitment candidates for RELEVANCE to a specific role.
-
-SCORE 0-100 as a WEIGHTED COMBINATION of three checks:
-  A. TITLE MATCH (40% of score) — Does the candidate's current job title match, or SEMANTICALLY relate to, any of the "SIMILAR JOB TITLES" listed? Exact = full marks. Semantic (e.g. "Service Design Lead" vs "Service Designer") = high. Adjacent discipline (e.g. "UX Designer" vs "Service Designer") = medium. Unrelated = 0.
-  B. SKILLS MATCH (35% of score) — How many of the "KEY SKILLS / EXPERIENCE WORDS" appear or are strongly implied in the candidate's skills, sector experience, current employer type, summary, notes or CV content? More matches = higher.
-  C. IDEAL CANDIDATE FIT (25% of score) — Read the candidate holistically against the one-line ideal description. Semantic reading, not keyword.
-
-If NO similar titles or key skills were provided, fall back to weighing Title 55% and Ideal-fit 45%.
-
-SEMANTIC MATCHING, not keyword matching. Understand adjacent disciplines and synonyms (e.g. "Human Centred Designer" ≈ Service Designer, UX Designer, Design Researcher, CX Designer; "social impact" ≈ charity, public sector, NGO, third sector, government; "agency" = external client work, "in-house" = internal).
-
-Be strict. A Marketing Manager against a DevOps role must score below 20. Only candidates whose actual background could plausibly do THIS job score 40+.
-
-Return ONLY JSON: {"matches":[{"id":"<id>","score":<0-100>,"reason":"<one short sentence citing a SPECIFIC field, e.g. 'Title match: Service Design Lead' or 'Skills: user research, design thinking'>"}]}. Include EVERY candidate id from the input, even those scoring 0.`;
-      const userPrompt = `ROLE: ${job?.title || "?"} at ${(job as any)?.clients?.company_name || "?"}
-SECTOR: ${(job as any)?.clients?.sector || "?"}
-LOCATION: ${job?.location || "?"}
-SALARY RANGE: ${job?.salary_min || "?"} - ${job?.salary_max || "?"}
-JD: ${(job as any)?.description?.slice(0, 1800) || "—"}
-INTAKE: ${(job as any)?.intake_summary?.slice(0, 800) || "—"}
-HOOK: ${launch_hook || "—"}
-IDEAL CANDIDATE: ${ideal_candidate_line || "—"}
-SIMILAR JOB TITLES (primary signal): ${effTitles.length ? effTitles.join(", ") : "—"}
-KEY SKILLS / EXPERIENCE WORDS: ${effSkills.length ? effSkills.join(", ") : "—"}
-
-CANDIDATES (${compact.length}):
-${compact.map((c) => `- id:${c.id}
-  Title: ${c.title || "?"} @ ${c.employer || "?"}${c.employer_context ? `\n  Employer context: ${c.employer_context}` : ""}
-  Skills: ${c.skills || "—"}
-  Sectors: ${c.sectors || "—"}
-  Motivations: ${c.motivations || "—"}
-  Wants: ${c.wants || "—"}
-  Summary: ${c.summary || "—"}
-  Loc/Salary: ${c.loc || "?"} / ${c.salary || "?"}`).join("\n")}`;
-
-
-      try {
-        const r = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-          method: "POST",
-          headers: { "Content-Type": "application/json", Authorization: `Bearer ${apiKey}` },
-          body: JSON.stringify({
-            model: model || "google/gemini-2.5-flash",
-            messages: [{ role: "system", content: system }, { role: "user", content: userPrompt }],
-            response_format: { type: "json_object" },
-            temperature: 0.1,
-          }),
-        });
-        if (r.ok) {
-          const d = await r.json();
-          const parsed = JSON.parse(d.choices?.[0]?.message?.content || "{}");
-          for (const m of parsed.matches || []) {
-            const sc = Math.max(0, Math.min(100, Number(m.score) || 0));
-            scores[m.id] = { score: sc, reason: String(m.reason || "") };
-          }
-        }
-      } catch { /* AI optional; without it we cannot gate on relevance, so return empty */ }
+      scores = await scoreCandidatesSemantic({
+        apiKey,
+        model,
+        role: {
+          title: job?.title,
+          employer: (job as any)?.clients?.company_name,
+          sector: (job as any)?.clients?.sector,
+          location: job?.location,
+          salary_min: job?.salary_min,
+          salary_max: job?.salary_max,
+          description: (job as any)?.description,
+          intake_summary: (job as any)?.intake_summary,
+          hook: launch_hook,
+          ideal_candidate_line,
+          similar_titles: effTitles,
+          key_skills: effSkills,
+        },
+        candidates: compact,
+      });
     }
 
     // Relevance gate — ONLY >=40 pass. No AI => no relevance data => no matches (safer than false positives).
