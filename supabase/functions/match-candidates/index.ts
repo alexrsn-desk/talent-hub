@@ -195,7 +195,7 @@ Notes: ${jobNotes.map((n: any) => n.content).join(" | ") || "None"}
       return `ID:${c.id}
   Name: ${c.name}
   Current Job Title: ${c.job_title || "?"}
-  Current Employer: ${c.current_employer || "?"}
+  Current Employer: ${c.current_employer || "?"}${employerContext[(c.current_employer || "").toLowerCase()] ? `\n  Employer context: ${employerContext[(c.current_employer || "").toLowerCase()]}` : ""}
   Skills (from screening): ${skills || "—"}
   Sector Experience/Preference: ${sectors || "—"}
   Motivations: ${motivations || fwMotivations || "—"}
