@@ -59,11 +59,14 @@ Deno.serve(async (req) => {
       for (const t of tokens) if (blob.includes(t)) s += 1;
       return s;
     }
-    const shortlist = eligible
-      .map((c) => ({ c, kw: kwScore(c) }))
-      .filter((x) => x.kw > 0)
-      .sort((a, b) => b.kw - a.kw)
-      .slice(0, 80);
+    // Keep candidates with any keyword hit, then top up with recently-updated ones that have a job title.
+    // AI does the semantic gate; the pre-filter must not exclude semantically-related titles.
+    const scored = eligible.map((c) => ({ c, kw: kwScore(c) }));
+    const hits = scored.filter((x) => x.kw > 0).sort((a, b) => b.kw - a.kw);
+    const rest = scored
+      .filter((x) => x.kw === 0 && (x.c.job_title || x.c.summary || x.c.note))
+      .sort((a, b) => new Date(b.c.updated_at || 0).getTime() - new Date(a.c.updated_at || 0).getTime());
+    const shortlist = [...hits, ...rest].slice(0, 80);
 
     // Fetch most recent note per candidate to detect "spoken to recently" (<=90 days).
     const ids = shortlist.map((x) => x.c.id);
