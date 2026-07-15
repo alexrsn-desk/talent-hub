@@ -118,6 +118,38 @@ Deno.serve(async (req) => {
       }
     }
 
+    // Fetch enriched company context for each unique employer name (case-insensitive match to clients.company_name).
+    const employerContext: Record<string, string> = {};
+    const employers = Array.from(new Set(shortlist.map((x) => (x.c.current_employer || "").trim()).filter(Boolean)));
+    if (employers.length) {
+      const { data: matchedClients = [] } = await sb
+        .from("clients")
+        .select("id, company_name")
+        .in("company_name", employers);
+      const clientIds = (matchedClients as any[]).map((c) => c.id);
+      const idToName: Record<string, string> = {};
+      for (const c of matchedClients as any[]) idToName[c.id] = c.company_name;
+      if (clientIds.length) {
+        const { data: intels = [] } = await sb
+          .from("company_intel")
+          .select("client_id, product_types, who_uses_products, internal_external, current_focus, industry")
+          .in("client_id", clientIds);
+        for (const i of intels as any[]) {
+          const emp = idToName[i.client_id];
+          if (!emp) continue;
+          const parts = [
+            i.product_types && `builds ${i.product_types}`,
+            i.who_uses_products && `for ${i.who_uses_products}`,
+            i.internal_external,
+            i.current_focus && `focus: ${i.current_focus}`,
+            i.industry,
+          ].filter(Boolean);
+          if (parts.length) employerContext[emp.toLowerCase()] = parts.join("; ").slice(0, 400);
+        }
+      }
+    }
+
+
     // AI relevance scoring — single call, standard chat completions + JSON object.
     const scores: Record<string, { score: number; reason: string }> = {};
     if (apiKey && shortlist.length) {
