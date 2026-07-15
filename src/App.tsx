@@ -33,6 +33,7 @@ import PitchCandidate from "./pages/PitchCandidate";
 import ReactivationCampaign from "./pages/ReactivationCampaign";
 import JobLaunch from "./pages/JobLaunch";
 import JobLaunchSelector from "./pages/JobLaunchSelector";
+import AskDesky from "./pages/AskDesky";
 import CompareSubmitSelector from "./pages/CompareSubmitSelector";
 import PitchCandidateSelector from "./pages/PitchCandidateSelector";
 import NotFound from "./pages/NotFound";
