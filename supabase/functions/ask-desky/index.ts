@@ -505,7 +505,7 @@ async function runTool(sb: any, userId: string, apiKey: string, name: string, ar
     if (name === "query_candidates") {
       let q = sb
         .from("candidates")
-        .select("id,name,first_name,last_name,job_title,current_employer,location,skills,salary_expectation,availability,notice_period,status,note,summary,do_not_contact,gdpr_deleted,updated_at")
+        .select("id,name,first_name,last_name,job_title,current_employer,location,salary_expectation,availability,notice_period,status,note,summary,do_not_contact,gdpr_deleted,updated_at")
         .eq("do_not_contact", false)
         .eq("gdpr_deleted", false)
         .limit(cap);
@@ -518,7 +518,7 @@ async function runTool(sb: any, userId: string, apiKey: string, name: string, ar
       if (typeof args.salary_max === "number") q = q.lte("salary_expectation", args.salary_max);
       if (args.skills_contains) {
         const s = args.skills_contains;
-        q = q.or(`skills.ilike.%${s}%,note.ilike.%${s}%,summary.ilike.%${s}%`);
+        q = q.or(`note.ilike.%${s}%,summary.ilike.%${s}%`);
       }
       if (typeof args.not_contacted_days === "number") q = q.lt("updated_at", daysAgoIso(args.not_contacted_days));
       const { data, error } = await q;
