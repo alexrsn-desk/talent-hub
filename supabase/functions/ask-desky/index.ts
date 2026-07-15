@@ -692,7 +692,9 @@ Deno.serve(async (req) => {
         const results = await Promise.all(msg.tool_calls.map(async (tc: any) => {
           let parsedArgs: any = {};
           try { parsedArgs = JSON.parse(tc.function.arguments || "{}"); } catch {}
+          console.log("[tool]", tc.function.name, tc.function.arguments);
           const out = await runTool(admin, userId, apiKey, tc.function.name, parsedArgs);
+          console.log("[tool-result]", tc.function.name, JSON.stringify(out).slice(0, 500));
           return { role: "tool", tool_call_id: tc.id, content: JSON.stringify(out).slice(0, 60000) };
         }));
         convo.push(...results);
