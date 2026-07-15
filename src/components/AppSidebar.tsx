@@ -40,12 +40,24 @@ const dataItems: Item[] = [
   { title: "Placements", url: "/placements", icon: Award, badge: "placements" },
 ];
 
+const aiItems: Item[] = [
+  { title: "Ask Desky", url: "/ask", icon: MessageCircle },
+];
+
 const toolItems: Item[] = [
   { title: "BD Pipeline", url: "/bd-pipeline", icon: TrendingUp },
   { title: "Calls & Meetings", url: "/calls", icon: PhoneCall },
   { title: "Sequences", url: "/sequences", icon: Link2 },
   { title: "SourceWhale", url: "/sourcewhale", icon: Waves },
   { title: "Settings", url: "/settings", icon: Settings },
+];
+
+const SECTIONS: { label: string; items: Item[] }[] = [
+  { label: "My Desk", items: workspaceItems },
+  { label: "Workflows", items: workflowItems },
+  { label: "Data", items: dataItems },
+  { label: "AI", items: aiItems },
+  { label: "Tools", items: toolItems },
 ];
 
 const SECTIONS: { label: string; items: Item[] }[] = [
