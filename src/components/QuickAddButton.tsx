@@ -26,6 +26,7 @@ import {
   useCandidates,
   useContacts,
 } from "@/hooks/use-data";
+import { CandidateQuickAddDrawer } from "@/components/CandidateQuickAddDrawer";
 
 type Mode =
   | null
@@ -46,7 +47,17 @@ const SECTORS = ["Tech", "Finance", "Healthcare", "Retail", "Other"] as const;
 export function QuickAddButton() {
   const [mode, setMode] = useState<Mode>(null);
   const [noteOpen, setNoteOpen] = useState(false);
-  const sheetOpen = mode !== null && mode !== "quick_note";
+  const [candidateDrawerOpen, setCandidateDrawerOpen] = useState(false);
+  const sheetOpen = mode !== null && mode !== "quick_note" && mode !== "candidate";
+
+  const handleModeChange = (m: Mode) => {
+    if (m === "candidate") {
+      setMode(null);
+      setCandidateDrawerOpen(true);
+      return;
+    }
+    setMode(m);
+  };
 
   return (
     <>
@@ -81,12 +92,15 @@ export function QuickAddButton() {
 
       <Sheet open={sheetOpen} onOpenChange={(v) => !v && setMode(null)}>
         <SheetContent side="right" className="w-full sm:max-w-md overflow-y-auto p-0">
-          <QuickAddBody mode={mode} setMode={setMode} onClose={() => setMode(null)} />
+          <QuickAddBody mode={mode} setMode={handleModeChange} onClose={() => setMode(null)} />
         </SheetContent>
       </Sheet>
+
+      <CandidateQuickAddDrawer open={candidateDrawerOpen} onOpenChange={setCandidateDrawerOpen} />
     </>
   );
 }
+
 
 // ─── Floating Post-it Notepad ────────────────────────
 function FloatingNotepad({ onClose }: { onClose: () => void }) {
@@ -209,7 +223,6 @@ function QuickAddBody({ mode, setMode, onClose }: { mode: Mode; setMode: (m: Mod
         {mode === "menu" && <MenuView setMode={setMode} />}
         {mode === "quick_note" && <QuickNoteView onDone={onClose} />}
         {mode === "record_picker" && <RecordPickerView setMode={setMode} />}
-        {mode === "candidate" && <CandidateForm onDone={onClose} />}
         {mode === "client" && <ClientForm onDone={onClose} />}
         {mode === "contact" && <ContactForm onDone={onClose} />}
         {mode === "job" && <JobForm onDone={onClose} />}
