@@ -421,12 +421,15 @@ export async function previewDuplicates(
   }
 
   const table = recordType === "candidates" ? "candidates" : "contacts";
-  const { data } = await supabase.from(table as any).select("id, email, first_name, last_name, name, current_employer").limit(50000);
+  const { data } = await supabase.from(table as any).select("id, email, first_name, last_name, name, current_employer, linkedin_url").limit(50000);
 
   const byEmail = new Map<string, string>();
   const byNameEmployer = new Map<string, string>();
+  const byLinkedIn = new Map<string, string>();
+  const normLi = (u: string) => u.toLowerCase().trim().replace(/^https?:\/\/(www\.)?/, "").replace(/\/$/, "");
   (data || []).forEach((c: any) => {
     if (c.email) byEmail.set(c.email.toLowerCase().trim(), c.id);
+    if (c.linkedin_url) byLinkedIn.set(normLi(c.linkedin_url), c.id);
     const fn = (c.first_name || "").toLowerCase().trim();
     const ln = (c.last_name || "").toLowerCase().trim();
     const emp = (c.current_employer || "").toLowerCase().trim();
@@ -438,7 +441,11 @@ export async function previewDuplicates(
     if (!m.record || m.reason) return;
     const r = m.record;
     let key: string | undefined;
-    if (r.email) {
+    if (r.linkedin_url) {
+      const li = normLi(String(r.linkedin_url));
+      if (byLinkedIn.has(li)) key = byLinkedIn.get(li);
+    }
+    if (!key && r.email) {
       const e = String(r.email).toLowerCase().trim();
       if (byEmail.has(e)) key = byEmail.get(e);
     }
