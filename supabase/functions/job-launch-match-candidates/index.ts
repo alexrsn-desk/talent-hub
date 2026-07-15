@@ -79,28 +79,68 @@ Deno.serve(async (req) => {
       }
     }
 
+    // Fetch structured profile data: tags-by-category and screening framework items.
+    const tagsByCand: Record<string, Record<string, string[]>> = {};
+    const fwByCand: Record<string, Record<string, string[]>> = {};
+    if (ids.length) {
+      const { data: cTags = [] } = await sb
+        .from("candidate_tags")
+        .select("candidate_id, tag_definitions(category, label)")
+        .in("candidate_id", ids);
+      for (const t of cTags as any[]) {
+        const cat = t.tag_definitions?.category;
+        const label = t.tag_definitions?.label;
+        if (!cat || !label) continue;
+        (tagsByCand[t.candidate_id] ||= {});
+        (tagsByCand[t.candidate_id][cat] ||= []).push(label);
+      }
+      const { data: fw = [] } = await sb
+        .from("screening_framework_items")
+        .select("candidate_id, section, item_key, value")
+        .in("candidate_id", ids);
+      for (const f of fw as any[]) {
+        if (!f.candidate_id) continue;
+        (fwByCand[f.candidate_id] ||= {});
+        (fwByCand[f.candidate_id][f.section || "other"] ||= []).push(
+          [f.item_key, f.value].filter(Boolean).join(": "),
+        );
+      }
+    }
+
     // AI relevance scoring — single call, standard chat completions + JSON object.
     const scores: Record<string, { score: number; reason: string }> = {};
     if (apiKey && shortlist.length) {
-      const compact = shortlist.map((x) => ({
-        id: x.c.id,
-        title: x.c.job_title,
-        employer: x.c.current_employer,
-        loc: x.c.location,
-        salary: x.c.salary_expectation,
-        summary: (x.c.summary || x.c.note || "").slice(0, 350),
-      }));
+      const compact = shortlist.map((x) => {
+        const tc = tagsByCand[x.c.id] || {};
+        const fc = fwByCand[x.c.id] || {};
+        return {
+          id: x.c.id,
+          title: x.c.job_title,
+          employer: x.c.current_employer,
+          loc: x.c.location,
+          salary: x.c.salary_expectation,
+          skills: (fc["skills"] || []).join("; ").slice(0, 300),
+          sectors: (tc["sector_preference"] || []).join(", "),
+          motivations: (tc["motivations"] || []).join(", ") || (fc["why_looking"] || []).join("; ").slice(0, 200),
+          wants: (fc["what_they_want"] || []).join("; ").slice(0, 200),
+          summary: (x.c.summary || x.c.note || "").slice(0, 300),
+        };
+      });
       const system = `You score recruitment candidates for RELEVANCE to a specific role.
-Score 0-100 by combining five factors:
-1) Job title similarity to the role
-2) Skills/keywords matching the JD
-3) Sector experience match
-4) Seniority level appropriateness
-5) Salary fit within the role's range (if known)
 
-Be strict. A Marketing Manager scored against a DevOps role must score below 20. A Sales Director scored against an Engineering Manager role must score below 20. Only candidates whose actual background could plausibly do THIS job should score 40 or above.
+READ EVERY FIELD on the candidate. Weight them:
+- HIGHEST: Current Job Title, Skills, Sector Experience
+- MEDIUM: Motivations, What They Want, Summary, Current Employer
+- LOW: Location, Salary
 
-Return ONLY JSON: {"matches":[{"id":"<id>","score":<0-100>,"reason":"<one short sentence citing a specific relevance point>"}]}. Include EVERY candidate id from the input, even those scoring 0.`;
+Score 0-100. SEMANTIC MATCHING, not keyword matching. Understand related disciplines:
+- "Human Centred Designer" ≈ Service Designer, UX Designer, User Researcher, CX Designer, Design Researcher, Interaction Designer, Experience Designer.
+- "Social impact" ≈ charity, public sector, NGO, social enterprise, third sector, government, community projects.
+- "Agency/consultancy" = external client project experience; "in-house" = internal projects.
+
+Be strict. A Marketing Manager against a DevOps role must score below 20. Only candidates whose actual background could plausibly do THIS job score 40+.
+
+Return ONLY JSON: {"matches":[{"id":"<id>","score":<0-100>,"reason":"<one short sentence citing a SPECIFIC field from their profile, e.g. current title, a skill, or sector experience>"}]}. Include EVERY candidate id from the input, even those scoring 0.`;
       const userPrompt = `ROLE: ${job?.title || "?"} at ${(job as any)?.clients?.company_name || "?"}
 SECTOR: ${(job as any)?.clients?.sector || "?"}
 LOCATION: ${job?.location || "?"}
@@ -111,7 +151,15 @@ HOOK: ${launch_hook || "—"}
 IDEAL CANDIDATE: ${ideal_candidate_line || "—"}
 
 CANDIDATES (${compact.length}):
-${compact.map((c) => `- id:${c.id} | ${c.title || "?"} @ ${c.employer || "?"} | loc:${c.loc || "?"} | salary:${c.salary || "?"} | ${c.summary || "—"}`).join("\n")}`;
+${compact.map((c) => `- id:${c.id}
+  Title: ${c.title || "?"} @ ${c.employer || "?"}
+  Skills: ${c.skills || "—"}
+  Sectors: ${c.sectors || "—"}
+  Motivations: ${c.motivations || "—"}
+  Wants: ${c.wants || "—"}
+  Summary: ${c.summary || "—"}
+  Loc/Salary: ${c.loc || "?"} / ${c.salary || "?"}`).join("\n")}`;
+
 
       try {
         const r = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
