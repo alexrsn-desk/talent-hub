@@ -932,12 +932,12 @@ export default function CandidatesPage() {
                     aria-label="Select all"
                   />
                 </th>
-                <th className="text-left px-4 py-3 font-medium text-muted-foreground">Name</th>
-                <th className="text-left px-4 py-3 font-medium text-muted-foreground">Job Title</th>
-                <th className="text-left px-4 py-3 font-medium text-muted-foreground">Employer</th>
-                <th className="text-left px-4 py-3 font-medium text-muted-foreground">Salary</th>
-                <th className="text-left px-4 py-3 font-medium text-muted-foreground">Location</th>
-                <th className="text-left px-4 py-3 font-medium text-muted-foreground">Status</th>
+               <SortableTh label="Name" sortKey="name" activeKey={sortKey} dir={sortDir} onClick={toggleSort} />
+               <SortableTh label="Job Title" sortKey="job_title" activeKey={sortKey} dir={sortDir} onClick={toggleSort} />
+               <th className="text-left px-4 py-3 font-medium text-muted-foreground">Employer</th>
+               <th className="text-left px-4 py-3 font-medium text-muted-foreground">Salary</th>
+               <th className="text-left px-4 py-3 font-medium text-muted-foreground">Location</th>
+               <SortableTh label="Status" sortKey="status" activeKey={sortKey} dir={sortDir} onClick={toggleSort} />
                 <th className="px-4 py-3 w-64"></th>
               </tr>
             </thead>
