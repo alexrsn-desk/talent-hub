@@ -381,7 +381,7 @@ async function semanticCandidateSearch(
       employer_context: employerContextParts.join("; "),
       location: c.location,
       salary: c.salary_expectation,
-      skills: c.skills || "",
+      skills: "",
       sectors: cSectors.join(", "),
       summary: (c.summary || c.note || "").slice(0, 300),
     });
