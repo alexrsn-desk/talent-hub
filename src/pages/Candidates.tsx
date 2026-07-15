@@ -15,6 +15,7 @@ import { useSearchAggregates } from "@/hooks/use-search-aggregates";
 import { Textarea } from "@/components/ui/textarea";
 import { PriorityStarIcon } from "@/components/PriorityFlag";
 import { CandidateDetail } from "@/components/CandidateDetail";
+import { CandidateQuickAddDrawer } from "@/components/CandidateQuickAddDrawer";
 import { CandidateContextMenu } from "@/components/CandidateContextMenu";
 import { LogTouchpointModal } from "@/components/LogTouchpointModal";
 import { CandidateBulkActionBar } from "@/components/CandidateBulkActionBar";
