@@ -50,6 +50,71 @@ export type Database = {
         }
         Relationships: []
       }
+      ask_desky_conversations: {
+        Row: {
+          created_at: string
+          id: string
+          last_message_at: string
+          owner_user_id: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          last_message_at?: string
+          owner_user_id: string
+          title?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          last_message_at?: string
+          owner_user_id?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      ask_desky_messages: {
+        Row: {
+          content: string
+          conversation_id: string
+          created_at: string
+          id: string
+          owner_user_id: string
+          role: string
+          tool_calls: Json | null
+        }
+        Insert: {
+          content?: string
+          conversation_id: string
+          created_at?: string
+          id?: string
+          owner_user_id: string
+          role: string
+          tool_calls?: Json | null
+        }
+        Update: {
+          content?: string
+          conversation_id?: string
+          created_at?: string
+          id?: string
+          owner_user_id?: string
+          role?: string
+          tool_calls?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ask_desky_messages_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "ask_desky_conversations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       call_insights: {
         Row: {
           candidate_id: string | null

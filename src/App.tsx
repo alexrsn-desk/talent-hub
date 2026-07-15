@@ -33,6 +33,7 @@ import PitchCandidate from "./pages/PitchCandidate";
 import ReactivationCampaign from "./pages/ReactivationCampaign";
 import JobLaunch from "./pages/JobLaunch";
 import JobLaunchSelector from "./pages/JobLaunchSelector";
+import AskDesky from "./pages/AskDesky";
 import CompareSubmitSelector from "./pages/CompareSubmitSelector";
 import PitchCandidateSelector from "./pages/PitchCandidateSelector";
 import NotFound from "./pages/NotFound";
@@ -170,6 +171,7 @@ function AppRoutes() {
           <Route path="/placements" element={<Placements />} />
           <Route path="/bd-pipeline" element={<BDPipeline />} />
           <Route path="/coach" element={<Coach />} />
+          <Route path="/ask" element={<AskDesky />} />
           <Route path="/weekly" element={<WeeklyIntel />} />
           <Route path="/calls" element={<CallsMeetings />} />
           <Route path="/sequences" element={<Sequences />} />

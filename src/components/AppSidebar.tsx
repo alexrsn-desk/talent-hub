@@ -1,5 +1,5 @@
 import { NavLink } from "@/components/NavLink";
-import { LayoutDashboard, Users, Building2, UserCircle, Briefcase, TrendingUp, Sparkles, Settings, BarChart3, PhoneCall, Link2, Award, MessagesSquare, Target, Waves, Rocket, Columns, RefreshCw } from "lucide-react";
+import { LayoutDashboard, Users, Building2, UserCircle, Briefcase, TrendingUp, Sparkles, Settings, BarChart3, PhoneCall, Link2, Award, MessagesSquare, Target, Waves, Rocket, Columns, RefreshCw, MessageCircle } from "lucide-react";
 import {
   Sidebar,
   SidebarContent,
@@ -40,6 +40,10 @@ const dataItems: Item[] = [
   { title: "Placements", url: "/placements", icon: Award, badge: "placements" },
 ];
 
+const aiItems: Item[] = [
+  { title: "Ask Desky", url: "/ask", icon: MessageCircle },
+];
+
 const toolItems: Item[] = [
   { title: "BD Pipeline", url: "/bd-pipeline", icon: TrendingUp },
   { title: "Calls & Meetings", url: "/calls", icon: PhoneCall },
@@ -52,8 +56,10 @@ const SECTIONS: { label: string; items: Item[] }[] = [
   { label: "My Desk", items: workspaceItems },
   { label: "Workflows", items: workflowItems },
   { label: "Data", items: dataItems },
+  { label: "AI", items: aiItems },
   { label: "Tools", items: toolItems },
 ];
+
 
 export function AppSidebar() {
   const { state } = useSidebar();
