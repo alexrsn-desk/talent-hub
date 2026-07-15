@@ -83,7 +83,7 @@ export default function JobLaunch() {
     (async () => {
       const { data } = await supabase
         .from("jobs")
-        .select("id, title, description, intake_summary, location, salary_min, salary_max, job_type, status, search_launched_at, launch_hook, ideal_candidate_line, clients(company_name, contact_name)")
+        .select("id, title, description, intake_summary, location, salary_min, salary_max, job_type, status, search_launched_at, launch_hook, ideal_candidate_line, similar_titles, key_skills, clients(company_name, contact_name)")
         .eq("id", jobId)
         .single();
       if (data) {
@@ -91,10 +91,111 @@ export default function JobLaunch() {
         setHook((data as any).launch_hook || "");
         setIdeal((data as any).ideal_candidate_line || "");
         setJobSpec((data as any).description || "");
+        setSimilarTitles(((data as any).similar_titles || []) as string[]);
+        setKeySkills(((data as any).key_skills || []) as string[]);
       }
       setLoadingJob(false);
     })();
+    // load role templates
+    (async () => {
+      const { data } = await supabase
+        .from("role_type_templates")
+        .select("id, name, similar_titles, key_skills, ideal_candidate_line")
+        .order("updated_at", { ascending: false });
+      if (data) setTemplates(data as RoleTemplate[]);
+    })();
   }, [jobId]);
+
+  // -------------------- AI signal suggestions
+  async function fetchSuggestions() {
+    if (!job?.title && !jobSpec) return;
+    setSuggesting(true);
+    try {
+      const { data } = await supabase.functions.invoke("job-launch-suggest-signals", {
+        body: { title: job?.title, description: jobSpec, ideal_candidate_line: ideal },
+      });
+      setSuggestedTitles((data?.titles || []) as string[]);
+      setSuggestedSkills((data?.skills || []) as string[]);
+    } catch {
+      // silent — suggestions are optional
+    } finally {
+      setSuggesting(false);
+    }
+  }
+  // fetch once when job first loads
+  useEffect(() => {
+    if (job?.title && suggestedTitles.length === 0 && suggestedSkills.length === 0) {
+      fetchSuggestions();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [job?.id]);
+
+  function addChip(kind: "title" | "skill", value: string) {
+    const v = value.trim();
+    if (!v) return;
+    if (kind === "title") {
+      setSimilarTitles((arr) => (arr.some((x) => x.toLowerCase() === v.toLowerCase()) ? arr : [...arr, v]));
+    } else {
+      const lower = v.toLowerCase();
+      setKeySkills((arr) => (arr.some((x) => x.toLowerCase() === lower) ? arr : [...arr, lower]));
+    }
+  }
+  function removeChip(kind: "title" | "skill", value: string) {
+    if (kind === "title") setSimilarTitles((arr) => arr.filter((x) => x !== value));
+    else setKeySkills((arr) => arr.filter((x) => x !== value));
+  }
+  function handleChipInput(kind: "title" | "skill", raw: string, commit = false) {
+    if (raw.includes(",") || commit) {
+      const parts = raw.split(",").map((p) => p.trim()).filter(Boolean);
+      parts.forEach((p) => addChip(kind, p));
+      if (kind === "title") setTitleInput("");
+      else setSkillInput("");
+    } else {
+      if (kind === "title") setTitleInput(raw);
+      else setSkillInput(raw);
+    }
+  }
+
+  async function saveTemplate() {
+    if (!similarTitles.length && !keySkills.length) {
+      toast.info("Add some titles or skills first.");
+      return;
+    }
+    const defaultName = job?.title || "Role template";
+    const name = window.prompt("Template name?", defaultName);
+    if (!name) return;
+    setSavingTemplate(true);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("Not signed in");
+      const { data, error } = await supabase
+        .from("role_type_templates")
+        .insert({
+          owner_user_id: user.id,
+          name,
+          similar_titles: similarTitles,
+          key_skills: keySkills,
+          ideal_candidate_line: ideal || null,
+        })
+        .select("id, name, similar_titles, key_skills, ideal_candidate_line")
+        .single();
+      if (error) throw error;
+      if (data) setTemplates((t) => [data as RoleTemplate, ...t]);
+      toast.success(`Saved template "${name}"`);
+    } catch (e: any) {
+      toast.error(e?.message || "Could not save template");
+    } finally {
+      setSavingTemplate(false);
+    }
+  }
+  function loadTemplate(t: RoleTemplate) {
+    setSimilarTitles(t.similar_titles || []);
+    setKeySkills(t.key_skills || []);
+    if (!ideal && t.ideal_candidate_line) setIdeal(t.ideal_candidate_line);
+    setTemplateLoaded(t.id);
+    toast.success(`Loaded template "${t.name}"`);
+  }
+
 
   // -------------------- Step transitions
   async function goToStep2() {
