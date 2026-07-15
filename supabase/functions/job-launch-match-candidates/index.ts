@@ -199,7 +199,7 @@ KEY SKILLS / EXPERIENCE WORDS: ${effSkills.length ? effSkills.join(", ") : "—"
 
 CANDIDATES (${compact.length}):
 ${compact.map((c) => `- id:${c.id}
-  Title: ${c.title || "?"} @ ${c.employer || "?"}
+  Title: ${c.title || "?"} @ ${c.employer || "?"}${c.employer_context ? `\n  Employer context: ${c.employer_context}` : ""}
   Skills: ${c.skills || "—"}
   Sectors: ${c.sectors || "—"}
   Motivations: ${c.motivations || "—"}
