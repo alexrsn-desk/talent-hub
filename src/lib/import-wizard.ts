@@ -489,6 +489,9 @@ export async function runWizardImport(opts: {
   onProgress?: (i: number, total: number) => void;
 }): Promise<WizardImportResult> {
   const { recordType, rowMeta, source, sourceLabel, dupMode, matchKeys, onProgress } = opts;
+  const { data: { user } } = await supabase.auth.getUser();
+  const ownerId = user?.id;
+  const isLinkedIn = source === "linkedin";
   const res: WizardImportResult = {
     imported: 0, updated: 0, skippedEmpty: 0, skippedNoContact: 0, skippedDup: 0,
     failed: 0, importedNoContact: 0, errors: [], importedIds: [], source: sourceLabel,
@@ -508,11 +511,18 @@ export async function runWizardImport(opts: {
     const notesContent = rec._notes_content;
     delete rec._notes_content;
 
+    // LinkedIn Connection imports: force status + source for downstream Wider Network matching
+    if (isLinkedIn && recordType === "candidates") {
+      rec.status = "Uncontacted";
+      rec.source = "LinkedIn Connection";
+    }
+
     // Ensure status always set
     if (recordType === "candidates" || recordType === "contacts") {
       rec.status = rec.status || "Passive";
     }
     if (!rec.source && (recordType === "candidates")) rec.source = sourceLabel;
+    if (ownerId) rec.owner_user_id = ownerId;
 
     const dupId = matchKeys.get(idx);
     try {
