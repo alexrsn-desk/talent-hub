@@ -90,12 +90,18 @@ export default function JobLaunch() {
         body: { job_id: jobId, launch_hook: hook, ideal_candidate_line: ideal },
       });
       if (error) throw error;
-      const k: MatchCandidate[] = data?.known || [];
-      const l: MatchCandidate[] = data?.li || [];
+      const k: MatchCandidate[] = data?.spoken || data?.known || [];
+      const dbList: MatchCandidate[] = data?.db || [];
+      const l: MatchCandidate[] = data?.wider || data?.li || [];
       setKnown(k);
+      setDb(dbList);
       setLi(l);
       setPickedKnown(new Set(k.map((c) => c.id))); // pre-ticked
+      setPickedDb(new Set()); // relevant but no recent conversation — recruiter opts in
       setPickedLi(new Set());
+      if (k.length + dbList.length + l.length === 0) {
+        toast.info("No candidates in your database matched this role at 40%+ relevance.");
+      }
     } catch (e: any) {
       toast.error(e?.message || "Could not match candidates");
     } finally {
