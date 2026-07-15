@@ -20,7 +20,10 @@ Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: cors });
   try {
     const apiKey = Deno.env.get("LOVABLE_API_KEY");
-    const { job_id, ideal_candidate_line, launch_hook, model } = await req.json();
+    const body = await req.json();
+    const { job_id, ideal_candidate_line, launch_hook, model } = body;
+    const similar_titles: string[] = Array.isArray(body.similar_titles) ? body.similar_titles.filter(Boolean) : [];
+    const key_skills: string[] = Array.isArray(body.key_skills) ? body.key_skills.filter(Boolean) : [];
     if (!job_id) return json({ error: "job_id required" }, 400);
 
     const authHeader = req.headers.get("Authorization") || "";
