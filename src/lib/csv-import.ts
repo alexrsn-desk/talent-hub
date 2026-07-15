@@ -203,6 +203,7 @@ export const BUILT_IN_TEMPLATES: MappingTemplate[] = [
     mappings: {
       "First Name": "first_name", "Last Name": "last_name",
       "Email Address": "email", "Email": "email",
+      "URL": "linkedin_url", "Url": "linkedin_url", "Profile URL": "linkedin_url",
       "Company": "current_employer", "Position": "job_title",
       "Connected On": "_skip", // captured separately for note
     },

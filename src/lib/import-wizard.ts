@@ -55,7 +55,7 @@ const SIGNATURES: Array<{ source: SourceKey; label: string; markers: string[]; m
   { source: "jobadder", label: "JobAdder",
     markers: ["given name", "family name", "current position", "current employer", "mobile phone", "email address"], min: 3 },
   { source: "linkedin", label: "LinkedIn Connections",
-    markers: ["connected on", "first name", "last name", "company", "position", "email address"], min: 4 },
+    markers: ["connected on", "url", "first name", "last name", "company", "position", "email address"], min: 3 },
   { source: "recruitee", label: "Recruitee",
     markers: ["recruitee", "candidate source"], min: 1 },
 ];
@@ -169,6 +169,22 @@ export function mappingForSource(
     for (const h of headers) {
       if (auto[h]) continue;
       const key = sw[h.toLowerCase().trim()];
+      if (key) auto[h] = key;
+    }
+  }
+
+  // LinkedIn-specific mapping (URL column is the LinkedIn profile)
+  if (source === "linkedin") {
+    const li: Record<string, string> = {
+      "first name": "first_name", "last name": "last_name",
+      "email address": "email", "email": "email",
+      "url": "linkedin_url", "profile url": "linkedin_url",
+      "company": "current_employer", "position": "job_title",
+      "connected on": "_skip",
+    };
+    for (const h of headers) {
+      if (auto[h]) continue;
+      const key = li[h.toLowerCase().trim()];
       if (key) auto[h] = key;
     }
   }
@@ -405,12 +421,15 @@ export async function previewDuplicates(
   }
 
   const table = recordType === "candidates" ? "candidates" : "contacts";
-  const { data } = await supabase.from(table as any).select("id, email, first_name, last_name, name, current_employer").limit(50000);
+  const { data } = await supabase.from(table as any).select("id, email, first_name, last_name, name, current_employer, linkedin_url").limit(50000);
 
   const byEmail = new Map<string, string>();
   const byNameEmployer = new Map<string, string>();
+  const byLinkedIn = new Map<string, string>();
+  const normLi = (u: string) => u.toLowerCase().trim().replace(/^https?:\/\/(www\.)?/, "").replace(/\/$/, "");
   (data || []).forEach((c: any) => {
     if (c.email) byEmail.set(c.email.toLowerCase().trim(), c.id);
+    if (c.linkedin_url) byLinkedIn.set(normLi(c.linkedin_url), c.id);
     const fn = (c.first_name || "").toLowerCase().trim();
     const ln = (c.last_name || "").toLowerCase().trim();
     const emp = (c.current_employer || "").toLowerCase().trim();
@@ -422,7 +441,11 @@ export async function previewDuplicates(
     if (!m.record || m.reason) return;
     const r = m.record;
     let key: string | undefined;
-    if (r.email) {
+    if (r.linkedin_url) {
+      const li = normLi(String(r.linkedin_url));
+      if (byLinkedIn.has(li)) key = byLinkedIn.get(li);
+    }
+    if (!key && r.email) {
       const e = String(r.email).toLowerCase().trim();
       if (byEmail.has(e)) key = byEmail.get(e);
     }
@@ -466,6 +489,9 @@ export async function runWizardImport(opts: {
   onProgress?: (i: number, total: number) => void;
 }): Promise<WizardImportResult> {
   const { recordType, rowMeta, source, sourceLabel, dupMode, matchKeys, onProgress } = opts;
+  const { data: { user } } = await supabase.auth.getUser();
+  const ownerId = user?.id;
+  const isLinkedIn = source === "linkedin";
   const res: WizardImportResult = {
     imported: 0, updated: 0, skippedEmpty: 0, skippedNoContact: 0, skippedDup: 0,
     failed: 0, importedNoContact: 0, errors: [], importedIds: [], source: sourceLabel,
@@ -485,11 +511,18 @@ export async function runWizardImport(opts: {
     const notesContent = rec._notes_content;
     delete rec._notes_content;
 
+    // LinkedIn Connection imports: force status + source for downstream Wider Network matching
+    if (isLinkedIn && recordType === "candidates") {
+      rec.status = "Uncontacted";
+      rec.source = "LinkedIn Connection";
+    }
+
     // Ensure status always set
     if (recordType === "candidates" || recordType === "contacts") {
       rec.status = rec.status || "Passive";
     }
     if (!rec.source && (recordType === "candidates")) rec.source = sourceLabel;
+    if (ownerId) rec.owner_user_id = ownerId;
 
     const dupId = matchKeys.get(idx);
     try {
