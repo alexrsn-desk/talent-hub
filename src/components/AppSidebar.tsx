@@ -60,12 +60,6 @@ const SECTIONS: { label: string; items: Item[] }[] = [
   { label: "Tools", items: toolItems },
 ];
 
-const SECTIONS: { label: string; items: Item[] }[] = [
-  { label: "My Desk", items: workspaceItems },
-  { label: "Workflows", items: workflowItems },
-  { label: "Data", items: dataItems },
-  { label: "Tools", items: toolItems },
-];
 
 export function AppSidebar() {
   const { state } = useSidebar();
