@@ -32,6 +32,12 @@ type CandidateCardItem = {
   employer?: string;
   location?: string;
   salary?: number;
+  match_score?: number;
+  match_reason?: string;
+  inferred?: boolean;
+  inferred_sector?: string;
+  inferred_reason?: string;
+  inferred_client_id?: string;
 };
 
 const SUGGESTED = [
