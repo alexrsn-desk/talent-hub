@@ -258,10 +258,18 @@ Do NOT fabricate specific dates, amounts, or product names you are not confident
       tech_stack: intel.tech_stack ?? [],
       recent_signals: intel.recent_signals ?? [],
       current_job_postings: intel.current_job_postings ?? [],
+      product_types: intel.product_types ?? null,
+      who_uses_products: intel.who_uses_products ?? null,
+      internal_external: intel.internal_external ?? null,
+      current_focus: intel.current_focus ?? null,
+      design_approach: intel.design_approach ?? null,
+      tech_context: intel.tech_context ?? null,
+      enrichment_confidence: intel.enrichment_confidence ?? null,
       field_status: newStatus,
       enrichment_source: "lovable-ai/gemini-2.5-pro",
       last_enriched_at: new Date().toISOString(),
     };
+
 
     const { data: saved, error: sErr } = await supabase
       .from("company_intel")
