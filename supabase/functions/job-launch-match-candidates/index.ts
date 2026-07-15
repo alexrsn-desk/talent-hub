@@ -241,6 +241,7 @@ ${compact.map((c) => `- id:${c.id}
     const spokenOut = cap(spoken);
     const dbOut = cap(db);
     const widerOut = cap(wider);
+    console.log(`[job-launch-match] shortlisted=${shortlist.length} scored=${Object.keys(scores).length} passed40=${relevant.length} spoken=${spokenOut.length} db=${dbOut.length} wider=${widerOut.length}`);
 
     return json({
       spoken: spokenOut,
