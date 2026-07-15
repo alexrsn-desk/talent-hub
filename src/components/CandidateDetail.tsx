@@ -535,3 +535,27 @@ export function CandidateDetail({ candidate, onUpdate, onDelete }: Props) {
     </div>
   );
 }
+
+function EmployerContextLine({ employer }: { employer?: string | null }) {
+  const navigate = useNavigate();
+  const { data } = useEmployerContext(employer);
+  if (!data) return null;
+  const parts = [
+    data.product_types && `builds ${data.product_types}`,
+    data.internal_external,
+    data.industry,
+  ].filter(Boolean) as string[];
+  if (parts.length === 0) return null;
+  const dim = data.enrichment_confidence === "low";
+  return (
+    <button
+      type="button"
+      onClick={() => navigate(`/clients?client=${data.client_id}`)}
+      className={`text-xs text-left mt-0.5 hover:underline ${dim ? "text-muted-foreground/70" : "text-muted-foreground"}`}
+      title="View company profile"
+    >
+      {data.company_name} — {parts.join(" · ")}
+    </button>
+  );
+}
+
