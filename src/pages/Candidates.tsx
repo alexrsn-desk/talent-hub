@@ -466,9 +466,30 @@ export default function CandidatesPage() {
   const [touchpointCandidate, setTouchpointCandidate] = useState<Candidate | null>(null);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const lastClickedIndex = useRef<number | null>(null);
-  const [poolFilter, setPoolFilter] = useState<string>("all");
+  const persisted = useMemo(loadPersisted, []);
+  const [poolFilter, setPoolFilter] = useState<string>(persisted.pool ?? "all");
+  const [quickFilter, setQuickFilter] = useState<QuickFilter>(persisted.quick ?? "all");
+  const [stageFilter, setStageFilter] = useState<StageFilter>(persisted.stage ?? "any");
+  const [lastContactFilter, setLastContactFilter] = useState<TimeBucket>(persisted.lastContact ?? "any");
+  const [addedFilter, setAddedFilter] = useState<TimeBucket>(persisted.added ?? "any");
+  const [sortKey, setSortKey] = useState<SortKey>(persisted.sortKey ?? "created_at");
+  const [sortDir, setSortDir] = useState<SortDir>(persisted.sortDir ?? "desc");
   const { data: pools = [] } = usePools();
   const { data: memberships = [] } = usePoolMemberships();
+  const { data: stageMap } = useCandidateStageMap();
+
+  useEffect(() => {
+    sessionStorage.setItem(PERSIST_KEY, JSON.stringify({
+      pool: poolFilter, quick: quickFilter, stage: stageFilter,
+      lastContact: lastContactFilter, added: addedFilter, sortKey, sortDir,
+    }));
+  }, [poolFilter, quickFilter, stageFilter, lastContactFilter, addedFilter, sortKey, sortDir]);
+
+  const toggleSort = (key: SortKey) => {
+    if (sortKey === key) setSortDir(d => d === "asc" ? "desc" : "asc");
+    else { setSortKey(key); setSortDir(key === "created_at" || key === "last_contact" ? "desc" : "asc"); }
+  };
+
 
   const handleTogglePriority = useCallback((c: Candidate) => {
     if (c.priority_flag) {
