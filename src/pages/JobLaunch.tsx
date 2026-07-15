@@ -1012,3 +1012,57 @@ function MessageCard({
     </div>
   );
 }
+
+function ChipInput({
+  chips,
+  value,
+  onChange,
+  onCommit,
+  onRemove,
+  placeholder,
+}: {
+  chips: string[];
+  value: string;
+  onChange: (v: string) => void;
+  onCommit: () => void;
+  onRemove: (v: string) => void;
+  placeholder?: string;
+}) {
+  return (
+    <div className="flex flex-wrap items-center gap-1.5 rounded-lg border border-border bg-background px-2 py-2">
+      {chips.map((c) => (
+        <span
+          key={c}
+          className="inline-flex items-center gap-1 rounded-full bg-primary/15 text-primary text-xs px-2 py-0.5"
+        >
+          {c}
+          <button
+            type="button"
+            aria-label={`Remove ${c}`}
+            onClick={() => onRemove(c)}
+            className="hover:text-red-400"
+          >
+            <X className="h-3 w-3" />
+          </button>
+        </span>
+      ))}
+      <input
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        onBlur={onCommit}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" || e.key === "Tab") {
+            if (value.trim()) {
+              e.preventDefault();
+              onCommit();
+            }
+          } else if (e.key === "Backspace" && !value && chips.length) {
+            onRemove(chips[chips.length - 1]);
+          }
+        }}
+        placeholder={chips.length === 0 ? placeholder : ""}
+        className="flex-1 min-w-[160px] bg-transparent text-sm outline-none py-0.5"
+      />
+    </div>
+  );
+}
