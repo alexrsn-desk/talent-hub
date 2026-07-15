@@ -38,6 +38,8 @@ import { DoNotContactDialog } from "@/components/DoNotContactDialog";
 import { RequestDeletionDialog } from "@/components/RequestDeletionDialog";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
 import { ShieldAlert, MoreVertical } from "lucide-react";
+import { useEmployerContext } from "@/hooks/use-employer-context";
+
 import {
   AlertDialog,
   AlertDialogAction,
@@ -273,7 +275,9 @@ export function CandidateDetail({ candidate, onUpdate, onDelete }: Props) {
                 {`${candidate.first_name || ""} ${candidate.last_name || ""}`.replace(/\s+/g, " ").trim() || candidate.name}
               </h2>
               <p className="text-muted-foreground">{candidate.job_title || "No title"} {candidate.current_employer ? `at ${candidate.current_employer}` : ""}</p>
+              <EmployerContextLine employer={candidate.current_employer} />
             </>
+
           )}
         </div>
         <div className="flex gap-2 items-start flex-wrap flex-shrink-0">
@@ -531,3 +535,27 @@ export function CandidateDetail({ candidate, onUpdate, onDelete }: Props) {
     </div>
   );
 }
+
+function EmployerContextLine({ employer }: { employer?: string | null }) {
+  const navigate = useNavigate();
+  const { data } = useEmployerContext(employer);
+  if (!data) return null;
+  const parts = [
+    data.product_types && `builds ${data.product_types}`,
+    data.internal_external,
+    data.industry,
+  ].filter(Boolean) as string[];
+  if (parts.length === 0) return null;
+  const dim = data.enrichment_confidence === "low";
+  return (
+    <button
+      type="button"
+      onClick={() => navigate(`/clients?client=${data.client_id}`)}
+      className={`text-xs text-left mt-0.5 hover:underline ${dim ? "text-muted-foreground/70" : "text-muted-foreground"}`}
+      title="View company profile"
+    >
+      {data.company_name} — {parts.join(" · ")}
+    </button>
+  );
+}
+

@@ -118,16 +118,50 @@ Deno.serve(async (req) => {
       }
     }
 
+    // Fetch enriched company context for each unique employer name (case-insensitive match to clients.company_name).
+    const employerContext: Record<string, string> = {};
+    const employers = Array.from(new Set(shortlist.map((x) => (x.c.current_employer || "").trim()).filter(Boolean)));
+    if (employers.length) {
+      const { data: matchedClients = [] } = await sb
+        .from("clients")
+        .select("id, company_name")
+        .in("company_name", employers);
+      const clientIds = (matchedClients as any[]).map((c) => c.id);
+      const idToName: Record<string, string> = {};
+      for (const c of matchedClients as any[]) idToName[c.id] = c.company_name;
+      if (clientIds.length) {
+        const { data: intels = [] } = await sb
+          .from("company_intel")
+          .select("client_id, product_types, who_uses_products, internal_external, current_focus, industry")
+          .in("client_id", clientIds);
+        for (const i of intels as any[]) {
+          const emp = idToName[i.client_id];
+          if (!emp) continue;
+          const parts = [
+            i.product_types && `builds ${i.product_types}`,
+            i.who_uses_products && `for ${i.who_uses_products}`,
+            i.internal_external,
+            i.current_focus && `focus: ${i.current_focus}`,
+            i.industry,
+          ].filter(Boolean);
+          if (parts.length) employerContext[emp.toLowerCase()] = parts.join("; ").slice(0, 400);
+        }
+      }
+    }
+
+
     // AI relevance scoring — single call, standard chat completions + JSON object.
     const scores: Record<string, { score: number; reason: string }> = {};
     if (apiKey && shortlist.length) {
       const compact = shortlist.map((x) => {
         const tc = tagsByCand[x.c.id] || {};
         const fc = fwByCand[x.c.id] || {};
+        const empKey = (x.c.current_employer || "").toLowerCase();
         return {
           id: x.c.id,
           title: x.c.job_title,
           employer: x.c.current_employer,
+          employer_context: employerContext[empKey] || "",
           loc: x.c.location,
           salary: x.c.salary_expectation,
           skills: (fc["skills"] || []).join("; ").slice(0, 300),
@@ -137,6 +171,7 @@ Deno.serve(async (req) => {
           summary: (x.c.summary || x.c.note || "").slice(0, 300),
         };
       });
+
       const system = `You score recruitment candidates for RELEVANCE to a specific role.
 
 SCORE 0-100 as a WEIGHTED COMBINATION of three checks:
@@ -164,7 +199,7 @@ KEY SKILLS / EXPERIENCE WORDS: ${effSkills.length ? effSkills.join(", ") : "—"
 
 CANDIDATES (${compact.length}):
 ${compact.map((c) => `- id:${c.id}
-  Title: ${c.title || "?"} @ ${c.employer || "?"}
+  Title: ${c.title || "?"} @ ${c.employer || "?"}${c.employer_context ? `\n  Employer context: ${c.employer_context}` : ""}
   Skills: ${c.skills || "—"}
   Sectors: ${c.sectors || "—"}
   Motivations: ${c.motivations || "—"}

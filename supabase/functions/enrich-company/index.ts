@@ -26,6 +26,35 @@ const intelSchema = {
     last_valuation: { type: "string" },
     revenue_range: { type: "string" },
     tech_stack: { type: "array", items: { type: "string" } },
+    product_types: {
+      type: "string",
+      description: "What type of products/services this company builds. Be specific — e.g. 'Patient-facing NHS mobile apps, clinical staff tools, NHS data platforms' NOT just 'healthcare software'.",
+    },
+    who_uses_products: {
+      type: "string",
+      description: "Who the end users are — e.g. 'NHS trusts, ICBs, GP practices, patients' or 'Enterprise HR teams and their employees'.",
+    },
+    internal_external: {
+      type: "string",
+      description: "Whether products are internal tools, external/customer-facing products, or both. One short sentence.",
+    },
+    current_focus: {
+      type: "string",
+      description: "What the company appears to be currently working on or prioritising in 2024/2025. One or two sentences.",
+    },
+    design_approach: {
+      type: "string",
+      description: "Design methodology if publicly known — e.g. 'GDS standards, human-centred design, agile delivery'. Leave empty if unknown.",
+    },
+    tech_context: {
+      type: "string",
+      description: "Technology context if publicly known — e.g. 'Cloud-native, React, NHS interoperability standards'. Leave empty if unknown.",
+    },
+    enrichment_confidence: {
+      type: "string",
+      enum: ["high", "medium", "low"],
+      description: "high = multiple consistent sources, well-documented; medium = some info, possibly incomplete; low = limited public information.",
+    },
     recent_signals: {
       type: "array",
       description: "Significant company events from the last ~12 months",
@@ -59,8 +88,9 @@ const intelSchema = {
       },
     },
   },
-  required: ["description", "recent_signals"],
+  required: ["description", "product_types", "who_uses_products", "enrichment_confidence", "recent_signals"],
 };
+
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
@@ -111,7 +141,7 @@ Deno.serve(async (req) => {
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) return json({ error: "LOVABLE_API_KEY not configured" }, 500);
 
-    const prompt = `You are a B2B research analyst helping a recruiter understand a target company.
+    const prompt = `You are a B2B research analyst helping a recruiter understand a target company at a product/work level — deeper than what generic training data covers.
 
 Research the following company and return structured intelligence in JSON matching the provided schema.
 
@@ -120,13 +150,24 @@ Known website: ${client.website || "(unknown)"}
 Sector hint: ${client.sector || "(unknown)"}
 Location hint: ${client.location || "(unknown)"}
 
-Use everything you know about this company. Be specific where you have confidence; omit or leave empty fields where you do not.
-For "recent_signals" focus on the last ~12 months: funding rounds, expansions/new offices, leadership hires, layoffs/restructures, product launches, awards (e.g. Deloitte Fast 50), acquisitions, IPO. For each, set:
-  - signal_type: "growth" (funding, expansion, hiring, awards), "risk" (layoffs, restructure), or "change" (new leadership, M&A, IPO)
-  - bd_implication: 1 short sentence explaining why this matters for a recruiter targeting this company.
-For "current_job_postings", include known active hiring areas if you have a reasonable basis (departments, role types, approximate counts).
-For "tech_stack", list well-known technologies the company uses if any.
-Do NOT fabricate dates or amounts you are not confident in — leave the field empty instead.`;
+Prioritise product and work context — this is the most valuable output:
+  - product_types: What specifically do they build? Be concrete. e.g. "Patient-facing NHS mobile apps, clinical staff tools" NOT "healthcare software".
+  - who_uses_products: Who actually uses these products? e.g. "NHS trusts, ICBs, GP practices, patients".
+  - internal_external: Internal tools, external products, or both?
+  - current_focus: What are they visibly working on in 2024/2025 based on case studies, news, blog posts?
+  - design_approach: Design methodology if public — GDS, HCD, agile, etc. Empty if unknown.
+  - tech_context: Tech stack context if public. Empty if unknown.
+
+Set enrichment_confidence honestly:
+  - "high": multiple consistent sources, well-documented public company
+  - "medium": some information found, may be incomplete
+  - "low": limited public information, small/obscure company — treat as approximate
+
+For "recent_signals" focus on the last ~12 months: funding, expansions, leadership hires, layoffs, product launches, awards, acquisitions, IPO. Set signal_type ("growth"/"risk"/"change") and bd_implication (1 short sentence).
+For "current_job_postings", include known active hiring areas if you have a reasonable basis.
+For "tech_stack", list well-known technologies the company uses.
+Do NOT fabricate specific dates, amounts, or product names you are not confident in — leave the field empty and lower confidence instead.`;
+
 
     const aiRes = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
@@ -217,10 +258,18 @@ Do NOT fabricate dates or amounts you are not confident in — leave the field e
       tech_stack: intel.tech_stack ?? [],
       recent_signals: intel.recent_signals ?? [],
       current_job_postings: intel.current_job_postings ?? [],
+      product_types: intel.product_types ?? null,
+      who_uses_products: intel.who_uses_products ?? null,
+      internal_external: intel.internal_external ?? null,
+      current_focus: intel.current_focus ?? null,
+      design_approach: intel.design_approach ?? null,
+      tech_context: intel.tech_context ?? null,
+      enrichment_confidence: intel.enrichment_confidence ?? null,
       field_status: newStatus,
       enrichment_source: "lovable-ai/gemini-2.5-pro",
       last_enriched_at: new Date().toISOString(),
     };
+
 
     const { data: saved, error: sErr } = await supabase
       .from("company_intel")

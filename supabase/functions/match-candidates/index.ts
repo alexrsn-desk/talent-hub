@@ -126,6 +126,36 @@ serve(async (req) => {
       }
     }
 
+    // Enriched employer context by company name (from company_intel)
+    const employerContext: Record<string, string> = {};
+    const employers = Array.from(new Set(candidates.map((c: any) => (c.current_employer || "").trim()).filter(Boolean)));
+    if (employers.length) {
+      const { data: matchedClients = [] } = await supabase
+        .from("clients").select("id, company_name").in("company_name", employers);
+      const idToName: Record<string, string> = {};
+      for (const c of matchedClients as any[]) idToName[c.id] = c.company_name;
+      const clientIds = (matchedClients as any[]).map((c: any) => c.id);
+      if (clientIds.length) {
+        const { data: intels = [] } = await supabase
+          .from("company_intel")
+          .select("client_id, product_types, who_uses_products, internal_external, current_focus, industry")
+          .in("client_id", clientIds);
+        for (const i of intels as any[]) {
+          const emp = idToName[i.client_id];
+          if (!emp) continue;
+          const parts = [
+            i.product_types && `builds ${i.product_types}`,
+            i.who_uses_products && `for ${i.who_uses_products}`,
+            i.internal_external,
+            i.current_focus && `focus: ${i.current_focus}`,
+            i.industry,
+          ].filter(Boolean);
+          if (parts.length) employerContext[emp.toLowerCase()] = parts.join("; ").slice(0, 400);
+        }
+      }
+    }
+
+
     // Build job context string
     const jobTagStr = (jobTags || [])
       .map((t: any) => `${t.tag_definitions?.category}: ${t.tag_definitions?.label}`)
@@ -165,7 +195,7 @@ Notes: ${jobNotes.map((n: any) => n.content).join(" | ") || "None"}
       return `ID:${c.id}
   Name: ${c.name}
   Current Job Title: ${c.job_title || "?"}
-  Current Employer: ${c.current_employer || "?"}
+  Current Employer: ${c.current_employer || "?"}${employerContext[(c.current_employer || "").toLowerCase()] ? `\n  Employer context: ${employerContext[(c.current_employer || "").toLowerCase()]}` : ""}
   Skills (from screening): ${skills || "—"}
   Sector Experience/Preference: ${sectors || "—"}
   Motivations: ${motivations || fwMotivations || "—"}

@@ -643,9 +643,12 @@ export type Database = {
         Row: {
           client_id: string
           created_at: string
+          current_focus: string | null
           current_job_postings: Json
           description: string | null
+          design_approach: string | null
           employee_count: string | null
+          enrichment_confidence: string | null
           enrichment_source: string | null
           field_status: Json
           funding_amount: string | null
@@ -655,25 +658,32 @@ export type Database = {
           headquarters: string | null
           id: string
           industry: string | null
+          internal_external: string | null
           last_enriched_at: string | null
           last_valuation: string | null
           linkedin_url: string | null
           official_name: string | null
           owner_user_id: string
+          product_types: string | null
           recent_signals: Json
           revenue_range: string | null
+          tech_context: string | null
           tech_stack: string[] | null
           total_funding: string | null
           updated_at: string
           website: string | null
+          who_uses_products: string | null
           year_founded: number | null
         }
         Insert: {
           client_id: string
           created_at?: string
+          current_focus?: string | null
           current_job_postings?: Json
           description?: string | null
+          design_approach?: string | null
           employee_count?: string | null
+          enrichment_confidence?: string | null
           enrichment_source?: string | null
           field_status?: Json
           funding_amount?: string | null
@@ -683,25 +693,32 @@ export type Database = {
           headquarters?: string | null
           id?: string
           industry?: string | null
+          internal_external?: string | null
           last_enriched_at?: string | null
           last_valuation?: string | null
           linkedin_url?: string | null
           official_name?: string | null
           owner_user_id: string
+          product_types?: string | null
           recent_signals?: Json
           revenue_range?: string | null
+          tech_context?: string | null
           tech_stack?: string[] | null
           total_funding?: string | null
           updated_at?: string
           website?: string | null
+          who_uses_products?: string | null
           year_founded?: number | null
         }
         Update: {
           client_id?: string
           created_at?: string
+          current_focus?: string | null
           current_job_postings?: Json
           description?: string | null
+          design_approach?: string | null
           employee_count?: string | null
+          enrichment_confidence?: string | null
           enrichment_source?: string | null
           field_status?: Json
           funding_amount?: string | null
@@ -711,17 +728,21 @@ export type Database = {
           headquarters?: string | null
           id?: string
           industry?: string | null
+          internal_external?: string | null
           last_enriched_at?: string | null
           last_valuation?: string | null
           linkedin_url?: string | null
           official_name?: string | null
           owner_user_id?: string
+          product_types?: string | null
           recent_signals?: Json
           revenue_range?: string | null
+          tech_context?: string | null
           tech_stack?: string[] | null
           total_funding?: string | null
           updated_at?: string
           website?: string | null
+          who_uses_products?: string | null
           year_founded?: number | null
         }
         Relationships: [
