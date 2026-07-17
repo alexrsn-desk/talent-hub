@@ -47,7 +47,7 @@ ${STAGES.join(", ")}
 PROPOSALS — kinds and required params
 - add_to_pipeline: { candidate_ids: string[], job_id: string, stage: string }
 - move_stage: { candidate_id: string, job_id: string, stage: string }
-- create_candidate: { first_name, last_name, email?, current_job_title?, current_employer?, linkedin_url?, location?, note? }
+- create_candidate: { first_name, last_name, email?, job_title?, current_employer?, linkedin_url?, location?, note? }
 - add_note: { content: string, candidate_id? | job_id? | client_id? } (exactly one target)
 - create_reminder: { title: string, due_date?: YYYY-MM-DD }
 - flag_candidate: { candidate_id: string, reason?: string }
@@ -64,7 +64,7 @@ const TOOLS = [
     type: "function",
     function: {
       name: "search_candidates",
-      description: "Fuzzy search candidates by name / current title / current employer. Returns up to 8 matches with id, name, current_job_title, current_employer.",
+      description: "Fuzzy search candidates by name / current title / current employer. Returns up to 8 matches with id, name, job_title, current_employer.",
       parameters: {
         type: "object",
         properties: { query: { type: "string" } },
@@ -149,8 +149,8 @@ async function runTool(sb: any, userId: string, name: string, args: any) {
       if (!q) return { rows: [] };
       const { data } = await sb
         .from("candidates")
-        .select("id,name,first_name,last_name,current_job_title,current_employer,email")
-        .or(`name.ilike.%${q}%,first_name.ilike.%${q}%,last_name.ilike.%${q}%,current_job_title.ilike.%${q}%,current_employer.ilike.%${q}%`)
+        .select("id,name,first_name,last_name,job_title,current_employer,email")
+        .or(`name.ilike.%${q}%,first_name.ilike.%${q}%,last_name.ilike.%${q}%,job_title.ilike.%${q}%,current_employer.ilike.%${q}%`)
         .limit(8);
       return { rows: data ?? [] };
     }
@@ -177,7 +177,7 @@ async function runTool(sb: any, userId: string, name: string, args: any) {
     }
     if (name === "get_pipeline_for_job") {
       let q = sb.from("candidate_jobs")
-        .select("id,stage,candidate_id,candidates(name,current_job_title)")
+        .select("id,stage,candidate_id,candidates(name,job_title)")
         .eq("job_id", args.job_id);
       if (args.stage) q = q.eq("stage", args.stage);
       const { data } = await q;
@@ -229,7 +229,7 @@ async function executeProposal(sb: any, userId: string, apiKey: string, proposal
         first_name: first, last_name: last,
         name: [first, last].filter(Boolean).join(" "),
         email: p.email ?? null,
-        current_job_title: p.current_job_title ?? null,
+        job_title: p.job_title ?? null,
         current_employer: p.current_employer ?? null,
         linkedin_url: p.linkedin_url ?? null,
         location: p.location ?? null,
