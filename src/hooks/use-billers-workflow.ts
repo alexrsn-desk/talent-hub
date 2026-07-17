@@ -42,7 +42,9 @@ export type BillerItem = {
   logEntityName?: string;
   bdTarget?: boolean;
   pipelineGap?: PipelineGapData;
-  kind?: "derived";
+  kind?: "derived" | "conversation";
+  sourceQuote?: string;
+  sourceLabel?: string;
 };
 
 export type BillerThresholds = {
