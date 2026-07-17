@@ -328,27 +328,12 @@ export default function BillersWorkflow() {
 
   const navinMode = sections.navinMode;
 
-  // Top slot for Feed column: BD daily target block (kept on Feed side)
-  const bdTargetSlot = sections.dailyBdTargets.length > 0 ? (
-    <div
-      className="rounded-lg mb-3 mt-3"
-      style={{ background: "rgba(231, 76, 60, 0.08)", border: `1px solid ${COCKPIT.red}55` }}
-    >
-      <div className="px-4 py-3 border-b" style={{ borderColor: `${COCKPIT.red}33` }}>
-        <div className="text-sm font-bold" style={{ color: COCKPIT.red }}>
-          ⚡ YOUR BD TARGET TODAY — 3 CALLS BEFORE MIDDAY
-        </div>
-        <div className="text-xs mt-0.5" style={{ color: COCKPIT.textMuted }}>
-          Not emails. Not LinkedIn. Calls. Close LinkedIn — make these three first.
-        </div>
-      </div>
-      <div className="px-2 py-2">
-        {sections.dailyBdTargets.map((it, i) => (
-          <CockpitCard key={it.id} item={it} index={i} onLogCall={setLogCallItem} onRefresh={refresh} />
-        ))}
-      </div>
-    </div>
-  ) : null;
+  // Unified, ranked list (Close & Protect + Feed the Beast merged, top-urgency first).
+  const allItems = useMemo(() => {
+    const merged = [...(sections?.closeProtect || []), ...(sections?.feedTheBeast || [])];
+    return merged.sort((a, b) => b.urgency - a.urgency);
+  }, [sections]);
+  const [expandedId, setExpandedId] = useState<string | null>(null);
 
   return (
     <div
@@ -382,7 +367,7 @@ export default function BillersWorkflow() {
             ) : allEmpty ? (
               "Your desk is in good shape. Use this time to build your bench and prospect new roles."
             ) : (
-              "Scan the cockpit below — protect what's in motion, then feed the beast."
+              "Ranked below by what moves revenue today. Work top-down."
             )}
           </div>
         </div>
@@ -435,7 +420,7 @@ export default function BillersWorkflow() {
                 Placement confirmed — {sections.recentPlacement.name} at {sections.recentPlacement.company}.
               </div>
               <div className="text-xs mt-0.5" style={{ color: COCKPIT.textMuted }}>
-                Pipeline just got thinner. Today is a sourcing day, not a celebration day. Feed the beast →
+                Pipeline just got thinner. Today is a sourcing day, not a celebration day.
               </div>
             </div>
           </div>
@@ -445,13 +430,35 @@ export default function BillersWorkflow() {
             <AlertTriangle className="h-4 w-4 mt-0.5 shrink-0" style={{ color: COCKPIT.red }} />
             <div className="text-sm">
               <div className="font-semibold" style={{ color: COCKPIT.red }}>No BD touchpoint logged in {sections.bdSilenceDays} days.</div>
-              <div className="text-xs mt-0.5" style={{ color: COCKPIT.textMuted }}>Pipelines don't fill themselves. The BD calls are on the right — close LinkedIn and make them.</div>
+              <div className="text-xs mt-0.5" style={{ color: COCKPIT.textMuted }}>Pipelines don't fill themselves — close LinkedIn and make calls.</div>
+            </div>
+          </div>
+        )}
+        {sections.dailyBdTargets.length > 0 && (
+          <div className="rounded-lg" style={{ background: "rgba(231, 76, 60, 0.06)", border: `1px solid ${COCKPIT.red}44` }}>
+            <div className="px-4 py-2 flex items-baseline gap-2">
+              <span className="text-[11px] font-bold uppercase tracking-wide" style={{ color: COCKPIT.red }}>
+                ⚡ BD target today
+              </span>
+              <span className="text-[11px]" style={{ color: COCKPIT.textMuted }}>
+                Three calls before midday — close LinkedIn.
+              </span>
+            </div>
+            <div style={{ borderTop: `1px solid ${COCKPIT.red}22` }}>
+              {sections.dailyBdTargets.map((it, i) => (
+                <BillerRow
+                  key={it.id} item={it} index={i}
+                  expanded={expandedId === it.id}
+                  onToggle={() => setExpandedId((p) => p === it.id ? null : it.id)}
+                  onLogCall={setLogCallItem} onRefresh={refresh}
+                />
+              ))}
             </div>
           </div>
         )}
       </div>
 
-      {/* ============== COCKPIT GRID ============== */}
+      {/* ============== UNIFIED RANKED LIST ============== */}
       <div className="px-6 py-4">
         {allEmpty ? (
           <div
@@ -468,44 +475,35 @@ export default function BillersWorkflow() {
           </div>
         ) : (
           <div
-            className="grid gap-[4%] md:gap-6"
-            style={{ gridTemplateColumns: "repeat(auto-fit, minmax(0, 1fr))" }}
+            className="rounded-lg overflow-hidden"
+            style={{ background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.05)" }}
           >
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 w-full" style={{ gridColumn: "1 / -1" }}>
-              {!navinMode && (
-                <Column
-                  tone="amber"
-                  icon="🛡️"
-                  title="Close & Protect"
-                  subtitle="Protect the money in motion"
-                  items={sections.closeProtect}
-                  emptyMessage={{ line1: "No active deals at risk", line2: "Now feed the beast →" }}
-                  onLogCall={setLogCallItem}
-                  onRefresh={refresh}
-                  onOpenGap={setGapItem}
-                  subs={CLOSE_SUBS}
-                  subRouter={subForClose}
-                />
-              )}
-              <div className={navinMode ? "md:col-span-2" : ""}>
-                <Column
-                  tone="green"
-                  icon="⚔️"
-                  title={sections.recentPlacement ? "Feed the Beast — don't stop now" : "Feed the Beast"}
-                  subtitle="Drive next month's revenue"
-                  items={sections.feedTheBeast}
-                  emptyMessage={{ line1: "Pipeline looking healthy", line2: "Focus on closing what you have ←" }}
-                  onLogCall={setLogCallItem}
-                  onRefresh={refresh}
-                  subs={FEED_SUBS}
-                  subRouter={subForFeed}
-                  topSlot={bdTargetSlot}
-                />
+            <div
+              className="px-3 py-2 flex items-baseline gap-3"
+              style={{ background: "rgba(255,255,255,0.02)", borderBottom: "1px solid rgba(255,255,255,0.05)" }}
+            >
+              <div className="text-[11px] font-semibold uppercase tracking-wide" style={{ color: COCKPIT.textPrimary }}>
+                Today, ranked
               </div>
+              <div className="text-[11px]" style={{ color: COCKPIT.textDim }}>
+                {allItems.length} action{allItems.length === 1 ? "" : "s"} · protect what's in motion, then drive new business
+              </div>
+            </div>
+            <div className="divide-y" style={{ borderColor: "rgba(255,255,255,0.04)" }}>
+              {allItems.map((it, i) => (
+                <BillerRow
+                  key={it.id} item={it} index={i}
+                  expanded={expandedId === it.id}
+                  onToggle={() => setExpandedId((p) => p === it.id ? null : it.id)}
+                  onLogCall={setLogCallItem} onRefresh={refresh}
+                  onOpenGap={setGapItem}
+                />
+              ))}
             </div>
           </div>
         )}
       </div>
+
 
       {/* ============== DIALOGS ============== */}
       {logCallItem && logCallItem.logEntityType && logCallItem.logEntityId && logCallItem.logEntityName && (
