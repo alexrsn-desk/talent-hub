@@ -1,0 +1,163 @@
+{
+  "version": 1,
+  "sdk_version": "0.23.0",
+  "path": "/functions/v1/mcp",
+  "auth": {
+    "type": "oauth",
+    "issuer": "https://xkwophgwfqauvaztokue.supabase.co/auth/v1",
+    "accepted_audiences": [
+      "authenticated"
+    ]
+  },
+  "mcp": {
+    "server": {
+      "name": "desky-mcp",
+      "version": "0.1.0",
+      "title": "Desky CRM"
+    },
+    "tools": [
+      {
+        "name": "list_candidates",
+        "title": "List candidates",
+        "description": "List candidates on the signed-in recruiter's desk. Optional filters: text search across name/title/employer, location, minimum salary, and status. Results are capped at 50.",
+        "annotations": {
+          "readOnlyHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "search": {
+              "type": "string",
+              "description": "Free text matched against name, current job title, and current employer."
+            },
+            "location": {
+              "type": "string",
+              "description": "Substring match on candidate location."
+            },
+            "min_salary": {
+              "type": "number",
+              "description": "Minimum salary expectation."
+            },
+            "status": {
+              "type": "string",
+              "description": "Exact candidate status (e.g. Active, Placed, Uncontacted)."
+            },
+            "limit": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 50,
+              "description": "Max rows to return, default 20."
+            }
+          },
+          "additionalProperties": false,
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "list_jobs",
+        "title": "List jobs",
+        "description": "List jobs on the signed-in recruiter's desk. Optional filters: status (Active, On Hold, Filled, Closed), text search across title, and client id. Results are capped at 50.",
+        "annotations": {
+          "readOnlyHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "status": {
+              "type": "string",
+              "description": "Filter by job status."
+            },
+            "search": {
+              "type": "string",
+              "description": "Substring match on job title."
+            },
+            "client_id": {
+              "type": "string",
+              "format": "uuid",
+              "description": "Filter by client id."
+            },
+            "limit": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 50
+            }
+          },
+          "additionalProperties": false,
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "list_clients",
+        "title": "List clients",
+        "description": "List clients on the signed-in recruiter's desk. Optional text search on company name.",
+        "annotations": {
+          "readOnlyHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "search": {
+              "type": "string",
+              "description": "Substring match on company name."
+            },
+            "limit": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 50
+            }
+          },
+          "additionalProperties": false,
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "create_note",
+        "title": "Create note",
+        "description": "Add a note attached to a candidate, job, client, or contact on the signed-in recruiter's desk. Exactly one of candidate_id, job_id, client_id, or contact_id must be provided.",
+        "annotations": {
+          "readOnlyHint": false,
+          "destructiveHint": false,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "content": {
+              "type": "string",
+              "minLength": 1,
+              "description": "The note body."
+            },
+            "candidate_id": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "job_id": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "client_id": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "contact_id": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          "required": [
+            "content"
+          ],
+          "additionalProperties": false,
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        },
+        "outputSchema": null
+      }
+    ]
+  }
+}

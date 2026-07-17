@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { lovable } from "@/integrations/lovable";
 import { Button } from "@/components/ui/button";
@@ -6,12 +6,41 @@ import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { Sparkles } from "lucide-react";
 
+// Validate a `next` value as a same-origin relative path.
+function sanitizeNext(raw: string | null): string | null {
+  if (!raw) return null;
+  try {
+    const decoded = decodeURIComponent(raw);
+    if (!decoded.startsWith("/") || decoded.startsWith("//")) return null;
+    return decoded;
+  } catch {
+    return null;
+  }
+}
+
 export default function AuthPage() {
   const [isLogin, setIsLogin] = useState(true);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
+  const [next, setNext] = useState<string | null>(null);
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    setNext(sanitizeNext(params.get("next")));
+  }, []);
+
+  // After sign-in (either via password or via Supabase setting the session from an OAuth popup),
+  // navigate to the preserved `next` target.
+  useEffect(() => {
+    const { data: sub } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (session && next) {
+        window.location.href = next;
+      }
+    });
+    return () => sub.subscription.unsubscribe();
+  }, [next]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -21,10 +50,13 @@ export default function AuthPage() {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
       } else {
+        const emailRedirectTo = next
+          ? `${window.location.origin}${next}`
+          : window.location.origin;
         const { error } = await supabase.auth.signUp({
           email,
           password,
-          options: { emailRedirectTo: window.location.origin },
+          options: { emailRedirectTo },
         });
         if (error) throw error;
         toast.success("Check your email to verify your account");
@@ -39,9 +71,10 @@ export default function AuthPage() {
   const handleGoogle = async () => {
     setGoogleLoading(true);
     try {
-      const result = await lovable.auth.signInWithOAuth("google", {
-        redirect_uri: window.location.origin,
-      });
+      const redirect_uri = next
+        ? `${window.location.origin}${next}`
+        : window.location.origin;
+      const result = await lovable.auth.signInWithOAuth("google", { redirect_uri });
       if (result.error) {
         toast.error(result.error.message || "Google sign-in failed");
         setGoogleLoading(false);

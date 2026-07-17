@@ -37,6 +37,7 @@ import AskDesky from "./pages/AskDesky";
 import CompareSubmitSelector from "./pages/CompareSubmitSelector";
 import PitchCandidateSelector from "./pages/PitchCandidateSelector";
 import NotFound from "./pages/NotFound";
+import OAuthConsent from "./pages/OAuthConsent";
 
 
 const queryClient = new QueryClient();
@@ -121,6 +122,11 @@ function AppRoutes() {
         <Route path="/portal" element={<Portal />} />
       </Routes>
     );
+  }
+
+  // OAuth consent route — requires a signed-in user; OAuthConsent redirects to auth if missing.
+  if (window.location.pathname === "/.lovable/oauth/consent") {
+    return <OAuthConsent />;
   }
 
   if (!user) return <Auth />;
