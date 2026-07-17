@@ -37,6 +37,7 @@ import AskDesky from "./pages/AskDesky";
 import CompareSubmitSelector from "./pages/CompareSubmitSelector";
 import PitchCandidateSelector from "./pages/PitchCandidateSelector";
 import NotFound from "./pages/NotFound";
+import OAuthConsent from "./pages/OAuthConsent";
 
 
 const queryClient = new QueryClient();
