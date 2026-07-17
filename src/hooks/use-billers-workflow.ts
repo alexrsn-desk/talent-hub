@@ -927,7 +927,136 @@ export function useBillersWorkflow(viewUserId?: string | null, thresholds: Bille
             logEntityId: c.id,
             logEntityName: c.name,
           });
+      }
+
+      // ============================================================
+      // CONVERSATION-EXTRACTED SIGNALS — Granola call notes/transcripts
+      // Only fires when activity_events has source='granola' with a
+      // clearly actionable fact (interview mention, competing offer,
+      // reason-for-leaving, counter-offer). No fact = no row.
+      // ============================================================
+      try {
+        const sinceIso = new Date(Date.now() - 21 * 86400000).toISOString();
+        const { data: convEvents } = await supabase
+          .from("activity_events")
+          .select("id,candidate_id,event_type,source,occurred_at,payload,owner_user_id")
+          .eq("source", "granola")
+          .gte("occurred_at", sinceIso)
+          .order("occurred_at", { ascending: false })
+          .limit(200);
+        const events = (convEvents || []).filter((e: any) => !viewUserId || e.owner_user_id === viewUserId);
+
+        const extractText = (p: any): string => {
+          if (!p) return "";
+          if (typeof p === "string") return p;
+          return [p.transcript, p.notes, p.summary, p.text, p.content, p.body]
+            .filter((v) => typeof v === "string").join("\n");
+        };
+        const sentenceOf = (text: string, idx: number): string => {
+          const start = Math.max(0, text.lastIndexOf(".", idx - 1) + 1);
+          const endDot = text.indexOf(".", idx);
+          const end = endDot === -1 ? Math.min(text.length, idx + 180) : endDot + 1;
+          return text.slice(start, end).trim().replace(/\s+/g, " ").slice(0, 220);
+        };
+
+        const patterns: Array<{
+          re: RegExp;
+          build: (m: RegExpExecArray, candName: string, quote: string) => Omit<BillerItem, "id" | "urgency" | "tone" | "section" | "kind"> | null;
+          tag: "bd_lead" | "intel";
+        }> = [
+          {
+            tag: "bd_lead",
+            re: /\b(?:interview(?:ing|ed)?|final(?:s)?)\s+(?:with|at)\s+([A-Z][A-Za-z0-9&.\-]+(?:\s+[A-Z][A-Za-z0-9&.\-]+){0,3})/g,
+            build: (m, candName, quote) => ({
+              title: `${candName} mentioned interviewing at ${m[1]} — check for BD opportunity`,
+              sub: `Potential BD lead: ${m[1]}`,
+              signal: `"${quote}"`,
+              action: `Add ${m[1]} as a lead + reach out`,
+              href: `/clients`,
+              sourceLabel: "From Granola call notes",
+              sourceQuote: quote,
+            }),
+          },
+          {
+            tag: "bd_lead",
+            re: /\boffer\s+from\s+([A-Z][A-Za-z0-9&.\-]+(?:\s+[A-Z][A-Za-z0-9&.\-]+){0,3})/g,
+            build: (m, candName, quote) => ({
+              title: `${candName} has a competing offer from ${m[1]}`,
+              sub: `BD lead + counter-offer risk`,
+              signal: `"${quote}"`,
+              action: `Add ${m[1]} as a lead + protect the deal`,
+              href: `/clients`,
+              sourceLabel: "From Granola call notes",
+              sourceQuote: quote,
+            }),
+          },
+          {
+            tag: "intel",
+            re: /\bleaving\s+(?:because|due to|as)\s+([^.!?\n]{8,140})/gi,
+            build: (m, candName, quote) => ({
+              title: `Market intel from ${candName}: reason for leaving`,
+              sub: (m[1] || "").trim().slice(0, 120),
+              signal: `"${quote}"`,
+              action: "Feed into Weekly Intel",
+              href: `/weekly-intel`,
+              sourceLabel: "From Granola call notes",
+              sourceQuote: quote,
+            }),
+          },
+          {
+            tag: "intel",
+            re: /\bcounter[-\s]?offer(?:ed|ing)?\b/gi,
+            build: (_m, candName, quote) => ({
+              title: `${candName} mentioned a counter-offer — market intel`,
+              sub: `Competitor retention behaviour`,
+              signal: `"${quote}"`,
+              action: "Log to Weekly Intel + assess risk",
+              href: `/weekly-intel`,
+              sourceLabel: "From Granola call notes",
+              sourceQuote: quote,
+            }),
+          },
+        ];
+
+        const convEmitted = new Set<string>();
+        for (const ev of events as any[]) {
+          const text = extractText(ev.payload);
+          if (!text || text.length < 20) continue;
+          const cand = ev.candidate_id ? (candById.get(ev.candidate_id) as any) : null;
+          const candName = cand?.name || "Candidate";
+          const daysAgo = daysSince(ev.occurred_at);
+          for (const pat of patterns) {
+            pat.re.lastIndex = 0;
+            let m: RegExpExecArray | null;
+            while ((m = pat.re.exec(text)) !== null) {
+              const dedupeKey = `${ev.candidate_id || ev.id}-${pat.tag}-${(m[1] || m[0]).toLowerCase().slice(0, 40)}`;
+              if (convEmitted.has(dedupeKey)) continue;
+              convEmitted.add(dedupeKey);
+              const quote = sentenceOf(text, m.index);
+              const built = pat.build(m, candName, quote);
+              if (!built) continue;
+              feedTheBeast.push({
+                id: `conv-${ev.id}-${pat.tag}-${convEmitted.size}`,
+                tone: pat.tag === "bd_lead" ? "green" : "yellow",
+                section: "feed",
+                kind: "conversation",
+                urgency: (pat.tag === "bd_lead" ? 780 : 620) - daysAgo * 8,
+                logEntityType: cand ? "candidate" : undefined,
+                logEntityId: cand ? ev.candidate_id : undefined,
+                logEntityName: cand ? candName : undefined,
+                ...built,
+              });
+              if (convEmitted.size >= 20) break;
+            }
+            if (convEmitted.size >= 20) break;
+          }
+          if (convEmitted.size >= 20) break;
         }
+      } catch {
+        // Granola not yet ingesting — silently skip, this is expected.
+      }
+
+
       }
 
       let lastBdTouch: string | null = null;
