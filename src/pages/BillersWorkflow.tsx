@@ -249,9 +249,14 @@ function Column({
       style={{ background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.05)" }}
     >
       <div
-        className="sticky top-0 z-10 px-4 py-4"
-        style={{ background: tint, borderBottom: `2px solid ${accent}`, backdropFilter: "blur(6px)" }}
+        className="sticky top-0 z-10 px-4 py-2.5 flex items-baseline gap-2"
+        style={{ background: "rgba(255,255,255,0.03)", borderBottom: `1px solid ${accent}40` }}
       >
+        <span className="text-sm leading-none" aria-hidden>{icon}</span>
+        <div className="text-[13px] font-semibold uppercase tracking-wide" style={{ color: COCKPIT.textPrimary }}>{title}</div>
+        <div className="text-[11px]" style={{ color: COCKPIT.textDim }}>· {subtitle}</div>
+      </div>
+
         <div className="flex items-center gap-2">
           <span className="text-lg leading-none" aria-hidden>{icon}</span>
           <div className="text-[18px] font-bold" style={{ color: COCKPIT.textPrimary }}>{title}</div>
