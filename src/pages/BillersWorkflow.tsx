@@ -46,6 +46,7 @@ const toneColor = (tone: BillerItem["tone"]) => {
 };
 
 const sectionTag = (item: BillerItem): { icon: string; label: string; color: string } => {
+  if (item.kind === "conversation") return { icon: "💬", label: "From call", color: COCKPIT.blue };
   if (item.kind === "derived") return { icon: "✨", label: "Derived", color: COCKPIT.blue };
   if (item.section === "close") return { icon: "🛡️", label: "Protect", color: COCKPIT.amber };
   return { icon: "⚔️", label: "New business", color: COCKPIT.green };
