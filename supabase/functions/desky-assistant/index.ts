@@ -305,14 +305,20 @@ Deno.serve(async (req) => {
 
     const authHeader = req.headers.get("Authorization") ?? "";
     const token = authHeader.replace(/^Bearer\s+/i, "");
-    const sb = createClient(
-      Deno.env.get("SUPABASE_URL")!,
-      Deno.env.get("SUPABASE_PUBLISHABLE_KEY")!,
-      { global: { headers: { Authorization: `Bearer ${token}` } }, auth: { persistSession: false } },
-    );
-    const { data: userData } = await sb.auth.getUser();
+    const supabaseUrl = Deno.env.get("SUPABASE_URL");
+    const anonKey =
+      Deno.env.get("SUPABASE_ANON_KEY") ??
+      Deno.env.get("SUPABASE_PUBLISHABLE_KEY");
+    if (!supabaseUrl || !anonKey) {
+      return json({ error: "Server misconfigured: missing Supabase env vars" }, 500);
+    }
+    const sb = createClient(supabaseUrl, anonKey, {
+      global: { headers: { Authorization: `Bearer ${token}` } },
+      auth: { persistSession: false },
+    });
+    const { data: userData, error: userErr } = await sb.auth.getUser();
     const userId = userData?.user?.id;
-    if (!userId) return json({ error: "Not authenticated" }, 401);
+    if (userErr || !userId) return json({ error: "Not authenticated — sign in and try again." }, 401);
 
     const body = await req.json();
 
