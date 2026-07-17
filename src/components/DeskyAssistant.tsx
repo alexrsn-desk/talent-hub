@@ -76,8 +76,9 @@ export function DeskyAssistantOverlay() {
         setMessages((m) => [...m, { role: "assistant", content: body.reply || "(no reply)" }]);
       }
     } catch (e: any) {
-      toast.error(e?.message || "Assistant failed");
-      setMessages((m) => [...m, { role: "assistant", content: "Something went wrong — try again." }]);
+      const msg = e?.message || "Assistant couldn't reach the server. Check your connection and try again.";
+      toast.error(msg);
+      setMessages((m) => [...m, { role: "assistant", content: msg }]);
     } finally {
       setBusy(false);
     }
@@ -87,20 +88,27 @@ export function DeskyAssistantOverlay() {
     if (!proposal) return;
     const p = proposal;
     setProposal(null);
-    setOpen(false); // Close bar; toast will notify.
     try {
       const { ok, body } = await callAssistant({ action: "execute", proposal: p });
       if (ok && body.ok) {
         toast.success(body.result || "Done", {
           icon: <CheckCircle2 className="h-4 w-4" />,
         });
-        // Invalidate common queries so lists refresh in the background.
+        setMessages((m) => [...m, { role: "assistant", content: body.result || "Done." }]);
+        setOpen(false);
         qc.invalidateQueries();
       } else {
-        toast.error(body?.error || "Action failed");
+        const err = body?.error || "Action failed";
+        toast.error(err);
+        setMessages((m) => [
+          ...m,
+          { role: "assistant", content: `Couldn't complete that — ${err}. Want to try a different way?` },
+        ]);
       }
     } catch (e: any) {
-      toast.error(e?.message || "Action failed");
+      const err = e?.message || "Action failed";
+      toast.error(err);
+      setMessages((m) => [...m, { role: "assistant", content: `Couldn't complete that — ${err}.` }]);
     }
   };
 
