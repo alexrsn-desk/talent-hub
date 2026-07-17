@@ -93,7 +93,7 @@ function CockpitCard({
   const [leaving, setLeaving] = useState(false);
   const canLog = !!(item.logEntityType && item.logEntityId && item.logEntityName);
   const accent = toneColor(item.tone);
-  const badge = toneBadge(item.tone);
+  
 
   const finish = (fn: () => void) => {
     setLeaving(true);
