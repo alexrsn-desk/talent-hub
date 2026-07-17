@@ -228,7 +228,7 @@ function Column({
   topSlot?: React.ReactNode;
 }) {
   const accent = tone === "amber" ? COCKPIT.amber : COCKPIT.green;
-  const tint = tone === "amber" ? "rgba(245, 166, 35, 0.15)" : "rgba(39, 174, 96, 0.15)";
+  
 
   const grouped = useMemo(() => {
     const m = new Map<string, BillerItem[]>();
