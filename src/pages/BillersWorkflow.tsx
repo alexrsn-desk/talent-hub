@@ -44,47 +44,21 @@ const toneColor = (tone: BillerItem["tone"]) => {
     case "green": return COCKPIT.green;
   }
 };
-const toneBadge = (tone: BillerItem["tone"]) => {
-  switch (tone) {
-    case "red": return { dot: "🔴", label: "Critical" };
-    case "amber": return { dot: "🟡", label: "Needs attention" };
-    case "yellow": return { dot: "🟡", label: "Watch" };
-    case "green": return { dot: "🟢", label: "Opportunity" };
-  }
+
+const sectionTag = (item: BillerItem): { icon: string; label: string; color: string } => {
+  if (item.kind === "derived") return { icon: "✨", label: "Derived", color: COCKPIT.blue };
+  if (item.section === "close") return { icon: "🛡️", label: "Protect", color: COCKPIT.amber };
+  return { icon: "⚔️", label: "New business", color: COCKPIT.green };
 };
 
-// ---- Subsection routing by item id prefix ----
-type Sub = { key: string; label: string };
-const CLOSE_SUBS: Sub[] = [
-  { key: "imminent", label: "IMMINENT MONEY" },
-  { key: "risk", label: "DEALS AT RISK" },
-  { key: "gaps", label: "PIPELINE GAPS" },
-];
-const FEED_SUBS: Sub[] = [
-  { key: "cvs", label: "GET CVS OUT" },
-  { key: "reactivate", label: "REACTIVATE" },
-  { key: "reengage", label: "RE-ENGAGE" },
-  { key: "build", label: "BUILD" },
-];
-
-const subForClose = (id: string): string => {
-  if (id.startsWith("cp-notice")) return "imminent";
-  if (id.startsWith("cp-offercold") || id.startsWith("cp-co") || id.startsWith("cp-backup")) return "risk";
-  return "gaps"; // cp-thin, cp-quiet, cp-livesilence
-};
-const subForFeed = (id: string): string => {
-  if (id.startsWith("ftb-reply")) return "reengage";
-  if (id.startsWith("ftb-silver") || id.startsWith("ftb-warm") || id.startsWith("ftb-ref")) return "reactivate";
-  if (id.startsWith("ftb-pool")) return "cvs";
-  return "build"; // ftb-bd and fallthrough
-};
-
-// ---- One card ----
-function CockpitCard({
-  item, index, onLogCall, onRefresh, onOpenGap,
+// ---- One row (spreadsheet-style, expandable) ----
+function BillerRow({
+  item, index, expanded, onToggle, onLogCall, onRefresh, onOpenGap,
 }: {
   item: BillerItem;
   index: number;
+  expanded: boolean;
+  onToggle: () => void;
   onLogCall: (it: BillerItem) => void;
   onRefresh: () => void;
   onOpenGap?: (it: BillerItem) => void;
@@ -93,203 +67,160 @@ function CockpitCard({
   const [leaving, setLeaving] = useState(false);
   const canLog = !!(item.logEntityType && item.logEntityId && item.logEntityName);
   const accent = toneColor(item.tone);
-  
+  const tag = sectionTag(item);
 
   const finish = (fn: () => void) => {
     setLeaving(true);
-    setTimeout(() => { fn(); onRefresh(); }, 180);
+    setTimeout(() => { fn(); onRefresh(); }, 160);
   };
-  const handleDone = () => finish(() => markItemDone(item.id));
+  const handleDone = (e: React.MouseEvent) => { e.stopPropagation(); finish(() => markItemDone(item.id)); };
   const handleSnooze = (days: 1 | 3 | 7) => finish(() => snoozeItem(item.id, days));
 
-  const titleParts = item.title.split(" → ");
-  const name = titleParts[0];
-  const rest = titleParts.slice(1).join(" → ");
+  const openLink = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (item.pipelineGap && onOpenGap) onOpenGap(item);
+    else if (item.href) nav(item.href);
+  };
 
-  // Body line: prefer signal, fall back to sub. Avoid rendering both to prevent
-  // repetition — the title already carries the fact.
-  const bodyLine = item.signal || item.sub || "";
+  const reason = item.signal || item.sub || "";
 
   return (
     <div
-      className="relative rounded-md mb-1.5 animate-fade-in transition-all duration-200"
+      className="animate-fade-in"
       style={{
-        background: COCKPIT.card,
-        borderLeft: `3px solid ${accent}`,
-        padding: "8px 12px",
-        animationDelay: `${Math.min(index * 30, 240)}ms`,
         opacity: leaving ? 0 : undefined,
-        transform: leaving ? "translateY(-6px)" : undefined,
+        transform: leaving ? "translateY(-4px)" : undefined,
+        transition: "opacity 160ms, transform 160ms",
+        animationDelay: `${Math.min(index * 20, 200)}ms`,
       }}
     >
-      <button
-        onClick={() => { if (item.pipelineGap && onOpenGap) onOpenGap(item); else if (item.href) nav(item.href); }}
-        className="block w-full text-left"
+      <div
+        role="button"
+        tabIndex={0}
+        onClick={onToggle}
+        onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); onToggle(); } }}
+        className="group flex items-center gap-3 px-3 cursor-pointer transition-colors"
+        style={{
+          minHeight: 40,
+          background: expanded ? COCKPIT.card : "transparent",
+          borderLeft: `2px solid ${expanded ? accent : "transparent"}`,
+        }}
       >
-        <div className="text-[13px] font-semibold leading-tight truncate" style={{ color: COCKPIT.textPrimary }}>
-          {name}
-          {rest && (
-            <span className="font-normal" style={{ color: COCKPIT.textMuted }}> → {rest}</span>
-          )}
-        </div>
-        {bodyLine && (
-          <div className="text-[12px] mt-0.5 truncate" style={{ color: COCKPIT.textMuted }}>
-            {bodyLine}
-          </div>
-        )}
-        <div className="text-[12px] font-medium mt-1" style={{ color: accent }}>
-          → {item.action}
-        </div>
-      </button>
-
-      <div className="flex items-center justify-end gap-3 mt-1.5 -mb-0.5">
-        {(item.id.startsWith("ftb-bd") || item.id.startsWith("ftb-ref") || item.id.startsWith("ftb-warm") || item.id.startsWith("ftb-silver")) && (
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              const group = item.id.startsWith("ftb-bd") ? "past_clients"
-                : item.id.startsWith("ftb-ref") ? "placed_candidates"
-                : item.id.startsWith("ftb-warm") ? "warm_prospects" : "";
-              nav(`/reactivation${group ? `?group=${group}` : ""}`);
-            }}
-            className="text-[11px] font-medium inline-flex items-center gap-1 hover:underline"
-            style={{ color: COCKPIT.blue }}
-          >
-            <Sparkles className="h-3 w-3" /> Campaign
-          </button>
-        )}
-        {canLog && (
-          <button
-            onClick={(e) => { e.stopPropagation(); onLogCall(item); }}
-            className="text-[11px] font-medium inline-flex items-center gap-1 hover:underline"
-            style={{ color: accent }}
-          >
-            <Phone className="h-3 w-3" /> Log call
-          </button>
-        )}
-        <button
-          onClick={handleDone}
-          className="text-[11px] font-medium inline-flex items-center gap-1 hover:underline"
+        {/* urgency dot */}
+        <span
+          className="shrink-0 rounded-full"
+          style={{ width: 8, height: 8, background: accent, boxShadow: `0 0 0 2px ${accent}22` }}
+          title={item.tone}
+          aria-hidden
+        />
+        {/* section tag */}
+        <span
+          className="shrink-0 text-[10px] font-medium uppercase tracking-wide inline-flex items-center gap-1"
+          style={{ color: tag.color, minWidth: 90 }}
+        >
+          <span aria-hidden>{tag.icon}</span>{tag.label}
+        </span>
+        {/* headline */}
+        <span
+          className="flex-1 min-w-0 truncate text-[13px] font-medium"
+          style={{ color: COCKPIT.textPrimary }}
+        >
+          {item.title}
+        </span>
+        {/* reason (hidden on narrow) */}
+        <span
+          className="hidden md:inline text-[12px] truncate max-w-[38%]"
           style={{ color: COCKPIT.textMuted }}
         >
-          <Check className="h-3 w-3" /> Done
-        </button>
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
+          {reason}
+        </span>
+        {/* actions */}
+        <div className="shrink-0 flex items-center gap-2 opacity-70 group-hover:opacity-100 transition-opacity">
+          {canLog && (
             <button
-              className="h-5 w-5 inline-flex items-center justify-center"
-              style={{ color: COCKPIT.textDim }}
+              onClick={(e) => { e.stopPropagation(); onLogCall(item); }}
+              className="text-[11px] inline-flex items-center gap-1 hover:underline"
+              style={{ color: accent }}
+              title="Log call"
             >
-              <MoreVertical className="h-3.5 w-3.5" />
+              <Phone className="h-3 w-3" /> Log
             </button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            <DropdownMenuLabel className="text-xs">Snooze</DropdownMenuLabel>
-            <DropdownMenuItem onClick={() => handleSnooze(1)}><Clock className="h-3.5 w-3.5 mr-2" /> 1 day</DropdownMenuItem>
-            <DropdownMenuItem onClick={() => handleSnooze(3)}><Clock className="h-3.5 w-3.5 mr-2" /> 3 days</DropdownMenuItem>
-            <DropdownMenuItem onClick={() => handleSnooze(7)}><Clock className="h-3.5 w-3.5 mr-2" /> 1 week</DropdownMenuItem>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={handleDone}><Check className="h-3.5 w-3.5 mr-2" /> Mark done</DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
+          )}
+          <button
+            onClick={handleDone}
+            className="text-[11px] inline-flex items-center gap-1 hover:underline"
+            style={{ color: COCKPIT.textMuted }}
+            title="Mark done"
+          >
+            <Check className="h-3 w-3" /> Done
+          </button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button
+                onClick={(e) => e.stopPropagation()}
+                className="h-5 w-5 inline-flex items-center justify-center"
+                style={{ color: COCKPIT.textDim }}
+                aria-label="More"
+              >
+                <MoreVertical className="h-3.5 w-3.5" />
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              {item.href && (
+                <>
+                  <DropdownMenuItem onClick={openLink}>Open</DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                </>
+              )}
+              <DropdownMenuLabel className="text-xs">Snooze</DropdownMenuLabel>
+              <DropdownMenuItem onClick={() => handleSnooze(1)}><Clock className="h-3.5 w-3.5 mr-2" /> 1 day</DropdownMenuItem>
+              <DropdownMenuItem onClick={() => handleSnooze(3)}><Clock className="h-3.5 w-3.5 mr-2" /> 3 days</DropdownMenuItem>
+              <DropdownMenuItem onClick={() => handleSnooze(7)}><Clock className="h-3.5 w-3.5 mr-2" /> 1 week</DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
       </div>
-    </div>
-  );
-}
-
-// ---- Sub-section label ----
-function SubLabel({ label }: { label: string }) {
-  return (
-    <div
-      className="text-[10px] font-semibold mt-4 mb-1.5"
-      style={{ color: COCKPIT.textDim, letterSpacing: "0.1em" }}
-    >
-      {label}
-    </div>
-  );
-}
-
-// ---- Column ----
-function Column({
-  tone, icon, title, subtitle, items, emptyMessage, onLogCall, onRefresh, onOpenGap, subs, subRouter,
-  topSlot,
-}: {
-  tone: "amber" | "green";
-  icon: string;
-  title: string;
-  subtitle: string;
-  items: BillerItem[];
-  emptyMessage: { line1: string; line2?: string };
-  onLogCall: (it: BillerItem) => void;
-  onRefresh: () => void;
-  onOpenGap?: (it: BillerItem) => void;
-  subs: Sub[];
-  subRouter: (id: string) => string;
-  topSlot?: React.ReactNode;
-}) {
-  const accent = tone === "amber" ? COCKPIT.amber : COCKPIT.green;
-  
-
-  const grouped = useMemo(() => {
-    const m = new Map<string, BillerItem[]>();
-    for (const s of subs) m.set(s.key, []);
-    for (const it of items) {
-      const key = subRouter(it.id);
-      if (!m.has(key)) m.set(key, []);
-      m.get(key)!.push(it);
-    }
-    return m;
-  }, [items, subs, subRouter]);
-
-  const hasAny = items.length > 0 || !!topSlot;
-
-  return (
-    <div
-      className="flex flex-col rounded-xl overflow-hidden"
-      style={{ background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.05)" }}
-    >
+      {/* expanded detail */}
       <div
-        className="sticky top-0 z-10 px-4 py-2.5 flex items-baseline gap-2"
-        style={{ background: "rgba(255,255,255,0.03)", borderBottom: `1px solid ${accent}40` }}
+        className="overflow-hidden transition-all duration-200 ease-in-out"
+        style={{ maxHeight: expanded ? 240 : 0, background: COCKPIT.card }}
       >
-        <span className="text-sm leading-none" aria-hidden>{icon}</span>
-        <div className="text-[13px] font-semibold uppercase tracking-wide" style={{ color: COCKPIT.textPrimary }}>{title}</div>
-        <div className="text-[11px]" style={{ color: COCKPIT.textDim }}>· {subtitle}</div>
-      </div>
-
-
-
-      <div className="flex-1 overflow-y-auto px-4 pb-6" style={{ maxHeight: "calc(100vh - 220px)" }}>
-        {topSlot}
-        {!hasAny ? (
-          <div className="flex flex-col items-center justify-center py-10 text-center">
-            <CheckCircle2 className="h-6 w-6 mb-2" style={{ color: COCKPIT.green }} />
-            <div className="text-sm font-medium" style={{ color: COCKPIT.green }}>{emptyMessage.line1}</div>
-            {emptyMessage.line2 && (
-              <div className="text-xs mt-1" style={{ color: COCKPIT.textMuted }}>{emptyMessage.line2}</div>
+        <div className="px-6 pb-3 pt-1 space-y-1.5" style={{ borderLeft: `2px solid ${accent}` }}>
+          {item.sub && item.sub !== reason && (
+            <div className="text-[12px]" style={{ color: COCKPIT.textMuted }}>{item.sub}</div>
+          )}
+          {item.signal && item.sub && item.signal !== reason && (
+            <div className="text-[12px]" style={{ color: COCKPIT.textMuted }}>{item.signal}</div>
+          )}
+          <div className="text-[12px] font-medium" style={{ color: accent }}>→ {item.action}</div>
+          <div className="flex items-center gap-3 pt-1">
+            {(item.href || item.pipelineGap) && (
+              <button onClick={openLink} className="text-[11px] font-medium hover:underline" style={{ color: COCKPIT.blue }}>
+                Open →
+              </button>
+            )}
+            {(item.id.startsWith("ftb-bd") || item.id.startsWith("ftb-ref") || item.id.startsWith("ftb-warm") || item.id.startsWith("ftb-silver")) && (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  const group = item.id.startsWith("ftb-bd") ? "past_clients"
+                    : item.id.startsWith("ftb-ref") ? "placed_candidates"
+                    : item.id.startsWith("ftb-warm") ? "warm_prospects" : "";
+                  nav(`/reactivation${group ? `?group=${group}` : ""}`);
+                }}
+                className="text-[11px] font-medium inline-flex items-center gap-1 hover:underline"
+                style={{ color: COCKPIT.blue }}
+              >
+                <Sparkles className="h-3 w-3" /> Campaign
+              </button>
             )}
           </div>
-        ) : (
-          subs.map((s) => {
-            const list = grouped.get(s.key) || [];
-            if (list.length === 0) return null;
-            return (
-              <div key={s.key}>
-                <SubLabel label={s.label} />
-                {list.map((it, i) => (
-                  <CockpitCard
-                    key={it.id} item={it} index={i}
-                    onLogCall={onLogCall} onRefresh={onRefresh} onOpenGap={onOpenGap}
-                  />
-                ))}
-              </div>
-            );
-          })
-        )}
+        </div>
       </div>
     </div>
   );
 }
+
 
 // ---- Thresholds dialog (unchanged logic) ----
 function ThresholdsDialog({ open, onOpenChange, onSaved }: { open: boolean; onOpenChange: (o: boolean) => void; onSaved: () => void }) {
