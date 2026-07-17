@@ -124,6 +124,11 @@ function AppRoutes() {
     );
   }
 
+  // OAuth consent route — requires a signed-in user; OAuthConsent redirects to auth if missing.
+  if (window.location.pathname === "/.lovable/oauth/consent") {
+    return <OAuthConsent />;
+  }
+
   if (!user) return <Auth />;
 
   if (!onboardingDone) {
