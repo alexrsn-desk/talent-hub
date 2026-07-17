@@ -93,7 +93,7 @@ function CockpitCard({
   const [leaving, setLeaving] = useState(false);
   const canLog = !!(item.logEntityType && item.logEntityId && item.logEntityName);
   const accent = toneColor(item.tone);
-  const badge = toneBadge(item.tone);
+  
 
   const finish = (fn: () => void) => {
     setLeaving(true);
@@ -106,52 +106,43 @@ function CockpitCard({
   const name = titleParts[0];
   const rest = titleParts.slice(1).join(" → ");
 
+  // Body line: prefer signal, fall back to sub. Avoid rendering both to prevent
+  // repetition — the title already carries the fact.
+  const bodyLine = item.signal || item.sub || "";
+
   return (
     <div
-      className="relative rounded-lg mb-2 animate-fade-in transition-all duration-200"
+      className="relative rounded-md mb-1.5 animate-fade-in transition-all duration-200"
       style={{
         background: COCKPIT.card,
         borderLeft: `3px solid ${accent}`,
-        boxShadow: "0 2px 8px rgba(0,0,0,0.3)",
-        padding: "14px 16px",
+        padding: "8px 12px",
         animationDelay: `${Math.min(index * 30, 240)}ms`,
         opacity: leaving ? 0 : undefined,
         transform: leaving ? "translateY(-6px)" : undefined,
       }}
     >
-      {/* badge top right */}
-      <div
-        className="absolute top-2 right-3 text-[10px] font-semibold tracking-wide flex items-center gap-1"
-        style={{ color: accent }}
-      >
-        <span aria-hidden>{badge.dot}</span>
-        <span className="uppercase">{badge.label}</span>
-      </div>
-
       <button
         onClick={() => { if (item.pipelineGap && onOpenGap) onOpenGap(item); else if (item.href) nav(item.href); }}
-        className="block w-full text-left pr-24"
+        className="block w-full text-left"
       >
-        <div className="text-sm font-semibold leading-tight" style={{ color: COCKPIT.textPrimary }}>
+        <div className="text-[13px] font-semibold leading-tight truncate" style={{ color: COCKPIT.textPrimary }}>
           {name}
           {rest && (
             <span className="font-normal" style={{ color: COCKPIT.textMuted }}> → {rest}</span>
           )}
         </div>
-        {item.sub && (
-          <div className="text-xs mt-1" style={{ color: COCKPIT.textMuted }}>{item.sub}</div>
-        )}
-        {item.signal && (
-          <div className="text-[13px] mt-1.5 leading-snug" style={{ color: COCKPIT.textPrimary }}>
-            {item.signal}
+        {bodyLine && (
+          <div className="text-[12px] mt-0.5 truncate" style={{ color: COCKPIT.textMuted }}>
+            {bodyLine}
           </div>
         )}
-        <div className="text-[13px] font-semibold mt-2" style={{ color: accent }}>
+        <div className="text-[12px] font-medium mt-1" style={{ color: accent }}>
           → {item.action}
         </div>
       </button>
 
-      <div className="flex items-center justify-end gap-2 mt-3">
+      <div className="flex items-center justify-end gap-3 mt-1.5 -mb-0.5">
         {(item.id.startsWith("ftb-bd") || item.id.startsWith("ftb-ref") || item.id.startsWith("ftb-warm") || item.id.startsWith("ftb-silver")) && (
           <button
             onClick={(e) => {
@@ -161,33 +152,33 @@ function CockpitCard({
                 : item.id.startsWith("ftb-warm") ? "warm_prospects" : "";
               nav(`/reactivation${group ? `?group=${group}` : ""}`);
             }}
-            className="h-7 px-3 rounded-full text-[12px] font-semibold inline-flex items-center gap-1.5 transition-colors"
-            style={{ background: `${COCKPIT.blue}26`, color: COCKPIT.blue }}
+            className="text-[11px] font-medium inline-flex items-center gap-1 hover:underline"
+            style={{ color: COCKPIT.blue }}
           >
-            <Sparkles className="h-3 w-3" /> Build campaign
+            <Sparkles className="h-3 w-3" /> Campaign
           </button>
         )}
         {canLog && (
           <button
             onClick={(e) => { e.stopPropagation(); onLogCall(item); }}
-            className="h-7 px-3 rounded-full text-[12px] font-semibold inline-flex items-center gap-1.5 transition-colors"
-            style={{ background: `${accent}33`, color: accent }}
+            className="text-[11px] font-medium inline-flex items-center gap-1 hover:underline"
+            style={{ color: accent }}
           >
             <Phone className="h-3 w-3" /> Log call
           </button>
         )}
         <button
           onClick={handleDone}
-          className="h-7 px-3 rounded-full text-[12px] font-semibold inline-flex items-center gap-1.5 transition-colors"
-          style={{ background: `${accent}26`, color: accent }}
+          className="text-[11px] font-medium inline-flex items-center gap-1 hover:underline"
+          style={{ color: COCKPIT.textMuted }}
         >
           <Check className="h-3 w-3" /> Done
         </button>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <button
-              className="h-7 w-7 rounded-full inline-flex items-center justify-center"
-              style={{ color: COCKPIT.textMuted }}
+              className="h-5 w-5 inline-flex items-center justify-center"
+              style={{ color: COCKPIT.textDim }}
             >
               <MoreVertical className="h-3.5 w-3.5" />
             </button>
@@ -237,7 +228,7 @@ function Column({
   topSlot?: React.ReactNode;
 }) {
   const accent = tone === "amber" ? COCKPIT.amber : COCKPIT.green;
-  const tint = tone === "amber" ? "rgba(245, 166, 35, 0.15)" : "rgba(39, 174, 96, 0.15)";
+  
 
   const grouped = useMemo(() => {
     const m = new Map<string, BillerItem[]>();
@@ -258,15 +249,15 @@ function Column({
       style={{ background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.05)" }}
     >
       <div
-        className="sticky top-0 z-10 px-4 py-4"
-        style={{ background: tint, borderBottom: `2px solid ${accent}`, backdropFilter: "blur(6px)" }}
+        className="sticky top-0 z-10 px-4 py-2.5 flex items-baseline gap-2"
+        style={{ background: "rgba(255,255,255,0.03)", borderBottom: `1px solid ${accent}40` }}
       >
-        <div className="flex items-center gap-2">
-          <span className="text-lg leading-none" aria-hidden>{icon}</span>
-          <div className="text-[18px] font-bold" style={{ color: COCKPIT.textPrimary }}>{title}</div>
-        </div>
-        <div className="text-[12px] mt-0.5" style={{ color: COCKPIT.textMuted }}>{subtitle}</div>
+        <span className="text-sm leading-none" aria-hidden>{icon}</span>
+        <div className="text-[13px] font-semibold uppercase tracking-wide" style={{ color: COCKPIT.textPrimary }}>{title}</div>
+        <div className="text-[11px]" style={{ color: COCKPIT.textDim }}>· {subtitle}</div>
       </div>
+
+
 
       <div className="flex-1 overflow-y-auto px-4 pb-6" style={{ maxHeight: "calc(100vh - 220px)" }}>
         {topSlot}
