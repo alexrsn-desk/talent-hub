@@ -257,12 +257,7 @@ function Column({
         <div className="text-[11px]" style={{ color: COCKPIT.textDim }}>· {subtitle}</div>
       </div>
 
-        <div className="flex items-center gap-2">
-          <span className="text-lg leading-none" aria-hidden>{icon}</span>
-          <div className="text-[18px] font-bold" style={{ color: COCKPIT.textPrimary }}>{title}</div>
-        </div>
-        <div className="text-[12px] mt-0.5" style={{ color: COCKPIT.textMuted }}>{subtitle}</div>
-      </div>
+
 
       <div className="flex-1 overflow-y-auto px-4 pb-6" style={{ maxHeight: "calc(100vh - 220px)" }}>
         {topSlot}
