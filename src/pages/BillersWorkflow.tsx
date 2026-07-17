@@ -46,6 +46,7 @@ const toneColor = (tone: BillerItem["tone"]) => {
 };
 
 const sectionTag = (item: BillerItem): { icon: string; label: string; color: string } => {
+  if (item.kind === "conversation") return { icon: "💬", label: "From call", color: COCKPIT.blue };
   if (item.kind === "derived") return { icon: "✨", label: "Derived", color: COCKPIT.blue };
   if (item.section === "close") return { icon: "🛡️", label: "Protect", color: COCKPIT.amber };
   return { icon: "⚔️", label: "New business", color: COCKPIT.green };
@@ -183,16 +184,30 @@ function BillerRow({
       {/* expanded detail */}
       <div
         className="overflow-hidden transition-all duration-200 ease-in-out"
-        style={{ maxHeight: expanded ? 240 : 0, background: COCKPIT.card }}
+        style={{ maxHeight: expanded ? 320 : 0, background: COCKPIT.card }}
       >
         <div className="px-6 pb-3 pt-1 space-y-1.5" style={{ borderLeft: `2px solid ${accent}` }}>
           {item.sub && item.sub !== reason && (
             <div className="text-[12px]" style={{ color: COCKPIT.textMuted }}>{item.sub}</div>
           )}
-          {item.signal && item.sub && item.signal !== reason && (
+          {item.signal && item.sub && item.signal !== reason && item.kind !== "conversation" && (
             <div className="text-[12px]" style={{ color: COCKPIT.textMuted }}>{item.signal}</div>
           )}
+          {item.kind === "conversation" && item.sourceQuote && (
+            <div
+              className="text-[12px] italic px-2 py-1.5 rounded"
+              style={{ background: "rgba(59,130,246,0.08)", borderLeft: `2px solid ${COCKPIT.blue}`, color: COCKPIT.textPrimary }}
+            >
+              "{item.sourceQuote}"
+              {item.sourceLabel && (
+                <div className="not-italic text-[10px] mt-1 uppercase tracking-wide" style={{ color: COCKPIT.textDim }}>
+                  {item.sourceLabel}
+                </div>
+              )}
+            </div>
+          )}
           <div className="text-[12px] font-medium" style={{ color: accent }}>→ {item.action}</div>
+
           <div className="flex items-center gap-3 pt-1">
             {(item.href || item.pipelineGap) && (
               <button onClick={openLink} className="text-[11px] font-medium hover:underline" style={{ color: COCKPIT.blue }}>
