@@ -6,6 +6,12 @@ verify_jwt = false
 [functions.vincere-webhook]
 verify_jwt = false
 
+[functions.sourcewhale-webhook]
+verify_jwt = false
+
+[functions.sourcewhale-poll]
+verify_jwt = false
+
 [functions.pitch-find-opportunities]
 verify_jwt = true
 
