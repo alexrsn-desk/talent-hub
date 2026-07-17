@@ -42,6 +42,7 @@ export type BillerItem = {
   logEntityName?: string;
   bdTarget?: boolean;
   pipelineGap?: PipelineGapData;
+  kind?: "derived";
 };
 
 export type BillerThresholds = {
@@ -864,7 +865,69 @@ export function useBillersWorkflow(viewUserId?: string | null, thresholds: Bille
           logEntityName: clientName,
         });
       }
+
       // ============================================================
+      // DERIVED SIGNAL — recently-spoken candidate + strong live-role match
+      // Only fires when the connection is confidently supported.
+      // ============================================================
+      const RECENT_SPOKEN_DAYS = 14;
+      const derivedEmitted = new Set<string>();
+      const candidateAlreadyOn = new Map<string, Set<string>>();
+      for (const cj of cjs as any[]) {
+        const s = candidateAlreadyOn.get(cj.candidate_id) || new Set<string>();
+        s.add(cj.job_id); candidateAlreadyOn.set(cj.candidate_id, s);
+      }
+      for (const c of candidates as any[]) {
+        if (derivedEmitted.size >= 12) break;
+        if (c.status !== "Active" && c.status !== "Passive") continue;
+        const ln = lastCandNote.get(c.id);
+        if (!ln) continue;
+        const d = daysSince(ln.created_at);
+        if (d > RECENT_SPOKEN_DAYS) continue;
+        const candTagSet = tagsByCand.get(c.id);
+        const ct = (c.job_title || "").toLowerCase();
+        const onJobs = candidateAlreadyOn.get(c.id) || new Set<string>();
+        for (const aj of activeJobsList) {
+          if (derivedEmitted.size >= 12) break;
+          if (onJobs.has(aj.id)) continue;
+          const jt = tagsByJob.get(aj.id);
+          const tokens = (aj.title || "").toLowerCase().split(/\s+/).filter((t: string) => t.length > 3);
+          let tagHits = 0;
+          const hitNames: string[] = [];
+          if (jt && candTagSet) {
+            for (const t of jt) if (candTagSet.has(t)) {
+              tagHits += 1;
+              const n = tagNameById.get(t); if (n) hitNames.push(n);
+            }
+          }
+          const titleHit = tokens.length > 0 && tokens.some((t: string) => ct.includes(t));
+          // Confidence gate: 2+ tag overlaps OR (1 tag + title token). No weaker fallback.
+          const strong = tagHits >= 2 || (tagHits >= 1 && titleHit);
+          if (!strong) continue;
+          const key = `${c.id}-${aj.id}`;
+          if (derivedEmitted.has(key)) continue;
+          derivedEmitted.add(key);
+          const company = aj.clients?.company_name || "—";
+          const reasonBits = [`spoken ${d}d ago`];
+          if (hitNames.length) reasonBits.push(hitNames.slice(0, 2).join(" + "));
+          if (titleHit) reasonBits.push("title match");
+          feedTheBeast.push({
+            id: `ftb-derived-${c.id}-${aj.id}`,
+            tone: "amber", section: "feed",
+            kind: "derived",
+            title: `Send ${c.name}'s CV to ${company} for ${aj.title}`,
+            sub: reasonBits.join(" · "),
+            signal: "Recent conversation + strong role match — pitch while warm",
+            action: "Submit today",
+            href: `/jobs`,
+            urgency: 820 - d * 10 + tagHits * 15,
+            logEntityType: "candidate",
+            logEntityId: c.id,
+            logEntityName: c.name,
+          });
+        }
+      }
+
       let lastBdTouch: string | null = null;
       for (const n of notes as any[]) {
         if (!BD_TYPES.has(n.activity_type)) continue;
