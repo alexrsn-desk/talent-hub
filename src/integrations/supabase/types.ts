@@ -14,6 +14,53 @@ export type Database = {
   }
   public: {
     Tables: {
+      activity_events: {
+        Row: {
+          candidate_id: string | null
+          created_at: string
+          event_type: string
+          external_id: string | null
+          id: string
+          occurred_at: string
+          owner_user_id: string | null
+          payload: Json
+          processed_at: string | null
+          source: string
+        }
+        Insert: {
+          candidate_id?: string | null
+          created_at?: string
+          event_type: string
+          external_id?: string | null
+          id?: string
+          occurred_at?: string
+          owner_user_id?: string | null
+          payload?: Json
+          processed_at?: string | null
+          source: string
+        }
+        Update: {
+          candidate_id?: string | null
+          created_at?: string
+          event_type?: string
+          external_id?: string | null
+          id?: string
+          occurred_at?: string
+          owner_user_id?: string | null
+          payload?: Json
+          processed_at?: string | null
+          source?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "activity_events_candidate_id_fkey"
+            columns: ["candidate_id"]
+            isOneToOne: false
+            referencedRelation: "candidates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       activity_log: {
         Row: {
           action_type: string
@@ -1225,6 +1272,33 @@ export type Database = {
           records_updated?: number
           source?: string
           user_id?: string | null
+        }
+        Relationships: []
+      }
+      integration_sync_state: {
+        Row: {
+          endpoint: string
+          id: string
+          last_synced_at: string | null
+          owner_user_id: string
+          source: string
+          updated_at: string
+        }
+        Insert: {
+          endpoint: string
+          id?: string
+          last_synced_at?: string | null
+          owner_user_id: string
+          source: string
+          updated_at?: string
+        }
+        Update: {
+          endpoint?: string
+          id?: string
+          last_synced_at?: string | null
+          owner_user_id?: string
+          source?: string
+          updated_at?: string
         }
         Relationships: []
       }
