@@ -169,38 +169,20 @@ function LinkedInConnectionCleanup() {
     if (!scan) return;
     setBusy(true);
     try {
-      // Re-fetch safe ids at delete time (still filter out any that gained activity since scan)
-      const { data: cands, error } = await supabase
-        .from("candidates")
-        .select("id")
-        .eq("source", "LinkedIn Connection");
-      if (error) throw error;
-      const allIds = (cands ?? []).map((c: any) => c.id);
-
-      const active = new Set<string>();
-      const chunk = <T,>(arr: T[], n: number) =>
-        Array.from({ length: Math.ceil(arr.length / n) }, (_, i) => arr.slice(i * n, i * n + n));
-      for (const c of chunk(allIds, 500)) {
-        const [notes, cjs, acts] = await Promise.all([
-          supabase.from("notes").select("candidate_id").in("candidate_id", c),
-          supabase.from("candidate_jobs").select("candidate_id").in("candidate_id", c),
-          supabase.from("activity_log").select("candidate_id, action_type").in("candidate_id", c).neq("action_type", "candidate_created"),
-        ]);
-        (notes.data ?? []).forEach((r: any) => r.candidate_id && active.add(r.candidate_id));
-        (cjs.data ?? []).forEach((r: any) => r.candidate_id && active.add(r.candidate_id));
-        (acts.data ?? []).forEach((r: any) => r.candidate_id && active.add(r.candidate_id));
-      }
-      const deletable = allIds.filter((id: string) => !active.has(id));
+      const cands = await fetchAllLinkedInCandidates();
+      const allIds = cands.map((c) => c.id);
+      const active = await findCandidatesWithActivity(allIds);
+      const deletable = allIds.filter((id) => !active.has(id));
 
       // Best-effort cleanup of dependent rows that don't cascade
-      for (const c of chunk(deletable, 500)) {
+      for (const c of chunkArr(deletable, 500)) {
         await supabase.from("candidate_tags").delete().in("candidate_id", c);
         await supabase.from("candidate_talent_pools").delete().in("candidate_id", c);
         await supabase.from("activity_log").delete().in("candidate_id", c);
       }
 
       let deleted = 0;
-      for (const c of chunk(deletable, 500)) {
+      for (const c of chunkArr(deletable, 500)) {
         const { error: delErr, count } = await supabase
           .from("candidates")
           .delete({ count: "exact" })
@@ -209,7 +191,6 @@ function LinkedInConnectionCleanup() {
         deleted += count ?? c.length;
       }
 
-      // Audit record
       await logActivity({
         action_type: "candidate_deleted",
         metadata: {
