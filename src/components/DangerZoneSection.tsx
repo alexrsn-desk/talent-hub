@@ -323,3 +323,42 @@ function Row({ label, value, strong }: { label: string; value: string; strong?: 
     </div>
   );
 }
+
+function chunkArr<T>(arr: T[], n: number): T[][] {
+  return Array.from({ length: Math.ceil(arr.length / n) }, (_, i) => arr.slice(i * n, i * n + n));
+}
+
+async function fetchAllLinkedInCandidates(): Promise<{ id: string; created_at: string | null }[]> {
+  const pageSize = 1000;
+  const out: { id: string; created_at: string | null }[] = [];
+  let from = 0;
+  while (true) {
+    const { data, error } = await supabase
+      .from("candidates")
+      .select("id, created_at")
+      .eq("source", "LinkedIn Connection")
+      .order("created_at", { ascending: true })
+      .range(from, from + pageSize - 1);
+    if (error) throw error;
+    const rows = (data ?? []) as any[];
+    out.push(...rows.map((r) => ({ id: r.id, created_at: r.created_at })));
+    if (rows.length < pageSize) break;
+    from += pageSize;
+  }
+  return out;
+}
+
+async function findCandidatesWithActivity(ids: string[]): Promise<Set<string>> {
+  const active = new Set<string>();
+  for (const c of chunkArr(ids, 300)) {
+    const [notes, cjs, acts] = await Promise.all([
+      supabase.from("notes").select("candidate_id").in("candidate_id", c).limit(1000),
+      supabase.from("candidate_jobs").select("candidate_id").in("candidate_id", c).limit(1000),
+      supabase.from("activity_log").select("candidate_id, action_type").in("candidate_id", c).neq("action_type", "candidate_created").limit(1000),
+    ]);
+    (notes.data ?? []).forEach((r: any) => r.candidate_id && active.add(r.candidate_id));
+    (cjs.data ?? []).forEach((r: any) => r.candidate_id && active.add(r.candidate_id));
+    (acts.data ?? []).forEach((r: any) => r.candidate_id && active.add(r.candidate_id));
+  }
+  return active;
+}
