@@ -20,7 +20,7 @@ export function useWorkflowCounts() {
       const cj = cjRes.data || [];
 
       const activeJobs = jobs.filter((j: any) => j.status === "Active");
-      const jobLaunch = activeJobs.filter((j: any) => !j.search_launched_at).length;
+      const jobLaunch = activeJobs.filter((j: any) => !j.search_launched_at && !j.launch_ignored_at).length;
 
       const byJob = new Map<string, string[]>();
       for (const l of cj as any[]) {
