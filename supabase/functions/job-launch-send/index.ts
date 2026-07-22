@@ -125,6 +125,32 @@ Deno.serve(async (req) => {
       content: `Search launched — ${knownCount} personal message${knownCount === 1 ? "" : "s"}, ${liCount} LI DM${liCount === 1 ? "" : "s"}${linkedin_post ? ", LinkedIn post created" : ""}${campaign?.body ? ", campaign ready" : ""}${client_email_sent ? ", client confirmation sent" : ""}.`,
     } as any);
 
+    // 5) Auto-tick launch status items completed via the wizard
+    const nowIso = new Date().toISOString();
+    const wizardItems: Array<{ key: string; done: boolean }> = [
+      { key: "linkedin_post", done: !!linkedin_post },
+      { key: "candidate_messages", done: knownCount > 0 },
+      { key: "linkedin_dms", done: liCount > 0 },
+      { key: "campaign", done: !!(campaign?.body) },
+      { key: "client_confirmation", done: !!client_email_sent },
+    ];
+    const itemRows = wizardItems
+      .filter((i) => i.done)
+      .map((i) => ({
+        owner_user_id: user.id,
+        job_id,
+        item_key: i.key,
+        status: "done",
+        completed_via: "wizard",
+        completed_at: nowIso,
+        completed_by: user.id,
+        launch_id: launch.id,
+        note: null,
+      }));
+    if (itemRows.length) {
+      await sb.from("job_launch_items").upsert(itemRows as any, { onConflict: "job_id,item_key" });
+    }
+
     return json({ ok: true, launch_id: launch.id, summary });
   } catch (e: any) {
     return json({ error: e?.message || "unknown" }, 500);

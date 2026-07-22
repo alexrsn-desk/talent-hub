@@ -20,6 +20,7 @@ import { usePlacementScores, usePlacementScoreFor } from "@/hooks/use-placement-
 import { PlacementScoreBadge } from "@/components/PlacementScoreBadge";
 import { PlacementScorePanel } from "@/components/PlacementScorePanel";
 import { IntakeCallCompanionButton } from "@/components/IntakeCallCompanion";
+import { LaunchStatusSection } from "@/components/LaunchStatusSection";
 import { toast } from "sonner";
 import { logActivity } from "@/lib/activity-log";
 
@@ -437,6 +438,8 @@ export function JobFullView({ job, onBack, onUpdate, onDelete, backLabel }: {
       <JobDescriptionEditor job={job} onUpdate={onUpdate} />
 
       <CandidateMatching job={job} autoRun />
+
+      <LaunchStatusSection jobId={job.id} />
 
 
       <div>
