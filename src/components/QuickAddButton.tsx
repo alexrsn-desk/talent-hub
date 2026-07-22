@@ -61,32 +61,24 @@ export function QuickAddButton() {
 
   return (
     <>
-      {/* Split pill FAB */}
-      <div
-        role="group"
-        aria-label="Quick capture"
-        className="fixed z-50 right-4 bottom-[calc(env(safe-area-inset-bottom,0px)+1rem)] sm:bottom-5 flex items-stretch h-9 sm:h-9 w-[160px] sm:w-[160px] rounded-full bg-primary text-primary-foreground shadow-md ring-1 ring-black/10 overflow-hidden"
+      {/* Quick Note icon */}
+      <button
+        onClick={() => setNoteOpen(true)}
+        aria-label="Quick Note"
+        title="Quick Note"
+        className="fixed z-50 right-[172px] bottom-[calc(env(safe-area-inset-bottom,0px)+1rem)] sm:bottom-4 h-11 w-11 rounded-full bg-primary text-primary-foreground shadow-lg ring-1 ring-black/10 flex items-center justify-center hover:opacity-90 transition"
       >
-        <button
-          onClick={() => setNoteOpen(true)}
-          aria-label="Quick Note"
-          title="Quick Note"
-          className="flex-1 flex items-center justify-center gap-1.5 text-xs font-medium hover:bg-white/10 active:bg-white/15 transition-colors"
-        >
-          <Pencil className="h-3.5 w-3.5" />
-          <span>Note</span>
-        </button>
-        <span aria-hidden className="w-px bg-white/25 my-1.5" />
-        <button
-          onClick={() => setMode("record_picker")}
-          aria-label="Quick Add"
-          title="Quick Add"
-          className="flex-1 flex items-center justify-center gap-1.5 text-xs font-medium hover:bg-white/10 active:bg-white/15 transition-colors"
-        >
-          <Plus className="h-3.5 w-3.5" />
-          <span>Add</span>
-        </button>
-      </div>
+        <Pencil className="h-4 w-4" />
+      </button>
+      {/* Quick Add icon */}
+      <button
+        onClick={() => setMode("record_picker")}
+        aria-label="Quick Add"
+        title="Quick Add"
+        className="fixed z-50 right-[120px] bottom-[calc(env(safe-area-inset-bottom,0px)+1rem)] sm:bottom-4 h-11 w-11 rounded-full bg-primary text-primary-foreground shadow-lg ring-1 ring-black/10 flex items-center justify-center hover:opacity-90 transition"
+      >
+        <Plus className="h-4 w-4" />
+      </button>
 
       {noteOpen && <FloatingNotepad onClose={() => setNoteOpen(false)} />}
 
