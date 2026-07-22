@@ -13,14 +13,14 @@ export function useWorkflowCounts() {
     refetchInterval: 60_000,
     queryFn: async () => {
       const [jobsRes, cjRes] = await Promise.all([
-        supabase.from("jobs").select("id,status,search_launched_at").eq("owner_user_id", user!.id),
+        supabase.from("jobs").select("id,status,search_launched_at,launch_ignored_at").eq("owner_user_id", user!.id),
         supabase.from("candidate_jobs").select("job_id,stage").eq("owner_user_id", user!.id),
       ]);
       const jobs = jobsRes.data || [];
       const cj = cjRes.data || [];
 
       const activeJobs = jobs.filter((j: any) => j.status === "Active");
-      const jobLaunch = activeJobs.filter((j: any) => !j.search_launched_at).length;
+      const jobLaunch = activeJobs.filter((j: any) => !j.search_launched_at && !j.launch_ignored_at).length;
 
       const byJob = new Map<string, string[]>();
       for (const l of cj as any[]) {
