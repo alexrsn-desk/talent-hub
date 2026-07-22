@@ -193,7 +193,7 @@ export function CoachFloatingButton() {
   return (
     <button
       onClick={() => { setOpen(!open); setHasAlert(false); }}
-      className={`fixed bottom-5 right-5 z-50 flex items-center justify-center h-12 w-12 rounded-full bg-primary text-primary-foreground shadow-lg hover:shadow-xl transition-all hover:scale-105 ${
+      className={`fixed z-50 right-4 bottom-[calc(env(safe-area-inset-bottom,0px)+4.5rem)] sm:bottom-[4.75rem] flex items-center justify-center h-12 w-12 rounded-full bg-primary text-primary-foreground shadow-lg hover:shadow-xl transition-all hover:scale-105 ${
         hasAlert ? "animate-pulse" : ""
       }`}
       title="AI Coach"
