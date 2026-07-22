@@ -845,7 +845,7 @@ export function useBillersWorkflow(viewUserId?: string | null, thresholds: Bille
 
       // TRIGGER 8 — JOB CREATED BUT SEARCH NOT LAUNCHED
       for (const aj of activeJobsList) {
-        if ((aj as any).search_launched_at) continue;
+        if ((aj as any).search_launched_at || (aj as any).launch_ignored_at) continue;
         const createdDays = daysSince(aj.created_at);
         if (createdDays > 21) continue; // stale jobs handled elsewhere
         const pipelineCount = (cjs as any[]).filter((cj) => cj.job_id === aj.id).length;
