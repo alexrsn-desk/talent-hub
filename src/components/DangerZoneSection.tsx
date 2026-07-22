@@ -140,34 +140,15 @@ function LinkedInConnectionCleanup() {
     (async () => {
       setScanning(true);
       try {
-        const { data: cands, error } = await supabase
-          .from("candidates")
-          .select("id, created_at")
-          .eq("source", "LinkedIn Connection");
-        if (error) throw error;
-        const ids = (cands ?? []).map((c: any) => c.id);
+        const cands = await fetchAllLinkedInCandidates();
+        const ids = cands.map((c) => c.id);
         if (ids.length === 0) {
           setScan({ total: 0, safeToDelete: 0, withActivity: 0, earliest: null, latest: null });
           return;
         }
 
-        // Find candidates with any activity signal
-        const active = new Set<string>();
-        const chunk = <T,>(arr: T[], n: number) =>
-          Array.from({ length: Math.ceil(arr.length / n) }, (_, i) => arr.slice(i * n, i * n + n));
-        const chunks = chunk(ids, 500);
-        for (const c of chunks) {
-          const [notes, cjs, acts] = await Promise.all([
-            supabase.from("notes").select("candidate_id").in("candidate_id", c),
-            supabase.from("candidate_jobs").select("candidate_id").in("candidate_id", c),
-            supabase.from("activity_log").select("candidate_id, action_type").in("candidate_id", c).neq("action_type", "candidate_created"),
-          ]);
-          (notes.data ?? []).forEach((r: any) => r.candidate_id && active.add(r.candidate_id));
-          (cjs.data ?? []).forEach((r: any) => r.candidate_id && active.add(r.candidate_id));
-          (acts.data ?? []).forEach((r: any) => r.candidate_id && active.add(r.candidate_id));
-        }
-
-        const dates = (cands ?? []).map((c: any) => c.created_at).filter(Boolean).sort();
+        const active = await findCandidatesWithActivity(ids);
+        const dates = cands.map((c) => c.created_at).filter(Boolean).sort();
         setScan({
           total: ids.length,
           withActivity: active.size,
@@ -188,38 +169,20 @@ function LinkedInConnectionCleanup() {
     if (!scan) return;
     setBusy(true);
     try {
-      // Re-fetch safe ids at delete time (still filter out any that gained activity since scan)
-      const { data: cands, error } = await supabase
-        .from("candidates")
-        .select("id")
-        .eq("source", "LinkedIn Connection");
-      if (error) throw error;
-      const allIds = (cands ?? []).map((c: any) => c.id);
-
-      const active = new Set<string>();
-      const chunk = <T,>(arr: T[], n: number) =>
-        Array.from({ length: Math.ceil(arr.length / n) }, (_, i) => arr.slice(i * n, i * n + n));
-      for (const c of chunk(allIds, 500)) {
-        const [notes, cjs, acts] = await Promise.all([
-          supabase.from("notes").select("candidate_id").in("candidate_id", c),
-          supabase.from("candidate_jobs").select("candidate_id").in("candidate_id", c),
-          supabase.from("activity_log").select("candidate_id, action_type").in("candidate_id", c).neq("action_type", "candidate_created"),
-        ]);
-        (notes.data ?? []).forEach((r: any) => r.candidate_id && active.add(r.candidate_id));
-        (cjs.data ?? []).forEach((r: any) => r.candidate_id && active.add(r.candidate_id));
-        (acts.data ?? []).forEach((r: any) => r.candidate_id && active.add(r.candidate_id));
-      }
-      const deletable = allIds.filter((id: string) => !active.has(id));
+      const cands = await fetchAllLinkedInCandidates();
+      const allIds = cands.map((c) => c.id);
+      const active = await findCandidatesWithActivity(allIds);
+      const deletable = allIds.filter((id) => !active.has(id));
 
       // Best-effort cleanup of dependent rows that don't cascade
-      for (const c of chunk(deletable, 500)) {
+      for (const c of chunkArr(deletable, 500)) {
         await supabase.from("candidate_tags").delete().in("candidate_id", c);
         await supabase.from("candidate_talent_pools").delete().in("candidate_id", c);
         await supabase.from("activity_log").delete().in("candidate_id", c);
       }
 
       let deleted = 0;
-      for (const c of chunk(deletable, 500)) {
+      for (const c of chunkArr(deletable, 500)) {
         const { error: delErr, count } = await supabase
           .from("candidates")
           .delete({ count: "exact" })
@@ -228,7 +191,6 @@ function LinkedInConnectionCleanup() {
         deleted += count ?? c.length;
       }
 
-      // Audit record
       await logActivity({
         action_type: "candidate_deleted",
         metadata: {
@@ -360,4 +322,43 @@ function Row({ label, value, strong }: { label: string; value: string; strong?: 
       <span className={strong ? "font-semibold text-foreground" : "text-foreground"}>{value}</span>
     </div>
   );
+}
+
+function chunkArr<T>(arr: T[], n: number): T[][] {
+  return Array.from({ length: Math.ceil(arr.length / n) }, (_, i) => arr.slice(i * n, i * n + n));
+}
+
+async function fetchAllLinkedInCandidates(): Promise<{ id: string; created_at: string | null }[]> {
+  const pageSize = 1000;
+  const out: { id: string; created_at: string | null }[] = [];
+  let from = 0;
+  while (true) {
+    const { data, error } = await supabase
+      .from("candidates")
+      .select("id, created_at")
+      .eq("source", "LinkedIn Connection")
+      .order("created_at", { ascending: true })
+      .range(from, from + pageSize - 1);
+    if (error) throw error;
+    const rows = (data ?? []) as any[];
+    out.push(...rows.map((r) => ({ id: r.id, created_at: r.created_at })));
+    if (rows.length < pageSize) break;
+    from += pageSize;
+  }
+  return out;
+}
+
+async function findCandidatesWithActivity(ids: string[]): Promise<Set<string>> {
+  const active = new Set<string>();
+  for (const c of chunkArr(ids, 300)) {
+    const [notes, cjs, acts] = await Promise.all([
+      supabase.from("notes").select("candidate_id").in("candidate_id", c).limit(1000),
+      supabase.from("candidate_jobs").select("candidate_id").in("candidate_id", c).limit(1000),
+      supabase.from("activity_log").select("candidate_id, action_type").in("candidate_id", c).neq("action_type", "candidate_created").limit(1000),
+    ]);
+    (notes.data ?? []).forEach((r: any) => r.candidate_id && active.add(r.candidate_id));
+    (cjs.data ?? []).forEach((r: any) => r.candidate_id && active.add(r.candidate_id));
+    (acts.data ?? []).forEach((r: any) => r.candidate_id && active.add(r.candidate_id));
+  }
+  return active;
 }
