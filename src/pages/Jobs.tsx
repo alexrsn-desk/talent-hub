@@ -439,6 +439,8 @@ export function JobFullView({ job, onBack, onUpdate, onDelete, backLabel }: {
 
       <CandidateMatching job={job} autoRun />
 
+      <LaunchStatusSection jobId={job.id} />
+
 
       <div>
         <h2 className="text-sm font-medium mb-3">Candidate Pipeline</h2>
