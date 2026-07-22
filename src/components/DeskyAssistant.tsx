@@ -178,7 +178,7 @@ export function DeskyAssistantTrigger() {
   return (
     <button
       onClick={() => setOpen(true)}
-      className="fixed bottom-6 right-6 z-50 h-11 pl-3 pr-4 rounded-full bg-primary text-primary-foreground shadow-lg hover:opacity-90 flex items-center gap-2 text-sm"
+      className="fixed z-50 right-4 bottom-[calc(env(safe-area-inset-bottom,0px)+9rem)] sm:bottom-36 h-11 pl-3 pr-4 rounded-full bg-primary text-primary-foreground shadow-lg hover:opacity-90 flex items-center gap-2 text-sm"
       aria-label="Open Desky assistant (⌘K)"
     >
       <Sparkles className="h-4 w-4" />
