@@ -1704,6 +1704,9 @@ export type Database = {
           job_type: string
           key_skills: string[]
           launch_hook: string | null
+          launch_ignored_at: string | null
+          launch_ignored_by: string | null
+          launch_ignored_reason: string | null
           launch_summary: Json | null
           location: string | null
           owner_user_id: string | null
@@ -1731,6 +1734,9 @@ export type Database = {
           job_type?: string
           key_skills?: string[]
           launch_hook?: string | null
+          launch_ignored_at?: string | null
+          launch_ignored_by?: string | null
+          launch_ignored_reason?: string | null
           launch_summary?: Json | null
           location?: string | null
           owner_user_id?: string | null
@@ -1758,6 +1764,9 @@ export type Database = {
           job_type?: string
           key_skills?: string[]
           launch_hook?: string | null
+          launch_ignored_at?: string | null
+          launch_ignored_by?: string | null
+          launch_ignored_reason?: string | null
           launch_summary?: Json | null
           location?: string | null
           owner_user_id?: string | null
