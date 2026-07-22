@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, createContext, useContext } from "react";
 import ReactMarkdown from "react-markdown";
-import { Send, Sparkles, Loader2, Trash2, X, Copy, Check } from "lucide-react";
+import { Send, Sparkles, Loader2, Trash2, X, Copy, Check, Lightbulb } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { useFeatureLimit, useLogUsage } from "@/hooks/use-usage";
@@ -193,14 +193,15 @@ export function CoachFloatingButton() {
   return (
     <button
       onClick={() => { setOpen(!open); setHasAlert(false); }}
-      className={`fixed z-50 right-4 bottom-[calc(env(safe-area-inset-bottom,0px)+4.5rem)] sm:bottom-[4.75rem] flex items-center justify-center h-12 w-12 rounded-full bg-primary text-primary-foreground shadow-lg hover:shadow-xl transition-all hover:scale-105 ${
+      className={`fixed z-50 right-4 bottom-[calc(env(safe-area-inset-bottom,0px)+1rem)] sm:bottom-4 flex items-center justify-center h-11 w-11 rounded-full bg-primary text-primary-foreground shadow-lg ring-1 ring-black/10 hover:opacity-90 transition ${
         hasAlert ? "animate-pulse" : ""
       }`}
+      aria-label="AI Coach"
       title="AI Coach"
     >
-      <Sparkles className="h-5 w-5" />
+      <Lightbulb className="h-4 w-4" />
       {hasAlert && (
-        <span className="absolute -top-0.5 -right-0.5 h-3.5 w-3.5 rounded-full bg-destructive border-2 border-background" />
+        <span className="absolute -top-0.5 -right-0.5 h-3 w-3 rounded-full bg-destructive border-2 border-background" />
       )}
     </button>
   );
