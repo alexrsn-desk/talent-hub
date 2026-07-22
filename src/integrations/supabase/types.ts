@@ -1505,6 +1505,66 @@ export type Database = {
         }
         Relationships: []
       }
+      job_launch_items: {
+        Row: {
+          completed_at: string | null
+          completed_by: string | null
+          completed_via: string | null
+          created_at: string
+          id: string
+          item_key: string
+          job_id: string
+          launch_id: string | null
+          note: string | null
+          owner_user_id: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          completed_at?: string | null
+          completed_by?: string | null
+          completed_via?: string | null
+          created_at?: string
+          id?: string
+          item_key: string
+          job_id: string
+          launch_id?: string | null
+          note?: string | null
+          owner_user_id: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          completed_at?: string | null
+          completed_by?: string | null
+          completed_via?: string | null
+          created_at?: string
+          id?: string
+          item_key?: string
+          job_id?: string
+          launch_id?: string | null
+          note?: string | null
+          owner_user_id?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "job_launch_items_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "jobs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "job_launch_items_launch_id_fkey"
+            columns: ["launch_id"]
+            isOneToOne: false
+            referencedRelation: "job_launches"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       job_launches: {
         Row: {
           campaign_body: string | null
