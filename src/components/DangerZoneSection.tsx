@@ -140,34 +140,15 @@ function LinkedInConnectionCleanup() {
     (async () => {
       setScanning(true);
       try {
-        const { data: cands, error } = await supabase
-          .from("candidates")
-          .select("id, created_at")
-          .eq("source", "LinkedIn Connection");
-        if (error) throw error;
-        const ids = (cands ?? []).map((c: any) => c.id);
+        const cands = await fetchAllLinkedInCandidates();
+        const ids = cands.map((c) => c.id);
         if (ids.length === 0) {
           setScan({ total: 0, safeToDelete: 0, withActivity: 0, earliest: null, latest: null });
           return;
         }
 
-        // Find candidates with any activity signal
-        const active = new Set<string>();
-        const chunk = <T,>(arr: T[], n: number) =>
-          Array.from({ length: Math.ceil(arr.length / n) }, (_, i) => arr.slice(i * n, i * n + n));
-        const chunks = chunk(ids, 500);
-        for (const c of chunks) {
-          const [notes, cjs, acts] = await Promise.all([
-            supabase.from("notes").select("candidate_id").in("candidate_id", c),
-            supabase.from("candidate_jobs").select("candidate_id").in("candidate_id", c),
-            supabase.from("activity_log").select("candidate_id, action_type").in("candidate_id", c).neq("action_type", "candidate_created"),
-          ]);
-          (notes.data ?? []).forEach((r: any) => r.candidate_id && active.add(r.candidate_id));
-          (cjs.data ?? []).forEach((r: any) => r.candidate_id && active.add(r.candidate_id));
-          (acts.data ?? []).forEach((r: any) => r.candidate_id && active.add(r.candidate_id));
-        }
-
-        const dates = (cands ?? []).map((c: any) => c.created_at).filter(Boolean).sort();
+        const active = await findCandidatesWithActivity(ids);
+        const dates = cands.map((c) => c.created_at).filter(Boolean).sort();
         setScan({
           total: ids.length,
           withActivity: active.size,
