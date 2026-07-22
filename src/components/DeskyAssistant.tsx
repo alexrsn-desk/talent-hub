@@ -178,12 +178,11 @@ export function DeskyAssistantTrigger() {
   return (
     <button
       onClick={() => setOpen(true)}
-      className="fixed z-50 right-4 bottom-[calc(env(safe-area-inset-bottom,0px)+9rem)] sm:bottom-36 h-11 pl-3 pr-4 rounded-full bg-primary text-primary-foreground shadow-lg hover:opacity-90 flex items-center gap-2 text-sm"
-      aria-label="Open Desky assistant (⌘K)"
+      className="fixed z-50 right-[68px] bottom-[calc(env(safe-area-inset-bottom,0px)+1rem)] sm:bottom-4 h-11 w-11 rounded-full bg-primary text-primary-foreground shadow-lg ring-1 ring-black/10 flex items-center justify-center hover:opacity-90 transition"
+      aria-label="Ask Desky (⌘K)"
+      title="Ask Desky (⌘K)"
     >
       <Sparkles className="h-4 w-4" />
-      <span>Ask Desky</span>
-      <kbd className="hidden sm:inline text-[10px] bg-primary-foreground/20 rounded px-1.5 py-0.5">⌘K</kbd>
     </button>
   );
 }
