@@ -51,9 +51,12 @@ export function DangerZoneSection() {
       <p className="text-xs text-muted-foreground">
         Permanently remove all imported and added data from your account. Your profile, settings, templates and talent pool definitions are kept.
       </p>
-      <Button variant="destructive" size="sm" onClick={() => setOpen(true)}>
-        Clear all data
-      </Button>
+      <div className="flex flex-wrap gap-2">
+        <Button variant="destructive" size="sm" onClick={() => setOpen(true)}>
+          Clear all data
+        </Button>
+        <LinkedInConnectionCleanup />
+      </div>
 
       <Dialog open={open} onOpenChange={(v) => { if (!v) reset(); setOpen(v); }}>
         <DialogContent className="max-w-lg">
