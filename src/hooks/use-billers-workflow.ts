@@ -42,9 +42,12 @@ export type BillerItem = {
   logEntityName?: string;
   bdTarget?: boolean;
   pipelineGap?: PipelineGapData;
-  kind?: "derived" | "conversation";
+  kind?: "derived" | "conversation" | "grouped";
   sourceQuote?: string;
   sourceLabel?: string;
+  /** When present, this row is a rolled-up pattern; individual items live in `children`. */
+  children?: BillerItem[];
+  groupCount?: number;
 };
 
 export type BillerThresholds = {
