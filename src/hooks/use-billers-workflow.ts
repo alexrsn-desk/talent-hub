@@ -42,9 +42,12 @@ export type BillerItem = {
   logEntityName?: string;
   bdTarget?: boolean;
   pipelineGap?: PipelineGapData;
-  kind?: "derived" | "conversation";
+  kind?: "derived" | "conversation" | "grouped";
   sourceQuote?: string;
   sourceLabel?: string;
+  /** When present, this row is a rolled-up pattern; individual items live in `children`. */
+  children?: BillerItem[];
+  groupCount?: number;
 };
 
 export type BillerThresholds = {
@@ -126,6 +129,173 @@ function isDone(id: string): boolean {
 
 const stripHidden = (arr: BillerItem[]) =>
   arr.filter((it) => !isSnoozed(it.id) && !isDone(it.id));
+
+/**
+ * Roll up recurring patterns into a single calm row.
+ *
+ * Rule: if 2+ items share the same underlying pattern (same idPrefix), collapse
+ * them into one "ensure X across N candidates" row with the originals available
+ * as children for the expanded view. Singletons stay as-is. Genuinely urgent
+ * singular items (empty-pipeline red alerts, counter-offer risks, specific
+ * client silences, conversation-extracted facts) are NEVER grouped — they
+ * remain sharp and distinct.
+ */
+type GroupSpec = {
+  idPrefix: string;
+  key: string;                 // stable id for the grouped row
+  title: (n: number) => string;
+  action: (n: number) => string;
+  signal?: string;
+  section: "close" | "feed";
+  tone: BillerTone;            // calm tone for grouped rows
+  href?: string;
+};
+
+const GROUP_SPECS: GroupSpec[] = [
+  {
+    idPrefix: "cp-backup-",
+    key: "group-cp-backup",
+    section: "close", tone: "amber", href: "/jobs",
+    title: (n) => `Ensure all ${n} late-stage candidates have a backup on the shortlist`,
+    action: (n) => `Add one backup for each of the ${n} finals`,
+    signal: "Finals fall through ~30% of the time — a shortlist backup keeps each deal alive.",
+  },
+  {
+    idPrefix: "cp-offercold-",
+    key: "group-cp-offercold",
+    section: "close", tone: "amber", href: "/jobs",
+    title: (n) => `Check in on ${n} offers that have gone quiet`,
+    action: () => `Call each one today — not email`,
+    signal: "Silence on an offer usually means something's happening — a quick call closes the gap.",
+  },
+  {
+    idPrefix: "cp-notice-",
+    key: "group-cp-notice",
+    section: "close", tone: "amber", href: "/jobs",
+    title: (n) => `Prep counter-offer coverage for ${n} long-notice candidates`,
+    action: () => `Schedule 2-week check-ins + send counter-offer prep notes`,
+    signal: "Long notice periods are when counter-offers land — stay close.",
+  },
+  {
+    idPrefix: "ftb-silver-",
+    key: "group-ftb-silver",
+    section: "feed", tone: "green", href: "/candidates",
+    title: (n) => `Re-engage ${n} silver medallists into live roles`,
+    action: () => `Pitch each into a fresh role this week`,
+    signal: "Warm candidates who already know your process — worth another shot.",
+  },
+  {
+    idPrefix: "ftb-ref-",
+    key: "group-ftb-ref",
+    section: "feed", tone: "green", href: "/candidates",
+    title: (n) => `Settled-in check-in with ${n} placed candidates + referral ask`,
+    action: () => `Call each — ask how it's going, ask who's looking`,
+    signal: "Placed candidates are your best referral source once they're settled.",
+  },
+  {
+    idPrefix: "ftb-bd-",
+    key: "group-ftb-bd",
+    section: "feed", tone: "green", href: "/clients",
+    title: (n) => `Reactivate ${n} past clients who haven't heard from you`,
+    action: () => `Lead each call with a candidate or insight — not a check-in`,
+    signal: "Past clients are 5x more likely to hire again — keep them warm.",
+  },
+  {
+    idPrefix: "ftb-warm-",
+    key: "group-ftb-warm",
+    section: "feed", tone: "green", href: "/clients",
+    title: (n) => `Follow up with ${n} warm prospects gone quiet`,
+    action: () => `Reach out with something useful, not a check-in`,
+    signal: "Warm relationships cool quickly — a light touch keeps them alive.",
+  },
+  {
+    idPrefix: "ftb-pitch-",
+    key: "group-ftb-pitch",
+    section: "feed", tone: "green", href: "/candidates",
+    title: (n) => `Pitch ${n} strong candidates speculatively`,
+    action: () => `Open Find Opportunities for each`,
+    signal: "Strong active candidates with no live role — worth putting to market.",
+  },
+  {
+    idPrefix: "ftb-launch-",
+    key: "group-ftb-launch",
+    section: "feed", tone: "green",
+    title: (n) => `Launch searches for ${n} new jobs`,
+    action: () => `Run the 10-min launch workflow on each`,
+    signal: "New jobs sit still until launched — get the campaign moving.",
+  },
+  {
+    idPrefix: "ftb-derived-",
+    key: "group-ftb-derived",
+    section: "feed", tone: "amber",
+    title: (n) => `Send warm candidates to ${n} matching live roles`,
+    action: () => `Submit each while the conversation is fresh`,
+    signal: "Recent conversation + strong role match — highest-conversion pitches you have.",
+  },
+  {
+    idPrefix: "cp-quiet-",
+    key: "group-cp-quiet",
+    section: "close", tone: "amber", href: "/clients",
+    title: (n) => `Chase feedback from ${n} clients sitting on submissions`,
+    action: () => `Call each — silence means something needs unblocking`,
+    signal: "CVs going unread means too busy, not right, or lost interest — all three need a call.",
+  },
+  {
+    idPrefix: "cp-livesilence-",
+    key: "group-cp-livesilence",
+    section: "close", tone: "amber", href: "/clients",
+    title: (n) => `Proactive update to ${n} live clients who've gone quiet`,
+    action: () => `Call each before they chase you`,
+    signal: "Silence from a client mid-process is a warning sign.",
+  },
+];
+
+function groupPatterns(items: BillerItem[]): BillerItem[] {
+  const spec = new Map<string, GroupSpec>();
+  for (const g of GROUP_SPECS) spec.set(g.idPrefix, g);
+
+  const buckets = new Map<string, BillerItem[]>();
+  const passthrough: BillerItem[] = [];
+
+  for (const it of items) {
+    let matched: GroupSpec | undefined;
+    for (const g of GROUP_SPECS) {
+      if (it.id.startsWith(g.idPrefix)) { matched = g; break; }
+    }
+    if (!matched) { passthrough.push(it); continue; }
+    const arr = buckets.get(matched.key) || [];
+    arr.push(it);
+    buckets.set(matched.key, arr);
+  }
+
+  const grouped: BillerItem[] = [...passthrough];
+  for (const [key, arr] of buckets.entries()) {
+    if (arr.length < 2) { grouped.push(...arr); continue; }
+    const g = GROUP_SPECS.find((s) => s.key === key)!;
+    const sorted = arr.slice().sort((a, b) => b.urgency - a.urgency);
+    const maxUrgency = sorted[0].urgency;
+    // Grouped rows sit slightly below their most urgent child so genuinely
+    // urgent singletons still rise above calm rolled-up patterns.
+    const groupUrgency = Math.max(40, Math.round(maxUrgency * 0.75));
+    grouped.push({
+      id: g.key,
+      title: g.title(arr.length),
+      sub: `${arr.length} items · roll-up`,
+      signal: g.signal,
+      action: g.action(arr.length),
+      href: g.href,
+      urgency: groupUrgency,
+      tone: g.tone,
+      section: g.section,
+      kind: "grouped",
+      children: sorted,
+      groupCount: arr.length,
+    });
+  }
+  grouped.sort((a, b) => b.urgency - a.urgency);
+  return grouped;
+}
+
 
 export function useBillersWorkflow(viewUserId?: string | null, thresholds: BillerThresholds = DEFAULT_THRESHOLDS) {
   return useQuery({
@@ -1145,9 +1315,12 @@ export function useBillersWorkflow(viewUserId?: string | null, thresholds: Bille
       closeProtect.sort((a,b) => b.urgency - a.urgency);
       feedTheBeast.sort((a,b) => b.urgency - a.urgency);
 
+      const groupedClose = groupPatterns(stripHidden(closeProtect));
+      const groupedFeed = groupPatterns(stripHidden(feedTheBeast));
+
       return {
-        closeProtect: stripHidden(closeProtect).slice(0, 40),
-        feedTheBeast: stripHidden(feedTheBeast).slice(0, 40),
+        closeProtect: groupedClose.slice(0, 40),
+        feedTheBeast: groupedFeed.slice(0, 40),
         bdSilenceDays,
         recentPlacement,
         navinMode,
