@@ -190,16 +190,15 @@ async function computeAutoValues(
         cutoff.setDate(cutoff.getDate() - 7);
         const { data: notes } = await supabase
           .from("notes")
-          .select("entity_type, entity_id, created_at")
+          .select("job_id, candidate_id, created_at")
           .eq("owner_user_id", userId)
           .gte("created_at", cutoff.toISOString());
-        const jobsWithNote = new Set<string>();
-        // Direct notes on a job, or on a candidate that's in the job pipeline
         const jobIdSet = new Set(jobIds);
+        const jobsWithNote = new Set<string>();
         const candIdsToCheck: string[] = [];
         for (const n of (notes || []) as any[]) {
-          if (n.entity_type === "job" && jobIdSet.has(n.entity_id)) jobsWithNote.add(n.entity_id);
-          if (n.entity_type === "candidate") candIdsToCheck.push(n.entity_id);
+          if (n.job_id && jobIdSet.has(n.job_id)) jobsWithNote.add(n.job_id);
+          if (n.candidate_id) candIdsToCheck.push(n.candidate_id);
         }
         if (candIdsToCheck.length) {
           const { data: cjLinks } = await supabase
