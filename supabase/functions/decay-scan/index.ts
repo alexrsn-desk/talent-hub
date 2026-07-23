@@ -227,8 +227,7 @@ Deno.serve(async (req) => {
       if (existing?.snoozed_until && existing.snoozed_until > todayDate) continue;
 
       // Default upsert without surfacing yet
-      upserts.push({
-        id: existing?.id,
+      const row: any = {
         owner_user_id: userId,
         entity_type: item.entity_type,
         entity_id: item.entity_id,
@@ -244,7 +243,9 @@ Deno.serve(async (req) => {
         snoozed_until: existing?.snoozed_until ?? null,
         last_scanned_at: new Date().toISOString(),
         surfaced_at: existing?.surfaced_at ?? null,
-      });
+      };
+      if (existing?.id) row.id = existing.id;
+      upserts.push(row);
     }
 
     // Try to generate a reason for each candidate (AI optional — heuristic fallback first)
