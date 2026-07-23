@@ -20,6 +20,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { PipelineGapDialog } from "@/components/PipelineGapDialog";
+import { WeeklyStandards } from "@/components/WeeklyStandards";
+import { useWeeklyStandards, daysElapsedInWeek } from "@/hooks/use-weekly-standards";
 
 // ---- Cockpit palette (intentionally hard-coded — this page has its own visual identity) ----
 const COCKPIT = {
@@ -343,11 +345,41 @@ export default function BillersWorkflow() {
 
   const navinMode = sections.navinMode;
 
+  // Weekly standards — top-of-page plates + inject behind-pace signals into the ranked list.
+  const { data: standardsData } = useWeeklyStandards(1);
+  const standardsSignals = useMemo<BillerItem[]>(() => {
+    if (!standardsData) return [];
+    const daysIn = daysElapsedInWeek();
+    // Only start nagging once the week is a bit underway.
+    if (daysIn < 1.5) return [];
+    const items: BillerItem[] = [];
+    for (const plate of standardsData.plates) {
+      for (const it of plate.items) {
+        if (!it.behindPace) continue;
+        if (it.target.unit === "percent") continue; // percent targets nag less aggressively
+        const gap = Math.max(1, Math.ceil(it.expectedByNow - it.actual));
+        items.push({
+          id: `weekly:${it.target.key}`,
+          title: `Weekly standard behind pace — ${it.target.label}`,
+          sub: `${plate.label} · ${it.actual}/${it.target.target_value} this week (need ~${gap} more to catch up)`,
+          signal: it.criticallyBehind ? "Slipping — well below pace with the week half gone" : "Behind pace for this week",
+          action: it.target.tracking_mode === "manual" ? "Log the ones you've done + do a few more today" : "Take action to catch up",
+          urgency: it.criticallyBehind ? 78 : 62,
+          tone: it.criticallyBehind ? "red" : "amber",
+          section: plate.category === "bd" || plate.category === "marketing" ? "feed" : "close",
+          kind: "derived",
+          sourceLabel: "Weekly standards",
+        });
+      }
+    }
+    return items;
+  }, [standardsData]);
+
   // Unified, ranked list (Close & Protect + Feed the Beast merged, top-urgency first).
   const allItems = useMemo(() => {
-    const merged = [...(sections?.closeProtect || []), ...(sections?.feedTheBeast || [])];
+    const merged = [...(sections?.closeProtect || []), ...(sections?.feedTheBeast || []), ...standardsSignals];
     return merged.sort((a, b) => b.urgency - a.urgency);
-  }, [sections]);
+  }, [sections, standardsSignals]);
   const [expandedId, setExpandedId] = useState<string | null>(null);
 
   return (
@@ -424,6 +456,9 @@ export default function BillersWorkflow() {
           </button>
         </div>
       </div>
+
+      {/* ============== WEEKLY STANDARDS PLATES ============== */}
+      <WeeklyStandards />
 
       {/* ============== STATE BANNERS ============== */}
       <div className="px-6 pt-4 space-y-2">
