@@ -457,6 +457,9 @@ export default function BillersWorkflow() {
         </div>
       </div>
 
+      {/* ============== WEEKLY STANDARDS PLATES ============== */}
+      <WeeklyStandards />
+
       {/* ============== STATE BANNERS ============== */}
       <div className="px-6 pt-4 space-y-2">
         {sections.recentPlacement && (
