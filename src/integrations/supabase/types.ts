@@ -3347,6 +3347,84 @@ export type Database = {
         }
         Relationships: []
       }
+      weekly_standards_checkins: {
+        Row: {
+          id: string
+          note: string | null
+          target_key: string
+          updated_at: string
+          user_id: string
+          value: number
+          week_start: string
+        }
+        Insert: {
+          id?: string
+          note?: string | null
+          target_key: string
+          updated_at?: string
+          user_id: string
+          value?: number
+          week_start: string
+        }
+        Update: {
+          id?: string
+          note?: string | null
+          target_key?: string
+          updated_at?: string
+          user_id?: string
+          value?: number
+          week_start?: string
+        }
+        Relationships: []
+      }
+      weekly_standards_targets: {
+        Row: {
+          auto_source: string | null
+          category: string
+          created_at: string
+          enabled: boolean
+          id: string
+          key: string
+          label: string
+          sort_order: number
+          target_value: number
+          tracking_mode: string
+          unit: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          auto_source?: string | null
+          category: string
+          created_at?: string
+          enabled?: boolean
+          id?: string
+          key: string
+          label: string
+          sort_order?: number
+          target_value?: number
+          tracking_mode?: string
+          unit?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          auto_source?: string | null
+          category?: string
+          created_at?: string
+          enabled?: boolean
+          id?: string
+          key?: string
+          label?: string
+          sort_order?: number
+          target_value?: number
+          tracking_mode?: string
+          unit?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       weekly_summaries: {
         Row: {
           created_at: string
