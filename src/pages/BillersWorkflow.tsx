@@ -20,6 +20,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { PipelineGapDialog } from "@/components/PipelineGapDialog";
+import { WeeklyStandards } from "@/components/WeeklyStandards";
+import { useWeeklyStandards, daysElapsedInWeek } from "@/hooks/use-weekly-standards";
 
 // ---- Cockpit palette (intentionally hard-coded — this page has its own visual identity) ----
 const COCKPIT = {
