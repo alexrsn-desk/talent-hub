@@ -187,10 +187,10 @@ function BillerRow({
       {/* expanded detail */}
       <div
         className="overflow-hidden transition-all duration-200 ease-in-out"
-        style={{ maxHeight: expanded ? 320 : 0, background: COCKPIT.card }}
+        style={{ maxHeight: expanded ? (item.children ? 520 : 320) : 0, background: COCKPIT.card }}
       >
         <div className="px-6 pb-3 pt-1 space-y-1.5" style={{ borderLeft: `2px solid ${accent}` }}>
-          {item.sub && item.sub !== reason && (
+          {item.sub && item.sub !== reason && !item.children && (
             <div className="text-[12px]" style={{ color: COCKPIT.textMuted }}>{item.sub}</div>
           )}
           {item.signal && item.sub && item.signal !== reason && item.kind !== "conversation" && (
@@ -211,19 +211,53 @@ function BillerRow({
           )}
           <div className="text-[12px] font-medium" style={{ color: accent }}>→ {item.action}</div>
 
+          {item.children && item.children.length > 0 && (
+            <div className="mt-2 rounded overflow-hidden max-h-[340px] overflow-y-auto" style={{ background: "rgba(0,0,0,0.15)", border: "1px solid rgba(255,255,255,0.05)" }}>
+              <div className="px-2 py-1.5 text-[10px] uppercase tracking-wide" style={{ color: COCKPIT.textDim, borderBottom: "1px solid rgba(255,255,255,0.05)" }}>
+                {item.children.length} individual items
+              </div>
+              <div className="divide-y" style={{ borderColor: "rgba(255,255,255,0.04)" }}>
+                {item.children.map((child) => (
+                  <button
+                    key={child.id}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      if (child.pipelineGap && onOpenGap) onOpenGap(child);
+                      else if (child.href) nav(child.href);
+                    }}
+                    className="w-full text-left px-2 py-1.5 hover:bg-white/5 transition-colors flex items-start gap-2"
+                  >
+                    <span
+                      className="mt-1.5 shrink-0 rounded-full"
+                      style={{ width: 5, height: 5, background: toneColor(child.tone) }}
+                      aria-hidden
+                    />
+                    <div className="min-w-0 flex-1">
+                      <div className="text-[12px] truncate" style={{ color: COCKPIT.textPrimary }}>{child.title}</div>
+                      {(child.sub || child.signal) && (
+                        <div className="text-[11px] truncate" style={{ color: COCKPIT.textMuted }}>{child.sub || child.signal}</div>
+                      )}
+                    </div>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
           <div className="flex items-center gap-3 pt-1">
-            {(item.href || item.pipelineGap) && (
+            {(item.href || item.pipelineGap) && !item.children && (
               <button onClick={openLink} className="text-[11px] font-medium hover:underline" style={{ color: COCKPIT.blue }}>
                 Open →
               </button>
             )}
-            {(item.id.startsWith("ftb-bd") || item.id.startsWith("ftb-ref") || item.id.startsWith("ftb-warm") || item.id.startsWith("ftb-silver")) && (
+            {(item.id.startsWith("ftb-bd") || item.id.startsWith("ftb-ref") || item.id.startsWith("ftb-warm") || item.id.startsWith("ftb-silver") || item.id === "group-ftb-bd" || item.id === "group-ftb-ref" || item.id === "group-ftb-warm" || item.id === "group-ftb-silver") && (
               <button
                 onClick={(e) => {
                   e.stopPropagation();
-                  const group = item.id.startsWith("ftb-bd") ? "past_clients"
-                    : item.id.startsWith("ftb-ref") ? "placed_candidates"
-                    : item.id.startsWith("ftb-warm") ? "warm_prospects" : "";
+                  const isBd = item.id.startsWith("ftb-bd") || item.id === "group-ftb-bd";
+                  const isRef = item.id.startsWith("ftb-ref") || item.id === "group-ftb-ref";
+                  const isWarm = item.id.startsWith("ftb-warm") || item.id === "group-ftb-warm";
+                  const group = isBd ? "past_clients" : isRef ? "placed_candidates" : isWarm ? "warm_prospects" : "";
                   nav(`/reactivation${group ? `?group=${group}` : ""}`);
                 }}
                 className="text-[11px] font-medium inline-flex items-center gap-1 hover:underline"
