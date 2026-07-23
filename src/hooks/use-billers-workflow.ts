@@ -1148,9 +1148,12 @@ export function useBillersWorkflow(viewUserId?: string | null, thresholds: Bille
       closeProtect.sort((a,b) => b.urgency - a.urgency);
       feedTheBeast.sort((a,b) => b.urgency - a.urgency);
 
+      const groupedClose = groupPatterns(stripHidden(closeProtect));
+      const groupedFeed = groupPatterns(stripHidden(feedTheBeast));
+
       return {
-        closeProtect: stripHidden(closeProtect).slice(0, 40),
-        feedTheBeast: stripHidden(feedTheBeast).slice(0, 40),
+        closeProtect: groupedClose.slice(0, 40),
+        feedTheBeast: groupedFeed.slice(0, 40),
         bdSilenceDays,
         recentPlacement,
         navinMode,
