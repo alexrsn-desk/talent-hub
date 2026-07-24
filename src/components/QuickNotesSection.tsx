@@ -1,12 +1,13 @@
 import { useState } from "react";
-import { Inbox, Check, Trash2, ListPlus, Link as LinkIcon, ChevronDown, ChevronRight, Search, X } from "lucide-react";
+import { Inbox, Check, Trash2, ListPlus, Link as LinkIcon, ChevronDown, ChevronRight, Search, X, UserPlus } from "lucide-react";
 import { useQuickNotes, useUpdateQuickNote, useDeleteQuickNote, type QuickNote } from "@/hooks/use-quick-notes";
-import { useCandidates, useClients, useContacts, useCreateNote } from "@/hooks/use-data";
+import { useCandidates, useClients, useContacts, useCreateNote, useCreateCandidate } from "@/hooks/use-data";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import { parseNoteIntent, matchCandidatesByName } from "@/lib/quick-note-parse";
+import { parseNoteIntent, matchCandidatesByName, extractCandidateHints } from "@/lib/quick-note-parse";
 
 export function QuickNotesSection() {
   const { data: notes = [] } = useQuickNotes("inbox");
