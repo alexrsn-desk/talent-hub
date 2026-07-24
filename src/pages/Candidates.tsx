@@ -544,6 +544,8 @@ export default function CandidatesPage() {
       last_contacted: meta?.last ?? null,
       in_pipeline: aggregates?.candidatesInPipeline.has(c.id) ?? false,
       notes_excerpt: meta?.excerpt ?? null,
+      summary: (c as any).summary ?? null,
+      note: (c as any).note ?? null,
     };
   }), [candidates, aggregates]);
 
