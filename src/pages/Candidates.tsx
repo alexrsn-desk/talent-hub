@@ -950,9 +950,10 @@ export default function CandidatesPage() {
              );
            })}
          </div>
+        )}
 
-         {/* Desktop table view */}
-         <div className="hidden sm:block rounded-lg border border-border overflow-hidden">
+        {!isMobile && (
+         <div ref={tableScrollRef} className="rounded-lg border border-border overflow-auto max-h-[calc(100vh-260px)]">
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-border bg-muted/30">
