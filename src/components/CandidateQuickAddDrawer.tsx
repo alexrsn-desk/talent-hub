@@ -10,6 +10,10 @@ import { toast } from "sonner";
 import mammoth from "mammoth";
 import { supabase } from "@/integrations/supabase/client";
 import { useCreateCandidate, useCreateNote } from "@/hooks/use-data";
+import { StagedPoolSelector } from "@/components/StagedPoolSelector";
+import { BucketSelector } from "@/components/BucketSelector";
+import { useAddCandidatesToPool } from "@/hooks/use-talent-pools";
+import { useAddToBuckets } from "@/hooks/use-buckets";
 
 const ACCEPT = ".pdf,.doc,.docx,.txt,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain";
 
@@ -66,6 +70,8 @@ export function CandidateQuickAddDrawer({ open, onOpenChange, onCreated }: Props
   const [tab, setTab] = useState<"cv" | "manual">("cv");
   const create = useCreateCandidate();
   const createNote = useCreateNote();
+  const addToPools = useAddCandidatesToPool();
+  const addToBuckets = useAddToBuckets();
 
   // CV state
   const inputRef = useRef<HTMLInputElement>(null);
@@ -79,6 +85,10 @@ export function CandidateQuickAddDrawer({ open, onOpenChange, onCreated }: Props
   // Manual state
   const [manual, setManual] = useState<Fields>(EMPTY);
 
+  // Grouping (shared across tabs) — staged until save
+  const [poolIds, setPoolIds] = useState<string[]>([]);
+  const [bucketIds, setBucketIds] = useState<string[]>([]);
+
   const [saving, setSaving] = useState(false);
 
   const reset = () => {
@@ -88,6 +98,8 @@ export function CandidateQuickAddDrawer({ open, onOpenChange, onCreated }: Props
     setCvFields(EMPTY);
     setReviewMode(false);
     setManual(EMPTY);
+    setPoolIds([]);
+    setBucketIds([]);
   };
 
   const handleFile = async (file: File) => {
@@ -167,6 +179,18 @@ export function CandidateQuickAddDrawer({ open, onOpenChange, onCreated }: Props
           content: `CV attached (${filename || "uploaded"})\n\n${rawText.slice(0, 4000)}`,
           activity_type: "Note",
         });
+      }
+      if (created?.id) {
+        if (poolIds.length) {
+          try { await addToPools.mutateAsync({ poolId: poolIds[0], candidateIds: [created.id] }); } catch {}
+          // add remaining pools (one call per pool keeps existing hook signature)
+          for (const pid of poolIds.slice(1)) {
+            try { await addToPools.mutateAsync({ poolId: pid, candidateIds: [created.id] }); } catch {}
+          }
+        }
+        if (bucketIds.length) {
+          try { await addToBuckets.mutateAsync({ entityType: "candidate", entityId: created.id, bucketIds }); } catch {}
+        }
       }
       toast.success("Candidate added");
       reset();
@@ -266,6 +290,14 @@ export function CandidateQuickAddDrawer({ open, onOpenChange, onCreated }: Props
             </Button>
           </TabsContent>
         </Tabs>
+
+        <div className="px-5 pt-2 pb-6 space-y-3 border-t border-border mt-4">
+          <p className="text-[11px] uppercase tracking-wider text-muted-foreground/70 font-medium pt-3">
+            Grouping (optional)
+          </p>
+          <StagedPoolSelector value={poolIds} onChange={setPoolIds} />
+          <BucketSelector value={bucketIds} onChange={setBucketIds} />
+        </div>
       </SheetContent>
     </Sheet>
   );
