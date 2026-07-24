@@ -475,7 +475,7 @@ export default function CandidatesPage() {
   const deleteCandidate = useDeleteCandidate();
   const [search, setSearch] = useState("");
   const [advFilters, setAdvFilters] = useState<CandidateFilters>(EMPTY_CANDIDATE_FILTERS);
-  const [aiResults, setAiResults] = useState<{ id: string; reason: string }[] | null>(null);
+  const [aiResults, setAiResults] = useState<AiMatch[] | null>(null);
   const { data: aggregates } = useSearchAggregates();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [selectedCandidate, setSelectedCandidate] = useState<Candidate | null>(null);
