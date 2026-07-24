@@ -41,15 +41,19 @@ function QuickNoteRow({ note }: { note: QuickNote }) {
   const update = useUpdateQuickNote();
   const del = useDeleteQuickNote();
   const createNote = useCreateNote();
+  const createCandidate = useCreateCandidate();
   const { data: candidates = [] } = useCandidates();
   const [linking, setLinking] = useState(false);
+  const [creating, setCreating] = useState(false);
 
   const parsed = (() => {
     const p = parseNoteIntent(note.content);
     if (!p) return null;
     const { strong, near } = matchCandidatesByName(p.targetName, candidates as any);
     const suggestions = (strong.length ? strong : near).slice(0, 4);
-    return { parsed: p, suggestions, ambiguous: strong.length !== 1 };
+    const hints = extractCandidateHints(p.noteContent);
+    const noMatch = strong.length === 0 && near.length === 0;
+    return { parsed: p, suggestions, ambiguous: strong.length !== 1, noMatch, hints };
   })();
 
   const markDone = async () => {
