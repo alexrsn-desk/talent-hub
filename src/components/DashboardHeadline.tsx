@@ -64,7 +64,9 @@ export function DashboardHeadline() {
   })();
 
   const greetingLine = data?.greeting || getGreeting();
-  const summaryLine = data?.bottom_line || fallbackSummary;
+  const leadPrompt = data?.lead_action?.prompt || data?.bottom_line || fallbackSummary;
+  const leadWhy = data?.lead_action?.why;
+  const supporting = (data?.supporting_actions || []).filter(a => a?.prompt).slice(0, 3);
 
   return (
     <div className="rounded-xl border border-primary/30 bg-gradient-to-br from-primary/10 via-primary/5 to-transparent p-6 sm:p-8">
@@ -89,13 +91,34 @@ export function DashboardHeadline() {
         {greetingLine}
       </h1>
 
-      <p className="text-base sm:text-lg text-foreground/90 leading-relaxed max-w-3xl">
-        {loading && !data ? (
-          <span className="text-muted-foreground">Reviewing your desk…</span>
-        ) : (
-          summaryLine
-        )}
-      </p>
+      {loading && !data ? (
+        <p className="text-base sm:text-lg text-muted-foreground">Reviewing your desk…</p>
+      ) : (
+        <div className="space-y-4 max-w-3xl">
+          <div>
+            <p className="text-base sm:text-lg text-foreground/95 leading-relaxed font-medium">
+              {leadPrompt}
+            </p>
+            {leadWhy && (
+              <p className="text-sm text-muted-foreground mt-1">{leadWhy}</p>
+            )}
+          </div>
+
+          {supporting.length > 0 && (
+            <ul className="space-y-2 pt-1">
+              {supporting.map((a, i) => (
+                <li key={i} className="flex items-start gap-2 text-sm">
+                  <ArrowRight className="h-3.5 w-3.5 mt-1 text-primary flex-shrink-0" />
+                  <div>
+                    <span className="text-foreground/90">{a.prompt}</span>
+                    {a.why && <span className="text-muted-foreground"> — {a.why}</span>}
+                  </div>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      )}
 
       {error && !data && (
         <p className="text-xs text-muted-foreground mt-2">{error}</p>
