@@ -101,6 +101,8 @@ function FloatingNotepad({ onClose }: { onClose: () => void }) {
   const [content, setContent] = useState("");
   const [confirmDiscard, setConfirmDiscard] = useState(false);
   const create = useCreateQuickNote();
+  const createNote = useCreateNote();
+  const { data: candidates = [] } = useCandidates();
   const taRef = useRef<HTMLTextAreaElement>(null);
   const lastEnterAt = useRef<number>(0);
 
@@ -112,6 +114,35 @@ function FloatingNotepad({ onClose }: { onClose: () => void }) {
     const v = content.trim();
     if (!v) { onClose(); return; }
     try {
+      // Try to auto-attach when the note names a single, unambiguous candidate.
+      const { parseNoteIntent, matchCandidatesByName } = await import("@/lib/quick-note-parse");
+      const parsed = parseNoteIntent(v);
+      if (parsed) {
+        const { strong } = matchCandidatesByName(parsed.targetName, candidates as any);
+        if (strong.length === 1) {
+          const target = strong[0];
+          const note = await createNote.mutateAsync({
+            content: parsed.noteContent,
+            candidate_id: target.id,
+            activity_type: "Note",
+          } as any);
+          toast.success(`Added to ${target.name}`, {
+            action: {
+              label: "Undo",
+              onClick: async () => {
+                try {
+                  const { supabase } = await import("@/integrations/supabase/client");
+                  await supabase.from("notes").delete().eq("id", (note as any).id);
+                  await create.mutateAsync(v);
+                  toast("Moved back to Quick Notes");
+                } catch { /* noop */ }
+              },
+            },
+          });
+          onClose();
+          return;
+        }
+      }
       await create.mutateAsync(v);
       onClose();
     } catch {
