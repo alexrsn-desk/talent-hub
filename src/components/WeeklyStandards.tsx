@@ -327,6 +327,7 @@ export function WeeklyStandards() {
   const setVal = useUpdateCheckin();
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [showProgress, setShowProgress] = useState(false);
 
   const behindPlates = useMemo(() => (data?.plates || []).filter((p) => p.behindPace).length, [data]);
   const total = data?.plates.length || 0;
@@ -365,21 +366,37 @@ export function WeeklyStandards() {
               Weekly standards
             </div>
             <div className="text-[11px]" style={{ color: COL.dim }}>
-              Week of {weekLabel} ·
-              {behindPlates === 0 ? (
-                <span style={{ color: COL.green }}> on pace across the board</span>
-              ) : (
-                <span style={{ color: COL.amber }}> {behindPlates}/{total} plates behind pace</span>
+              Week of {weekLabel}
+              {showProgress && (
+                <>
+                  {" · "}
+                  {behindPlates === 0 ? (
+                    <span style={{ color: COL.green }}>on pace across the board</span>
+                  ) : (
+                    <span style={{ color: COL.amber }}>{behindPlates}/{total} plates behind pace</span>
+                  )}
+                </>
               )}
             </div>
           </div>
-          <button
-            onClick={() => setSettingsOpen(true)}
-            className="text-[11px] px-2 py-1 rounded inline-flex items-center gap-1"
-            style={{ background: "rgba(255,255,255,0.04)", color: COL.muted }}
-          >
-            <Settings2 className="h-3 w-3" /> Targets
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setShowProgress((s) => !s)}
+              className="text-[11px] px-2 py-1 rounded inline-flex items-center gap-1"
+              style={{ background: "rgba(255,255,255,0.04)", color: COL.muted }}
+              aria-pressed={showProgress}
+            >
+              {showProgress ? <Eye className="h-3 w-3" /> : <EyeOff className="h-3 w-3" />}
+              {showProgress ? "Hide progress" : "Show progress"}
+            </button>
+            <button
+              onClick={() => setSettingsOpen(true)}
+              className="text-[11px] px-2 py-1 rounded inline-flex items-center gap-1"
+              style={{ background: "rgba(255,255,255,0.04)", color: COL.muted }}
+            >
+              <Settings2 className="h-3 w-3" /> Targets
+            </button>
+          </div>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
@@ -389,6 +406,7 @@ export function WeeklyStandards() {
               plate={p}
               history={data.history}
               expanded={!!expanded[p.category]}
+              showProgress={showProgress}
               onToggle={() => setExpanded((e) => ({ ...e, [p.category]: !e[p.category] }))}
               onSetValue={(key, v) => setVal.mutate({ target_key: key, value: v }, {
                 onError: (err: any) => toast.error(err?.message || "Failed to save"),
