@@ -1,5 +1,6 @@
 import { useState, useMemo, useRef, useEffect } from "react";
-import { Plus, NotebookPen, Pencil, X, Search, ArrowLeft, Check } from "lucide-react";
+import { Plus, NotebookPen, Pencil, X, Search, ArrowLeft, Check, Mic, MicOff } from "lucide-react";
+import { useSpeechRecognition } from "@/hooks/use-speech-recognition";
 import {
   AlertDialog,
   AlertDialogAction,
