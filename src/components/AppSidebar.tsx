@@ -1,5 +1,5 @@
 import { NavLink } from "@/components/NavLink";
-import { LayoutDashboard, Users, Building2, UserCircle, Briefcase, TrendingUp, Sparkles, Settings, BarChart3, PhoneCall, Link2, Award, MessagesSquare, Target, Waves, Rocket, Columns, RefreshCw, MessageCircle } from "lucide-react";
+import { LayoutDashboard, Users, Building2, UserCircle, Briefcase, TrendingUp, Sparkles, Settings, BarChart3, PhoneCall, Link2, Award, MessagesSquare, Target, Waves, Rocket, Columns, RefreshCw, MessageCircle, PlayCircle, Inbox } from "lucide-react";
 import {
   Sidebar,
   SidebarContent,
@@ -13,6 +13,7 @@ import {
 import { useActivePlacementCount } from "@/hooks/use-placements";
 import { useLiveConversationsOverdueCount } from "@/hooks/use-live-conversations";
 import { useWorkflowCounts } from "@/hooks/use-workflow-counts";
+import { usePinnedSections, SECTION_META, type CandidateSection } from "@/hooks/use-pinned-sections";
 
 type BadgeKey = "live" | "placements" | "wf-launch" | "wf-compare" | "wf-reactivation";
 type Item = { title: string; url: string; icon: any; badge?: BadgeKey };
