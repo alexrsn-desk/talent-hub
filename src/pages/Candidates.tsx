@@ -10,7 +10,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Plus, Search, Star, ClipboardList, Phone, BriefcaseBusiness, Check, CalendarClock, Sparkles, ArrowUp, ArrowDown, X } from "lucide-react";
 import { useCandidates, useCreateCandidate, useUpdateCandidate, useDeleteCandidate, useJobs, useCreateCandidateJob, useCandidateJobs, useCreateNote, type Candidate } from "@/hooks/use-data";
-import { AdvancedSearchBar, applyCandidateFilters, EMPTY_CANDIDATE_FILTERS, type CandidateFilters, type SearchableRecord } from "@/components/AdvancedSearchBar";
+import { AdvancedSearchBar, applyCandidateFilters, EMPTY_CANDIDATE_FILTERS, type CandidateFilters, type SearchableRecord, type AiMatch } from "@/components/AdvancedSearchBar";
 import { useSearchAggregates } from "@/hooks/use-search-aggregates";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
@@ -475,7 +475,7 @@ export default function CandidatesPage() {
   const deleteCandidate = useDeleteCandidate();
   const [search, setSearch] = useState("");
   const [advFilters, setAdvFilters] = useState<CandidateFilters>(EMPTY_CANDIDATE_FILTERS);
-  const [aiResults, setAiResults] = useState<{ id: string; reason: string }[] | null>(null);
+  const [aiResults, setAiResults] = useState<AiMatch[] | null>(null);
   const { data: aggregates } = useSearchAggregates();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [selectedCandidate, setSelectedCandidate] = useState<Candidate | null>(null);
@@ -544,6 +544,8 @@ export default function CandidatesPage() {
       last_contacted: meta?.last ?? null,
       in_pipeline: aggregates?.candidatesInPipeline.has(c.id) ?? false,
       notes_excerpt: meta?.excerpt ?? null,
+      summary: (c as any).summary ?? null,
+      note: (c as any).note ?? null,
     };
   }), [candidates, aggregates]);
 
@@ -553,6 +555,23 @@ export default function CandidatesPage() {
     aiResults.forEach(r => m.set(r.id, r.reason));
     return m;
   }, [aiResults]);
+
+  const tierById = useMemo(() => {
+    if (!aiResults) return null;
+    const m = new Map<string, "full" | "partial">();
+    aiResults.forEach(r => m.set(r.id, r.tier === "partial" ? "partial" : "full"));
+    return m;
+  }, [aiResults]);
+
+  const aiTierCounts = useMemo(() => {
+    if (!aiResults) return null;
+    let full = 0, partial = 0;
+    for (const r of aiResults) (r.tier === "partial" ? partial++ : full++);
+    return { full, partial };
+  }, [aiResults]);
+
+  // Index in `filtered` where partial matches start (for section divider).
+  // We compute this after `filtered` is built below via a ref-in-render pattern.
 
   const filteredBase = useMemo(() => {
     if (aiResults) {
@@ -867,8 +886,20 @@ export default function CandidatesPage() {
           )}
         </div>
 
-        <div className="text-xs text-muted-foreground">
-          Showing {filtered.length} candidate{filtered.length === 1 ? "" : "s"}
+        <div className="text-xs text-muted-foreground flex items-center gap-3 flex-wrap">
+          <span>Showing {filtered.length} candidate{filtered.length === 1 ? "" : "s"}</span>
+          {aiTierCounts && (
+            <span className="flex items-center gap-2">
+              <span className="inline-flex items-center gap-1 rounded-full bg-primary/10 text-primary px-2 py-0.5 font-medium">
+                <Sparkles className="h-3 w-3" /> {aiTierCounts.full} strong
+              </span>
+              {aiTierCounts.partial > 0 && (
+                <span className="inline-flex items-center gap-1 rounded-full bg-muted text-muted-foreground px-2 py-0.5">
+                  {aiTierCounts.partial} partial
+                </span>
+              )}
+            </span>
+          )}
         </div>
       </div>
 
@@ -984,12 +1015,23 @@ export default function CandidatesPage() {
                 const c = filtered[vi.index];
                 const idx = vi.index;
                 const isSelected = selectedIds.has(c.id);
+                const rowTier = tierById?.get(c.id);
+                const prevTier = idx > 0 ? tierById?.get(filtered[idx - 1].id) : null;
+                const showPartialDivider = tierById && rowTier === "partial" && prevTier !== "partial";
                 return (
                 <Fragment key={c.id}>
+                {showPartialDivider && (
+                  <tr aria-hidden className="bg-muted/40 border-y border-border">
+                    <td colSpan={8} className="px-4 py-2 text-[11px] uppercase tracking-wide text-muted-foreground font-medium">
+                      Partial matches — role matches, but the specific detail wasn't confirmed
+                    </td>
+                  </tr>
+                )}
                 <tr
                   className={cn(
                     "group border-b border-border hover:bg-muted/20 transition-colors",
-                    isSelected && "bg-primary/5"
+                    isSelected && "bg-primary/5",
+                    rowTier === "partial" && "opacity-80"
                   )}
                 >
                   <td className="px-3 py-3">
