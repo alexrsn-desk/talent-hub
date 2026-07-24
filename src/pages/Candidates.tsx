@@ -556,6 +556,23 @@ export default function CandidatesPage() {
     return m;
   }, [aiResults]);
 
+  const tierById = useMemo(() => {
+    if (!aiResults) return null;
+    const m = new Map<string, "full" | "partial">();
+    aiResults.forEach(r => m.set(r.id, r.tier === "partial" ? "partial" : "full"));
+    return m;
+  }, [aiResults]);
+
+  const aiTierCounts = useMemo(() => {
+    if (!aiResults) return null;
+    let full = 0, partial = 0;
+    for (const r of aiResults) (r.tier === "partial" ? partial++ : full++);
+    return { full, partial };
+  }, [aiResults]);
+
+  // Index in `filtered` where partial matches start (for section divider).
+  // We compute this after `filtered` is built below via a ref-in-render pattern.
+
   const filteredBase = useMemo(() => {
     if (aiResults) {
       const order = new Map(aiResults.map((r, i) => [r.id, i]));
