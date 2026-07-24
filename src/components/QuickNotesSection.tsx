@@ -233,7 +233,11 @@ function LinkToRecordPicker({ note, onClose, onLinked }: { note: QuickNote; onCl
   const { data: clients = [] } = useClients();
   const { data: contacts = [] } = useContacts();
   const createNote = useCreateNote();
+  const createCandidate = useCreateCandidate();
   const [q, setQ] = useState("");
+  const [creating, setCreating] = useState(false);
+
+  const hints = extractCandidateHints(note.content);
 
   const results = (() => {
     const s = q.trim().toLowerCase();
@@ -275,8 +279,41 @@ function LinkToRecordPicker({ note, onClose, onLinked }: { note: QuickNote; onCl
             <span className="text-muted-foreground ml-2 capitalize">{r.type}</span>
           </button>
         ))}
-        {q && !results.length && <p className="text-xs text-muted-foreground px-2">No matches</p>}
+        {q && !results.length && !creating && (
+          <div className="px-2 py-1.5 space-y-1.5">
+            <p className="text-xs text-muted-foreground">No matches for "{q.trim()}"</p>
+            <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => setCreating(true)}>
+              <UserPlus className="h-3 w-3 mr-1" /> Create candidate "{q.trim()}"
+            </Button>
+          </div>
+        )}
       </div>
+      {creating && (
+        <QuickCreateCandidateForm
+          defaultName={q.trim()}
+          defaultJobTitle={hints.job_title || ""}
+          defaultEmployer={hints.current_employer || ""}
+          onCancel={() => setCreating(false)}
+          onCreate={async (form) => {
+            const created = await createCandidate.mutateAsync({
+              name: form.name,
+              job_title: form.job_title || null,
+              current_employer: form.current_employer || null,
+              status: "New",
+              incomplete_profile: true,
+            } as any);
+            await createNote.mutateAsync({
+              content: note.content,
+              candidate_id: (created as any).id,
+              activity_type: "Note",
+            } as any);
+            toast.success(`Created ${form.name} and attached note`);
+            setCreating(false);
+            onLinked();
+            onClose();
+          }}
+        />
+      )}
     </div>
   );
 }
