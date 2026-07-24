@@ -357,10 +357,18 @@ export default function BillersWorkflow() {
     return items;
   }, [standardsData]);
 
-  const allItems = useMemo(() => {
+  const { checklistItems, aiActionItems } = useMemo(() => {
     const merged = [...(sections?.closeProtect || []), ...(sections?.feedTheBeast || []), ...standardsSignals];
-    return merged.sort((a, b) => b.urgency - a.urgency);
+    merged.sort((a, b) => b.urgency - a.urgency);
+    const ai: BillerItem[] = [];
+    const rest: BillerItem[] = [];
+    for (const it of merged) {
+      if (it.kind === "conversation" && it.sourceQuote) ai.push(it);
+      else rest.push(it);
+    }
+    return { checklistItems: rest, aiActionItems: ai };
   }, [sections, standardsSignals]);
+  const allItems = checklistItems;
 
   const refresh = () => { qc.invalidateQueries({ queryKey: ["billers-workflow-v3"] }); refetch(); };
 
