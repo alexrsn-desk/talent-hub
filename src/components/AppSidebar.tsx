@@ -62,12 +62,20 @@ const SECTIONS: { label: string; items: Item[] }[] = [
 ];
 
 
+const PIN_ICON: Record<CandidateSection, any> = {
+  all: Users,
+  pools: Waves,
+  "in-play": PlayCircle,
+  buckets: Inbox,
+};
+
 export function AppSidebar() {
   const { state } = useSidebar();
   const collapsed = state === "collapsed";
   const placementCount = useActivePlacementCount();
   const liveOverdue = useLiveConversationsOverdueCount();
   const wf = useWorkflowCounts();
+  const { data: pinned = [] } = usePinnedSections();
 
   const getBadge = (key?: BadgeKey) => {
     switch (key) {
