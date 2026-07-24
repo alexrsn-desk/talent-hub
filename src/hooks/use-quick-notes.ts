@@ -6,17 +6,22 @@ export type QuickNote = {
   owner_user_id: string;
   content: string;
   status: string; // 'inbox' | 'done'
+  category: string; // 'inbox' | 'general'
   reviewed_at: string | null;
   created_at: string;
   updated_at: string;
 };
 
-export function useQuickNotes(status: "inbox" | "all" = "inbox") {
+export function useQuickNotes(
+  status: "inbox" | "all" = "inbox",
+  category?: "inbox" | "general"
+) {
   return useQuery({
-    queryKey: ["quick_notes", status],
+    queryKey: ["quick_notes", status, category ?? "any"],
     queryFn: async () => {
       let q = supabase.from("quick_notes").select("*").order("created_at", { ascending: false });
       if (status === "inbox") q = q.eq("status", "inbox");
+      if (category) q = (q as any).eq("category", category);
       const { data, error } = await q;
       if (error) throw error;
       return data as QuickNote[];
@@ -27,12 +32,14 @@ export function useQuickNotes(status: "inbox" | "all" = "inbox") {
 export function useCreateQuickNote() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (content: string) => {
+    mutationFn: async (input: string | { content: string; category?: "inbox" | "general" }) => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Not authenticated");
+      const content = typeof input === "string" ? input : input.content;
+      const category = typeof input === "string" ? "inbox" : (input.category ?? "inbox");
       const { data, error } = await supabase
         .from("quick_notes")
-        .insert({ content, owner_user_id: user.id })
+        .insert({ content, owner_user_id: user.id, category } as any)
         .select()
         .single();
       if (error) throw error;
