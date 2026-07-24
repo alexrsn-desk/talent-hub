@@ -2,8 +2,9 @@ import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   RefreshCw, Loader2, Phone, AlertTriangle, Zap, PartyPopper, Settings,
-  MoreVertical, Check, Clock, CheckCircle2, Sparkles,
+  MoreVertical, Check, Clock, CheckCircle2, Sparkles, ChevronDown, Quote,
 } from "lucide-react";
+import { FlowPipe } from "@/components/FlowPipe";
 import { Button } from "@/components/ui/button";
 import {
   useBillersWorkflow, snoozeItem, markItemDone, loadThresholds, saveThresholds,
@@ -323,6 +324,7 @@ export default function BillersWorkflow() {
   const [thresholds, setThresholds] = useState<BillerThresholds>(loadThresholds());
   const [gapItem, setGapItem] = useState<BillerItem | null>(null);
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [checklistOpen, setChecklistOpen] = useState(false);
 
   const { data, isLoading, refetch, isFetching } = useBillersWorkflow(viewUserId, thresholds);
   const sections = useMemo(() => data, [data]);
@@ -355,10 +357,18 @@ export default function BillersWorkflow() {
     return items;
   }, [standardsData]);
 
-  const allItems = useMemo(() => {
+  const { checklistItems, aiActionItems } = useMemo(() => {
     const merged = [...(sections?.closeProtect || []), ...(sections?.feedTheBeast || []), ...standardsSignals];
-    return merged.sort((a, b) => b.urgency - a.urgency);
+    merged.sort((a, b) => b.urgency - a.urgency);
+    const ai: BillerItem[] = [];
+    const rest: BillerItem[] = [];
+    for (const it of merged) {
+      if (it.kind === "conversation" && it.sourceQuote) ai.push(it);
+      else rest.push(it);
+    }
+    return { checklistItems: rest, aiActionItems: ai };
   }, [sections, standardsSignals]);
+  const allItems = checklistItems;
 
   const refresh = () => { qc.invalidateQueries({ queryKey: ["billers-workflow-v3"] }); refetch(); };
 
@@ -492,11 +502,14 @@ export default function BillersWorkflow() {
         </div>
       </div>
 
-      {/* ============== WEEKLY STANDARDS PLATES ============== */}
-      <WeeklyStandards />
+      {/* ============== WEEKLY STANDARDS PLATES + FLOW PIPE ============== */}
+      <div>
+        <WeeklyStandards />
+        <FlowPipe />
+      </div>
 
-      {/* ============== STATE BANNERS ============== */}
-      <div className="px-6 pt-4 space-y-2">
+      {/* ============== STATE BANNERS (kept — genuine emergencies stay sharp) ============== */}
+      <div className="px-6 pt-2 space-y-2">
         {sections.recentPlacement && (
           <div className="rounded-lg px-4 py-3 flex items-start gap-3" style={{ background: "rgba(39,174,96,0.08)", border: `1px solid ${COCKPIT.green}55` }}>
             <PartyPopper className="h-4 w-4 mt-0.5 shrink-0" style={{ color: COCKPIT.green }} />
@@ -543,51 +556,133 @@ export default function BillersWorkflow() {
         )}
       </div>
 
-      {/* ============== UNIFIED RANKED LIST ============== */}
-      <div className="px-6 py-4">
+      {/* ============== COLLAPSED CHECKLIST (secondary — never crowds out the pipe) ============== */}
+      <div className="px-6 pt-4">
         {allEmpty ? (
           <div
-            className="rounded-xl px-6 py-16 text-center"
+            className="rounded-xl px-6 py-10 text-center"
             style={{ background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.06)" }}
           >
-            <CheckCircle2 className="h-8 w-8 mx-auto mb-3" style={{ color: COCKPIT.green }} />
-            <div className="text-lg font-semibold" style={{ color: COCKPIT.textPrimary }}>
-              Your desk is clear today.
+            <CheckCircle2 className="h-6 w-6 mx-auto mb-2" style={{ color: COCKPIT.green }} />
+            <div className="text-sm font-medium" style={{ color: COCKPIT.textPrimary }}>
+              Nothing flagged today.
             </div>
-            <div className="text-sm mt-1" style={{ color: COCKPIT.textMuted }}>
-              Good time to build your bench.
+            <div className="text-xs mt-0.5" style={{ color: COCKPIT.textMuted }}>
+              Keep the plates moving — that's the work.
             </div>
           </div>
         ) : (
           <div
             className="rounded-lg overflow-hidden"
-            style={{ background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.05)" }}
+            style={{ background: "rgba(255,255,255,0.015)", border: "1px solid rgba(255,255,255,0.04)" }}
           >
-            <div
-              className="px-3 py-2 flex items-baseline gap-3"
-              style={{ background: "rgba(255,255,255,0.02)", borderBottom: "1px solid rgba(255,255,255,0.05)" }}
+            <button
+              onClick={() => setChecklistOpen((o) => !o)}
+              className="w-full px-3 py-2 flex items-center gap-3 text-left hover:bg-white/[0.02] transition-colors"
             >
-              <div className="text-[11px] font-semibold uppercase tracking-wide" style={{ color: COCKPIT.textPrimary }}>
-                Today, ranked
+              <ChevronDown
+                className="h-3.5 w-3.5 transition-transform"
+                style={{ color: COCKPIT.textDim, transform: checklistOpen ? "rotate(0deg)" : "rotate(-90deg)" }}
+              />
+              <div className="text-[11px] font-medium uppercase tracking-wide" style={{ color: COCKPIT.textMuted }}>
+                See more
               </div>
               <div className="text-[11px]" style={{ color: COCKPIT.textDim }}>
-                {allItems.length} action{allItems.length === 1 ? "" : "s"} · protect what's in motion, then drive new business
+                {allItems.length} flagged item{allItems.length === 1 ? "" : "s"} · optional detail, not a to-do list
               </div>
-            </div>
-            <div className="divide-y" style={{ borderColor: "rgba(255,255,255,0.04)" }}>
-              {allItems.map((it, i) => (
-                <BillerRow
-                  key={it.id} item={it} index={i}
-                  expanded={expandedId === it.id}
-                  onToggle={() => setExpandedId((p) => p === it.id ? null : it.id)}
-                  onLogCall={setLogCallItem} onRefresh={refresh}
-                  onOpenGap={setGapItem}
-                />
-              ))}
-            </div>
+            </button>
+            {checklistOpen && (
+              <div className="divide-y animate-fade-in" style={{ borderColor: "rgba(255,255,255,0.04)" }}>
+                {allItems.map((it, i) => (
+                  <BillerRow
+                    key={it.id} item={it} index={i}
+                    expanded={expandedId === it.id}
+                    onToggle={() => setExpandedId((p) => p === it.id ? null : it.id)}
+                    onLogCall={setLogCallItem} onRefresh={refresh}
+                    onOpenGap={setGapItem}
+                  />
+                ))}
+              </div>
+            )}
           </div>
         )}
       </div>
+
+      {/* ============== AI ACTIONS (evidence-based, distinct style) ============== */}
+      {aiActionItems.length > 0 && (
+        <div className="px-6 py-4">
+          <div
+            className="rounded-xl overflow-hidden"
+            style={{
+              background: "linear-gradient(180deg, rgba(59,130,246,0.06) 0%, rgba(59,130,246,0.02) 100%)",
+              border: `1px solid ${COCKPIT.blue}33`,
+            }}
+          >
+            <div className="px-4 py-3 flex items-baseline gap-2" style={{ borderBottom: `1px solid ${COCKPIT.blue}22` }}>
+              <Sparkles className="h-3.5 w-3.5 self-center" style={{ color: COCKPIT.blue }} />
+              <div className="text-[11px] font-semibold uppercase tracking-wide" style={{ color: COCKPIT.blue }}>
+                Caught in conversation
+              </div>
+              <div className="text-[11px]" style={{ color: COCKPIT.textMuted }}>
+                Moments from your call notes worth acting on — verify before acting.
+              </div>
+            </div>
+            <div className="p-3 grid grid-cols-1 md:grid-cols-2 gap-3">
+              {aiActionItems.map((it) => (
+                <div
+                  key={it.id}
+                  className="rounded-lg p-3"
+                  style={{ background: "rgba(15,23,36,0.6)", border: "1px solid rgba(255,255,255,0.06)" }}
+                >
+                  <div className="text-[13px] font-medium mb-1.5" style={{ color: COCKPIT.textPrimary }}>
+                    {it.title}
+                  </div>
+                  {it.sub && (
+                    <div className="text-[11px] mb-2" style={{ color: COCKPIT.textMuted }}>{it.sub}</div>
+                  )}
+                  {it.sourceQuote && (
+                    <div
+                      className="flex gap-2 text-[12px] italic px-2.5 py-2 rounded"
+                      style={{ background: "rgba(255,255,255,0.03)", borderLeft: `2px solid ${COCKPIT.blue}` }}
+                    >
+                      <Quote className="h-3 w-3 shrink-0 mt-0.5" style={{ color: COCKPIT.blue }} />
+                      <div style={{ color: COCKPIT.textPrimary }}>
+                        "{it.sourceQuote}"
+                        {it.sourceLabel && (
+                          <div className="not-italic text-[10px] mt-1 uppercase tracking-wide" style={{ color: COCKPIT.textDim }}>
+                            {it.sourceLabel}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                  <div className="mt-2 flex items-center gap-3">
+                    <div className="text-[11px] font-medium flex-1" style={{ color: COCKPIT.blue }}>
+                      → {it.action}
+                    </div>
+                    {it.logEntityType && it.logEntityId && it.logEntityName && (
+                      <button
+                        onClick={() => setLogCallItem(it)}
+                        className="text-[11px] inline-flex items-center gap-1 hover:underline"
+                        style={{ color: COCKPIT.blue }}
+                      >
+                        <Phone className="h-3 w-3" /> Log
+                      </button>
+                    )}
+                    <button
+                      onClick={() => { markItemDone(it.id); refresh(); }}
+                      className="text-[11px] inline-flex items-center gap-1 hover:underline"
+                      style={{ color: COCKPIT.textMuted }}
+                    >
+                      <Check className="h-3 w-3" /> Done
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
 
 
       {/* ============== DIALOGS ============== */}
