@@ -44,9 +44,6 @@ function QuickNoteRow({ note }: { note: QuickNote }) {
   const [linking, setLinking] = useState(false);
 
   const parsed = (() => {
-    // Local import to avoid cycle
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
-    const { parseNoteIntent, matchCandidatesByName } = require("@/lib/quick-note-parse");
     const p = parseNoteIntent(note.content);
     if (!p) return null;
     const { strong, near } = matchCandidatesByName(p.targetName, candidates as any);
