@@ -27,6 +27,8 @@ import {
   useContacts,
 } from "@/hooks/use-data";
 import { CandidateQuickAddDrawer } from "@/components/CandidateQuickAddDrawer";
+import { BucketSelector } from "@/components/BucketSelector";
+import { useAddToBuckets } from "@/hooks/use-buckets";
 
 type Mode =
   | null
@@ -436,17 +438,19 @@ function CandidateForm({ onDone }: { onDone: () => void }) {
 // ─── Client ───────────────────────────────────────────
 function ClientForm({ onDone }: { onDone: () => void }) {
   const create = useCreateClient();
+  const addToBuckets = useAddToBuckets();
   const [company, setCompany] = useState("");
   const [contact, setContact] = useState("");
   const [sector, setSector] = useState("Tech");
   const [howCame, setHowCame] = useState("");
+  const [bucketIds, setBucketIds] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
 
   const save = async (incomplete: boolean) => {
     if (!company.trim()) { toast.error("Company name is required"); return; }
     setSaving(true);
     try {
-      await create.mutateAsync({
+      const created: any = await create.mutateAsync({
         company_name: company.trim(),
         contact_name: contact.trim() || null,
         email: null, phone: null, job_title: null, linkedin_url: null,
@@ -457,6 +461,9 @@ function ClientForm({ onDone }: { onDone: () => void }) {
         location: null, website: null,
         incomplete_profile: incomplete,
       } as any);
+      if (created?.id && bucketIds.length) {
+        try { await addToBuckets.mutateAsync({ entityType: "client", entityId: created.id, bucketIds }); } catch {}
+      }
       toast.success("Client added");
       onDone();
     } catch {
@@ -476,6 +483,7 @@ function ClientForm({ onDone }: { onDone: () => void }) {
         </select>
       </div>
       <div><Label>How did they come up?</Label><Input value={howCame} onChange={e => setHowCame(e.target.value)} placeholder="Referral, event, inbound..." /></div>
+      <BucketSelector value={bucketIds} onChange={setBucketIds} />
       <SaveRow saving={saving} onSaveAndDone={() => save(false)} onSaveAndComplete={() => save(true)} primaryDisabled={!company.trim()} />
     </div>
   );
@@ -486,11 +494,13 @@ function ContactForm({ onDone }: { onDone: () => void }) {
   const { data: clients = [] } = useClients();
   const createClient = useCreateClient();
   const createContact = useCreateContact();
+  const addToBuckets = useAddToBuckets();
   const [name, setName] = useState("");
   const [companyQuery, setCompanyQuery] = useState("");
   const [clientId, setClientId] = useState<string | null>(null);
   const [jobTitle, setJobTitle] = useState("");
   const [contact, setContact] = useState("");
+  const [bucketIds, setBucketIds] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
 
   const filtered = useMemo(() =>
@@ -521,7 +531,7 @@ function ContactForm({ onDone }: { onDone: () => void }) {
       }
       const isEmail = contact.includes("@");
       const parts = name.trim().split(" ");
-      await createContact.mutateAsync({
+      const createdContact: any = await createContact.mutateAsync({
         client_id: cid!,
         name: name.trim(),
         first_name: parts[0],
@@ -532,6 +542,9 @@ function ContactForm({ onDone }: { onDone: () => void }) {
         linkedin_url: null,
         incomplete_profile: incomplete,
       } as any);
+      if (createdContact?.id && bucketIds.length) {
+        try { await addToBuckets.mutateAsync({ entityType: "contact", entityId: createdContact.id, bucketIds }); } catch {}
+      }
       toast.success("Contact added");
       onDone();
     } catch {
@@ -568,6 +581,7 @@ function ContactForm({ onDone }: { onDone: () => void }) {
       </div>
       <div><Label>Job title</Label><Input value={jobTitle} onChange={e => setJobTitle(e.target.value)} /></div>
       <div><Label>Phone or email</Label><Input value={contact} onChange={e => setContact(e.target.value)} placeholder="Either one" /></div>
+      <BucketSelector value={bucketIds} onChange={setBucketIds} />
       <SaveRow saving={saving} onSaveAndDone={() => save(false)} onSaveAndComplete={() => save(true)} primaryDisabled={!name.trim() || (!clientId && !companyQuery.trim())} />
     </div>
   );

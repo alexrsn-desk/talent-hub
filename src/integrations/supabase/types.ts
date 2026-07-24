@@ -162,6 +162,74 @@ export type Database = {
           },
         ]
       }
+      bucket_items: {
+        Row: {
+          added_at: string
+          added_by: string | null
+          bucket_id: string
+          entity_id: string
+          entity_type: string
+          id: string
+          owner_user_id: string
+        }
+        Insert: {
+          added_at?: string
+          added_by?: string | null
+          bucket_id: string
+          entity_id: string
+          entity_type: string
+          id?: string
+          owner_user_id: string
+        }
+        Update: {
+          added_at?: string
+          added_by?: string | null
+          bucket_id?: string
+          entity_id?: string
+          entity_type?: string
+          id?: string
+          owner_user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bucket_items_bucket_id_fkey"
+            columns: ["bucket_id"]
+            isOneToOne: false
+            referencedRelation: "buckets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      buckets: {
+        Row: {
+          color: string | null
+          created_at: string
+          description: string | null
+          id: string
+          name: string
+          owner_user_id: string
+          updated_at: string
+        }
+        Insert: {
+          color?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          name: string
+          owner_user_id: string
+          updated_at?: string
+        }
+        Update: {
+          color?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          name?: string
+          owner_user_id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       call_insights: {
         Row: {
           candidate_id: string | null
@@ -2491,6 +2559,7 @@ export type Database = {
           niches: string[] | null
           onboarding_completed: boolean
           personal_candidate_template: string | null
+          pinned_candidate_sections: string[]
           placement_type: string | null
           reactivation_email_template: string | null
           salary_max: number | null
@@ -2520,6 +2589,7 @@ export type Database = {
           niches?: string[] | null
           onboarding_completed?: boolean
           personal_candidate_template?: string | null
+          pinned_candidate_sections?: string[]
           placement_type?: string | null
           reactivation_email_template?: string | null
           salary_max?: number | null
@@ -2549,6 +2619,7 @@ export type Database = {
           niches?: string[] | null
           onboarding_completed?: boolean
           personal_candidate_template?: string | null
+          pinned_candidate_sections?: string[]
           placement_type?: string | null
           reactivation_email_template?: string | null
           salary_max?: number | null

@@ -12,7 +12,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Loader2, Upload, X } from "lucide-react";
 import { TrialBanner } from "@/components/TrialBanner";
 import Dashboard from "./pages/Dashboard";
-import Candidates from "./pages/Candidates";
+import CandidatesHub from "./pages/CandidatesHub";
 import Clients from "./pages/Clients";
 import Contacts from "./pages/Contacts";
 import Jobs from "./pages/Jobs";
@@ -163,7 +163,7 @@ function AppRoutes() {
           <Route path="/" element={<Dashboard />} />
           <Route path="/billers-workflow" element={<BillersWorkflow />} />
           <Route path="/live" element={<LiveConversations />} />
-          <Route path="/candidates" element={<Candidates />} />
+          <Route path="/candidates" element={<CandidatesHub />} />
           <Route path="/candidates/:candidateId/pitch" element={<PitchCandidate />} />
           <Route path="/pitch" element={<PitchCandidateSelector />} />
 
