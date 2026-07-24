@@ -7,7 +7,7 @@ import {
   type CategoryPlate,
   type StandardProgress,
 } from "@/hooks/use-weekly-standards";
-import { Loader2, Minus, Plus, Check, ChevronDown, Settings2, Sparkles, Hand, RefreshCw } from "lucide-react";
+import { Loader2, Minus, Plus, Check, ChevronDown, Settings2, Sparkles, Hand, RefreshCw, Eye, EyeOff } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -80,6 +80,68 @@ function Trend({ history }: { history: { weekStart: string; pct: number }[] }) {
           />
         );
       })}
+    </div>
+  );
+}
+
+function CalmItemRow({
+  item,
+  onSetValue,
+}: {
+  item: StandardProgress;
+  onSetValue: (v: number) => void;
+}) {
+  const t = item.target;
+  const isBool = t.unit === "boolean";
+  const isAuto = t.tracking_mode === "auto";
+
+  return (
+    <div className="flex items-center gap-3 px-2.5 py-2 rounded-md">
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center gap-1.5">
+          <span className="text-[13px] truncate" style={{ color: COL.text }}>{t.label}</span>
+          <span
+            className="text-[9px] px-1.5 py-[1px] rounded uppercase tracking-wide font-semibold"
+            style={{
+              background: isAuto ? "rgba(59,130,246,0.15)" : "rgba(255,255,255,0.06)",
+              color: isAuto ? COL.blue : COL.muted,
+            }}
+            title={isAuto ? "Calculated automatically" : "Manual self-check"}
+          >
+            {isAuto ? (<><Sparkles className="h-2.5 w-2.5 inline mr-0.5" />auto</>) : (<><Hand className="h-2.5 w-2.5 inline mr-0.5" />manual</>)}
+          </span>
+        </div>
+      </div>
+
+      {!isAuto && isBool ? (
+        <button
+          onClick={() => onSetValue(item.actual >= 1 ? 0 : 1)}
+          className="h-7 w-7 rounded-md flex items-center justify-center"
+          style={{
+            background: item.actual >= 1 ? COL.green : "rgba(255,255,255,0.05)",
+            color: item.actual >= 1 ? "#0F1724" : COL.muted,
+          }}
+          aria-label="Toggle done"
+        >
+          <Check className="h-3.5 w-3.5" />
+        </button>
+      ) : !isAuto ? (
+        <div className="flex items-center gap-1">
+          <button
+            className="h-6 w-6 rounded flex items-center justify-center"
+            style={{ background: "rgba(255,255,255,0.05)", color: COL.muted }}
+            onClick={() => onSetValue(Math.max(0, item.actual - 1))}
+            aria-label="Decrease"
+          ><Minus className="h-3 w-3" /></button>
+          <div className="w-6 text-center text-[12px] font-semibold" style={{ color: COL.text }}>{item.actual}</div>
+          <button
+            className="h-6 w-6 rounded flex items-center justify-center"
+            style={{ background: "rgba(59,130,246,0.2)", color: COL.blue }}
+            onClick={() => onSetValue(item.actual + 1)}
+            aria-label="Increase"
+          ><Plus className="h-3 w-3" /></button>
+        </div>
+      ) : null}
     </div>
   );
 }
@@ -173,24 +235,31 @@ function ItemRow({
 }
 
 function Plate({
-  plate, history, expanded, onToggle, onSetValue,
+  plate,
+  history,
+  expanded,
+  showProgress,
+  onToggle,
+  onSetValue,
 }: {
   plate: CategoryPlate;
   history: Record<string, { weekStart: string; pct: number }[]>;
   expanded: boolean;
+  showProgress: boolean;
   onToggle: () => void;
   onSetValue: (key: string, v: number) => void;
 }) {
   const tone = plateTone(plate);
-  const wobble = plate.criticallyBehind;
-  const dim = plate.behindPace && plate.avgPct < 0.5;
+  const wobble = showProgress && plate.criticallyBehind;
+  const dim = showProgress && plate.behindPace && plate.avgPct < 0.5;
+  const componentNames = plate.items.map((i) => i.target.label).join(" · ");
 
   return (
     <div
       className={`rounded-xl transition-all ${wobble ? "animate-[wobble_2.2s_ease-in-out_infinite]" : ""}`}
       style={{
         background: COL.bg,
-        border: `1px solid ${plate.behindPace ? tone + "55" : COL.border}`,
+        border: `1px solid ${showProgress && plate.behindPace ? tone + "55" : COL.border}`,
         opacity: dim ? 0.72 : 1,
       }}
     >
@@ -198,25 +267,27 @@ function Plate({
         onClick={onToggle}
         className="w-full flex items-center gap-3 px-4 py-3 text-left"
       >
-        <Ring pct={plate.avgPct} color={tone} />
+        {showProgress && <Ring pct={plate.avgPct} color={tone} />}
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2">
             <div className="text-[13px] font-semibold uppercase tracking-wide" style={{ color: COL.text }}>
               {plate.label}
             </div>
-            {plate.criticallyBehind && (
+            {showProgress && plate.criticallyBehind && (
               <span className="text-[10px] px-1.5 py-[1px] rounded font-semibold" style={{ background: COL.red + "22", color: COL.red }}>
                 slipping
               </span>
             )}
-            {plate.avgPct >= 1 && (
+            {showProgress && plate.avgPct >= 1 && (
               <span className="text-[10px] px-1.5 py-[1px] rounded font-semibold" style={{ background: COL.green + "22", color: COL.green }}>
                 on target
               </span>
             )}
           </div>
           <div className="text-[11px] mt-0.5" style={{ color: COL.muted }}>
-            {plate.items.filter((i) => i.pct >= 1).length}/{plate.items.length} targets hit
+            {showProgress
+              ? `${plate.items.filter((i) => i.pct >= 1).length}/${plate.items.length} targets hit`
+              : componentNames}
           </div>
         </div>
         <ChevronDown className="h-4 w-4 transition-transform" style={{ color: COL.dim, transform: expanded ? "rotate(180deg)" : "none" }} />
@@ -228,14 +299,22 @@ function Plate({
           {plate.items.length === 0 ? (
             <div className="text-[11px] px-2 py-2" style={{ color: COL.dim }}>No targets configured.</div>
           ) : (
-            plate.items.map((it) => (
-              <ItemRow
-                key={it.target.key}
-                item={it}
-                history={history[it.target.key] || []}
-                onSetValue={(v) => onSetValue(it.target.key, v)}
-              />
-            ))
+            plate.items.map((it) =>
+              showProgress ? (
+                <ItemRow
+                  key={it.target.key}
+                  item={it}
+                  history={history[it.target.key] || []}
+                  onSetValue={(v) => onSetValue(it.target.key, v)}
+                />
+              ) : (
+                <CalmItemRow
+                  key={it.target.key}
+                  item={it}
+                  onSetValue={(v) => onSetValue(it.target.key, v)}
+                />
+              )
+            )
           )}
         </div>
       )}
