@@ -81,16 +81,18 @@ export function AppSidebar() {
 
   return (
     <Sidebar collapsible="icon">
-      <SidebarContent className="bg-sidebar">
-        <div className="px-4 pt-6 pb-4">
+      <SidebarContent className="bg-sidebar border-r border-sidebar-border">
+        <div className="px-5 pt-6 pb-5">
           {!collapsed && (
-            <h2 className="text-[16px] font-bold tracking-tight text-primary">Desky</h2>
+            <h2 className="font-display text-[18px] font-semibold tracking-tight text-foreground">
+              Desky<span className="text-primary">.</span>
+            </h2>
           )}
         </div>
         {SECTIONS.map((section) => (
-          <SidebarGroup key={section.label} className="px-2">
+          <SidebarGroup key={section.label} className="px-2.5">
             {!collapsed && (
-              <div className="px-2 pt-3 pb-1 text-[10px] font-medium uppercase tracking-[0.12em] text-[#4B5563]">
+              <div className="px-2.5 pt-4 pb-1.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground/70">
                 {section.label}
               </div>
             )}
@@ -101,14 +103,14 @@ export function AppSidebar() {
                   const showBadge = b.count > 0;
                   return (
                     <SidebarMenuItem key={item.title}>
-                      <SidebarMenuButton asChild className="rounded-md">
+                      <SidebarMenuButton asChild className="rounded-md h-8">
                         <NavLink
                           to={item.url}
                           end={item.url === "/"}
-                          className="group flex items-center gap-2 px-3 py-2 text-[13px] text-[#9CA3AF] hover:bg-white/5 hover:text-[#F9FAFB]"
-                          activeClassName="!bg-primary/10 !text-[#F9FAFB] font-medium [&_svg]:!text-primary"
+                          className="group flex items-center gap-2.5 px-2.5 py-1.5 text-[13px] text-muted-foreground hover:bg-sidebar-accent hover:text-foreground transition-colors"
+                          activeClassName="!bg-sidebar-accent !text-foreground font-medium"
                         >
-                          <item.icon className="h-4 w-4 text-[#6B7280] group-hover:text-[#F9FAFB]" />
+                          <item.icon className="h-[15px] w-[15px] text-muted-foreground/80 group-hover:text-foreground" />
                           {!collapsed && <span className="flex-1">{item.title}</span>}
                           {!collapsed && showBadge && (
                             <span
