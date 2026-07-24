@@ -182,7 +182,7 @@ export function AdvancedSearchBar(props: Props) {
     }
     setAiLoading(true);
     try {
-      const payload = records.slice(0, 250).map(r => ({
+      const payload = records.slice(0, 400).map(r => ({
         id: r.id,
         type: r.type,
         name: r.name,
@@ -192,15 +192,22 @@ export function AdvancedSearchBar(props: Props) {
         location: r.location,
         status: r.status,
         last_contacted: r.last_contacted,
-        notes_excerpt: r.notes_excerpt?.slice(0, 400) || null,
+        notes_excerpt: r.notes_excerpt?.slice(0, 2000) || null,
+        summary: r.summary?.slice(0, 800) || null,
+        note: r.note?.slice(0, 800) || null,
       }));
       const { data, error } = await supabase.functions.invoke("ai-search", {
         body: { query, scope, records: payload },
       });
       if (error) throw error;
-      const matches = (data as any)?.matches || [];
+      const matches: AiMatch[] = (data as any)?.matches || [];
       onAiResultsChange(matches);
-      toast.success(`AI search found ${matches.length} match${matches.length === 1 ? "" : "es"}`);
+      const tiers = (data as any)?.tiers as { full: number; partial: number } | undefined;
+      if (tiers) {
+        toast.success(`AI search: ${tiers.full} strong · ${tiers.partial} partial`);
+      } else {
+        toast.success(`AI search found ${matches.length} match${matches.length === 1 ? "" : "es"}`);
+      }
     } catch (e: any) {
       const msg = e?.message || String(e);
       if (msg.includes("429")) toast.error("AI rate limit reached — try again shortly");
