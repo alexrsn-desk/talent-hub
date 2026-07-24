@@ -1122,9 +1122,19 @@ export default function CandidatesPage() {
                 </Fragment>
                 );
               })}
+              {(() => {
+                const items = rowVirtualizer.getVirtualItems();
+                const last = items[items.length - 1];
+                const trailing = last ? rowVirtualizer.getTotalSize() - last.end : 0;
+                return trailing > 0 ? (
+                  <tr style={{ height: trailing }} aria-hidden><td colSpan={8} /></tr>
+                ) : null;
+              })()}
+              </>)}
             </tbody>
           </table>
         </div>
+        )}
         </>
       )}
 
