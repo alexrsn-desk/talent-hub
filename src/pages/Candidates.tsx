@@ -27,6 +27,8 @@ import { logActivity } from "@/lib/activity-log";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { usePools, usePoolMemberships, computePoolHealth, HEALTH_DOT } from "@/hooks/use-talent-pools";
+import { useIsMobile } from "@/hooks/use-mobile";
+import { useVirtualizer } from "@tanstack/react-virtual";
 
 // Sort + filter types
 type SortKey = "name" | "job_title" | "status" | "last_contact" | "created_at";
