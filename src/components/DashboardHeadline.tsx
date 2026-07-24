@@ -4,11 +4,12 @@ import { Sparkles, RefreshCw, AlertTriangle, Star, Phone, Users } from "lucide-r
 import { Button } from "@/components/ui/button";
 import { useTodayFollowUps, useOverdueFollowUps, useTodayInterviews, useCandidateJobs } from "@/hooks/use-data";
 
+type ActionPrompt = { prompt: string; why?: string };
 type FocusData = {
   greeting: string;
   bottom_line: string;
-  red_flags?: { issue: string }[];
-  amber_flags?: { issue: string }[];
+  lead_action?: ActionPrompt | null;
+  supporting_actions?: ActionPrompt[];
 };
 
 function getGreeting() {
