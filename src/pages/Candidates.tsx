@@ -976,7 +976,13 @@ export default function CandidatesPage() {
             <tbody>
               {filtered.length === 0 ? (
                 <tr><td colSpan={8} className="px-4 py-8 text-center text-muted-foreground">No candidates found</td></tr>
-              ) : filtered.map((c, idx) => {
+              ) : (<>
+              {rowVirtualizer.getVirtualItems()[0]?.start ? (
+                <tr style={{ height: rowVirtualizer.getVirtualItems()[0].start }} aria-hidden><td colSpan={8} /></tr>
+              ) : null}
+              {rowVirtualizer.getVirtualItems().map((vi) => {
+                const c = filtered[vi.index];
+                const idx = vi.index;
                 const isSelected = selectedIds.has(c.id);
                 return (
                 <Fragment key={c.id}>
