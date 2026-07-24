@@ -2,73 +2,76 @@
 @tailwind components;
 @tailwind utilities;
 
-@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Inter:wght@300;400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700&family=Manrope:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap');
 
 /*
-  Desky design tokens — Performance Intelligence palette.
-  All values in HSL so Tailwind's hsl(var(--token)) consumers work.
+  Desky 2026 refresh — Paper, Ink & Lime.
+  White surfaces, deep ink text, single lime accent reserved for primary meaning.
+  Sora for headings, Manrope for body. HSL tokens so Tailwind hsl(var(--token)) works.
 
-  Hex reference (do not delete):
-    Page bg     #F9FAFB  → 220 14% 98%
-    Card        #FFFFFF  → 0 0% 100%
-    Border      #E5E7EB  → 220 13% 91%
-    Text 1°     #111827  → 220 39% 11%
-    Text 2°     #6B7280  → 220 9% 46%
-    Text 3°     #9CA3AF  → 220 9% 65%
-    Primary     #3B82F6  → 217 91% 60%
-    Critical    #EF4444  → 0 84% 60%
-    Warning     #F59E0B  → 38 92% 50%
-    Opportunity #10B981  → 160 84% 39%
-    Sidebar bg  #111827  → 220 39% 11%
-    Sidebar fg  #9CA3AF  → 220 9% 65%
+  Hex reference:
+    Page bg      #FFFFFF  → 0 0% 100%
+    Surface soft #FAFAF9  → 60 5% 98%
+    Surface mute #F4F4F5  → 240 5% 96%
+    Border       #EAEAEA  → 0 0% 92%
+    Border soft  #F1F1F0  → 60 5% 94%
+    Text 1°      #0A0A0A  → 0 0% 4%
+    Text 2°      #52525B  → 240 4% 34%
+    Text 3°      #A1A1AA  → 240 4% 65%
+    Primary lime #BEF264  → 82 82% 67%   (fresh lime; ink text on top)
+    Primary ink  #0A0A0A  → 0 0% 4%
+    Critical     #EF4444  → 0 84% 60%
+    Warning      #F59E0B  → 38 92% 50%
+    Success      #10B981  → 160 84% 39%
 */
 
 @layer base {
   :root {
-    --background: 220 14% 98%;
-    --foreground: 220 39% 11%;
+    --background: 0 0% 100%;
+    --foreground: 0 0% 4%;
 
     --card: 0 0% 100%;
-    --card-foreground: 220 39% 11%;
+    --card-foreground: 0 0% 4%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 220 39% 11%;
+    --popover-foreground: 0 0% 4%;
 
-    --primary: 217 91% 60%;
-    --primary-foreground: 0 0% 100%;
+    /* Lime primary — ink text sits on top */
+    --primary: 82 82% 67%;
+    --primary-foreground: 0 0% 4%;
 
-    --secondary: 220 14% 96%;
-    --secondary-foreground: 220 25% 20%;
+    --secondary: 60 5% 96%;
+    --secondary-foreground: 0 0% 4%;
 
-    --muted: 220 14% 96%;
-    --muted-foreground: 220 9% 46%;
+    --muted: 60 5% 96%;
+    --muted-foreground: 240 4% 34%;
 
-    --accent: 220 14% 94%;
-    --accent-foreground: 220 39% 11%;
+    --accent: 60 5% 96%;
+    --accent-foreground: 0 0% 4%;
 
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 220 13% 91%;
-    --input: 220 13% 91%;
-    --ring: 217 91% 60%;
+    --border: 0 0% 92%;
+    --input: 0 0% 92%;
+    --ring: 0 0% 4%;
 
-    --radius: 0.5rem;
+    --radius: 0.625rem;
 
-    /* Sidebar — dark navigation rail, light theme app body */
-    --sidebar-background: 220 39% 11%;
-    --sidebar-foreground: 220 9% 65%;
-    --sidebar-primary: 217 91% 60%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 217 91% 60% / 0.1;
-    --sidebar-accent-foreground: 220 14% 98%;
-    --sidebar-border: 220 30% 15%;
-    --sidebar-ring: 217 91% 60%;
+    /* Sidebar — light, quiet, aligned with body */
+    --sidebar-background: 60 5% 98%;
+    --sidebar-foreground: 240 4% 34%;
+    --sidebar-primary: 0 0% 4%;
+    --sidebar-primary-foreground: 82 82% 67%;
+    --sidebar-accent: 0 0% 94%;
+    --sidebar-accent-foreground: 0 0% 4%;
+    --sidebar-border: 0 0% 92%;
+    --sidebar-ring: 0 0% 4%;
 
     --success: 160 84% 39%;
     --success-foreground: 0 0% 100%;
     --warning: 38 92% 50%;
-    --warning-foreground: 0 0% 100%;
+    --warning-foreground: 0 0% 4%;
   }
 }
 
@@ -79,22 +82,48 @@
 
   html, body {
     @apply bg-background text-foreground font-sans antialiased;
-    font-feature-settings: "cv11", "ss01", "ss03";
+    font-feature-settings: "ss01", "cv11";
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
   }
 
-  /* Typography scale per spec */
-  .text-display { font-size: 28px; line-height: 1.2; font-weight: 700; letter-spacing: -0.02em; }
-  .text-h1      { font-size: 22px; line-height: 1.3; font-weight: 700; letter-spacing: -0.01em; }
-  .text-h2      { font-size: 16px; line-height: 1.4; font-weight: 600; }
-  .text-body    { font-size: 14px; line-height: 1.55; font-weight: 400; }
-  .text-small   { font-size: 12px; line-height: 1.4; font-weight: 400; }
-  .text-micro   { font-size: 11px; line-height: 1.3; font-weight: 400; }
+  /* Headings use Sora automatically for clearer hierarchy */
+  h1, h2, h3, h4, h5, h6 {
+    font-family: 'Sora', 'Manrope', system-ui, sans-serif;
+    letter-spacing: -0.015em;
+  }
+
+  /* Typography scale — airy, decisive hierarchy */
+  .text-display { font-family: 'Sora', system-ui, sans-serif; font-size: 34px; line-height: 1.15; font-weight: 600; letter-spacing: -0.025em; }
+  .text-h1      { font-family: 'Sora', system-ui, sans-serif; font-size: 24px; line-height: 1.25; font-weight: 600; letter-spacing: -0.02em; }
+  .text-h2      { font-family: 'Sora', system-ui, sans-serif; font-size: 17px; line-height: 1.35; font-weight: 600; letter-spacing: -0.01em; }
+  .text-body    { font-size: 14px; line-height: 1.6; font-weight: 400; }
+  .text-small   { font-size: 12.5px; line-height: 1.5; font-weight: 400; color: hsl(var(--muted-foreground)); }
+  .text-micro   { font-size: 11px; line-height: 1.3; font-weight: 500; letter-spacing: 0.02em; color: hsl(var(--muted-foreground)); }
 
   .label-eyebrow {
-    font-size: 11px;
-    font-weight: 500;
-    letter-spacing: 0.08em;
+    font-size: 10.5px;
+    font-weight: 600;
+    letter-spacing: 0.1em;
     text-transform: uppercase;
     color: hsl(var(--muted-foreground));
   }
+
+  /* Softer table rules — reduce heavy borders */
+  table { border-collapse: separate; border-spacing: 0; }
+  thead th { font-weight: 500; color: hsl(var(--muted-foreground)); font-size: 12px; letter-spacing: 0.02em; }
+  tbody tr { transition: background-color 120ms ease; }
+  tbody tr:hover { background-color: hsl(var(--muted) / 0.5); }
+
+  /* Focus ring — quieter, ink-based */
+  :focus-visible {
+    outline: 2px solid hsl(var(--ring) / 0.4);
+    outline-offset: 2px;
+  }
+
+  /* Scrollbar polish */
+  ::-webkit-scrollbar { width: 10px; height: 10px; }
+  ::-webkit-scrollbar-thumb { background: hsl(0 0% 88%); border-radius: 999px; border: 2px solid transparent; background-clip: padding-box; }
+  ::-webkit-scrollbar-thumb:hover { background: hsl(0 0% 78%); border: 2px solid transparent; background-clip: padding-box; }
+  ::-webkit-scrollbar-track { background: transparent; }
 }
