@@ -112,8 +112,50 @@ function QuickNoteRow({ note }: { note: QuickNote }) {
                 {c.job_title && <span className="text-muted-foreground ml-1">· {c.job_title}</span>}
               </button>
             ))}
+            <button
+              onClick={() => setCreating(true)}
+              className="text-xs px-2 py-1 rounded border border-dashed border-primary/40 bg-background hover:bg-muted text-primary"
+            >
+              <UserPlus className="h-3 w-3 mr-1 inline" />
+              Create "{parsed.parsed.targetName}"
+            </button>
           </div>
         </div>
+      )}
+      {parsed && parsed.noMatch && parsed.suggestions.length === 0 && (
+        <div className="mt-2 rounded border border-dashed border-primary/30 bg-primary/5 p-2">
+          <p className="text-[11px] text-muted-foreground mb-1">
+            No match for <span className="font-medium text-foreground">{parsed.parsed.targetName}</span> — create a new candidate?
+          </p>
+          <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => setCreating(true)}>
+            <UserPlus className="h-3 w-3 mr-1" /> Create "{parsed.parsed.targetName}"
+          </Button>
+        </div>
+      )}
+      {creating && parsed && (
+        <QuickCreateCandidateForm
+          defaultName={parsed.parsed.targetName}
+          defaultJobTitle={parsed.hints.job_title || ""}
+          defaultEmployer={parsed.hints.current_employer || ""}
+          onCancel={() => setCreating(false)}
+          onCreate={async (form) => {
+            const created = await createCandidate.mutateAsync({
+              name: form.name,
+              job_title: form.job_title || null,
+              current_employer: form.current_employer || null,
+              status: "New",
+              incomplete_profile: true,
+            } as any);
+            await createNote.mutateAsync({
+              content: parsed.parsed.noteContent,
+              candidate_id: (created as any).id,
+              activity_type: "Note",
+            } as any);
+            await update.mutateAsync({ id: note.id, status: "done", reviewed_at: new Date().toISOString() });
+            toast.success(`Created ${form.name} and attached note`);
+            setCreating(false);
+          }}
+        />
       )}
       <div className="flex flex-wrap gap-1 mt-2">
         <Button size="sm" variant="outline" className="h-7 text-xs" onClick={convertToTask}>
@@ -130,6 +172,58 @@ function QuickNoteRow({ note }: { note: QuickNote }) {
         </Button>
       </div>
       {linking && <LinkToRecordPicker note={note} onClose={() => setLinking(false)} onLinked={markDone} />}
+    </div>
+  );
+}
+
+function QuickCreateCandidateForm({
+  defaultName, defaultJobTitle, defaultEmployer, onCreate, onCancel,
+}: {
+  defaultName: string;
+  defaultJobTitle: string;
+  defaultEmployer: string;
+  onCreate: (form: { name: string; job_title: string; current_employer: string }) => Promise<void>;
+  onCancel: () => void;
+}) {
+  const [name, setName] = useState(defaultName);
+  const [jobTitle, setJobTitle] = useState(defaultJobTitle);
+  const [employer, setEmployer] = useState(defaultEmployer);
+  const [saving, setSaving] = useState(false);
+
+  const submit = async () => {
+    if (!name.trim()) return;
+    setSaving(true);
+    try {
+      await onCreate({ name: name.trim(), job_title: jobTitle.trim(), current_employer: employer.trim() });
+    } catch {
+      toast.error("Failed to create");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="mt-2 p-2 rounded-md border border-primary/30 bg-primary/5 space-y-2">
+      <div>
+        <Label className="text-[10px] text-muted-foreground">Name</Label>
+        <Input value={name} onChange={(e) => setName(e.target.value)} className="h-8 text-xs" autoFocus />
+      </div>
+      <div className="grid grid-cols-2 gap-2">
+        <div>
+          <Label className="text-[10px] text-muted-foreground">Job title</Label>
+          <Input value={jobTitle} onChange={(e) => setJobTitle(e.target.value)} placeholder="Optional" className="h-8 text-xs" />
+        </div>
+        <div>
+          <Label className="text-[10px] text-muted-foreground">Employer</Label>
+          <Input value={employer} onChange={(e) => setEmployer(e.target.value)} placeholder="Optional" className="h-8 text-xs" />
+        </div>
+      </div>
+      <div className="flex justify-end gap-1">
+        <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={onCancel} disabled={saving}>Cancel</Button>
+        <Button size="sm" className="h-7 text-xs" onClick={submit} disabled={saving || !name.trim()}>
+          {saving ? "Creating…" : "Create & attach"}
+        </Button>
+      </div>
     </div>
   );
 }
