@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Inbox, Check, Trash2, ListPlus, Link as LinkIcon, ChevronDown, ChevronRight, Search, X, UserPlus } from "lucide-react";
+import { Inbox, Check, Trash2, ListPlus, Link as LinkIcon, ChevronDown, ChevronRight, Search, X, UserPlus, Lightbulb } from "lucide-react";
 import { useQuickNotes, useUpdateQuickNote, useDeleteQuickNote, type QuickNote } from "@/hooks/use-quick-notes";
 import { useCandidates, useClients, useContacts, useCreateNote, useCreateCandidate } from "@/hooks/use-data";
 import { Button } from "@/components/ui/button";
@@ -10,10 +10,18 @@ import { supabase } from "@/integrations/supabase/client";
 import { parseNoteIntent, matchCandidatesByName, extractCandidateHints } from "@/lib/quick-note-parse";
 
 export function QuickNotesSection() {
-  const { data: notes = [] } = useQuickNotes("inbox");
+  const { data: reviewNotes = [] } = useQuickNotes("inbox", "inbox");
+  const { data: generalNotes = [] } = useQuickNotes("inbox", "general");
   const [collapsed, setCollapsed] = useState(false);
+  const [tab, setTab] = useState<"review" | "general">("review");
 
-  if (notes.length === 0) return null;
+  if (reviewNotes.length === 0 && generalNotes.length === 0) return null;
+
+  // Auto-open the tab that has content when the other is empty.
+  const activeTab: "review" | "general" =
+    reviewNotes.length === 0 ? "general" :
+    generalNotes.length === 0 ? "review" : tab;
+  const notes = activeTab === "review" ? reviewNotes : generalNotes;
 
   return (
     <div className="rounded-lg border border-border bg-card p-4">
@@ -24,14 +32,40 @@ export function QuickNotesSection() {
         {collapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
         <Inbox className="h-4 w-4 text-primary" />
         <h2 className="text-sm font-medium">
-          Quick Notes <span className="text-muted-foreground">({notes.length})</span>
+          Quick Notes <span className="text-muted-foreground">({reviewNotes.length + generalNotes.length})</span>
         </h2>
         <span className="text-xs text-muted-foreground ml-auto">review and action</span>
       </button>
       {!collapsed && (
-        <div className="space-y-2">
-          {notes.map(n => <QuickNoteRow key={n.id} note={n} />)}
-        </div>
+        <>
+          {reviewNotes.length > 0 && generalNotes.length > 0 && (
+            <div className="flex gap-1 mb-3 border-b border-border">
+              <button
+                onClick={() => setTab("review")}
+                className={`text-xs px-3 py-1.5 border-b-2 -mb-px flex items-center gap-1.5 ${
+                  activeTab === "review"
+                    ? "border-primary text-foreground font-medium"
+                    : "border-transparent text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                <Inbox className="h-3 w-3" /> Review ({reviewNotes.length})
+              </button>
+              <button
+                onClick={() => setTab("general")}
+                className={`text-xs px-3 py-1.5 border-b-2 -mb-px flex items-center gap-1.5 ${
+                  activeTab === "general"
+                    ? "border-primary text-foreground font-medium"
+                    : "border-transparent text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                <Lightbulb className="h-3 w-3" /> Ideas ({generalNotes.length})
+              </button>
+            </div>
+          )}
+          <div className="space-y-2">
+            {notes.map(n => <QuickNoteRow key={n.id} note={n} />)}
+          </div>
+        </>
       )}
     </div>
   );
