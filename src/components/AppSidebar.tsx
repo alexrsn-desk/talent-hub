@@ -110,27 +110,52 @@ export function AppSidebar() {
                 {section.items.map((item) => {
                   const b = getBadge(item.badge);
                   const showBadge = b.count > 0;
+                  const isCandidates = item.url === "/candidates";
                   return (
-                    <SidebarMenuItem key={item.title}>
-                      <SidebarMenuButton asChild className="rounded-md h-8">
-                        <NavLink
-                          to={item.url}
-                          end={item.url === "/"}
-                          className="group flex items-center gap-2.5 px-2.5 py-1.5 text-[13px] text-muted-foreground hover:bg-sidebar-accent hover:text-foreground transition-colors"
-                          activeClassName="!bg-sidebar-accent !text-foreground font-medium"
-                        >
-                          <item.icon className="h-[15px] w-[15px] text-muted-foreground/80 group-hover:text-foreground" />
-                          {!collapsed && <span className="flex-1">{item.title}</span>}
-                          {!collapsed && showBadge && (
-                            <span
-                              className={`ml-auto inline-flex min-w-[18px] h-[18px] items-center justify-center rounded-full px-1.5 text-[10px] font-semibold text-white ${b.color}`}
-                            >
-                              {b.count}
-                            </span>
-                          )}
-                        </NavLink>
-                      </SidebarMenuButton>
-                    </SidebarMenuItem>
+                    <div key={item.title}>
+                      <SidebarMenuItem>
+                        <SidebarMenuButton asChild className="rounded-md h-8">
+                          <NavLink
+                            to={item.url}
+                            end={item.url === "/"}
+                            className="group flex items-center gap-2.5 px-2.5 py-1.5 text-[13px] text-muted-foreground hover:bg-sidebar-accent hover:text-foreground transition-colors"
+                            activeClassName="!bg-sidebar-accent !text-foreground font-medium"
+                          >
+                            <item.icon className="h-[15px] w-[15px] text-muted-foreground/80 group-hover:text-foreground" />
+                            {!collapsed && <span className="flex-1">{item.title}</span>}
+                            {!collapsed && showBadge && (
+                              <span
+                                className={`ml-auto inline-flex min-w-[18px] h-[18px] items-center justify-center rounded-full px-1.5 text-[10px] font-semibold text-white ${b.color}`}
+                              >
+                                {b.count}
+                              </span>
+                            )}
+                          </NavLink>
+                        </SidebarMenuButton>
+                      </SidebarMenuItem>
+                      {isCandidates && !collapsed && pinned.length > 0 && (
+                        <div className="ml-3 border-l border-sidebar-border/60 pl-1 mt-0.5 mb-1">
+                          {pinned.map((sec) => {
+                            const Icon = PIN_ICON[sec];
+                            const meta = SECTION_META[sec];
+                            return (
+                              <SidebarMenuItem key={sec}>
+                                <SidebarMenuButton asChild className="rounded-md h-7">
+                                  <NavLink
+                                    to={meta.path}
+                                    className="group flex items-center gap-2 px-2 py-1 text-[12px] text-muted-foreground hover:bg-sidebar-accent hover:text-foreground transition-colors"
+                                    activeClassName="!text-foreground font-medium"
+                                  >
+                                    <Icon className="h-[13px] w-[13px] opacity-70" />
+                                    <span className="truncate">{meta.label}</span>
+                                  </NavLink>
+                                </SidebarMenuButton>
+                              </SidebarMenuItem>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
                   );
                 })}
               </SidebarMenu>
