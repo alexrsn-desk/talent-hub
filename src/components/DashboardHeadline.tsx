@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { Sparkles, RefreshCw, AlertTriangle, Star, Phone, Users } from "lucide-react";
+import { Sparkles, RefreshCw, AlertTriangle, Star, Phone, Users, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useTodayFollowUps, useOverdueFollowUps, useTodayInterviews, useCandidateJobs } from "@/hooks/use-data";
 
