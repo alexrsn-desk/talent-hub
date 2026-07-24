@@ -1003,12 +1003,23 @@ export default function CandidatesPage() {
                 const c = filtered[vi.index];
                 const idx = vi.index;
                 const isSelected = selectedIds.has(c.id);
+                const rowTier = tierById?.get(c.id);
+                const prevTier = idx > 0 ? tierById?.get(filtered[idx - 1].id) : null;
+                const showPartialDivider = tierById && rowTier === "partial" && prevTier !== "partial";
                 return (
                 <Fragment key={c.id}>
+                {showPartialDivider && (
+                  <tr aria-hidden className="bg-muted/40 border-y border-border">
+                    <td colSpan={8} className="px-4 py-2 text-[11px] uppercase tracking-wide text-muted-foreground font-medium">
+                      Partial matches — role matches, but the specific detail wasn't confirmed
+                    </td>
+                  </tr>
+                )}
                 <tr
                   className={cn(
                     "group border-b border-border hover:bg-muted/20 transition-colors",
-                    isSelected && "bg-primary/5"
+                    isSelected && "bg-primary/5",
+                    rowTier === "partial" && "opacity-80"
                   )}
                 >
                   <td className="px-3 py-3">
