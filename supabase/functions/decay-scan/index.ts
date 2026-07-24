@@ -349,10 +349,13 @@ Deno.serve(async (req) => {
 
     // Persist
     if (upserts.length > 0) {
-      // Use upsert by unique key (owner_user_id, entity_type, entity_id)
+      // Strip server-managed columns so PostgREST doesn't send explicit NULLs
+      // for rows that don't spread an existing DB row (batched upserts unify
+      // the column list, so a missing created_at on one row becomes NULL for all).
+      const cleaned = upserts.map(({ created_at, updated_at, ...rest }) => rest);
       const { error: upErr } = await sb
         .from("decay_alerts")
-        .upsert(upserts, { onConflict: "owner_user_id,entity_type,entity_id" });
+        .upsert(cleaned, { onConflict: "owner_user_id,entity_type,entity_id" });
       if (upErr) return json({ error: upErr.message }, 500);
     }
 
