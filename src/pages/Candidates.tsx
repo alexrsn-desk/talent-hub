@@ -877,7 +877,8 @@ export default function CandidatesPage() {
         <div className="text-muted-foreground text-sm">Loading...</div>
       ) : (
         <>
-         <div className="sm:hidden space-y-2">
+        {isMobile && (
+         <div className="space-y-2">
            {filtered.length === 0 ? (
              <p className="text-center text-muted-foreground py-8">No candidates found</p>
            ) : filtered.map((c, idx) => {
