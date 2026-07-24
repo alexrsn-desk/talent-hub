@@ -27,6 +27,8 @@ import { logActivity } from "@/lib/activity-log";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { usePools, usePoolMemberships, computePoolHealth, HEALTH_DOT } from "@/hooks/use-talent-pools";
+import { useIsMobile } from "@/hooks/use-mobile";
+import { useVirtualizer } from "@tanstack/react-virtual";
 
 // Sort + filter types
 type SortKey = "name" | "job_title" | "status" | "last_contact" | "created_at";
@@ -496,6 +498,8 @@ export default function CandidatesPage() {
   const { data: pools = [] } = usePools();
   const { data: memberships = [] } = usePoolMemberships();
   const { data: stageMap } = useCandidateStageMap();
+  const isMobile = useIsMobile();
+  const tableScrollRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     sessionStorage.setItem(PERSIST_KEY, JSON.stringify({
@@ -745,6 +749,13 @@ export default function CandidatesPage() {
 
   const cellKey = (id: string, field: string) => `${id}:${field}`;
 
+  const rowVirtualizer = useVirtualizer({
+    count: filtered.length,
+    getScrollElement: () => tableScrollRef.current,
+    estimateSize: () => 56,
+    overscan: 12,
+  });
+
   return (
     <div className="space-y-4 sm:space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
@@ -866,7 +877,8 @@ export default function CandidatesPage() {
         <div className="text-muted-foreground text-sm">Loading...</div>
       ) : (
         <>
-         <div className="sm:hidden space-y-2">
+        {isMobile && (
+         <div className="space-y-2">
            {filtered.length === 0 ? (
              <p className="text-center text-muted-foreground py-8">No candidates found</p>
            ) : filtered.map((c, idx) => {
@@ -938,9 +950,10 @@ export default function CandidatesPage() {
              );
            })}
          </div>
+        )}
 
-         {/* Desktop table view */}
-         <div className="hidden sm:block rounded-lg border border-border overflow-hidden">
+        {!isMobile && (
+         <div ref={tableScrollRef} className="rounded-lg border border-border overflow-auto max-h-[calc(100vh-260px)]">
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-border bg-muted/30">
@@ -963,7 +976,13 @@ export default function CandidatesPage() {
             <tbody>
               {filtered.length === 0 ? (
                 <tr><td colSpan={8} className="px-4 py-8 text-center text-muted-foreground">No candidates found</td></tr>
-              ) : filtered.map((c, idx) => {
+              ) : (<>
+              {rowVirtualizer.getVirtualItems()[0]?.start ? (
+                <tr style={{ height: rowVirtualizer.getVirtualItems()[0].start }} aria-hidden><td colSpan={8} /></tr>
+              ) : null}
+              {rowVirtualizer.getVirtualItems().map((vi) => {
+                const c = filtered[vi.index];
+                const idx = vi.index;
                 const isSelected = selectedIds.has(c.id);
                 return (
                 <Fragment key={c.id}>
@@ -1103,9 +1122,19 @@ export default function CandidatesPage() {
                 </Fragment>
                 );
               })}
+              {(() => {
+                const items = rowVirtualizer.getVirtualItems();
+                const last = items[items.length - 1];
+                const trailing = last ? rowVirtualizer.getTotalSize() - last.end : 0;
+                return trailing > 0 ? (
+                  <tr style={{ height: trailing }} aria-hidden><td colSpan={8} /></tr>
+                ) : null;
+              })()}
+              </>)}
             </tbody>
           </table>
         </div>
+        )}
         </>
       )}
 
