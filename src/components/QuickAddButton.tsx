@@ -50,6 +50,7 @@ const SECTORS = ["Tech", "Finance", "Healthcare", "Retail", "Other"] as const;
 export function QuickAddButton() {
   const [mode, setMode] = useState<Mode>(null);
   const [noteOpen, setNoteOpen] = useState(false);
+  const [noteAutoRecord, setNoteAutoRecord] = useState(false);
   const [candidateDrawerOpen, setCandidateDrawerOpen] = useState(false);
   const sheetOpen = mode !== null && mode !== "quick_note" && mode !== "candidate";
 
@@ -62,13 +63,29 @@ export function QuickAddButton() {
     setMode(m);
   };
 
+  // Global keyboard shortcut: Alt+Shift+N opens Quick Note and starts dictation.
+  // Chosen to avoid conflicts with common browser/OS shortcuts.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.altKey && e.shiftKey && (e.key === "N" || e.key === "n" || e.code === "KeyN")) {
+        e.preventDefault();
+        setNoteAutoRecord(true);
+        setNoteOpen(true);
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
+
+  const closeNote = () => { setNoteOpen(false); setNoteAutoRecord(false); };
+
   return (
     <>
       {/* Quick Note icon */}
       <button
-        onClick={() => setNoteOpen(true)}
-        aria-label="Quick Note"
-        title="Quick Note"
+        onClick={() => { setNoteAutoRecord(false); setNoteOpen(true); }}
+        aria-label="Quick Note (Alt+Shift+N to dictate)"
+        title="Quick Note — Alt+Shift+N to dictate"
         className="fixed z-50 right-[172px] bottom-[calc(env(safe-area-inset-bottom,0px)+1rem)] sm:bottom-4 h-11 w-11 rounded-full bg-primary text-primary-foreground shadow-lg ring-1 ring-black/10 flex items-center justify-center hover:opacity-90 transition"
       >
         <Pencil className="h-4 w-4" />
@@ -83,7 +100,7 @@ export function QuickAddButton() {
         <Plus className="h-4 w-4" />
       </button>
 
-      {noteOpen && <FloatingNotepad onClose={() => setNoteOpen(false)} />}
+      {noteOpen && <FloatingNotepad autoRecord={noteAutoRecord} onClose={closeNote} />}
 
       <Sheet open={sheetOpen} onOpenChange={(v) => !v && setMode(null)}>
         <SheetContent side="right" className="w-full sm:max-w-md overflow-y-auto p-0">
