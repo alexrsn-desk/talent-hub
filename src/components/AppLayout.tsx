@@ -14,15 +14,17 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
           <div className="min-h-screen flex w-full">
             <AppSidebar />
             <div className="flex-1 flex flex-col">
-              <header className="h-12 flex items-center justify-between border-b border-border px-4 gap-3">
+              <header className="h-14 flex items-center justify-between border-b border-border/70 px-5 gap-3 bg-background/80 backdrop-blur-sm sticky top-0 z-30">
                 <SidebarTrigger />
                 <div className="flex-1 flex justify-center">
                   <GlobalSearch />
                 </div>
                 <NotificationBell />
               </header>
-              <main className="flex-1 p-3 sm:p-6 overflow-auto">
-                {children}
+              <main className="flex-1 px-4 sm:px-8 lg:px-10 py-6 sm:py-8 overflow-auto">
+                <div className="mx-auto w-full max-w-[1240px]">
+                  {children}
+                </div>
               </main>
             </div>
           </div>
