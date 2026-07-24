@@ -324,8 +324,7 @@ export default function BillersWorkflow() {
   const [thresholds, setThresholds] = useState<BillerThresholds>(loadThresholds());
   const [gapItem, setGapItem] = useState<BillerItem | null>(null);
   const [expandedId, setExpandedId] = useState<string | null>(null);
-
-  const { data, isLoading, refetch, isFetching } = useBillersWorkflow(viewUserId, thresholds);
+  const [checklistOpen, setChecklistOpen] = useState(false);
   const sections = useMemo(() => data, [data]);
 
   const { data: standardsData } = useWeeklyStandards(1);
