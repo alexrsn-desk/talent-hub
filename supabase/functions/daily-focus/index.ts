@@ -322,11 +322,14 @@ supporting_actions must have 2 or 3 items. Every prompt must be a directive ("Ge
     const aiResult = await response.json();
     const content = aiResult.choices?.[0]?.message?.content;
 
-    let parsed;
+    let parsed: any;
     try {
       parsed = JSON.parse(content);
     } catch {
-      parsed = { greeting: "Good " + timeOfDay, red_flags: [], amber_flags: [], green_flags: [], bottom_line: content || "Check your desk." };
+      parsed = { greeting: "Good " + timeOfDay, lead_action: null, supporting_actions: [], bottom_line: content || "Check your desk." };
+    }
+    if (parsed?.lead_action?.prompt && !parsed.bottom_line) {
+      parsed.bottom_line = parsed.lead_action.prompt;
     }
 
     return new Response(JSON.stringify(parsed), {
