@@ -886,8 +886,20 @@ export default function CandidatesPage() {
           )}
         </div>
 
-        <div className="text-xs text-muted-foreground">
-          Showing {filtered.length} candidate{filtered.length === 1 ? "" : "s"}
+        <div className="text-xs text-muted-foreground flex items-center gap-3 flex-wrap">
+          <span>Showing {filtered.length} candidate{filtered.length === 1 ? "" : "s"}</span>
+          {aiTierCounts && (
+            <span className="flex items-center gap-2">
+              <span className="inline-flex items-center gap-1 rounded-full bg-primary/10 text-primary px-2 py-0.5 font-medium">
+                <Sparkles className="h-3 w-3" /> {aiTierCounts.full} strong
+              </span>
+              {aiTierCounts.partial > 0 && (
+                <span className="inline-flex items-center gap-1 rounded-full bg-muted text-muted-foreground px-2 py-0.5">
+                  {aiTierCounts.partial} partial
+                </span>
+              )}
+            </span>
+          )}
         </div>
       </div>
 
