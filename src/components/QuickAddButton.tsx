@@ -1,5 +1,6 @@
 import { useState, useMemo, useRef, useEffect } from "react";
-import { Plus, NotebookPen, Pencil, X, Search, ArrowLeft, Check } from "lucide-react";
+import { Plus, NotebookPen, Pencil, X, Search, ArrowLeft, Check, Mic, MicOff } from "lucide-react";
+import { useSpeechRecognition } from "@/hooks/use-speech-recognition";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -49,6 +50,7 @@ const SECTORS = ["Tech", "Finance", "Healthcare", "Retail", "Other"] as const;
 export function QuickAddButton() {
   const [mode, setMode] = useState<Mode>(null);
   const [noteOpen, setNoteOpen] = useState(false);
+  const [noteAutoRecord, setNoteAutoRecord] = useState(false);
   const [candidateDrawerOpen, setCandidateDrawerOpen] = useState(false);
   const sheetOpen = mode !== null && mode !== "quick_note" && mode !== "candidate";
 
@@ -61,13 +63,29 @@ export function QuickAddButton() {
     setMode(m);
   };
 
+  // Global keyboard shortcut: Alt+Shift+N opens Quick Note and starts dictation.
+  // Chosen to avoid conflicts with common browser/OS shortcuts.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.altKey && e.shiftKey && (e.key === "N" || e.key === "n" || e.code === "KeyN")) {
+        e.preventDefault();
+        setNoteAutoRecord(true);
+        setNoteOpen(true);
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
+
+  const closeNote = () => { setNoteOpen(false); setNoteAutoRecord(false); };
+
   return (
     <>
       {/* Quick Note icon */}
       <button
-        onClick={() => setNoteOpen(true)}
-        aria-label="Quick Note"
-        title="Quick Note"
+        onClick={() => { setNoteAutoRecord(false); setNoteOpen(true); }}
+        aria-label="Quick Note (Alt+Shift+N to dictate)"
+        title="Quick Note — Alt+Shift+N to dictate"
         className="fixed z-50 right-[172px] bottom-[calc(env(safe-area-inset-bottom,0px)+1rem)] sm:bottom-4 h-11 w-11 rounded-full bg-primary text-primary-foreground shadow-lg ring-1 ring-black/10 flex items-center justify-center hover:opacity-90 transition"
       >
         <Pencil className="h-4 w-4" />
@@ -82,7 +100,7 @@ export function QuickAddButton() {
         <Plus className="h-4 w-4" />
       </button>
 
-      {noteOpen && <FloatingNotepad onClose={() => setNoteOpen(false)} />}
+      {noteOpen && <FloatingNotepad autoRecord={noteAutoRecord} onClose={closeNote} />}
 
       <Sheet open={sheetOpen} onOpenChange={(v) => !v && setMode(null)}>
         <SheetContent side="right" className="w-full sm:max-w-md overflow-y-auto p-0">
@@ -97,25 +115,61 @@ export function QuickAddButton() {
 
 
 // ─── Floating Post-it Notepad ────────────────────────
-function FloatingNotepad({ onClose }: { onClose: () => void }) {
+function FloatingNotepad({ onClose, autoRecord = false }: { onClose: () => void; autoRecord?: boolean }) {
   const [content, setContent] = useState("");
+  const [interim, setInterim] = useState("");
   const [confirmDiscard, setConfirmDiscard] = useState(false);
   const create = useCreateQuickNote();
   const createNote = useCreateNote();
   const { data: candidates = [] } = useCandidates();
+  const { data: clients = [] } = useClients();
+  const { data: contacts = [] } = useContacts();
   const taRef = useRef<HTMLTextAreaElement>(null);
   const lastEnterAt = useRef<number>(0);
+
+  const speech = useSpeechRecognition({
+    onFinal: (chunk) => {
+      setContent((c) => {
+        const sep = c && !/\s$/.test(c) ? " " : "";
+        return (c + sep + chunk.trim()).replace(/\s+/g, " ").trimStart();
+      });
+      setInterim("");
+    },
+    onInterim: (chunk) => setInterim(chunk),
+  });
 
   useEffect(() => {
     taRef.current?.focus();
   }, []);
 
+  // Auto-start dictation when opened via keyboard shortcut.
+  const autoStartedRef = useRef(false);
+  useEffect(() => {
+    if (!autoRecord || autoStartedRef.current) return;
+    autoStartedRef.current = true;
+    if (!speech.supported) {
+      toast.error("Voice dictation isn't supported in this browser");
+      return;
+    }
+    speech.start();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [autoRecord, speech.supported]);
+
+  const toggleMic = async () => {
+    if (!speech.supported) {
+      toast.error("Voice dictation isn't supported in this browser");
+      return;
+    }
+    if (speech.listening) speech.stop();
+    else await speech.start();
+  };
+
   const save = async () => {
-    const v = content.trim();
+    if (speech.listening) speech.stop();
+    const v = (content + (interim ? ` ${interim}` : "")).trim();
     if (!v) { onClose(); return; }
     try {
-      // Try to auto-attach when the note names a single, unambiguous candidate.
-      const { parseNoteIntent, matchCandidatesByName } = await import("@/lib/quick-note-parse");
+      const { parseNoteIntent, matchCandidatesByName, noteReferencesAnyRecord } = await import("@/lib/quick-note-parse");
       const parsed = parseNoteIntent(v);
       if (parsed) {
         const { strong } = matchCandidatesByName(parsed.targetName, candidates as any);
@@ -143,7 +197,16 @@ function FloatingNotepad({ onClose }: { onClose: () => void }) {
           return;
         }
       }
-      await create.mutateAsync(v);
+      // Route: if the text references any known record (candidate/client/contact)
+      // or a name pattern was detected, keep it in the review inbox. Otherwise
+      // save it as a general idea.
+      const references = !!parsed || noteReferencesAnyRecord(v, {
+        candidates: candidates as any,
+        clients: clients as any,
+        contacts: contacts as any,
+      });
+      await create.mutateAsync({ content: v, category: references ? "inbox" : "general" });
+      toast.success(references ? "Saved to review" : "Saved to General notes");
       onClose();
     } catch {
       toast.error("Failed to save");
@@ -151,7 +214,7 @@ function FloatingNotepad({ onClose }: { onClose: () => void }) {
   };
 
   const tryClose = () => {
-    if (content.trim()) setConfirmDiscard(true);
+    if (content.trim() || interim.trim()) setConfirmDiscard(true);
     else onClose();
   };
 
@@ -165,14 +228,14 @@ function FloatingNotepad({ onClose }: { onClose: () => void }) {
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [content]);
+  }, [content, interim]);
 
   return (
     <>
       <div
         role="dialog"
         aria-label="Quick Note"
-        className="fixed z-50 right-4 bottom-[calc(env(safe-area-inset-bottom,0px)+4rem)] sm:bottom-16 w-[280px] h-[200px] rounded-md bg-card border border-border shadow-xl flex flex-col"
+        className="fixed z-50 right-4 bottom-[calc(env(safe-area-inset-bottom,0px)+4rem)] sm:bottom-16 w-[280px] h-[220px] rounded-md bg-card border border-border shadow-xl flex flex-col"
       >
         <button
           onClick={tryClose}
@@ -183,9 +246,9 @@ function FloatingNotepad({ onClose }: { onClose: () => void }) {
         </button>
         <textarea
           ref={taRef}
-          value={content}
-          onChange={(e) => setContent(e.target.value)}
-          placeholder="Brain dump — review later..."
+          value={content + (interim ? (content && !/\s$/.test(content) ? " " : "") + interim : "")}
+          onChange={(e) => { setContent(e.target.value); setInterim(""); }}
+          placeholder={speech.listening ? "Listening…" : "Brain dump — review later..."}
           className="flex-1 w-full resize-none bg-transparent border-0 outline-none px-3 pt-3 pr-7 pb-2 text-sm text-foreground placeholder:text-muted-foreground"
           onKeyDown={(e) => {
             if (e.key === "Enter" && !e.shiftKey) {
@@ -200,10 +263,23 @@ function FloatingNotepad({ onClose }: { onClose: () => void }) {
             }
           }}
         />
-        <div className="flex justify-end px-2 pb-2">
+        <div className="flex items-center justify-between px-2 pb-2 gap-2">
+          <button
+            onClick={toggleMic}
+            aria-label={speech.listening ? "Stop dictation" : "Start dictation"}
+            title={speech.supported ? (speech.listening ? "Stop dictation" : "Dictate (Alt+Shift+N)") : "Dictation not supported in this browser"}
+            className={`p-1.5 rounded transition ${
+              speech.listening
+                ? "text-destructive bg-destructive/10 animate-pulse"
+                : "text-muted-foreground hover:text-foreground hover:bg-muted"
+            } ${!speech.supported ? "opacity-40 cursor-not-allowed" : ""}`}
+            disabled={!speech.supported}
+          >
+            {speech.listening ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
+          </button>
           <button
             onClick={save}
-            disabled={!content.trim() || create.isPending}
+            disabled={(!content.trim() && !interim.trim()) || create.isPending}
             aria-label="Save note"
             className="p-1.5 rounded text-primary hover:bg-primary/10 disabled:opacity-40 disabled:hover:bg-transparent"
           >
