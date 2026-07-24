@@ -71,7 +71,11 @@ export type SearchableRecord = {
   in_pipeline?: boolean;
   has_open_roles?: boolean;
   notes_excerpt?: string | null;
+  summary?: string | null;
+  note?: string | null;
 };
+
+export type AiMatch = { id: string; reason: string; tier?: "full" | "partial" };
 
 function activeFilterCount(scope: SearchScope, f: any): number {
   let n = 0;
