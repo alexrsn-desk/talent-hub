@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { parseNoteIntent, matchCandidatesByName } from "@/lib/quick-note-parse";
 
 export function QuickNotesSection() {
   const { data: notes = [] } = useQuickNotes("inbox");
@@ -38,7 +39,17 @@ export function QuickNotesSection() {
 function QuickNoteRow({ note }: { note: QuickNote }) {
   const update = useUpdateQuickNote();
   const del = useDeleteQuickNote();
+  const createNote = useCreateNote();
+  const { data: candidates = [] } = useCandidates();
   const [linking, setLinking] = useState(false);
+
+  const parsed = (() => {
+    const p = parseNoteIntent(note.content);
+    if (!p) return null;
+    const { strong, near } = matchCandidatesByName(p.targetName, candidates as any);
+    const suggestions = (strong.length ? strong : near).slice(0, 4);
+    return { parsed: p, suggestions, ambiguous: strong.length !== 1 };
+  })();
 
   const markDone = async () => {
     await update.mutateAsync({ id: note.id, status: "done", reviewed_at: new Date().toISOString() });
@@ -62,12 +73,43 @@ function QuickNoteRow({ note }: { note: QuickNote }) {
     toast.success("Added to My List");
   };
 
+  const attachTo = async (candidate: { id: string; name: string | null }) => {
+    const body = parsed?.parsed.noteContent || note.content;
+    await createNote.mutateAsync({
+      content: body,
+      candidate_id: candidate.id,
+      activity_type: "Note",
+    } as any);
+    await update.mutateAsync({ id: note.id, status: "done", reviewed_at: new Date().toISOString() });
+    toast.success(`Added to ${candidate.name}`);
+  };
+
   return (
     <div className="rounded-md border border-border bg-background p-3">
       <p className="text-sm whitespace-pre-wrap">{note.content}</p>
       <p className="text-[10px] text-muted-foreground mt-1">
         {new Date(note.created_at).toLocaleString()}
       </p>
+      {parsed && parsed.suggestions.length > 0 && (
+        <div className="mt-2 rounded border border-primary/20 bg-primary/5 p-2">
+          <p className="text-[11px] text-muted-foreground mb-1">
+            Looks like a note for <span className="font-medium text-foreground">{parsed.parsed.targetName}</span>
+            {parsed.ambiguous ? " — pick the right person:" : ":"}
+          </p>
+          <div className="flex flex-wrap gap-1">
+            {parsed.suggestions.map((c: any) => (
+              <button
+                key={c.id}
+                onClick={() => attachTo(c)}
+                className="text-xs px-2 py-1 rounded border border-border bg-background hover:bg-muted"
+              >
+                {c.name}
+                {c.job_title && <span className="text-muted-foreground ml-1">· {c.job_title}</span>}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
       <div className="flex flex-wrap gap-1 mt-2">
         <Button size="sm" variant="outline" className="h-7 text-xs" onClick={convertToTask}>
           <ListPlus className="h-3 w-3 mr-1" /> Convert to task
