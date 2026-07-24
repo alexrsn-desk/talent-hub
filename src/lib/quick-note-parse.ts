@@ -100,3 +100,34 @@ export function extractCandidateHints(text: string): { job_title?: string; curre
   return out;
 }
 
+// Detect whether note text mentions any known record (candidate/client/contact).
+// Used to route brain-dumps into 'inbox' (needs review) vs 'general' (idea).
+export function noteReferencesAnyRecord(
+  text: string,
+  {
+    candidates,
+    clients,
+    contacts,
+  }: {
+    candidates: { name: string | null }[];
+    clients: { company_name: string | null }[];
+    contacts: { name: string | null }[];
+  }
+): boolean {
+  if (!text) return false;
+  const lower = ` ${text.toLowerCase()} `;
+  const check = (raw: string | null) => {
+    if (!raw) return false;
+    const name = raw.trim().toLowerCase();
+    if (name.length < 3) return false;
+    const escaped = name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    const re = new RegExp(`(^|[^a-z0-9])${escaped}([^a-z0-9]|$)`, "i");
+    return re.test(lower);
+  };
+  return (
+    candidates.some((c) => check(c.name)) ||
+    clients.some((c) => check(c.company_name)) ||
+    contacts.some((c) => check(c.name))
+  );
+}
+
