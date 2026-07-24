@@ -152,8 +152,8 @@ type Props = {
   filters: CandidateFilters | ContactFilters;
   onFiltersChange: (f: any) => void;
   statusOptions: string[];
-  aiResults: { id: string; reason: string }[] | null;
-  onAiResultsChange: (r: { id: string; reason: string }[] | null) => void;
+  aiResults: AiMatch[] | null;
+  onAiResultsChange: (r: AiMatch[] | null) => void;
 };
 
 export function AdvancedSearchBar(props: Props) {
