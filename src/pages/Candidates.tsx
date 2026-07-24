@@ -498,6 +498,8 @@ export default function CandidatesPage() {
   const { data: pools = [] } = usePools();
   const { data: memberships = [] } = usePoolMemberships();
   const { data: stageMap } = useCandidateStageMap();
+  const isMobile = useIsMobile();
+  const tableScrollRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     sessionStorage.setItem(PERSIST_KEY, JSON.stringify({
