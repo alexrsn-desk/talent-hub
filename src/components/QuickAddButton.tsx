@@ -30,7 +30,7 @@ import {
 } from "@/hooks/use-data";
 import { CandidateQuickAddDrawer } from "@/components/CandidateQuickAddDrawer";
 import { BucketSelector } from "@/components/BucketSelector";
-import { useAddToBuckets } from "@/hooks/use-buckets";
+import { useAddToBuckets, useBuckets, useAddFreeformBucketItem } from "@/hooks/use-buckets";
 
 type Mode =
   | null
@@ -125,6 +125,8 @@ function FloatingNotepad({ onClose, autoRecord = false }: { onClose: () => void;
   const { data: candidates = [] } = useCandidates();
   const { data: clients = [] } = useClients();
   const { data: contacts = [] } = useContacts();
+  const { data: buckets = [] } = useBuckets();
+  const addFreeformBucketItem = useAddFreeformBucketItem();
   const taRef = useRef<HTMLTextAreaElement>(null);
   const lastEnterAt = useRef<number>(0);
   const silenceTimerRef = useRef<number | null>(null);
@@ -214,6 +216,23 @@ function FloatingNotepad({ onClose, autoRecord = false }: { onClose: () => void;
     const v = (content + (interim ? ` ${interim}` : "")).trim();
     if (!v) { onClose(); return; }
     try {
+      // Explicit "bucket:" prefix routes straight into a bucket as a freeform note.
+      // Format: "bucket: <bucket name> - <note text>"  (also accepts , : – — as separator)
+      const bucketMatch = v.match(/^\s*bucket\s*[:\-]?\s*([^,\-–—:\n]+?)\s*[,\-–—:]\s*([\s\S]+)$/i);
+      if (bucketMatch && buckets.length) {
+        const wanted = bucketMatch[1].trim().toLowerCase();
+        const text = bucketMatch[2].trim();
+        const target =
+          buckets.find((b) => b.name.toLowerCase() === wanted) ||
+          buckets.find((b) => b.name.toLowerCase().startsWith(wanted)) ||
+          buckets.find((b) => b.name.toLowerCase().includes(wanted));
+        if (target && text) {
+          await addFreeformBucketItem.mutateAsync({ bucketId: target.id, text });
+          toast.success(`Saved to bucket · ${target.name}`);
+          onClose();
+          return;
+        }
+      }
       const { parseNoteIntent, matchCandidatesByName, noteReferencesAnyRecord } = await import("@/lib/quick-note-parse");
       const parsed = parseNoteIntent(v);
       if (parsed) {
@@ -294,7 +313,7 @@ function FloatingNotepad({ onClose, autoRecord = false }: { onClose: () => void;
           ref={taRef}
           value={content + (interim ? (content && !/\s$/.test(content) ? " " : "") + interim : "")}
           onChange={(e) => { setContent(e.target.value); setInterim(""); }}
-          placeholder={speech.listening ? "Listening…" : "Brain dump — review later..."}
+          placeholder={speech.listening ? "Listening…" : "Brain dump — or 'bucket: <name>, …'"}
           className="flex-1 w-full resize-none bg-transparent border-0 outline-none px-3 pt-3 pr-7 pb-2 text-sm text-foreground placeholder:text-muted-foreground"
           onKeyDown={(e) => {
             if (e.key === "Enter" && !e.shiftKey) {

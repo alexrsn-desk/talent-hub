@@ -167,27 +167,30 @@ export type Database = {
           added_at: string
           added_by: string | null
           bucket_id: string
-          entity_id: string
+          entity_id: string | null
           entity_type: string
           id: string
+          note_text: string | null
           owner_user_id: string
         }
         Insert: {
           added_at?: string
           added_by?: string | null
           bucket_id: string
-          entity_id: string
+          entity_id?: string | null
           entity_type: string
           id?: string
+          note_text?: string | null
           owner_user_id: string
         }
         Update: {
           added_at?: string
           added_by?: string | null
           bucket_id?: string
-          entity_id?: string
+          entity_id?: string | null
           entity_type?: string
           id?: string
+          note_text?: string | null
           owner_user_id?: string
         }
         Relationships: [

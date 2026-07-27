@@ -2,7 +2,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 
-export type BucketEntityType = "candidate" | "contact" | "client";
+export type BucketEntityType = "candidate" | "contact" | "client" | "note";
 
 export type Bucket = {
   id: string;
@@ -17,7 +17,8 @@ export type BucketItem = {
   id: string;
   bucket_id: string;
   entity_type: BucketEntityType;
-  entity_id: string;
+  entity_id: string | null;
+  note_text: string | null;
   owner_user_id: string;
   added_at: string;
 };
@@ -182,3 +183,59 @@ export function useSetEntityBuckets() {
     },
   });
 }
+
+// ─── Freeform note items ──────────────────────────────
+export function useAddFreeformBucketItem() {
+  const { user } = useAuth();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ bucketId, text }: { bucketId: string; text: string }) => {
+      if (!user) throw new Error("Not signed in");
+      const trimmed = text.trim();
+      if (!trimmed) throw new Error("Empty note");
+      const { data, error } = await supabase
+        .from("bucket_items" as any)
+        .insert({
+          bucket_id: bucketId,
+          entity_type: "note",
+          entity_id: null,
+          note_text: trimmed,
+          owner_user_id: user.id,
+          added_by: user.id,
+        } as any)
+        .select()
+        .single();
+      if (error) throw error;
+      return data as unknown as BucketItem;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["bucket_items"] });
+    },
+  });
+}
+
+export function useUpdateFreeformBucketItem() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, text }: { id: string; text: string }) => {
+      const { error } = await supabase
+        .from("bucket_items" as any)
+        .update({ note_text: text.trim() } as any)
+        .eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["bucket_items"] }),
+  });
+}
+
+export function useDeleteBucketItem() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from("bucket_items" as any).delete().eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["bucket_items"] }),
+  });
+}
+
