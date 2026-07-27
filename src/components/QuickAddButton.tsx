@@ -257,6 +257,7 @@ function FloatingNotepad({ onClose, autoRecord = false }: { onClose: () => void;
       toast.error("Failed to save");
     }
   };
+  saveRef.current = save;
 
   const tryClose = () => {
     if (content.trim() || interim.trim()) setConfirmDiscard(true);
