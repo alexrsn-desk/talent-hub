@@ -344,6 +344,9 @@ export default function SettingsPage() {
       {/* Integrations · Webhook */}
       <WebhookSettingsSection />
 
+      {/* Voice dictation preferences */}
+      <VoiceDictationSettings />
+
       {/* Screening Notes Template */}
       <ScreeningTemplateSettings />
 
