@@ -125,6 +125,8 @@ function FloatingNotepad({ onClose, autoRecord = false }: { onClose: () => void;
   const { data: candidates = [] } = useCandidates();
   const { data: clients = [] } = useClients();
   const { data: contacts = [] } = useContacts();
+  const { data: buckets = [] } = useBuckets();
+  const addFreeformBucketItem = useAddFreeformBucketItem();
   const taRef = useRef<HTMLTextAreaElement>(null);
   const lastEnterAt = useRef<number>(0);
   const silenceTimerRef = useRef<number | null>(null);
