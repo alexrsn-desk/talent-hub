@@ -30,7 +30,7 @@ import {
 } from "@/hooks/use-data";
 import { CandidateQuickAddDrawer } from "@/components/CandidateQuickAddDrawer";
 import { BucketSelector } from "@/components/BucketSelector";
-import { useAddToBuckets } from "@/hooks/use-buckets";
+import { useAddToBuckets, useBuckets, useAddFreeformBucketItem } from "@/hooks/use-buckets";
 
 type Mode =
   | null
