@@ -25,6 +25,7 @@ import { ComplianceSection } from "@/components/ComplianceSection";
 import { DangerZoneSection } from "@/components/DangerZoneSection";
 import { EnrichmentBudgetSection } from "@/components/EnrichmentBudgetSection";
 import { TalentPoolsSettings } from "@/components/TalentPoolsSettings";
+import { VoiceDictationSettings } from "@/components/VoiceDictationSettings";
 
 const NICHES = [
   "Tech/Digital", "Sales/Commercial", "Finance", "Legal",
