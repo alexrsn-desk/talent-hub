@@ -313,7 +313,7 @@ function FloatingNotepad({ onClose, autoRecord = false }: { onClose: () => void;
           ref={taRef}
           value={content + (interim ? (content && !/\s$/.test(content) ? " " : "") + interim : "")}
           onChange={(e) => { setContent(e.target.value); setInterim(""); }}
-          placeholder={speech.listening ? "Listening…" : "Brain dump — review later..."}
+          placeholder={speech.listening ? "Listening…" : "Brain dump — or 'bucket: <name>, …'"}
           className="flex-1 w-full resize-none bg-transparent border-0 outline-none px-3 pt-3 pr-7 pb-2 text-sm text-foreground placeholder:text-muted-foreground"
           onKeyDown={(e) => {
             if (e.key === "Enter" && !e.shiftKey) {
