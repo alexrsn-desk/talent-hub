@@ -298,6 +298,27 @@ export function BucketsPanel() {
         </DialogContent>
       </Dialog>
 
+      <Dialog open={!!convertTarget} onOpenChange={(v) => !v && setConvertTarget(null)}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>Convert freeform note to record</DialogTitle></DialogHeader>
+          <div className="space-y-3">
+            <div className="rounded-md border border-border bg-muted/20 p-3 text-xs whitespace-pre-wrap">
+              {convertTarget?.note_text}
+            </div>
+            <p className="text-xs text-muted-foreground">
+              We'll pre-fill from this note, create the record, and add it to this bucket.
+            </p>
+          </div>
+          <DialogFooter className="gap-2 sm:gap-2">
+            <Button variant="outline" onClick={() => setConvertTarget(null)}>Cancel</Button>
+            <Button variant="outline" onClick={() => handleConvert("contact")}>Contact</Button>
+            <Button variant="outline" onClick={() => handleConvert("client")}>Company</Button>
+            <Button onClick={() => handleConvert("candidate")}>Candidate</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+
       <AlertDialog open={!!deleteTarget} onOpenChange={(v) => !v && setDeleteTarget(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
