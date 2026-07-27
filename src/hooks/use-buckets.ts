@@ -183,3 +183,59 @@ export function useSetEntityBuckets() {
     },
   });
 }
+
+// ─── Freeform note items ──────────────────────────────
+export function useAddFreeformBucketItem() {
+  const { user } = useAuth();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ bucketId, text }: { bucketId: string; text: string }) => {
+      if (!user) throw new Error("Not signed in");
+      const trimmed = text.trim();
+      if (!trimmed) throw new Error("Empty note");
+      const { data, error } = await supabase
+        .from("bucket_items" as any)
+        .insert({
+          bucket_id: bucketId,
+          entity_type: "note",
+          entity_id: null,
+          note_text: trimmed,
+          owner_user_id: user.id,
+          added_by: user.id,
+        } as any)
+        .select()
+        .single();
+      if (error) throw error;
+      return data as unknown as BucketItem;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["bucket_items"] });
+    },
+  });
+}
+
+export function useUpdateFreeformBucketItem() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, text }: { id: string; text: string }) => {
+      const { error } = await supabase
+        .from("bucket_items" as any)
+        .update({ note_text: text.trim() } as any)
+        .eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["bucket_items"] }),
+  });
+}
+
+export function useDeleteBucketItem() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from("bucket_items" as any).delete().eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["bucket_items"] }),
+  });
+}
+
