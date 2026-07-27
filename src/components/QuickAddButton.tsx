@@ -1,6 +1,7 @@
 import { useState, useMemo, useRef, useEffect } from "react";
 import { Plus, NotebookPen, Pencil, X, Search, ArrowLeft, Check, Mic, MicOff } from "lucide-react";
 import { useSpeechRecognition } from "@/hooks/use-speech-recognition";
+import { getVoiceMode, getSilenceSeconds, stripTriggerPhrase } from "@/lib/voice-dictation-settings";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -126,20 +127,58 @@ function FloatingNotepad({ onClose, autoRecord = false }: { onClose: () => void;
   const { data: contacts = [] } = useContacts();
   const taRef = useRef<HTMLTextAreaElement>(null);
   const lastEnterAt = useRef<number>(0);
+  const silenceTimerRef = useRef<number | null>(null);
+  const saveRef = useRef<() => Promise<void>>(async () => {});
+  const contentRef = useRef("");
+  contentRef.current = content;
+
+  const clearSilenceTimer = () => {
+    if (silenceTimerRef.current !== null) {
+      window.clearTimeout(silenceTimerRef.current);
+      silenceTimerRef.current = null;
+    }
+  };
 
   const speech = useSpeechRecognition({
     onFinal: (chunk) => {
+      // Check for spoken trigger phrase — if found, strip it, stop, and save.
+      const combined = (contentRef.current ? contentRef.current + " " : "") + chunk.trim();
+      const { text, triggered } = stripTriggerPhrase(combined);
+      if (triggered) {
+        clearSilenceTimer();
+        setContent(text.replace(/\s+/g, " ").trimStart());
+        setInterim("");
+        try { (speech as any).stop?.(); } catch { /* noop */ }
+        // Save on next tick so state settles first.
+        window.setTimeout(() => { saveRef.current(); }, 0);
+        return;
+      }
       setContent((c) => {
         const sep = c && !/\s$/.test(c) ? " " : "";
         return (c + sep + chunk.trim()).replace(/\s+/g, " ").trimStart();
       });
       setInterim("");
+      scheduleSilenceStop();
     },
-    onInterim: (chunk) => setInterim(chunk),
+    onInterim: (chunk) => { setInterim(chunk); scheduleSilenceStop(); },
   });
+
+  // Auto-stop after N seconds of silence. If auto mode → save; if manual → just stop.
+  const scheduleSilenceStop = () => {
+    clearSilenceTimer();
+    const secs = getSilenceSeconds();
+    silenceTimerRef.current = window.setTimeout(() => {
+      silenceTimerRef.current = null;
+      try { (speech as any).stop?.(); } catch { /* noop */ }
+      if (getVoiceMode() === "auto") {
+        window.setTimeout(() => { saveRef.current(); }, 50);
+      }
+    }, secs * 1000);
+  };
 
   useEffect(() => {
     taRef.current?.focus();
+    return () => clearSilenceTimer();
   }, []);
 
   // Auto-start dictation when opened via keyboard shortcut.
@@ -152,6 +191,7 @@ function FloatingNotepad({ onClose, autoRecord = false }: { onClose: () => void;
       return;
     }
     speech.start();
+    scheduleSilenceStop();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [autoRecord, speech.supported]);
 
@@ -160,8 +200,13 @@ function FloatingNotepad({ onClose, autoRecord = false }: { onClose: () => void;
       toast.error("Voice dictation isn't supported in this browser");
       return;
     }
-    if (speech.listening) speech.stop();
-    else await speech.start();
+    if (speech.listening) {
+      clearSilenceTimer();
+      speech.stop();
+    } else {
+      await speech.start();
+      scheduleSilenceStop();
+    }
   };
 
   const save = async () => {
@@ -212,6 +257,7 @@ function FloatingNotepad({ onClose, autoRecord = false }: { onClose: () => void;
       toast.error("Failed to save");
     }
   };
+  saveRef.current = save;
 
   const tryClose = () => {
     if (content.trim() || interim.trim()) setConfirmDiscard(true);
