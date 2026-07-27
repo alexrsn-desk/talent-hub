@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { Inbox, Trash2, ChevronDown, ChevronRight, Loader2, Plus } from "lucide-react";
+import { Inbox, Trash2, ChevronDown, ChevronRight, Loader2, Plus, StickyNote, Building2, User, UserCircle2, ArrowRightCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -10,9 +10,15 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { useBuckets, useBucketItems, useCreateBucket, useDeleteBucket, type Bucket } from "@/hooks/use-buckets";
-import { useCandidates, useContacts, useClients } from "@/hooks/use-data";
+import {
+  useBuckets, useBucketItems, useCreateBucket, useDeleteBucket,
+  useAddFreeformBucketItem, useDeleteBucketItem, useAddToBuckets,
+  type Bucket, type BucketItem,
+} from "@/hooks/use-buckets";
+import { useCandidates, useContacts, useClients, useCreateCandidate, useCreateClient, useCreateContact } from "@/hooks/use-data";
+import { extractCandidateHints } from "@/lib/quick-note-parse";
 import { Link } from "react-router-dom";
+
 
 export function BucketsPanel() {
   const { data: buckets = [], isLoading } = useBuckets();
