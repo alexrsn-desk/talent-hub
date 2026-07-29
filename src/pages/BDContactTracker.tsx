@@ -373,11 +373,18 @@ function VariantSummary({ rows }: { rows: Row[] }) {
 type SortKey =
   | "name" | "company" | "source" | "bd_message_variant"
   | "bd_date_first_contacted" | "bd_status" | "bd_last_touch_date"
-  | "days_since" | "bd_next_followup_date";
+  | "days_since" | "bd_next_followup_date" | "touchpoints" | "last_medium";
 
 export default function BDContactTracker() {
   const { data: rows = [], isLoading } = useBDRows();
+  const { data: tpData } = useTouchpoints();
   const update = useUpdateRow();
+  const logTp = useLogTouchpoint();
+
+  const tpFor = (r: Row): TouchpointStats => {
+    const map = r.kind === "candidate" ? tpData?.candidate : tpData?.contact;
+    return map?.get(r.id) ?? { count: 0, lastMedium: null, lastAt: null };
+  };
 
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
