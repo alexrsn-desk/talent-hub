@@ -423,8 +423,17 @@ export default function BDContactTracker() {
 
     list = [...list].sort((a, b) => {
       const dir = sortDir === "asc" ? 1 : -1;
-      const va: any = sortKey === "days_since" ? (daysSince(a.bd_last_touch_date) ?? 99999) : (a as any)[sortKey];
-      const vb: any = sortKey === "days_since" ? (daysSince(b.bd_last_touch_date) ?? 99999) : (b as any)[sortKey];
+      let va: any; let vb: any;
+      if (sortKey === "days_since") {
+        va = daysSince(a.bd_last_touch_date) ?? 99999;
+        vb = daysSince(b.bd_last_touch_date) ?? 99999;
+      } else if (sortKey === "touchpoints") {
+        va = tpFor(a).count; vb = tpFor(b).count;
+      } else if (sortKey === "last_medium") {
+        va = tpFor(a).lastMedium; vb = tpFor(b).lastMedium;
+      } else {
+        va = (a as any)[sortKey]; vb = (b as any)[sortKey];
+      }
       if (va == null && vb == null) return 0;
       if (va == null) return 1;
       if (vb == null) return -1;
@@ -434,7 +443,7 @@ export default function BDContactTracker() {
     });
 
     return list;
-  }, [rows, search, statusFilter, variantFilter, dueFilter, sortKey, sortDir]);
+  }, [rows, search, statusFilter, variantFilter, dueFilter, sortKey, sortDir, tpData]);
 
   const overdueCount = rows.filter((r) => isOverdue(r.bd_next_followup_date)).length;
 
