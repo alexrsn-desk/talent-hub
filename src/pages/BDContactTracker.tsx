@@ -591,6 +591,22 @@ export default function BDContactTracker() {
                       {days == null ? <span className="text-muted-foreground/60">—</span> :
                         <span className={days > 60 ? "text-amber-500" : ""}>{days}d</span>}
                     </TableCell>
+                    <TableCell className="text-right tabular-nums">
+                      <div className="flex items-center justify-end gap-1">
+                        <span className={tp.count === 0 ? "text-muted-foreground/60" : "text-foreground"}>
+                          {tp.count}
+                        </span>
+                        <LogTouchpoint row={r} onLog={(medium, when) => logTp.mutate({ row: r, medium, occurred_at: when })} />
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      {tp.lastMedium ? (
+                        <Badge variant="outline" className="gap-1 text-[11px]">
+                          {mediumIcon(tp.lastMedium)}
+                          {tp.lastMedium}
+                        </Badge>
+                      ) : <span className="text-muted-foreground/60">—</span>}
+                    </TableCell>
                     <TableCell>
                       <DateEditor value={r.bd_next_followup_date}
                         onSave={(v) => update.mutate({ row: r, field: "bd_next_followup_date", value: v })} />
