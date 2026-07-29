@@ -621,7 +621,7 @@ export default function BDContactTracker() {
                       ) : <span className="text-muted-foreground/60">—</span>}
                     </TableCell>
                     <TableCell>
-                      <TextEditor multiline value={r.bd_trigger_notes} placeholder="Trigger / signal"
+                      <TextEditor multiline value={r.bd_trigger_notes} placeholder="Why now — funding, hiring, job move…"
                         onSave={(v) => update.mutate({ row: r, field: "bd_trigger_notes", value: v })} />
                     </TableCell>
                     <TableCell>
