@@ -133,6 +133,71 @@ function useUpdateRow() {
   });
 }
 
+function useTouchpoints() {
+  return useQuery({
+    queryKey: ["bd-touchpoints"],
+    queryFn: async (): Promise<{ candidate: Map<string, TouchpointStats>; contact: Map<string, TouchpointStats> }> => {
+      const { data, error } = await (supabase.from("activity_events") as any)
+        .select("candidate_id,contact_id,medium,occurred_at,event_type")
+        .eq("event_type", "contacted")
+        .order("occurred_at", { ascending: false });
+      if (error) throw error;
+      const cand = new Map<string, TouchpointStats>();
+      const cont = new Map<string, TouchpointStats>();
+      for (const e of (data ?? []) as any[]) {
+        const map = e.candidate_id ? cand : e.contact_id ? cont : null;
+        const key = e.candidate_id ?? e.contact_id;
+        if (!map || !key) continue;
+        const prev = map.get(key) ?? { count: 0, lastMedium: null, lastAt: null };
+        // First iteration for this key is the most recent (data is desc)
+        if (prev.count === 0) {
+          prev.lastMedium = e.medium ?? null;
+          prev.lastAt = e.occurred_at ?? null;
+        }
+        prev.count += 1;
+        map.set(key, prev);
+      }
+      return { candidate: cand, contact: cont };
+    },
+  });
+}
+
+function useLogTouchpoint() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ row, medium, occurred_at }: { row: Row; medium: Medium; occurred_at?: string }) => {
+      const { data: userRes } = await supabase.auth.getUser();
+      const owner_user_id = userRes.user?.id;
+      if (!owner_user_id) throw new Error("Not authenticated");
+      const when = occurred_at ? new Date(occurred_at).toISOString() : new Date().toISOString();
+      const payload: any = {
+        owner_user_id,
+        event_type: "contacted",
+        source: "manual",
+        medium,
+        occurred_at: when,
+      };
+      if (row.kind === "candidate") payload.candidate_id = row.id;
+      else payload.contact_id = row.id;
+
+      const { error } = await (supabase.from("activity_events") as any).insert(payload);
+      if (error) throw error;
+
+      // Also bump bd_last_touch_date for quick sorting
+      const table = row.kind === "candidate" ? "candidates" : "contacts";
+      await (supabase.from(table) as any)
+        .update({ bd_last_touch_date: when.slice(0, 10) })
+        .eq("id", row.id);
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["bd-touchpoints"] });
+      qc.invalidateQueries({ queryKey: ["bd-tracker-rows"] });
+      toast.success("Touchpoint logged");
+    },
+    onError: (e: any) => toast.error(e.message ?? "Failed to log touchpoint"),
+  });
+}
+
 function daysSince(d: string | null) {
   if (!d) return null;
   try { return differenceInCalendarDays(new Date(), parseISO(d)); } catch { return null; }
