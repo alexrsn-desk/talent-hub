@@ -38,6 +38,7 @@ import CompareSubmitSelector from "./pages/CompareSubmitSelector";
 import PitchCandidateSelector from "./pages/PitchCandidateSelector";
 import NotFound from "./pages/NotFound";
 import OAuthConsent from "./pages/OAuthConsent";
+import BDContactTracker from "./pages/BDContactTracker";
 
 
 const queryClient = new QueryClient();
