@@ -16,7 +16,7 @@ import { Card } from "@/components/ui/card";
 import {
   Popover, PopoverContent, PopoverTrigger,
 } from "@/components/ui/popover";
-import { ArrowUpDown, ExternalLink, Search, Filter, TrendingUp } from "lucide-react";
+import { ArrowUpDown, ExternalLink, Search, Filter, TrendingUp, Plus, Phone, Link2, Mail, MessageSquare } from "lucide-react";
 import { toast } from "sonner";
 
 type Kind = "candidate" | "contact";
@@ -37,6 +37,15 @@ type Row = {
   bd_conversation_notes: string | null;
   bd_outcome: string | null;
 };
+
+type TouchpointStats = {
+  count: number;
+  lastMedium: string | null;
+  lastAt: string | null;
+};
+
+const MEDIUMS = ["Phone", "LinkedIn", "Email", "Other"] as const;
+type Medium = typeof MEDIUMS[number];
 
 const STATUS_OPTIONS = [
   "Not contacted",
@@ -124,6 +133,71 @@ function useUpdateRow() {
   });
 }
 
+function useTouchpoints() {
+  return useQuery({
+    queryKey: ["bd-touchpoints"],
+    queryFn: async (): Promise<{ candidate: Map<string, TouchpointStats>; contact: Map<string, TouchpointStats> }> => {
+      const { data, error } = await (supabase.from("activity_events") as any)
+        .select("candidate_id,contact_id,medium,occurred_at,event_type")
+        .eq("event_type", "contacted")
+        .order("occurred_at", { ascending: false });
+      if (error) throw error;
+      const cand = new Map<string, TouchpointStats>();
+      const cont = new Map<string, TouchpointStats>();
+      for (const e of (data ?? []) as any[]) {
+        const map = e.candidate_id ? cand : e.contact_id ? cont : null;
+        const key = e.candidate_id ?? e.contact_id;
+        if (!map || !key) continue;
+        const prev = map.get(key) ?? { count: 0, lastMedium: null, lastAt: null };
+        // First iteration for this key is the most recent (data is desc)
+        if (prev.count === 0) {
+          prev.lastMedium = e.medium ?? null;
+          prev.lastAt = e.occurred_at ?? null;
+        }
+        prev.count += 1;
+        map.set(key, prev);
+      }
+      return { candidate: cand, contact: cont };
+    },
+  });
+}
+
+function useLogTouchpoint() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ row, medium, occurred_at }: { row: Row; medium: Medium; occurred_at?: string }) => {
+      const { data: userRes } = await supabase.auth.getUser();
+      const owner_user_id = userRes.user?.id;
+      if (!owner_user_id) throw new Error("Not authenticated");
+      const when = occurred_at ? new Date(occurred_at).toISOString() : new Date().toISOString();
+      const payload: any = {
+        owner_user_id,
+        event_type: "contacted",
+        source: "manual",
+        medium,
+        occurred_at: when,
+      };
+      if (row.kind === "candidate") payload.candidate_id = row.id;
+      else payload.contact_id = row.id;
+
+      const { error } = await (supabase.from("activity_events") as any).insert(payload);
+      if (error) throw error;
+
+      // Also bump bd_last_touch_date for quick sorting
+      const table = row.kind === "candidate" ? "candidates" : "contacts";
+      await (supabase.from(table) as any)
+        .update({ bd_last_touch_date: when.slice(0, 10) })
+        .eq("id", row.id);
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["bd-touchpoints"] });
+      qc.invalidateQueries({ queryKey: ["bd-tracker-rows"] });
+      toast.success("Touchpoint logged");
+    },
+    onError: (e: any) => toast.error(e.message ?? "Failed to log touchpoint"),
+  });
+}
+
 function daysSince(d: string | null) {
   if (!d) return null;
   try { return differenceInCalendarDays(new Date(), parseISO(d)); } catch { return null; }
@@ -184,6 +258,50 @@ function StatusEditor({ value, onSave }: { value: string | null; onSave: (v: str
         {STATUS_OPTIONS.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
       </SelectContent>
     </Select>
+  );
+}
+
+function mediumIcon(m: string | null) {
+  const s = (m ?? "").toLowerCase();
+  if (s === "phone") return <Phone className="h-3 w-3" />;
+  if (s === "linkedin") return <Link2 className="h-3 w-3" />;
+  if (s === "email") return <Mail className="h-3 w-3" />;
+  if (s) return <MessageSquare className="h-3 w-3" />;
+  return null;
+}
+
+function LogTouchpoint({ row, onLog }: { row: Row; onLog: (m: Medium, when: string) => void }) {
+  const [open, setOpen] = useState(false);
+  const [medium, setMedium] = useState<Medium>("LinkedIn");
+  const [when, setWhen] = useState(() => new Date().toISOString().slice(0, 10));
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <Button size="sm" variant="ghost" className="h-6 px-2 text-[11px] gap-1">
+          <Plus className="h-3 w-3" /> Log
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent align="end" className="w-64 space-y-3">
+        <div className="text-[12px] font-medium">Log touchpoint</div>
+        <div className="space-y-1">
+          <label className="text-[11px] text-muted-foreground">Medium</label>
+          <Select value={medium} onValueChange={(v) => setMedium(v as Medium)}>
+            <SelectTrigger className="h-8 text-[12px]"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              {MEDIUMS.map((m) => <SelectItem key={m} value={m}>{m}</SelectItem>)}
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="space-y-1">
+          <label className="text-[11px] text-muted-foreground">Date</label>
+          <Input type="date" value={when} onChange={(e) => setWhen(e.target.value)} className="h-8 text-[12px]" />
+        </div>
+        <Button size="sm" className="w-full h-8 text-[12px]"
+          onClick={() => { onLog(medium, when); setOpen(false); }}>
+          Add touchpoint
+        </Button>
+      </PopoverContent>
+    </Popover>
   );
 }
 
@@ -255,11 +373,18 @@ function VariantSummary({ rows }: { rows: Row[] }) {
 type SortKey =
   | "name" | "company" | "source" | "bd_message_variant"
   | "bd_date_first_contacted" | "bd_status" | "bd_last_touch_date"
-  | "days_since" | "bd_next_followup_date";
+  | "days_since" | "bd_next_followup_date" | "touchpoints" | "last_medium";
 
 export default function BDContactTracker() {
   const { data: rows = [], isLoading } = useBDRows();
+  const { data: tpData } = useTouchpoints();
   const update = useUpdateRow();
+  const logTp = useLogTouchpoint();
+
+  const tpFor = (r: Row): TouchpointStats => {
+    const map = r.kind === "candidate" ? tpData?.candidate : tpData?.contact;
+    return map?.get(r.id) ?? { count: 0, lastMedium: null, lastAt: null };
+  };
 
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
@@ -298,8 +423,17 @@ export default function BDContactTracker() {
 
     list = [...list].sort((a, b) => {
       const dir = sortDir === "asc" ? 1 : -1;
-      const va: any = sortKey === "days_since" ? (daysSince(a.bd_last_touch_date) ?? 99999) : (a as any)[sortKey];
-      const vb: any = sortKey === "days_since" ? (daysSince(b.bd_last_touch_date) ?? 99999) : (b as any)[sortKey];
+      let va: any; let vb: any;
+      if (sortKey === "days_since") {
+        va = daysSince(a.bd_last_touch_date) ?? 99999;
+        vb = daysSince(b.bd_last_touch_date) ?? 99999;
+      } else if (sortKey === "touchpoints") {
+        va = tpFor(a).count; vb = tpFor(b).count;
+      } else if (sortKey === "last_medium") {
+        va = tpFor(a).lastMedium; vb = tpFor(b).lastMedium;
+      } else {
+        va = (a as any)[sortKey]; vb = (b as any)[sortKey];
+      }
       if (va == null && vb == null) return 0;
       if (va == null) return 1;
       if (vb == null) return -1;
@@ -309,7 +443,7 @@ export default function BDContactTracker() {
     });
 
     return list;
-  }, [rows, search, statusFilter, variantFilter, dueFilter, sortKey, sortDir]);
+  }, [rows, search, statusFilter, variantFilter, dueFilter, sortKey, sortDir, tpData]);
 
   const overdueCount = rows.filter((r) => isOverdue(r.bd_next_followup_date)).length;
 
@@ -394,25 +528,28 @@ export default function BDContactTracker() {
                 <TableHead className="min-w-[180px]">{sortBtn("bd_status", "Status")}</TableHead>
                 <TableHead className="min-w-[130px]">{sortBtn("bd_last_touch_date", "Last touch")}</TableHead>
                 <TableHead className="min-w-[80px] text-right">{sortBtn("days_since", "Days")}</TableHead>
+                <TableHead className="min-w-[90px] text-right">{sortBtn("touchpoints", "Touches")}</TableHead>
+                <TableHead className="min-w-[130px]">{sortBtn("last_medium", "Medium")}</TableHead>
                 <TableHead className="min-w-[130px]">{sortBtn("bd_next_followup_date", "Next follow-up")}</TableHead>
                 <TableHead className="min-w-[100px]">Due?</TableHead>
-                <TableHead className="min-w-[200px]">Trigger notes</TableHead>
+                <TableHead className="min-w-[200px]">Why Now / Signal</TableHead>
                 <TableHead className="min-w-[220px]">Conversation notes</TableHead>
                 <TableHead className="min-w-[160px]">Outcome / Fee</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {isLoading && (
-                <TableRow><TableCell colSpan={15} className="text-center py-10 text-muted-foreground text-sm">Loading…</TableCell></TableRow>
+                <TableRow><TableCell colSpan={17} className="text-center py-10 text-muted-foreground text-sm">Loading…</TableCell></TableRow>
               )}
               {!isLoading && filtered.length === 0 && (
-                <TableRow><TableCell colSpan={15} className="text-center py-10 text-muted-foreground text-sm">
+                <TableRow><TableCell colSpan={17} className="text-center py-10 text-muted-foreground text-sm">
                   No BD contacts match your filters. Start populating BD fields on a candidate or contact to see them here.
                 </TableCell></TableRow>
               )}
               {filtered.map((r) => {
                 const days = daysSince(r.bd_last_touch_date);
                 const overdue = isOverdue(r.bd_next_followup_date);
+                const tp = tpFor(r);
                 return (
                   <TableRow key={`${r.kind}-${r.id}`} className="text-[12px] align-top hover:bg-muted/30">
                     <TableCell>
@@ -454,6 +591,22 @@ export default function BDContactTracker() {
                       {days == null ? <span className="text-muted-foreground/60">—</span> :
                         <span className={days > 60 ? "text-amber-500" : ""}>{days}d</span>}
                     </TableCell>
+                    <TableCell className="text-right tabular-nums">
+                      <div className="flex items-center justify-end gap-1">
+                        <span className={tp.count === 0 ? "text-muted-foreground/60" : "text-foreground"}>
+                          {tp.count}
+                        </span>
+                        <LogTouchpoint row={r} onLog={(medium, when) => logTp.mutate({ row: r, medium, occurred_at: when })} />
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      {tp.lastMedium ? (
+                        <Badge variant="outline" className="gap-1 text-[11px]">
+                          {mediumIcon(tp.lastMedium)}
+                          {tp.lastMedium}
+                        </Badge>
+                      ) : <span className="text-muted-foreground/60">—</span>}
+                    </TableCell>
                     <TableCell>
                       <DateEditor value={r.bd_next_followup_date}
                         onSave={(v) => update.mutate({ row: r, field: "bd_next_followup_date", value: v })} />
@@ -468,7 +621,7 @@ export default function BDContactTracker() {
                       ) : <span className="text-muted-foreground/60">—</span>}
                     </TableCell>
                     <TableCell>
-                      <TextEditor multiline value={r.bd_trigger_notes} placeholder="Trigger / signal"
+                      <TextEditor multiline value={r.bd_trigger_notes} placeholder="Why now — funding, hiring, job move…"
                         onSave={(v) => update.mutate({ row: r, field: "bd_trigger_notes", value: v })} />
                     </TableCell>
                     <TableCell>
