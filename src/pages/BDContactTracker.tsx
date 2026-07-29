@@ -16,7 +16,7 @@ import { Card } from "@/components/ui/card";
 import {
   Popover, PopoverContent, PopoverTrigger,
 } from "@/components/ui/popover";
-import { ArrowUpDown, ExternalLink, Search, Filter, TrendingUp, Plus, Phone, Linkedin, Mail, MessageSquare } from "lucide-react";
+import { ArrowUpDown, ExternalLink, Search, Filter, TrendingUp, Plus, Phone, Linkedin as LinkedinIcon, Mail, MessageSquare } from "lucide-react";
 import { toast } from "sonner";
 
 type Kind = "candidate" | "contact";
