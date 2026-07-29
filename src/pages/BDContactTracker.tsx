@@ -38,6 +38,15 @@ type Row = {
   bd_outcome: string | null;
 };
 
+type TouchpointStats = {
+  count: number;
+  lastMedium: string | null;
+  lastAt: string | null;
+};
+
+const MEDIUMS = ["Phone", "LinkedIn", "Email", "Other"] as const;
+type Medium = typeof MEDIUMS[number];
+
 const STATUS_OPTIONS = [
   "Not contacted",
   "Contacted - no reply",
