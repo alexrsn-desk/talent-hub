@@ -261,6 +261,50 @@ function StatusEditor({ value, onSave }: { value: string | null; onSave: (v: str
   );
 }
 
+function mediumIcon(m: string | null) {
+  const s = (m ?? "").toLowerCase();
+  if (s === "phone") return <Phone className="h-3 w-3" />;
+  if (s === "linkedin") return <Link2 className="h-3 w-3" />;
+  if (s === "email") return <Mail className="h-3 w-3" />;
+  if (s) return <MessageSquare className="h-3 w-3" />;
+  return null;
+}
+
+function LogTouchpoint({ row, onLog }: { row: Row; onLog: (m: Medium, when: string) => void }) {
+  const [open, setOpen] = useState(false);
+  const [medium, setMedium] = useState<Medium>("LinkedIn");
+  const [when, setWhen] = useState(() => new Date().toISOString().slice(0, 10));
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <Button size="sm" variant="ghost" className="h-6 px-2 text-[11px] gap-1">
+          <Plus className="h-3 w-3" /> Log
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent align="end" className="w-64 space-y-3">
+        <div className="text-[12px] font-medium">Log touchpoint</div>
+        <div className="space-y-1">
+          <label className="text-[11px] text-muted-foreground">Medium</label>
+          <Select value={medium} onValueChange={(v) => setMedium(v as Medium)}>
+            <SelectTrigger className="h-8 text-[12px]"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              {MEDIUMS.map((m) => <SelectItem key={m} value={m}>{m}</SelectItem>)}
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="space-y-1">
+          <label className="text-[11px] text-muted-foreground">Date</label>
+          <Input type="date" value={when} onChange={(e) => setWhen(e.target.value)} className="h-8 text-[12px]" />
+        </div>
+        <Button size="sm" className="w-full h-8 text-[12px]"
+          onClick={() => { onLog(medium, when); setOpen(false); }}>
+          Add touchpoint
+        </Button>
+      </PopoverContent>
+    </Popover>
+  );
+}
+
 /* ---------- variant summary ---------- */
 
 function VariantSummary({ rows }: { rows: Row[] }) {
