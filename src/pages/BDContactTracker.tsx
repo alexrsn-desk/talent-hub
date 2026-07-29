@@ -629,8 +629,13 @@ export default function BDContactTracker() {
                         onSave={(v) => update.mutate({ row: r, field: "bd_trigger_notes", value: v })} />
                     </TableCell>
                     <TableCell>
-                      <TextEditor multiline value={r.bd_conversation_notes} placeholder="What was said"
-                        onSave={(v) => update.mutate({ row: r, field: "bd_conversation_notes", value: v })} />
+                      <div className="flex items-start gap-1">
+                        <div className="flex-1 min-w-0">
+                          <TextEditor multiline value={r.bd_conversation_notes} placeholder="Quick summary for this table — free text, optional"
+                            onSave={(v) => update.mutate({ row: r, field: "bd_conversation_notes", value: v })} />
+                        </div>
+                        <NotesHistorySheet row={r} />
+                      </div>
                     </TableCell>
                     <TableCell>
                       <TextEditor value={r.bd_outcome} placeholder="Outcome / fee"
