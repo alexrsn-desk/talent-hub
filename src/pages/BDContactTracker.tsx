@@ -651,3 +651,80 @@ export default function BDContactTracker() {
     </div>
   );
 }
+
+function NotesHistorySheet({ row }: { row: Row }) {
+  const [open, setOpen] = useState(false);
+  const { data, isLoading } = useQuery({
+    queryKey: ["bd-notes-history", row.kind, row.id, row.client_id],
+    enabled: open,
+    queryFn: async () => {
+      let q = supabase
+        .from("notes")
+        .select("id,content,activity_type,outcome,created_at,duration,follow_up_date,candidate_id,client_id,job_id")
+        .order("created_at", { ascending: false })
+        .limit(200);
+      if (row.kind === "candidate") {
+        q = q.eq("candidate_id", row.id);
+      } else if (row.client_id) {
+        q = q.eq("client_id", row.client_id);
+      } else {
+        return [];
+      }
+      const { data, error } = await q;
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+
+  const notes = data ?? [];
+
+  return (
+    <Sheet open={open} onOpenChange={setOpen}>
+      <SheetTrigger asChild>
+        <Button
+          variant="ghost"
+          size="icon"
+          className="h-7 w-7 shrink-0 text-muted-foreground hover:text-foreground"
+          title="View full notes history"
+        >
+          <History className="h-3.5 w-3.5" />
+        </Button>
+      </SheetTrigger>
+      <SheetContent className="sm:max-w-lg overflow-y-auto">
+        <SheetHeader>
+          <SheetTitle>{row.name} — Notes history</SheetTitle>
+          <SheetDescription>
+            {row.kind === "candidate"
+              ? "All notes logged against this candidate."
+              : row.client_id
+                ? "All notes logged against this contact's client."
+                : "This contact has no linked client, so no shared notes history is available."}
+          </SheetDescription>
+        </SheetHeader>
+        <div className="mt-5 space-y-3">
+          {isLoading && <div className="text-sm text-muted-foreground">Loading…</div>}
+          {!isLoading && notes.length === 0 && (
+            <div className="text-sm text-muted-foreground border border-dashed rounded-md p-6 text-center">
+              No notes yet. Notes logged via Quick Notes or the record's timeline will appear here.
+            </div>
+          )}
+          {notes.map((n: any) => (
+            <div key={n.id} className="rounded-md border bg-card/50 p-3">
+              <div className="flex items-center justify-between text-[11px] uppercase tracking-wide text-muted-foreground mb-1.5">
+                <span className="font-medium">{n.activity_type || "note"}</span>
+                <span>{n.created_at ? format(parseISO(n.created_at), "d MMM yyyy, HH:mm") : ""}</span>
+              </div>
+              <div className="text-[13px] whitespace-pre-wrap text-foreground">{n.content}</div>
+              {(n.outcome || n.follow_up_date) && (
+                <div className="mt-2 flex flex-wrap gap-1.5 text-[11px] text-muted-foreground">
+                  {n.outcome && <Badge variant="outline">{n.outcome}</Badge>}
+                  {n.follow_up_date && <Badge variant="outline">Follow up: {format(parseISO(n.follow_up_date), "d MMM")}</Badge>}
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      </SheetContent>
+    </Sheet>
+  );
+}
