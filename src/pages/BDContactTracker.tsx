@@ -116,7 +116,7 @@ function useUpdateRow() {
   return useMutation({
     mutationFn: async ({ row, field, value }: { row: Row; field: keyof Row; value: any }) => {
       const table = row.kind === "candidate" ? "candidates" : "contacts";
-      const { error } = await supabase.from(table).update({ [field]: value || null }).eq("id", row.id);
+      const { error } = await (supabase.from(table) as any).update({ [field]: value || null }).eq("id", row.id);
       if (error) throw error;
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ["bd-tracker-rows"] }),
