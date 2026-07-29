@@ -1,5 +1,5 @@
 import { NavLink } from "@/components/NavLink";
-import { LayoutDashboard, Users, Building2, UserCircle, Briefcase, TrendingUp, Sparkles, Settings, BarChart3, PhoneCall, Link2, Award, MessagesSquare, Target, Waves, Rocket, Columns, RefreshCw, MessageCircle, PlayCircle, Inbox } from "lucide-react";
+import { LayoutDashboard, Users, Building2, UserCircle, Briefcase, TrendingUp, Sparkles, Settings, BarChart3, PhoneCall, Link2, Award, MessagesSquare, Target, Waves, Rocket, Columns, RefreshCw, MessageCircle, PlayCircle, Inbox, Table2 } from "lucide-react";
 import {
   Sidebar,
   SidebarContent,
@@ -47,6 +47,7 @@ const aiItems: Item[] = [
 
 const toolItems: Item[] = [
   { title: "BD Pipeline", url: "/bd-pipeline", icon: TrendingUp },
+  { title: "BD Contact Tracker", url: "/bd-tracker", icon: Table2 },
   { title: "Calls & Meetings", url: "/calls", icon: PhoneCall },
   { title: "Sequences", url: "/sequences", icon: Link2 },
   { title: "SourceWhale", url: "/sourcewhale", icon: Waves },

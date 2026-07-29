@@ -532,6 +532,14 @@ export type Database = {
       candidates: {
         Row: {
           availability: string | null
+          bd_conversation_notes: string | null
+          bd_date_first_contacted: string | null
+          bd_last_touch_date: string | null
+          bd_message_variant: string | null
+          bd_next_followup_date: string | null
+          bd_outcome: string | null
+          bd_status: string | null
+          bd_trigger_notes: string | null
           created_at: string
           current_employer: string | null
           dnc_channel: string | null
@@ -571,6 +579,14 @@ export type Database = {
         }
         Insert: {
           availability?: string | null
+          bd_conversation_notes?: string | null
+          bd_date_first_contacted?: string | null
+          bd_last_touch_date?: string | null
+          bd_message_variant?: string | null
+          bd_next_followup_date?: string | null
+          bd_outcome?: string | null
+          bd_status?: string | null
+          bd_trigger_notes?: string | null
           created_at?: string
           current_employer?: string | null
           dnc_channel?: string | null
@@ -610,6 +626,14 @@ export type Database = {
         }
         Update: {
           availability?: string | null
+          bd_conversation_notes?: string | null
+          bd_date_first_contacted?: string | null
+          bd_last_touch_date?: string | null
+          bd_message_variant?: string | null
+          bd_next_followup_date?: string | null
+          bd_outcome?: string | null
+          bd_status?: string | null
+          bd_trigger_notes?: string | null
           created_at?: string
           current_employer?: string | null
           dnc_channel?: string | null
@@ -1024,6 +1048,14 @@ export type Database = {
       }
       contacts: {
         Row: {
+          bd_conversation_notes: string | null
+          bd_date_first_contacted: string | null
+          bd_last_touch_date: string | null
+          bd_message_variant: string | null
+          bd_next_followup_date: string | null
+          bd_outcome: string | null
+          bd_status: string | null
+          bd_trigger_notes: string | null
           client_id: string
           created_at: string
           direct_phone: string | null
@@ -1050,10 +1082,19 @@ export type Database = {
           phone: string | null
           reengage_date: string | null
           reengage_reason: string | null
+          source: string | null
           status: string
           summary: string | null
         }
         Insert: {
+          bd_conversation_notes?: string | null
+          bd_date_first_contacted?: string | null
+          bd_last_touch_date?: string | null
+          bd_message_variant?: string | null
+          bd_next_followup_date?: string | null
+          bd_outcome?: string | null
+          bd_status?: string | null
+          bd_trigger_notes?: string | null
           client_id: string
           created_at?: string
           direct_phone?: string | null
@@ -1080,10 +1121,19 @@ export type Database = {
           phone?: string | null
           reengage_date?: string | null
           reengage_reason?: string | null
+          source?: string | null
           status?: string
           summary?: string | null
         }
         Update: {
+          bd_conversation_notes?: string | null
+          bd_date_first_contacted?: string | null
+          bd_last_touch_date?: string | null
+          bd_message_variant?: string | null
+          bd_next_followup_date?: string | null
+          bd_outcome?: string | null
+          bd_status?: string | null
+          bd_trigger_notes?: string | null
           client_id?: string
           created_at?: string
           direct_phone?: string | null
@@ -1110,6 +1160,7 @@ export type Database = {
           phone?: string | null
           reengage_date?: string | null
           reengage_reason?: string | null
+          source?: string | null
           status?: string
           summary?: string | null
         }

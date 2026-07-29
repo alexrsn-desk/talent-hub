@@ -38,6 +38,7 @@ import CompareSubmitSelector from "./pages/CompareSubmitSelector";
 import PitchCandidateSelector from "./pages/PitchCandidateSelector";
 import NotFound from "./pages/NotFound";
 import OAuthConsent from "./pages/OAuthConsent";
+import BDContactTracker from "./pages/BDContactTracker";
 
 
 const queryClient = new QueryClient();
@@ -176,6 +177,7 @@ function AppRoutes() {
           <Route path="/jobs/:jobId/launch" element={<JobLaunch />} />
           <Route path="/placements" element={<Placements />} />
           <Route path="/bd-pipeline" element={<BDPipeline />} />
+          <Route path="/bd-tracker" element={<BDContactTracker />} />
           <Route path="/coach" element={<Coach />} />
           <Route path="/ask" element={<AskDesky />} />
           <Route path="/weekly" element={<WeeklyIntel />} />
