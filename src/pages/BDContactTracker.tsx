@@ -539,16 +539,17 @@ export default function BDContactTracker() {
             </TableHeader>
             <TableBody>
               {isLoading && (
-                <TableRow><TableCell colSpan={15} className="text-center py-10 text-muted-foreground text-sm">Loading…</TableCell></TableRow>
+                <TableRow><TableCell colSpan={17} className="text-center py-10 text-muted-foreground text-sm">Loading…</TableCell></TableRow>
               )}
               {!isLoading && filtered.length === 0 && (
-                <TableRow><TableCell colSpan={15} className="text-center py-10 text-muted-foreground text-sm">
+                <TableRow><TableCell colSpan={17} className="text-center py-10 text-muted-foreground text-sm">
                   No BD contacts match your filters. Start populating BD fields on a candidate or contact to see them here.
                 </TableCell></TableRow>
               )}
               {filtered.map((r) => {
                 const days = daysSince(r.bd_last_touch_date);
                 const overdue = isOverdue(r.bd_next_followup_date);
+                const tp = tpFor(r);
                 return (
                   <TableRow key={`${r.kind}-${r.id}`} className="text-[12px] align-top hover:bg-muted/30">
                     <TableCell>
