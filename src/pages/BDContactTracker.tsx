@@ -528,9 +528,11 @@ export default function BDContactTracker() {
                 <TableHead className="min-w-[180px]">{sortBtn("bd_status", "Status")}</TableHead>
                 <TableHead className="min-w-[130px]">{sortBtn("bd_last_touch_date", "Last touch")}</TableHead>
                 <TableHead className="min-w-[80px] text-right">{sortBtn("days_since", "Days")}</TableHead>
+                <TableHead className="min-w-[90px] text-right">{sortBtn("touchpoints", "Touches")}</TableHead>
+                <TableHead className="min-w-[130px]">{sortBtn("last_medium", "Medium")}</TableHead>
                 <TableHead className="min-w-[130px]">{sortBtn("bd_next_followup_date", "Next follow-up")}</TableHead>
                 <TableHead className="min-w-[100px]">Due?</TableHead>
-                <TableHead className="min-w-[200px]">Trigger notes</TableHead>
+                <TableHead className="min-w-[200px]">Why Now / Signal</TableHead>
                 <TableHead className="min-w-[220px]">Conversation notes</TableHead>
                 <TableHead className="min-w-[160px]">Outcome / Fee</TableHead>
               </TableRow>
