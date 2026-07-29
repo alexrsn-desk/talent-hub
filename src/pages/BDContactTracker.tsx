@@ -36,6 +36,7 @@ type Row = {
   bd_trigger_notes: string | null;
   bd_conversation_notes: string | null;
   bd_outcome: string | null;
+  client_id: string | null;
 };
 
 type TouchpointStats = {
