@@ -17,10 +17,12 @@ export type Database = {
       activity_events: {
         Row: {
           candidate_id: string | null
+          contact_id: string | null
           created_at: string
           event_type: string
           external_id: string | null
           id: string
+          medium: string | null
           occurred_at: string
           owner_user_id: string | null
           payload: Json
@@ -29,10 +31,12 @@ export type Database = {
         }
         Insert: {
           candidate_id?: string | null
+          contact_id?: string | null
           created_at?: string
           event_type: string
           external_id?: string | null
           id?: string
+          medium?: string | null
           occurred_at?: string
           owner_user_id?: string | null
           payload?: Json
@@ -41,10 +45,12 @@ export type Database = {
         }
         Update: {
           candidate_id?: string | null
+          contact_id?: string | null
           created_at?: string
           event_type?: string
           external_id?: string | null
           id?: string
+          medium?: string | null
           occurred_at?: string
           owner_user_id?: string | null
           payload?: Json
@@ -57,6 +63,13 @@ export type Database = {
             columns: ["candidate_id"]
             isOneToOne: false
             referencedRelation: "candidates"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "activity_events_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
             referencedColumns: ["id"]
           },
         ]
