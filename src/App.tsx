@@ -177,6 +177,7 @@ function AppRoutes() {
           <Route path="/jobs/:jobId/launch" element={<JobLaunch />} />
           <Route path="/placements" element={<Placements />} />
           <Route path="/bd-pipeline" element={<BDPipeline />} />
+          <Route path="/bd-tracker" element={<BDContactTracker />} />
           <Route path="/coach" element={<Coach />} />
           <Route path="/ask" element={<AskDesky />} />
           <Route path="/weekly" element={<WeeklyIntel />} />
