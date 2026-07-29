@@ -106,6 +106,7 @@ function useBDRows() {
           bd_trigger_notes: c.bd_trigger_notes,
           bd_conversation_notes: c.bd_conversation_notes,
           bd_outcome: c.bd_outcome,
+          client_id: c.client_id ?? null,
         });
       }
       return rows;
