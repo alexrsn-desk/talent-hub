@@ -108,12 +108,13 @@ export function JobPipelineBoard({ job, onJobUpdate }: { job: Job; onJobUpdate?:
   const [profileOpen, setProfileOpen] = useState(false);
   const [scheduleOpen, setScheduleOpen] = useState(false);
 
-  // Rejection-reason capture flow
+  // Withdrawn / rejected capture flow (flag, not a stage)
   const [rejectingCJ, setRejectingCJ] = useState<{ cj: CandidateJob; fromStage: string } | null>(null);
   const [rejectionReason, setRejectionReason] = useState<string>(REJECTION_REASONS[0]);
+  const [showWithdrawn, setShowWithdrawn] = useState(false);
 
-  // Interview details capture flow — opens after move to First/Second Interview
-  const [interviewPanel, setInterviewPanel] = useState<{ cj: CandidateJob; stage: "First Interview" | "Second Interview" } | null>(null);
+  // Interview details capture flow — opens after move to an interview stage
+  const [interviewPanel, setInterviewPanel] = useState<{ cj: CandidateJob; stage: "First Stage" | "Second Stage" | "Final Stage" } | null>(null);
   // Offer management flow — opens after move to Offer
   const [offerPanel, setOfferPanel] = useState<{ cj: CandidateJob } | null>(null);
   // Placed prompt — opens after move to Placed
