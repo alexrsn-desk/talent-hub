@@ -343,7 +343,7 @@ export function useCreateCandidateJob() {
 export function useUpdateCandidateJob() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async ({ id, ...updates }: { id: string; stage?: string; interview_date?: string | null; rejection_reason?: string | null; ai_suggestion_dismissed_reason?: string | null }) => {
+    mutationFn: async ({ id, ...updates }: { id: string; stage?: string; interview_date?: string | null; rejection_reason?: string | null; ai_suggestion_dismissed_reason?: string | null; withdrawn?: boolean; withdrawn_reason?: string | null; withdrawn_at?: string | null }) => {
       // Capture old stage + ai attribution for logging
       const { data: old } = await supabase
         .from("candidate_jobs")
