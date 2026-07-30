@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
-import { Search, Trash2, ArrowLeft, XCircle, Check, GitCompare, Rocket } from "lucide-react";
+import { Search, Trash2, ArrowLeft, XCircle, Check, GitCompare, Rocket, Pencil, ArrowUp, ArrowDown, ChevronsUpDown } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useJobs, useUpdateJob, useDeleteJob, useCandidateJobs, useUpdateCandidateJob, useCreateNote, type Job } from "@/hooks/use-data";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
@@ -72,16 +72,70 @@ const ACTIVE_STATUSES = new Set(["Active", "Open"]);
 const HOLD_STATUSES = new Set(["On Hold"]);
 const CLOSED_STATUSES = new Set(["Filled", "Closed", "Cancelled"]);
 
+// Pipeline stage helpers — counts are always derived live from candidate_jobs.
+const LIVE_STAGES = ["Shortlist", "Sent CV", "First Stage", "Second Stage", "Final Stage", "Offer"];
+const SENT_OR_PAST = ["Sent CV", "First Stage", "Second Stage", "Final Stage", "Offer", "Placed"];
+
+type SortKey = "client" | "role" | "cvsSent" | "live" | "first" | "second" | "final" | "fee";
+
+// Inline editable Expected Fee cell.
+function FeeCell({ value, onSave }: { value: number | null; onSave: (v: number | null) => Promise<void> }) {
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState(value?.toString() ?? "");
+
+  useEffect(() => { setDraft(value?.toString() ?? ""); }, [value]);
+
+  const commit = async () => {
+    setEditing(false);
+    const next = draft.trim() === "" ? null : Number(draft);
+    if (next === value || (next !== null && Number.isNaN(next))) return;
+    await onSave(next);
+  };
+
+  if (editing) {
+    return (
+      <div onClick={(e) => e.stopPropagation()}>
+        <Input
+          autoFocus
+          type="number"
+          value={draft}
+          onChange={(e) => setDraft(e.target.value)}
+          onBlur={commit}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") commit();
+            if (e.key === "Escape") { setDraft(value?.toString() ?? ""); setEditing(false); }
+          }}
+          className="h-7 w-28 text-right text-sm tabular-nums"
+        />
+      </div>
+    );
+  }
+
+  return (
+    <button
+      type="button"
+      onClick={(e) => { e.stopPropagation(); setEditing(true); }}
+      className="group inline-flex items-center gap-1.5 rounded px-1.5 py-0.5 tabular-nums hover:bg-muted/50"
+    >
+      <span className={value == null ? "text-muted-foreground" : "font-medium"}>
+        {value == null ? "—" : `£${value.toLocaleString("en-GB")}`}
+      </span>
+      <Pencil className="h-3 w-3 opacity-0 text-muted-foreground transition-opacity group-hover:opacity-100" />
+    </button>
+  );
+}
+
 export default function JobsPage() {
   const { data: jobs = [], isLoading } = useJobs();
   const updateJob = useUpdateJob();
   const deleteJob = useDeleteJob();
   const { data: allCandidateJobs = [] } = useCandidateJobs();
-  const placementScores = usePlacementScores();
   const [search, setSearch] = useState("");
-  // Default view = live desk (Active + On Hold). Toggle reveals filled/closed.
-  const [showHistory, setShowHistory] = useState(false);
-  const [historyExpanded, setHistoryExpanded] = useState(false);
+  // Default view = live desk. Toggle reveals filled/closed.
+  const [showClosed, setShowClosed] = useState(false);
+  const [onlyZeroLive, setOnlyZeroLive] = useState(false);
+  const [sortKey, setSortKey] = useState<SortKey>("live");
+  const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
   const [selectedJob, setSelectedJob] = useState<Job | null>(null);
   const [searchParams, setSearchParams] = useSearchParams();
 
@@ -98,65 +152,77 @@ export default function JobsPage() {
     }
   }, [jobs, searchParams, selectedJob, setSearchParams]);
 
-  const ACTIVE_STAGES = ["Shortlist", "Sent CV", "First Stage", "Second Stage", "Final Stage", "Offer"];
+  // Live counts per job, derived from the pipeline.
+  const countsByJob = useMemo(() => {
+    const map = new Map<string, { cvsSent: number; live: number; first: number; second: number; final: number }>();
+    for (const cj of allCandidateJobs as any[]) {
+      if (!cj.job_id) continue;
+      if (cj.withdrawn) continue;
+      const c = map.get(cj.job_id) ?? { cvsSent: 0, live: 0, first: 0, second: 0, final: 0 };
+      if (SENT_OR_PAST.includes(cj.stage)) c.cvsSent++;
+      if (LIVE_STAGES.includes(cj.stage)) c.live++;
+      if (cj.stage === "First Stage") c.first++;
+      if (cj.stage === "Second Stage") c.second++;
+      if (cj.stage === "Final Stage") c.final++;
+      map.set(cj.job_id, c);
+    }
+    return map;
+  }, [allCandidateJobs]);
 
-  const getInPlayBreakdown = (jobId: string) => {
-    const cjs = allCandidateJobs.filter((cj: any) => cj.job_id === jobId && ACTIVE_STAGES.includes(cj.stage));
-    const breakdown: Record<string, number> = {};
-    ACTIVE_STAGES.forEach(s => {
-      const c = cjs.filter((cj: any) => cj.stage === s).length;
-      if (c > 0) breakdown[s] = c;
-    });
-    return { total: cjs.length, breakdown };
+  const emptyCounts = { cvsSent: 0, live: 0, first: 0, second: 0, final: 0 };
+  const countsFor = (jobId: string) => countsByJob.get(jobId) ?? emptyCounts;
+
+  // Expected fee: explicit fixed fee, or percentage of top-of-range salary.
+  const expectedFee = (j: Job) => {
+    if (j.fee_value == null) return null;
+    if (j.fee_type === "Percentage") {
+      const salary = j.salary_max ?? j.salary_min;
+      if (!salary) return null;
+      return Math.round((salary * j.fee_value) / 100);
+    }
+    return j.fee_value;
   };
 
-  const inPlayColor = (n: number) => n === 0 ? "text-red-400" : n <= 2 ? "text-yellow-400" : "text-green-400";
-
-  // Urgency tier within Active group (lower = more urgent, surfaces first)
-  const SEVEN_DAYS = 7 * 24 * 60 * 60 * 1000;
-  const urgencyTier = (job: Job) => {
-    const inPlay = getInPlayBreakdown(job.id).total;
-    if (inPlay === 0) return 0; // no candidates — most urgent
-    const score = placementScores.get(job.id)?.score;
-    if (typeof score === "number" && score < 40) return 1; // at-risk
-    const updated = new Date(job.updated_at).getTime();
-    if (Date.now() - updated > SEVEN_DAYS) return 2; // stale
-    return 3; // healthy
-  };
-
-  const bySearch = (j: Job) => {
-    const q = search.toLowerCase();
-    if (!q) return true;
-    return j.title.toLowerCase().includes(q) ||
-      ((j.clients as any)?.company_name || "").toLowerCase().includes(q);
-  };
-
-  const activeJobs = jobs
-    .filter((j) => ACTIVE_STATUSES.has(j.status) && bySearch(j))
-    .sort((a, b) => {
-      const ta = urgencyTier(a), tb = urgencyTier(b);
-      if (ta !== tb) return ta - tb;
-      const sa = placementScores.get(a.id)?.score ?? -1;
-      const sb = placementScores.get(b.id)?.score ?? -1;
-      // Within same tier: lowest score first (highest risk), then most recent
-      if (sa !== sb) return sa - sb;
-      return new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime();
+  const rows = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    const list = jobs.filter((j) => {
+      if (!showClosed && CLOSED_STATUSES.has(j.status)) return false;
+      if (q) {
+        const client = ((j.clients as any)?.company_name || "").toLowerCase();
+        if (!j.title.toLowerCase().includes(q) && !client.includes(q)) return false;
+      }
+      if (onlyZeroLive && countsFor(j.id).live > 0) return false;
+      return true;
     });
 
-  const holdJobs = jobs
-    .filter((j) => HOLD_STATUSES.has(j.status) && bySearch(j))
-    .sort((a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime());
+    const val = (j: Job): string | number => {
+      const c = countsFor(j.id);
+      switch (sortKey) {
+        case "client": return ((j.clients as any)?.company_name || "").toLowerCase();
+        case "role": return j.title.toLowerCase();
+        case "cvsSent": return c.cvsSent;
+        case "live": return c.live;
+        case "first": return c.first;
+        case "second": return c.second;
+        case "final": return c.final;
+        case "fee": return expectedFee(j) ?? -1;
+      }
+    };
 
-  const closedJobs = jobs
-    .filter((j) => CLOSED_STATUSES.has(j.status) && bySearch(j))
-    .sort((a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime());
+    return [...list].sort((a, b) => {
+      const va = val(a), vb = val(b);
+      let cmp = typeof va === "string" && typeof vb === "string" ? va.localeCompare(vb) : Number(va) - Number(vb);
+      if (cmp === 0) cmp = new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime();
+      return sortDir === "asc" ? cmp : -cmp;
+    });
+  }, [jobs, search, showClosed, onlyZeroLive, sortKey, sortDir, countsByJob]);
 
-  const formatSalary = (min: number | null, max: number | null) => {
-    if (!min && !max) return "—";
-    const fmt = (n: number) => `£${(n / 1000).toFixed(0)}k`;
-    if (min && max) return `${fmt(min)} – ${fmt(max)}`;
-    return min ? fmt(min) : fmt(max!);
+  const toggleSort = (key: SortKey) => {
+    if (sortKey === key) setSortDir((d) => (d === "asc" ? "desc" : "asc"));
+    else { setSortKey(key); setSortDir(key === "client" || key === "role" ? "asc" : "desc"); }
   };
+
+  const totalFee = rows.reduce((sum, j) => sum + (expectedFee(j) ?? 0), 0);
 
   if (selectedJob) {
     return (
@@ -169,67 +235,26 @@ export default function JobsPage() {
     );
   }
 
-  const renderRow = (j: Job) => {
-    const inPlay = getInPlayBreakdown(j.id);
-    const score = placementScores.get(j.id);
-    return (
-      <tr key={j.id} className="border-b border-border hover:bg-muted/20 cursor-pointer transition-colors" onClick={() => setSelectedJob(j)}>
-        <td className="px-4 py-3 font-medium">{j.title}</td>
-        <td className="px-4 py-3 text-muted-foreground">{(j.clients as any)?.company_name || "—"}</td>
-        <td className="px-4 py-3">
-          <StatusSelect
-            value={j.status}
-            onChange={async (v) => {
-              await updateJob.mutateAsync({ id: j.id, status: v });
-              toast.success(`Status: ${v}`);
-            }}
-          />
-        </td>
-        <td className="px-4 py-3">
-          {score ? <PlacementScoreBadge score={score} /> : <span className="text-xs text-muted-foreground">—</span>}
-        </td>
-        <td className="px-4 py-3" onClick={(e) => { e.stopPropagation(); setSelectedJob(j); }}>
-          <TooltipProvider delayDuration={150}>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <span className={`font-semibold tabular-nums ${inPlayColor(inPlay.total)} hover:underline cursor-pointer`}>
-                  {inPlay.total}
-                </span>
-              </TooltipTrigger>
-              <TooltipContent side="right">
-                {inPlay.total === 0 ? (
-                  <div className="text-xs">No active candidates</div>
-                ) : (
-                  <div className="text-xs space-y-0.5">
-                    {Object.entries(inPlay.breakdown).map(([s, n]) => (
-                      <div key={s} className="flex justify-between gap-3"><span>{s}:</span><span className="tabular-nums">{n}</span></div>
-                    ))}
-                  </div>
-                )}
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
-        </td>
-        <td className="px-4 py-3 text-muted-foreground">{j.date_opened ? new Date(j.date_opened).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" }) : "—"}</td>
-        <td className="px-4 py-3 text-muted-foreground">{formatSalary(j.salary_min, j.salary_max)}</td>
-        <td className="px-4 py-3 text-muted-foreground">{j.location || "—"}</td>
-      </tr>
-    );
-  };
-
-  const groupHeader = (label: string, count: number, extra?: React.ReactNode) => (
-    <tr className="bg-muted/40">
-      <td colSpan={8} className="px-4 py-2 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-        <div className="flex items-center gap-2">
-          <span>{label}</span>
-          <span className="text-muted-foreground/70">({count})</span>
-          {extra}
-        </div>
-      </td>
-    </tr>
+  const SortHeader = ({ label, k, align = "left" }: { label: string; k: SortKey; align?: "left" | "right" }) => (
+    <th className={`px-4 py-3 font-medium text-muted-foreground ${align === "right" ? "text-right" : "text-left"}`}>
+      <button
+        type="button"
+        onClick={() => toggleSort(k)}
+        className={`inline-flex items-center gap-1 hover:text-foreground transition-colors ${sortKey === k ? "text-foreground" : ""}`}
+      >
+        <span>{label}</span>
+        {sortKey === k
+          ? (sortDir === "asc" ? <ArrowUp className="h-3 w-3" /> : <ArrowDown className="h-3 w-3" />)
+          : <ChevronsUpDown className="h-3 w-3 opacity-40" />}
+      </button>
+    </th>
   );
 
-  const totalVisible = activeJobs.length + holdJobs.length + (showHistory ? closedJobs.length : 0);
+  const numCell = (n: number, emphasise = false) => (
+    <td className="px-4 py-3 text-right tabular-nums">
+      <span className={n === 0 ? "text-muted-foreground/50" : emphasise ? "font-semibold" : ""}>{n}</span>
+    </td>
+  );
 
   return (
     <div className="space-y-6">
@@ -241,19 +266,28 @@ export default function JobsPage() {
       <div className="flex items-center gap-3 flex-wrap">
         <div className="relative flex-1 max-w-sm">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input placeholder="Search jobs..." className="pl-9" value={search} onChange={(e) => setSearch(e.target.value)} />
-        </div>
-        <div className="text-xs text-muted-foreground">
-          Showing active jobs <span className="tabular-nums">({activeJobs.length})</span>
-          {holdJobs.length > 0 && <> · on hold <span className="tabular-nums">({holdJobs.length})</span></>}
+          <Input placeholder="Search jobs or clients..." className="pl-9" value={search} onChange={(e) => setSearch(e.target.value)} />
         </div>
         <button
           type="button"
-          onClick={() => { setShowHistory((v) => !v); if (!showHistory) setHistoryExpanded(false); }}
+          onClick={() => setOnlyZeroLive((v) => !v)}
+          className={`rounded-full border px-3 py-1 text-xs transition-colors ${
+            onlyZeroLive ? "border-primary bg-primary/10 text-primary" : "border-border text-muted-foreground hover:text-foreground"
+          }`}
+        >
+          Zero live CVs
+        </button>
+        <button
+          type="button"
+          onClick={() => setShowClosed((v) => !v)}
           className="text-xs text-primary hover:underline"
         >
-          {showHistory ? "Hide filled/closed" : "Show all including filled/closed"}
+          {showClosed ? "Hide filled/closed" : "Show all including filled/closed"}
         </button>
+        <div className="ml-auto text-xs text-muted-foreground">
+          <span className="tabular-nums">{rows.length}</span> job{rows.length === 1 ? "" : "s"}
+          {totalFee > 0 && <> · expected fee <span className="tabular-nums font-medium text-foreground">£{totalFee.toLocaleString("en-GB")}</span></>}
+        </div>
       </div>
 
       {isLoading ? (
@@ -263,44 +297,52 @@ export default function JobsPage() {
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-border bg-muted/30">
-                <th className="text-left px-4 py-3 font-medium text-muted-foreground">Job Title</th>
-                <th className="text-left px-4 py-3 font-medium text-muted-foreground">Client</th>
-                <th className="text-left px-4 py-3 font-medium text-muted-foreground">Status</th>
-                <th className="text-left px-4 py-3 font-medium text-muted-foreground w-[260px]">Placement Score</th>
-                <th className="text-left px-4 py-3 font-medium text-muted-foreground">In Play</th>
-                <th className="text-left px-4 py-3 font-medium text-muted-foreground">Date Opened</th>
-                <th className="text-left px-4 py-3 font-medium text-muted-foreground">Salary</th>
-                <th className="text-left px-4 py-3 font-medium text-muted-foreground">Location</th>
+                <SortHeader label="Client" k="client" />
+                <SortHeader label="Role" k="role" />
+                <SortHeader label="CVs Sent" k="cvsSent" align="right" />
+                <SortHeader label="Live CVs" k="live" align="right" />
+                <SortHeader label="First Interview" k="first" align="right" />
+                <SortHeader label="Second Interview" k="second" align="right" />
+                <SortHeader label="Final" k="final" align="right" />
+                <SortHeader label="Expected Fee" k="fee" align="right" />
               </tr>
             </thead>
             <tbody>
-              {totalVisible === 0 ? (
+              {rows.length === 0 ? (
                 <tr><td colSpan={8} className="px-4 py-8 text-center text-muted-foreground">No jobs found</td></tr>
               ) : (
-                <>
-                  {activeJobs.length > 0 && groupHeader("Active", activeJobs.length)}
-                  {activeJobs.map(renderRow)}
-
-                  {holdJobs.length > 0 && groupHeader("On Hold", holdJobs.length)}
-                  {holdJobs.map(renderRow)}
-
-                  {showHistory && closedJobs.length > 0 && (
-                    <>
-                      {groupHeader(
-                        "Filled / Closed",
-                        closedJobs.length,
-                        <button
-                          type="button"
-                          onClick={() => setHistoryExpanded((v) => !v)}
-                          className="ml-2 text-[11px] font-medium text-primary hover:underline normal-case tracking-normal"
-                        >
-                          {historyExpanded ? "Hide" : `Show ${closedJobs.length} filled/closed role${closedJobs.length === 1 ? "" : "s"}`} {historyExpanded ? "▴" : "▾"}
-                        </button>,
-                      )}
-                      {historyExpanded && closedJobs.map(renderRow)}
-                    </>
-                  )}
-                </>
+                rows.map((j) => {
+                  const c = countsFor(j.id);
+                  return (
+                    <tr
+                      key={j.id}
+                      className="border-b border-border last:border-0 hover:bg-muted/20 cursor-pointer transition-colors"
+                      onClick={() => setSelectedJob(j)}
+                    >
+                      <td className="px-4 py-3 font-medium">{(j.clients as any)?.company_name || "—"}</td>
+                      <td className="px-4 py-3">
+                        <span className="text-foreground">{j.title}</span>
+                        {j.location && <span className="ml-2 text-xs text-muted-foreground">{j.location}</span>}
+                      </td>
+                      {numCell(c.cvsSent)}
+                      <td className="px-4 py-3 text-right tabular-nums">
+                        <span className={c.live === 0 ? "text-destructive font-medium" : "font-semibold"}>{c.live}</span>
+                      </td>
+                      {numCell(c.first)}
+                      {numCell(c.second)}
+                      {numCell(c.final)}
+                      <td className="px-4 py-3 text-right">
+                        <FeeCell
+                          value={expectedFee(j)}
+                          onSave={async (v) => {
+                            await updateJob.mutateAsync({ id: j.id, fee_value: v, fee_type: "Fixed" } as any);
+                            toast.success("Expected fee updated");
+                          }}
+                        />
+                      </td>
+                    </tr>
+                  );
+                })
               )}
             </tbody>
           </table>
@@ -309,6 +351,7 @@ export default function JobsPage() {
     </div>
   );
 }
+
 
 
 export function JobFullView({ job, onBack, onUpdate, onDelete, backLabel }: {
