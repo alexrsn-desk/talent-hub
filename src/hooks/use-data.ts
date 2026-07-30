@@ -91,6 +91,9 @@ export type CandidateJob = {
   source: string; // 'ai' | 'manual'
   stage_changed_at: string;
   rejection_reason: string | null;
+  withdrawn?: boolean | null;
+  withdrawn_reason?: string | null;
+  withdrawn_at?: string | null;
   interview_date: string | null;
   ai_suggested?: boolean | null;
   ai_suggested_at?: string | null;
