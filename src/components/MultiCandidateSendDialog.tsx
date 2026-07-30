@@ -96,14 +96,14 @@ export function MultiCandidateSendDialog({ open, onOpenChange, job, candidates, 
       const existing = (existingCJs as any[]).find((cj) => cj.candidate_id === r.candidate.id);
       try {
         if (existing) {
-          if (existing.stage !== "Submitted") {
-            await updateCandidateJob.mutateAsync({ id: existing.id, stage: "Submitted" });
+          if (existing.stage !== "Sent CV") {
+            await updateCandidateJob.mutateAsync({ id: existing.id, stage: "Sent CV" });
           }
         } else {
           await createCandidateJob.mutateAsync({
             candidate_id: r.candidate.id,
             job_id: job.id,
-            stage: "Submitted",
+            stage: "Sent CV",
             source: "ai",
           });
         }

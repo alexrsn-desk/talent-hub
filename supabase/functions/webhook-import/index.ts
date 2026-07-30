@@ -61,32 +61,32 @@ function mapJobType(raw?: string): string {
 }
 
 const STAGE_MAP: Record<string, string> = {
-  "new": "Longlist",
-  "applied": "Longlist",
-  "shortlisted": "Longlist",
-  "longlist": "Longlist",
-  "screening": "Screening",
-  "sent": "Submitted",
-  "submitted": "Submitted",
-  "client review": "Client Review",
-  "interview": "First Interview",
-  "1st interview": "First Interview",
-  "first interview": "First Interview",
-  "2nd interview": "Second Interview",
-  "second interview": "Second Interview",
+  "new": "Shortlist",
+  "applied": "Shortlist",
+  "shortlisted": "Shortlist",
+  "longlist": "Shortlist",
+  "screening": "Shortlist",
+  "sent": "Sent CV",
+  "submitted": "Sent CV",
+  "client review": "Sent CV",
+  "interview": "First Stage",
+  "1st interview": "First Stage",
+  "first interview": "First Stage",
+  "2nd interview": "Second Stage",
+  "second interview": "Second Stage",
   "offer": "Offer",
   "placed": "Placed",
-  "rejected": "Rejected",
-  "withdrawn": "Rejected",
+  "final interview": "Final Stage",
+  "final stage": "Final Stage",
 };
 
 function mapStage(raw?: string): { stage: string; defaulted: boolean; withdrawn: boolean } {
   const s = (raw || "").trim().toLowerCase();
   const stage = STAGE_MAP[s];
   return {
-    stage: stage || "Longlist",
+    stage: stage || "Shortlist",
     defaulted: !stage,
-    withdrawn: s === "withdrawn",
+    withdrawn: s === "withdrawn" || s === "rejected",
   };
 }
 
@@ -553,6 +553,9 @@ async function processApplication(data: any, action: string, settings: any, user
       job_id: jobId,
       stage: stageInfo.stage,
       source: "webhook",
+      withdrawn: stageInfo.withdrawn,
+      withdrawn_at: stageInfo.withdrawn ? new Date().toISOString() : null,
+      withdrawn_reason: stageInfo.withdrawn ? "Synced as rejected/withdrawn" : null,
     }).select().single();
     if (error || !ins) throw new Error(error?.message || "Application insert failed");
     cjId = ins.id;
@@ -560,7 +563,7 @@ async function processApplication(data: any, action: string, settings: any, user
   }
 
   const noteParts: string[] = [];
-  if (stageInfo.defaulted) noteParts.push(`Unknown stage "${data.stage}" defaulted to Longlist`);
+  if (stageInfo.defaulted) noteParts.push(`Unknown stage "${data.stage}" defaulted to Shortlist`);
   if (stageInfo.withdrawn) noteParts.push("Candidate withdrew");
   if (data.notes) noteParts.push(data.notes);
   if (noteParts.length) {

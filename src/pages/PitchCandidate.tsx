@@ -778,7 +778,7 @@ function Step5({ picked, drafts, sentSet, draftFor, markSent, goSubmit, addMarke
               {isSubmission ? (
                 <div className="space-y-2">
                   <p className="text-sm text-muted-foreground">
-                    Submission messages route through <span className="font-medium">Compare & Submit</span> for full assessment, formatting, and bulk stage transition to "Submitted".
+                    Submission messages route through <span className="font-medium">Compare & Submit</span> for full assessment, formatting, and bulk stage transition to "Sent CV".
                   </p>
                   <Button onClick={() => goSubmit(sel.payload.id)} variant="default">
                     <ExternalLink className="h-4 w-4 mr-1" /> Open Compare & Submit

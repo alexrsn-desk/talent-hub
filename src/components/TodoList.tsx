@@ -125,7 +125,7 @@ function useAIActions(): AIAction[] {
 
     // 4. CV submitted 5+ days, no feedback
     for (const cj of candidateJobs) {
-      if (cj.stage === "Submitted" && daysAgo(cj.created_at) >= 5) {
+      if (cj.stage === "Sent CV" && daysAgo(cj.created_at) >= 5) {
         const cand = candidates.find(c => c.id === cj.candidate_id);
         if (!cand) continue;
         actions.push({

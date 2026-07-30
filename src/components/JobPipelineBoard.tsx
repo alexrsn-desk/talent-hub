@@ -29,17 +29,13 @@ import { AddCandidateToStageDropdown } from "@/components/AddCandidateToStageDro
 
 const PIPELINE_STAGES = [
   "AI Suggested",
-  "Longlist",
-  "Contact",
-  "Screening",
   "Shortlist",
-  "Submitted",
-  "Client Review",
-  "First Interview",
-  "Second Interview",
+  "Sent CV",
+  "First Stage",
+  "Second Stage",
+  "Final Stage",
   "Offer",
   "Placed",
-  "Rejected",
 ] as const;
 
 type Stage = (typeof PIPELINE_STAGES)[number];
@@ -47,49 +43,41 @@ type Stage = (typeof PIPELINE_STAGES)[number];
 // Top-border accent on each column header
 const stageBorder: Record<string, string> = {
   "AI Suggested": "border-t-blue-500",
-  Longlist: "border-t-slate-500",
-  Contact: "border-t-amber-500",
-  Screening: "border-t-amber-500",
   Shortlist: "border-t-emerald-500",
-  Submitted: "border-t-primary",
-  "Client Review": "border-t-primary",
-  "First Interview": "border-t-primary",
-  "Second Interview": "border-t-primary",
+  "Sent CV": "border-t-primary",
+  "First Stage": "border-t-primary",
+  "Second Stage": "border-t-primary",
+  "Final Stage": "border-t-primary",
   Offer: "border-t-primary",
   Placed: "border-t-primary",
-  Rejected: "border-t-red-500",
 };
 
 // Card accent (left edge) — same colour family as the column
 const stageCardAccent: Record<string, string> = {
   "AI Suggested": "border-l-blue-500/60",
-  Longlist: "border-l-slate-500/60",
-  Contact: "border-l-amber-500/60",
-  Screening: "border-l-amber-500/60",
   Shortlist: "border-l-emerald-500/60",
-  Submitted: "border-l-primary/60",
-  "Client Review": "border-l-primary/60",
-  "First Interview": "border-l-primary/60",
-  "Second Interview": "border-l-primary/60",
+  "Sent CV": "border-l-primary/60",
+  "First Stage": "border-l-primary/60",
+  "Second Stage": "border-l-primary/60",
+  "Final Stage": "border-l-primary/60",
   Offer: "border-l-primary/60",
   Placed: "border-l-primary/60",
-  Rejected: "border-l-red-500/60",
 };
 
 // Stage restriction rules — required predecessor stages
 function canMoveTo(targetStage: string, currentStage: string): { ok: boolean; message?: string } {
-  // Cannot enter Submitted unless coming from Shortlist (or later)
-  if (targetStage === "Submitted") {
-    const validPrior = ["Shortlist", "Submitted", "Client Review", "First Interview", "Second Interview", "Offer", "Placed"];
+  // Cannot send a CV unless coming from Shortlist (or later)
+  if (targetStage === "Sent CV") {
+    const validPrior = ["Shortlist", "Sent CV", "First Stage", "Second Stage", "Final Stage", "Offer", "Placed"];
     if (!validPrior.includes(currentStage)) {
-      return { ok: false, message: "This candidate needs to reach Shortlist before being submitted to a client." };
+      return { ok: false, message: "This candidate needs to reach Shortlist before their CV is sent." };
     }
   }
-  // Cannot enter Offer unless at an Interview stage (or later)
+  // Cannot enter Offer unless at an interview stage (or later)
   if (targetStage === "Offer") {
-    const validPrior = ["First Interview", "Second Interview", "Offer", "Placed"];
+    const validPrior = ["First Stage", "Second Stage", "Final Stage", "Offer", "Placed"];
     if (!validPrior.includes(currentStage)) {
-      return { ok: false, message: "This candidate needs to reach an Interview stage before an offer can be made." };
+      return { ok: false, message: "This candidate needs to reach an interview stage before an offer can be made." };
     }
   }
   return { ok: true };
@@ -120,12 +108,13 @@ export function JobPipelineBoard({ job, onJobUpdate }: { job: Job; onJobUpdate?:
   const [profileOpen, setProfileOpen] = useState(false);
   const [scheduleOpen, setScheduleOpen] = useState(false);
 
-  // Rejection-reason capture flow
+  // Withdrawn / rejected capture flow (flag, not a stage)
   const [rejectingCJ, setRejectingCJ] = useState<{ cj: CandidateJob; fromStage: string } | null>(null);
   const [rejectionReason, setRejectionReason] = useState<string>(REJECTION_REASONS[0]);
+  const [showWithdrawn, setShowWithdrawn] = useState(false);
 
-  // Interview details capture flow — opens after move to First/Second Interview
-  const [interviewPanel, setInterviewPanel] = useState<{ cj: CandidateJob; stage: "First Interview" | "Second Interview" } | null>(null);
+  // Interview details capture flow — opens after move to an interview stage
+  const [interviewPanel, setInterviewPanel] = useState<{ cj: CandidateJob; stage: "First Stage" | "Second Stage" | "Final Stage" } | null>(null);
   // Offer management flow — opens after move to Offer
   const [offerPanel, setOfferPanel] = useState<{ cj: CandidateJob } | null>(null);
   // Placed prompt — opens after move to Placed
@@ -141,16 +130,29 @@ export function JobPipelineBoard({ job, onJobUpdate }: { job: Job; onJobUpdate?:
   const linkedCandidateIds = candidateJobs.map((cj) => cj.candidate_id);
   const availableCandidates = allCandidates.filter((c) => !linkedCandidateIds.includes(c.id));
 
+  const withdrawnCount = candidateJobs.filter((cj) => cj.withdrawn).length;
+  const visibleCandidateJobs = showWithdrawn ? candidateJobs : candidateJobs.filter((cj) => !cj.withdrawn);
+
   const stageMap = PIPELINE_STAGES.reduce((acc, stage) => {
-    acc[stage] = candidateJobs.filter((cj) => cj.stage === stage);
+    acc[stage] = visibleCandidateJobs.filter((cj) => cj.stage === stage);
     return acc;
   }, {} as Record<string, CandidateJob[]>);
+
+  const setWithdrawn = (cj: CandidateJob, withdrawn: boolean, reason?: string) => {
+    updateCandidateJob.mutate({
+      id: cj.id,
+      withdrawn,
+      withdrawn_reason: withdrawn ? reason ?? null : null,
+      withdrawn_at: withdrawn ? new Date().toISOString() : null,
+      ...(withdrawn ? { rejection_reason: reason ?? null } : {}),
+    });
+  };
 
   const performStageMove = (cj: CandidateJob, fromStage: string, toStage: string, opts?: { rejectionReason?: string }) => {
     const isFastTrack =
       toStage === "Shortlist" &&
-      ["AI Suggested", "Longlist", "Contact", "Screening"].includes(fromStage) &&
-      fromStage !== "Screening";
+      ["AI Suggested"].includes(fromStage);
+
 
     updateCandidateJob.mutate(
       {
@@ -170,15 +172,15 @@ export function JobPipelineBoard({ job, onJobUpdate }: { job: Job; onJobUpdate?:
                 stage_from: fromStage,
                 stage_to: toStage,
                 fast_track: true,
-                note: `Moved directly to Shortlist — skipped ${["Contact", "Screening"].filter((s) => s !== fromStage).join(" and ")}`,
+                note: `Moved directly to Shortlist from ${fromStage}`,
               },
             });
             toast.success("Fast-tracked to Shortlist");
           }
-          if (toStage === "First Interview" || toStage === "Second Interview") {
+          if (toStage === "First Stage" || toStage === "Second Stage" || toStage === "Final Stage") {
             // Small delay so the auto-create trigger has time to insert the interview row
             setTimeout(() => {
-              setInterviewPanel({ cj, stage: toStage as "First Interview" | "Second Interview" });
+              setInterviewPanel({ cj, stage: toStage as "First Stage" | "Second Stage" | "Final Stage" });
             }, 400);
           }
           if (toStage === "Offer") {
@@ -210,11 +212,11 @@ export function JobPipelineBoard({ job, onJobUpdate }: { job: Job; onJobUpdate?:
       return;
     }
 
-    if (toStage === "Rejected") {
-      setRejectingCJ({ cj, fromStage });
-      setRejectionReason(REJECTION_REASONS[0]);
+    if (cj.withdrawn) {
+      toast.error("This candidate is withdrawn — reinstate them first.");
       return;
     }
+
 
     performStageMove(cj, fromStage, toStage);
   };
@@ -244,12 +246,23 @@ export function JobPipelineBoard({ job, onJobUpdate }: { job: Job; onJobUpdate?:
     <div className="space-y-4">
       <div className="flex items-center justify-between flex-wrap gap-2">
         <h3 className="text-sm font-medium text-muted-foreground">
-          {candidateJobs.length} candidate{candidateJobs.length !== 1 ? "s" : ""} in pipeline
+          {visibleCandidateJobs.length} candidate{visibleCandidateJobs.length !== 1 ? "s" : ""} in pipeline
         </h3>
-        <p className="text-[11px] text-muted-foreground">
-          Drag to progress · Cannot Submit before Shortlist · Cannot Offer before Interview
-        </p>
+        <div className="flex items-center gap-3">
+          {withdrawnCount > 0 && (
+            <button
+              onClick={() => setShowWithdrawn((v) => !v)}
+              className="text-[11px] underline text-muted-foreground hover:text-foreground"
+            >
+              {showWithdrawn ? "Hide" : "Show"} rejected/withdrawn ({withdrawnCount})
+            </button>
+          )}
+          <p className="text-[11px] text-muted-foreground">
+            Drag to progress · Cannot send CV before Shortlist · Cannot Offer before an interview stage
+          </p>
+        </div>
       </div>
+
 
       {/* Offer-stage backup signals — one per candidate at Offer */}
       {(stageMap["Offer"] || []).map((cj) => (
@@ -334,7 +347,7 @@ export function JobPipelineBoard({ job, onJobUpdate }: { job: Job; onJobUpdate?:
                               dragProvided={dragProvided}
                               dragSnapshot={dragSnapshot}
                               onOpenProfile={() => openProfile(cj)}
-                              onAccept={() => performStageMove(cj, cj.stage, "Longlist")}
+                              onAccept={() => performStageMove(cj, cj.stage, "Shortlist")}
                               onDismiss={() => {
                                 setDismissingCJ(cj);
                                 setDismissReason("");
@@ -362,6 +375,14 @@ export function JobPipelineBoard({ job, onJobUpdate }: { job: Job; onJobUpdate?:
                               performStageMove(cj, cj.stage, "Shortlist");
                             }}
                             onOpenOffer={() => setOfferPanel({ cj })}
+                            onWithdraw={() => {
+                              setRejectingCJ({ cj, fromStage: cj.stage });
+                              setRejectionReason(REJECTION_REASONS[0]);
+                            }}
+                            onReinstate={() => {
+                              setWithdrawn(cj, false);
+                              toast.success("Reinstated to the active pipeline");
+                            }}
                             formatSalary={formatSalary}
                           />
                           )
@@ -403,11 +424,11 @@ export function JobPipelineBoard({ job, onJobUpdate }: { job: Job; onJobUpdate?:
       <Dialog open={!!rejectingCJ} onOpenChange={(o) => !o && setRejectingCJ(null)}>
         <DialogContent className="max-w-sm">
           <DialogHeader>
-            <DialogTitle>Reason for rejection</DialogTitle>
+            <DialogTitle>Reason for rejection / withdrawal</DialogTitle>
           </DialogHeader>
           <div className="space-y-3 py-2">
             <p className="text-sm text-muted-foreground">
-              {rejectingCJ?.cj.candidates?.name ?? "Candidate"} — moving to Rejected
+              {rejectingCJ?.cj.candidates?.name ?? "Candidate"} — flagged at {rejectingCJ?.fromStage}. They stay on record but leave the active board.
             </p>
             <Select value={rejectionReason} onValueChange={setRejectionReason}>
               <SelectTrigger>
@@ -429,11 +450,9 @@ export function JobPipelineBoard({ job, onJobUpdate }: { job: Job; onJobUpdate?:
             <Button
               onClick={() => {
                 if (!rejectingCJ) return;
-                performStageMove(rejectingCJ.cj, rejectingCJ.fromStage, "Rejected", {
-                  rejectionReason,
-                });
+                setWithdrawn(rejectingCJ.cj, true, rejectionReason);
                 setRejectingCJ(null);
-                toast.success(`Marked rejected — ${rejectionReason}`);
+                toast.success(`Marked rejected/withdrawn — ${rejectionReason}`);
               }}
             >
               Confirm
@@ -442,7 +461,7 @@ export function JobPipelineBoard({ job, onJobUpdate }: { job: Job; onJobUpdate?:
         </DialogContent>
       </Dialog>
 
-      {/* Interview details capture — opens after move to First/Second Interview */}
+      {/* Interview details capture — opens after move to an interview stage */}
       {interviewPanel && (
         <InterviewDetailsPanel
           open={!!interviewPanel}
@@ -571,7 +590,9 @@ export function JobPipelineBoard({ job, onJobUpdate }: { job: Job; onJobUpdate?:
                 updateCandidateJob.mutate(
                   {
                     id: dismissingCJ.id,
-                    stage: "Rejected",
+                    withdrawn: true,
+                    withdrawn_at: new Date().toISOString(),
+                    withdrawn_reason: reasonText || "Not right (AI suggested)",
                     rejection_reason: reasonText || "Not right (AI suggested)",
                     ai_suggestion_dismissed_reason: reasonText,
                   } as any,
@@ -613,6 +634,8 @@ function PipelineCard({
   onOpenSlotPicker,
   onFastTrack,
   onOpenOffer,
+  onWithdraw,
+  onReinstate,
   formatSalary,
 }: {
   cj: CandidateJob;
@@ -624,14 +647,15 @@ function PipelineCard({
   onOpenSlotPicker: () => void;
   onFastTrack: () => void;
   onOpenOffer?: () => void;
+  onWithdraw?: () => void;
+  onReinstate?: () => void;
   formatSalary: (n: number | null) => string | null;
 }) {
   const days = daysSince(cj.stage_changed_at ?? cj.created_at);
   const isAi = cj.source === "ai";
-  const showFastTrack =
-    ["AI Suggested", "Longlist", "Contact"].includes(stage); // not from Screening (one stage away)
+  const showFastTrack = stage === "AI Suggested";
   const showSourceBadge = stage === "Shortlist";
-  const isScreening = stage === "Screening";
+  const isScreening = false;
 
   // Auto-open the screening panel when card is in Screening stage
   const [screeningOpen, setScreeningOpen] = useState(isScreening);
@@ -704,11 +728,27 @@ function PipelineCard({
         </Badge>
       )}
 
-      {/* Rejection reason — shown on Rejected cards */}
-      {stage === "Rejected" && cj.rejection_reason && (
-        <Badge variant="outline" className="text-[10px] h-5 px-1.5 border-red-500/40 text-red-400">
-          {cj.rejection_reason}
-        </Badge>
+      {/* Withdrawn / rejected flag */}
+      {cj.withdrawn && (
+        <div className="flex items-center gap-1 flex-wrap">
+          <Badge variant="outline" className="text-[10px] h-5 px-1.5 border-red-500/40 text-red-400">
+            Withdrawn{cj.withdrawn_reason ? ` — ${cj.withdrawn_reason}` : ""}
+          </Badge>
+          <button
+            onClick={(e) => { e.stopPropagation(); onReinstate?.(); }}
+            className="text-[10px] underline text-muted-foreground hover:text-foreground"
+          >
+            Reinstate
+          </button>
+        </div>
+      )}
+      {!cj.withdrawn && (
+        <button
+          onClick={(e) => { e.stopPropagation(); onWithdraw?.(); }}
+          className="opacity-0 group-hover:opacity-100 text-[10px] text-muted-foreground hover:text-red-400 transition-opacity"
+        >
+          Mark rejected / withdrawn
+        </button>
       )}
 
       {/* Offer summary — only on Offer cards */}
@@ -953,9 +993,9 @@ function AiSuggestedCard({
           type="button"
           onClick={(e) => { e.stopPropagation(); onAccept(); }}
           className="text-[10px] px-1.5 py-0.5 rounded border border-emerald-500/40 text-emerald-400 bg-background hover:bg-emerald-500/10 flex items-center gap-0.5"
-          title="Move to Longlist"
+          title="Move to Shortlist"
         >
-          <ArrowRight className="h-2.5 w-2.5" /> Longlist
+          <ArrowRight className="h-2.5 w-2.5" /> Shortlist
         </button>
         <button
           type="button"

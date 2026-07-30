@@ -572,10 +572,9 @@ function ClientJobRow({ job, onOpen }: { job: Job; onOpen: () => void }) {
 
   // Stage counts grouped by macro stage
   const stageGroups: { label: string; stages: string[] }[] = [
-    { label: "Longlist", stages: ["AI Suggested", "Longlist", "Contact"] },
-    { label: "Screening", stages: ["Screening"] },
-    { label: "Shortlist", stages: ["Shortlist", "Submitted", "Client Review"] },
-    { label: "Interview", stages: ["First Interview", "Second Interview"] },
+    { label: "Shortlist", stages: ["AI Suggested", "Shortlist"] },
+    { label: "Shortlist", stages: ["Shortlist", "Sent CV", "Sent CV"] },
+    { label: "Interview", stages: ["First Stage", "Second Stage"] },
     { label: "Offer", stages: ["Offer"] },
     { label: "Placed", stages: ["Placed"] },
   ];

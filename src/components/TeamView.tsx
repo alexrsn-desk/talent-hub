@@ -57,7 +57,7 @@ function useTeamStats(memberIds: string[]) {
         const memberCjs = cjs.filter((cj) => cj.owner_user_id === uid);
         const memberTodos = todos.filter((t) => t.owner_user_id === uid);
 
-        // Offer-with-no-backup: any job with a candidate at Offer but no backup at Shortlist/Screening/Longlist
+        // Offer-with-no-backup: any job with a candidate at Offer but no backup at Shortlist/Sent CV
         let offerNoBackup = 0;
         const jobIds = Array.from(new Set(memberCjs.map((cj) => cj.job_id)));
         for (const jid of jobIds) {
@@ -65,7 +65,7 @@ function useTeamStats(memberIds: string[]) {
           const hasOffer = inJob.some((cj) => cj.stage === "Offer");
           if (!hasOffer) continue;
           const backups = inJob.filter((cj) =>
-            ["Shortlist", "Screening", "Longlist", "Submitted"].includes(cj.stage),
+            ["Shortlist", "Sent CV"].includes(cj.stage),
           ).length;
           if (backups === 0) offerNoBackup += 1;
         }

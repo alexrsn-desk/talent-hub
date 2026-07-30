@@ -17,7 +17,6 @@ import { useQuery } from "@tanstack/react-query";
 import type { CandidateJob, Job } from "@/hooks/use-data";
 
 // Stages excluded from "active backup" counts
-const REJECTED_LIKE = ["Rejected", "Withdrawn"];
 
 const COUNTER_OFFER_PHRASES = [
   "counter offer",
@@ -33,15 +32,14 @@ export type OfferBackupStatus = "red" | "amber" | "green";
 
 export interface OfferBackupCounts {
   shortlist: number;
-  screening: number;
-  longlist: number;
+  firstStage: number;
   submitted: number;
   total: number;
 }
 
 export function computeBackupStatus(counts: OfferBackupCounts): OfferBackupStatus {
   if (counts.shortlist >= 1 || counts.submitted >= 1) return "green";
-  if (counts.screening >= 1) return "amber";
+  if (counts.firstStage >= 1) return "amber";
   return "red";
 }
 
@@ -54,14 +52,13 @@ export function computeBackupCounts(
     (cj) =>
       cj.job_id === jobId &&
       cj.id !== excludeCandidateJobId &&
-      !REJECTED_LIKE.includes(cj.stage),
+      !cj.withdrawn,
   );
   const countAt = (s: string) => cjs.filter((cj) => cj.stage === s).length;
   return {
     shortlist: countAt("Shortlist"),
-    screening: countAt("Screening"),
-    longlist: countAt("Longlist"),
-    submitted: countAt("Submitted"),
+    firstStage: countAt("First Stage"),
+    submitted: countAt("Sent CV"),
     total: cjs.length,
   };
 }
@@ -261,8 +258,8 @@ export function OfferBackupSignal({
         <div className="grid grid-cols-3 gap-2">
           {[
             { label: "Shortlist", n: counts.shortlist },
-            { label: "Screening", n: counts.screening },
-            { label: "Longlist", n: counts.longlist },
+            { label: "Sent CV", n: counts.submitted },
+            { label: "First Stage", n: counts.firstStage },
           ].map((row) => (
             <div
               key={row.label}

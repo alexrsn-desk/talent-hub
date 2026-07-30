@@ -72,7 +72,7 @@ serve(async (req) => {
     });
 
     const interviewToday = cjs.filter((cj: any) =>
-      ["First Interview", "Second Interview"].includes(cj.stage)
+      ["First Stage", "Second Stage"].includes(cj.stage)
     );
     const interviewNoPrepToday = interviewToday.filter((cj: any) => {
       const todayNotes = notes.filter(
@@ -82,7 +82,7 @@ serve(async (req) => {
     });
 
     const submittedCandidates = cjs.filter((cj: any) =>
-      ["Submitted", "Client Review"].includes(cj.stage)
+      ["Sent CV", "Sent CV"].includes(cj.stage)
     );
     const feedbackOverdue = submittedCandidates.filter((cj: any) => {
       return cj.created_at < new Date(now.getTime() - 5 * 86400000).toISOString();
@@ -95,7 +95,7 @@ serve(async (req) => {
     const jobsNoSubmissions = openJobs.filter((j: any) => {
       const jobCjs = cjs.filter((cj: any) => cj.job_id === j.id);
       const submitted = jobCjs.some((cj: any) =>
-        ["Submitted", "Client Review", "First Interview", "Second Interview", "Offer", "Placed"].includes(cj.stage)
+        ["Sent CV", "Sent CV", "First Stage", "Second Stage", "Offer", "Placed"].includes(cj.stage)
       );
       if (submitted) return false;
       return j.date_opened < sevenDaysAgo;
@@ -107,8 +107,8 @@ serve(async (req) => {
       return !lastNote || lastNote < new Date(now.getTime() - 5 * 86400000).toISOString();
     });
 
-    // In-play pipeline analysis: active = Longlist..Offer (not Placed/Rejected/AI Suggested)
-    const ACTIVE_STAGES = ["Longlist","Contact","Screening","Shortlist","Submitted","Client Review","First Interview","Second Interview","Offer"];
+    // In-play pipeline analysis: active = Shortlist..Offer (not Placed/withdrawn/AI Suggested)
+    const ACTIVE_STAGES = ["Shortlist","Sent CV","First Stage","Second Stage","Final Stage","Offer"];
     const jobsInPlay = openJobs.map((j: any) => {
       const active = cjs.filter((cj: any) => cj.job_id === j.id && ACTIVE_STAGES.includes(cj.stage));
       return { title: j.title, company: j.clients?.company_name, count: active.length };
@@ -180,7 +180,7 @@ serve(async (req) => {
 
     // GREEN FLAGS data
     const longlistNotContacted = cjs.filter((cj: any) => {
-      if (cj.stage !== "Longlist") return false;
+      if (cj.stage !== "Shortlist") return false;
       const candidateNotes = notes.filter((n: any) => n.candidate_id === cj.candidate_id);
       return candidateNotes.length === 0;
     });
@@ -255,7 +255,7 @@ serve(async (req) => {
         weekEnd: weekEndIso,
         overdue: (overdueFollowUps || []).length,
         cvsSent: cjs.filter((cj: any) =>
-          ["Submitted", "Client Review", "First Interview", "Second Interview", "Offer", "Placed"].includes(cj.stage)
+          ["Sent CV", "Sent CV", "First Stage", "Second Stage", "Offer", "Placed"].includes(cj.stage)
           && cj.stage_changed_at && cj.stage_changed_at.split("T")[0] >= weekStartIso
           && cj.stage_changed_at.split("T")[0] <= weekEndIso,
         ).length,

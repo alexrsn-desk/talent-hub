@@ -6,7 +6,7 @@ import { Plus, X } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 
-const STAGES = ["Applied", "Screening", "Submitted", "Interviewing", "Offered", "Placed", "Rejected"];
+const STAGES = ["Applied", "Screening", "Sent CV", "Interviewing", "Offered", "Placed", "Rejected"];
 
 export function CandidateJobLinks({ candidateId }: { candidateId: string }) {
   const { data: links = [] } = useCandidateJobs(candidateId);

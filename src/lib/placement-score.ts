@@ -27,8 +27,8 @@ export type PlacementScore = {
   headline: string;
 };
 
-const ACTIVE_BACKUP_STAGES = new Set(["Screening", "Shortlist", "Submitted", "Client Review"]);
-const INTERVIEW_STAGES = new Set(["First Interview", "Second Interview", "Client Review"]);
+const ACTIVE_BACKUP_STAGES = new Set(["Shortlist", "Sent CV"]);
+const INTERVIEW_STAGES = new Set(["First Stage", "Second Stage", "Sent CV"]);
 
 function daysBetween(a: Date, b: Date) {
   return Math.floor((a.getTime() - b.getTime()) / (1000 * 60 * 60 * 24));
@@ -53,7 +53,7 @@ export function computePlacementScore(input: {
   const hasOffer = cjs.some((cj) => cj.stage === "Offer");
   const hasInterview = cjs.some((cj) => INTERVIEW_STAGES.has(cj.stage));
   const hasShortlist = cjs.some((cj) => cj.stage === "Shortlist");
-  const activeStages = ["Longlist", "Screening", "Shortlist", "Submitted", "Client Review", "First Interview", "Second Interview", "Offer"];
+  const activeStages = ["Shortlist", "Sent CV", "First Stage", "Second Stage", "Final Stage", "Offer"];
   const inPlay = cjs.filter((cj) => activeStages.includes(cj.stage));
   const backupCount = cjs.filter((cj) => ACTIVE_BACKUP_STAGES.has(cj.stage)).length;
 

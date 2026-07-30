@@ -10,6 +10,7 @@ Name fields: first_name/last_name separate, display full name, AI uses first nam
 
 ## Memories
 - [DB schema](mem://features/db-schema) — clients, jobs, candidates, candidate_jobs, notes tables
+- [Pipeline stages](mem://features/pipeline-stages) — canonical 8 stages + withdrawn/rejected flag rules
 - [Client portal](mem://features/client-portal) — magic link auth, candidate review, interview scheduling
 - [Onboarding](mem://features/onboarding) — multi-step recruiter profile setup
 - [Dashboard lists](mem://preferences/dashboard-lists) — compact expandable row pattern for all dashboard sections
