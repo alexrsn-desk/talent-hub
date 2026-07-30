@@ -336,7 +336,7 @@ export function JobPipelineBoard({ job, onJobUpdate }: { job: Job; onJobUpdate?:
                               dragProvided={dragProvided}
                               dragSnapshot={dragSnapshot}
                               onOpenProfile={() => openProfile(cj)}
-                              onAccept={() => performStageMove(cj, cj.stage, "Longlist")}
+                              onAccept={() => performStageMove(cj, cj.stage, "Shortlist")}
                               onDismiss={() => {
                                 setDismissingCJ(cj);
                                 setDismissReason("");
@@ -364,6 +364,14 @@ export function JobPipelineBoard({ job, onJobUpdate }: { job: Job; onJobUpdate?:
                               performStageMove(cj, cj.stage, "Shortlist");
                             }}
                             onOpenOffer={() => setOfferPanel({ cj })}
+                            onWithdraw={() => {
+                              setRejectingCJ({ cj, fromStage: cj.stage });
+                              setRejectionReason(REJECTION_REASONS[0]);
+                            }}
+                            onReinstate={() => {
+                              setWithdrawn(cj, false);
+                              toast.success("Reinstated to the active pipeline");
+                            }}
                             formatSalary={formatSalary}
                           />
                           )
