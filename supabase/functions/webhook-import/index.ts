@@ -553,6 +553,9 @@ async function processApplication(data: any, action: string, settings: any, user
       job_id: jobId,
       stage: stageInfo.stage,
       source: "webhook",
+      withdrawn: stageInfo.withdrawn,
+      withdrawn_at: stageInfo.withdrawn ? new Date().toISOString() : null,
+      withdrawn_reason: stageInfo.withdrawn ? "Synced as rejected/withdrawn" : null,
     }).select().single();
     if (error || !ins) throw new Error(error?.message || "Application insert failed");
     cjId = ins.id;
