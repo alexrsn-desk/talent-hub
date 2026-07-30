@@ -212,11 +212,11 @@ export function JobPipelineBoard({ job, onJobUpdate }: { job: Job; onJobUpdate?:
       return;
     }
 
-    if (toStage === "Rejected") {
-      setRejectingCJ({ cj, fromStage });
-      setRejectionReason(REJECTION_REASONS[0]);
+    if (cj.withdrawn) {
+      toast.error("This candidate is withdrawn — reinstate them first.");
       return;
     }
+
 
     performStageMove(cj, fromStage, toStage);
   };
