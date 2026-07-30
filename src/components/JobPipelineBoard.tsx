@@ -246,12 +246,23 @@ export function JobPipelineBoard({ job, onJobUpdate }: { job: Job; onJobUpdate?:
     <div className="space-y-4">
       <div className="flex items-center justify-between flex-wrap gap-2">
         <h3 className="text-sm font-medium text-muted-foreground">
-          {candidateJobs.length} candidate{candidateJobs.length !== 1 ? "s" : ""} in pipeline
+          {visibleCandidateJobs.length} candidate{visibleCandidateJobs.length !== 1 ? "s" : ""} in pipeline
         </h3>
-        <p className="text-[11px] text-muted-foreground">
-          Drag to progress · Cannot Submit before Shortlist · Cannot Offer before Interview
-        </p>
+        <div className="flex items-center gap-3">
+          {withdrawnCount > 0 && (
+            <button
+              onClick={() => setShowWithdrawn((v) => !v)}
+              className="text-[11px] underline text-muted-foreground hover:text-foreground"
+            >
+              {showWithdrawn ? "Hide" : "Show"} rejected/withdrawn ({withdrawnCount})
+            </button>
+          )}
+          <p className="text-[11px] text-muted-foreground">
+            Drag to progress · Cannot send CV before Shortlist · Cannot Offer before an interview stage
+          </p>
+        </div>
       </div>
+
 
       {/* Offer-stage backup signals — one per candidate at Offer */}
       {(stageMap["Offer"] || []).map((cj) => (
