@@ -85,10 +85,10 @@ export type BillersWorkflowData = {
   dailyBdTargets: BillerItem[]; // up to 3
 };
 
-const BACKUP_STAGES = new Set(["Screening", "Shortlist"]);
+const BACKUP_STAGES = new Set(["Shortlist"]);
 const LATE_STAGES = new Set(["First Stage", "Second Stage", "Offer"]);
 const SUBMITTED_STAGES = new Set(["Sent CV", "Sent CV"]);
-const ACTIVE_STAGES = ["Shortlist","Contact","Screening","Shortlist","Sent CV","Sent CV","First Stage","Second Stage","Offer"];
+const ACTIVE_STAGES = ["Shortlist","Sent CV","First Stage","Second Stage","Final Stage","Offer"];
 const BD_TYPES = new Set(["Call", "Email", "LinkedIn Message", "Meeting", "Text Message", "WhatsApp"]);
 
 const daysSince = (iso?: string | null) => !iso ? 9999 : Math.floor((Date.now() - new Date(iso).getTime()) / 86400000);

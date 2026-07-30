@@ -85,7 +85,7 @@ const ActionButton = forwardRef<
 ActionButton.displayName = "ActionButton";
 
 // --- Add to Job ---
-const JOB_STAGES = ["Shortlist", "Screening", "Shortlist", "Sent CV", "First Stage", "Second Stage", "Offer"] as const;
+const JOB_STAGES = ["Shortlist", "Sent CV", "First Stage", "Second Stage", "Final Stage", "Offer"] as const;
 const ACTIVE_JOB_STATUSES = new Set(["Active", "Open"]);
 
 function AddToJobAction({ selected, onDone }: { selected: Candidate[]; onDone?: () => void }) {
