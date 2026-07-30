@@ -5,12 +5,11 @@ import { Loader2, ExternalLink, Mail } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 
 const ACTIVE_STAGES = [
-  "Screening",
   "Shortlist",
-  "Sent CV",
   "Sent CV",
   "First Stage",
   "Second Stage",
+  "Final Stage",
   "Offer",
 ];
 

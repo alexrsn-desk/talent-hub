@@ -76,12 +76,12 @@ export function OfferBackupActions() {
                   {candidateName} is at offer with{" "}
                   {status === "red"
                     ? "no backup"
-                    : `${counts.screening} at Screening, 0 on Shortlist`}
+                    : `${counts.submitted} at Sent CV, 0 on Shortlist`}
                   .
                 </div>
                 <div className="mt-1 opacity-75">
-                  Shortlist {counts.shortlist} · Screening {counts.screening} · Longlist{" "}
-                  {counts.longlist}
+                  Shortlist {counts.shortlist} · Sent CV {counts.submitted} · First Stage{" "}
+                  {counts.firstStage}
                 </div>
               </div>
               <div className="flex flex-col sm:flex-row gap-1.5 flex-shrink-0">

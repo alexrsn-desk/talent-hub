@@ -20,7 +20,7 @@ export function useSearchAggregates() {
     queryFn: async (): Promise<SearchAggregates> => {
       const [notesRes, cjRes, jobsRes] = await Promise.all([
         supabase.from("notes").select("candidate_id,client_id,content,created_at").order("created_at", { ascending: false }).limit(2000),
-        supabase.from("candidate_jobs").select("candidate_id,stage").not("stage", "in", '("Placed","Rejected","Not Suitable")'),
+        supabase.from("candidate_jobs").select("candidate_id,stage,withdrawn").not("stage", "in", '("Placed")'),
         supabase.from("jobs").select("client_id,status").eq("status", "Open"),
       ]);
 

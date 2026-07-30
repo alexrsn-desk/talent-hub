@@ -54,13 +54,12 @@ export function computeBackupCounts(
     (cj) =>
       cj.job_id === jobId &&
       cj.id !== excludeCandidateJobId &&
-      !REJECTED_LIKE.includes(cj.stage),
+      !cj.withdrawn,
   );
   const countAt = (s: string) => cjs.filter((cj) => cj.stage === s).length;
   return {
     shortlist: countAt("Shortlist"),
-    screening: countAt("Screening"),
-    longlist: countAt("Shortlist"),
+    firstStage: countAt("First Stage"),
     submitted: countAt("Sent CV"),
     total: cjs.length,
   };
@@ -261,8 +260,8 @@ export function OfferBackupSignal({
         <div className="grid grid-cols-3 gap-2">
           {[
             { label: "Shortlist", n: counts.shortlist },
-            { label: "Screening", n: counts.screening },
-            { label: "Shortlist", n: counts.longlist },
+            { label: "Sent CV", n: counts.submitted },
+            { label: "First Stage", n: counts.firstStage },
           ].map((row) => (
             <div
               key={row.label}
