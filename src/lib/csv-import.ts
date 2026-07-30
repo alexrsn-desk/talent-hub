@@ -1140,7 +1140,7 @@ David,Lee,VP Engineering,Global Inc,david@global.com,,02087654321,07700900200,,R
   if (type === "applications") {
     return `Candidate Email,Candidate Name,Job Title,Client Company,Stage,Date Submitted,Outcome Notes
 john@example.com,John Smith,Senior Developer,Acme Corp,Submitted,2025-03-12,Awaiting client feedback
-jane@example.com,Jane Doe,Product Manager,Global Inc,First Interview,2025-03-14,Strong technical fit
+jane@example.com,Jane Doe,Product Manager,Global Inc,First Stage,2025-03-14,Strong technical fit
 ,Mark Brown,DevOps Lead,Acme Corp,Placed,2025-02-01,Started 1st March`;
   }
   return `Job Title,Client Company,Location,Salary Min,Salary Max,Job Type,Status,Date Opened,Fee %
@@ -1212,17 +1212,14 @@ export async function detectDuplicateCandidates(): Promise<DuplicateCandidate[]>
 
 // ── Applications import ───────────────────────────────────────────
 export const PIPELINE_STAGE_VALUES = [
-  "AI Suggested", "Shortlist", "Contact", "Screening", "Shortlist",
-  "Sent CV", "Sent CV", "First Stage", "Second Stage",
-  "Offer", "Placed", "Rejected",
+  "AI Suggested", "Shortlist", "Sent CV", "First Stage",
+  "Second Stage", "Final Stage", "Offer", "Placed",
 ] as const;
 
 const STAGE_ALIASES: Record<string, string> = {
   // Direct
   "ai suggested": "AI Suggested",
   "longlist": "Shortlist",
-  "contact": "Contact",
-  "screening": "Screening",
   "shortlist": "Shortlist",
   "submitted": "Sent CV",
   "client review": "Sent CV",
@@ -1230,7 +1227,6 @@ const STAGE_ALIASES: Record<string, string> = {
   "second interview": "Second Stage",
   "offer": "Offer",
   "placed": "Placed",
-  "rejected": "Rejected",
   // Common aliases from other CRMs
   "shortlisted": "Shortlist",
   "sent to client": "Sent CV",
@@ -1244,7 +1240,8 @@ const STAGE_ALIASES: Record<string, string> = {
   "2nd interview": "Second Stage",
   "interview 2": "Second Stage",
   "second stage interview": "Second Stage",
-  "final interview": "Second Stage",
+  "final interview": "Final Stage",
+  "final stage": "Final Stage",
   "offer made": "Offer",
   "offered": "Offer",
   "verbal offer": "Offer",
@@ -1252,12 +1249,6 @@ const STAGE_ALIASES: Record<string, string> = {
   "started": "Placed",
   "hired": "Placed",
   "successful": "Placed",
-  "unsuccessful": "Rejected",
-  "rejected by client": "Rejected",
-  "rejected by candidate": "Rejected",
-  "withdrawn": "Rejected",
-  "declined": "Rejected",
-  "closed": "Rejected",
 };
 
 export function mapApplicationStage(raw: string | null): string | null {
