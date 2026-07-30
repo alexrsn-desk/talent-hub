@@ -615,6 +615,8 @@ function PipelineCard({
   onOpenSlotPicker,
   onFastTrack,
   onOpenOffer,
+  onWithdraw,
+  onReinstate,
   formatSalary,
 }: {
   cj: CandidateJob;
@@ -626,14 +628,15 @@ function PipelineCard({
   onOpenSlotPicker: () => void;
   onFastTrack: () => void;
   onOpenOffer?: () => void;
+  onWithdraw?: () => void;
+  onReinstate?: () => void;
   formatSalary: (n: number | null) => string | null;
 }) {
   const days = daysSince(cj.stage_changed_at ?? cj.created_at);
   const isAi = cj.source === "ai";
-  const showFastTrack =
-    ["AI Suggested", "Longlist", "Contact"].includes(stage); // not from Screening (one stage away)
+  const showFastTrack = stage === "AI Suggested";
   const showSourceBadge = stage === "Shortlist";
-  const isScreening = stage === "Screening";
+  const isScreening = false;
 
   // Auto-open the screening panel when card is in Screening stage
   const [screeningOpen, setScreeningOpen] = useState(isScreening);
