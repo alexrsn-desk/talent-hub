@@ -130,16 +130,29 @@ export function JobPipelineBoard({ job, onJobUpdate }: { job: Job; onJobUpdate?:
   const linkedCandidateIds = candidateJobs.map((cj) => cj.candidate_id);
   const availableCandidates = allCandidates.filter((c) => !linkedCandidateIds.includes(c.id));
 
+  const withdrawnCount = candidateJobs.filter((cj) => cj.withdrawn).length;
+  const visibleCandidateJobs = showWithdrawn ? candidateJobs : candidateJobs.filter((cj) => !cj.withdrawn);
+
   const stageMap = PIPELINE_STAGES.reduce((acc, stage) => {
-    acc[stage] = candidateJobs.filter((cj) => cj.stage === stage);
+    acc[stage] = visibleCandidateJobs.filter((cj) => cj.stage === stage);
     return acc;
   }, {} as Record<string, CandidateJob[]>);
+
+  const setWithdrawn = (cj: CandidateJob, withdrawn: boolean, reason?: string) => {
+    updateCandidateJob.mutate({
+      id: cj.id,
+      withdrawn,
+      withdrawn_reason: withdrawn ? reason ?? null : null,
+      withdrawn_at: withdrawn ? new Date().toISOString() : null,
+      ...(withdrawn ? { rejection_reason: reason ?? null } : {}),
+    });
+  };
 
   const performStageMove = (cj: CandidateJob, fromStage: string, toStage: string, opts?: { rejectionReason?: string }) => {
     const isFastTrack =
       toStage === "Shortlist" &&
-      ["AI Suggested", "Longlist", "Contact", "Screening"].includes(fromStage) &&
-      fromStage !== "Screening";
+      ["AI Suggested"].includes(fromStage);
+
 
     updateCandidateJob.mutate(
       {
