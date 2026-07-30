@@ -303,23 +303,23 @@ export default function CompareSubmitPage() {
           .eq("job_id", jobId)
           .maybeSingle();
         if (existing) {
-          if (existing.stage !== "Submitted") {
-            await supabase.from("candidate_jobs").update({ stage: "Submitted" }).eq("id", existing.id);
+          if (existing.stage !== "Sent CV") {
+            await supabase.from("candidate_jobs").update({ stage: "Sent CV" }).eq("id", existing.id);
             await logActivity({
               action_type: "stage_change", candidate_id: s.existing_id, job_id: jobId,
               candidate_job_id: existing.id,
-              metadata: { stage_from: existing.stage, stage_to: "Submitted", via: "Compare & Submit" },
+              metadata: { stage_from: existing.stage, stage_to: "Sent CV", via: "Compare & Submit" },
             });
           }
         } else {
           const { data: cj } = await supabase
             .from("candidate_jobs")
-            .insert({ candidate_id: s.existing_id, job_id: jobId, stage: "Submitted", source: "Compare & Submit", owner_user_id: user?.id } as any)
+            .insert({ candidate_id: s.existing_id, job_id: jobId, stage: "Sent CV", source: "Compare & Submit", owner_user_id: user?.id } as any)
             .select().single();
           if (cj) {
             await logActivity({
               action_type: "candidate_job_linked", candidate_id: s.existing_id, job_id: jobId,
-              candidate_job_id: cj.id, metadata: { stage: "Submitted", via: "Compare & Submit" },
+              candidate_job_id: cj.id, metadata: { stage: "Sent CV", via: "Compare & Submit" },
             });
           }
         }

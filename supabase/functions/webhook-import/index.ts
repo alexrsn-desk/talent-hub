@@ -61,19 +61,19 @@ function mapJobType(raw?: string): string {
 }
 
 const STAGE_MAP: Record<string, string> = {
-  "new": "Longlist",
-  "applied": "Longlist",
-  "shortlisted": "Longlist",
-  "longlist": "Longlist",
+  "new": "Shortlist",
+  "applied": "Shortlist",
+  "shortlisted": "Shortlist",
+  "longlist": "Shortlist",
   "screening": "Screening",
-  "sent": "Submitted",
-  "submitted": "Submitted",
-  "client review": "Client Review",
-  "interview": "First Interview",
-  "1st interview": "First Interview",
-  "first interview": "First Interview",
-  "2nd interview": "Second Interview",
-  "second interview": "Second Interview",
+  "sent": "Sent CV",
+  "submitted": "Sent CV",
+  "client review": "Sent CV",
+  "interview": "First Stage",
+  "1st interview": "First Stage",
+  "first interview": "First Stage",
+  "2nd interview": "Second Stage",
+  "second interview": "Second Stage",
   "offer": "Offer",
   "placed": "Placed",
   "rejected": "Rejected",
@@ -84,7 +84,7 @@ function mapStage(raw?: string): { stage: string; defaulted: boolean; withdrawn:
   const s = (raw || "").trim().toLowerCase();
   const stage = STAGE_MAP[s];
   return {
-    stage: stage || "Longlist",
+    stage: stage || "Shortlist",
     defaulted: !stage,
     withdrawn: s === "withdrawn",
   };

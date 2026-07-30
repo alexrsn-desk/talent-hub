@@ -248,9 +248,9 @@ serve(async (req) => {
       .filter(Boolean);
 
     // Placement Probability Score (mirrors src/lib/placement-score.ts logic)
-    const ACTIVE_BACKUP = new Set(["Screening", "Shortlist", "Submitted", "Client Review"]);
-    const INTERVIEW_SET = new Set(["First Interview", "Second Interview", "Client Review"]);
-    const ACTIVE_STAGES = ["Longlist", "Screening", "Shortlist", "Submitted", "Client Review", "First Interview", "Second Interview", "Offer"];
+    const ACTIVE_BACKUP = new Set(["Screening", "Shortlist", "Sent CV", "Sent CV"]);
+    const INTERVIEW_SET = new Set(["First Stage", "Second Stage", "Sent CV"]);
+    const ACTIVE_STAGES = ["Shortlist", "Screening", "Shortlist", "Sent CV", "Sent CV", "First Stage", "Second Stage", "Offer"];
     const sevenDaysAgoDate = new Date(nowMs - 7 * dayMs);
 
     const computeScore = (job: any) => {
@@ -327,12 +327,12 @@ serve(async (req) => {
           status: j.status,
           placementScore: computeScore(j),
           pipeline: {
-            longlist: jobCjs.filter((cj: any) => cj.stage === "Longlist").map((cj: any) => cj.candidates?.name),
+            longlist: jobCjs.filter((cj: any) => cj.stage === "Shortlist").map((cj: any) => cj.candidates?.name),
             shortlist: jobCjs.filter((cj: any) => cj.stage === "Shortlist").map((cj: any) => cj.candidates?.name),
-            submitted: jobCjs.filter((cj: any) => cj.stage === "Submitted").map((cj: any) => cj.candidates?.name),
-            clientReview: jobCjs.filter((cj: any) => cj.stage === "Client Review").map((cj: any) => cj.candidates?.name),
-            firstInterview: jobCjs.filter((cj: any) => cj.stage === "First Interview").map((cj: any) => cj.candidates?.name),
-            secondInterview: jobCjs.filter((cj: any) => cj.stage === "Second Interview").map((cj: any) => cj.candidates?.name),
+            submitted: jobCjs.filter((cj: any) => cj.stage === "Sent CV").map((cj: any) => cj.candidates?.name),
+            clientReview: jobCjs.filter((cj: any) => cj.stage === "Sent CV").map((cj: any) => cj.candidates?.name),
+            firstInterview: jobCjs.filter((cj: any) => cj.stage === "First Stage").map((cj: any) => cj.candidates?.name),
+            secondInterview: jobCjs.filter((cj: any) => cj.stage === "Second Stage").map((cj: any) => cj.candidates?.name),
             offer: jobCjs.filter((cj: any) => cj.stage === "Offer").map((cj: any) => cj.candidates?.name),
             placed: jobCjs.filter((cj: any) => cj.stage === "Placed").map((cj: any) => cj.candidates?.name),
           },

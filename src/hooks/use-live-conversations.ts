@@ -54,10 +54,10 @@ function inDaysISO(days: number): string {
 }
 
 const PIPELINE_BEYOND = new Set([
-  "Submitted",
-  "Client Review",
-  "First Interview",
-  "Second Interview",
+  "Sent CV",
+  "Sent CV",
+  "First Stage",
+  "Second Stage",
   "Final Interview",
   "Offer",
   "Placed",

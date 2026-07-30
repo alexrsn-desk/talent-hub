@@ -86,9 +86,9 @@ export type BillersWorkflowData = {
 };
 
 const BACKUP_STAGES = new Set(["Screening", "Shortlist"]);
-const LATE_STAGES = new Set(["First Interview", "Second Interview", "Offer"]);
-const SUBMITTED_STAGES = new Set(["Submitted", "Client Review"]);
-const ACTIVE_STAGES = ["Longlist","Contact","Screening","Shortlist","Submitted","Client Review","First Interview","Second Interview","Offer"];
+const LATE_STAGES = new Set(["First Stage", "Second Stage", "Offer"]);
+const SUBMITTED_STAGES = new Set(["Sent CV", "Sent CV"]);
+const ACTIVE_STAGES = ["Shortlist","Contact","Screening","Shortlist","Sent CV","Sent CV","First Stage","Second Stage","Offer"];
 const BD_TYPES = new Set(["Call", "Email", "LinkedIn Message", "Meeting", "Text Message", "WhatsApp"]);
 
 const daysSince = (iso?: string | null) => !iso ? 9999 : Math.floor((Date.now() - new Date(iso).getTime()) / 86400000);
@@ -471,7 +471,7 @@ export function useBillersWorkflow(viewUserId?: string | null, thresholds: Bille
         const tokens = (job.title || "").toLowerCase().split(/\s+/).filter((t: string) => t.length > 3);
         for (const cj of cjs) {
           if (out.length >= limit) break;
-          if (!["First Interview","Second Interview","Offer"].includes(cj.stage)) continue;
+          if (!["First Stage","Second Stage","Offer"].includes(cj.stage)) continue;
           if (daysSince(cj.stage_changed_at || cj.created_at) > 180) continue;
           const cand = candById.get(cj.candidate_id) as any; if (!cand) continue;
           if (exclude.has(cand.id) || seen.has(cand.id)) continue;
@@ -697,7 +697,7 @@ export function useBillersWorkflow(viewUserId?: string | null, thresholds: Bille
         }
 
         // TRIGGER 6 — COUNTER OFFER RISK from offers table
-        if (cj.stage === "Offer" || cj.stage === "Second Interview") {
+        if (cj.stage === "Offer" || cj.stage === "Second Stage") {
           const off = offers.find((o: any) => o.candidate_id === cand.id && o.job_id === job.id);
           if (off && (off.counter_offer_risk === "high" || off.counter_offer_risk === "medium")) {
             closeProtect.push({
@@ -849,7 +849,7 @@ export function useBillersWorkflow(viewUserId?: string | null, thresholds: Bille
       const placedCandIds = new Set(placements.filter((p: any) => p.status !== "fallen_through").map((p: any) => p.candidate_id));
       const interviewedRecent = new Map<string, { cj: any; job: any }>();
       for (const cj of cjs) {
-        if (!["First Interview","Second Interview","Offer"].includes(cj.stage)) continue;
+        if (!["First Stage","Second Stage","Offer"].includes(cj.stage)) continue;
         const moved = daysSince(cj.stage_changed_at || cj.created_at);
         if (moved > 180) continue;
         const cand = candById.get(cj.candidate_id) as any; if (!cand) continue;

@@ -65,7 +65,7 @@ function useTeamStats(memberIds: string[]) {
           const hasOffer = inJob.some((cj) => cj.stage === "Offer");
           if (!hasOffer) continue;
           const backups = inJob.filter((cj) =>
-            ["Shortlist", "Screening", "Longlist", "Submitted"].includes(cj.stage),
+            ["Shortlist", "Screening", "Shortlist", "Sent CV"].includes(cj.stage),
           ).length;
           if (backups === 0) offerNoBackup += 1;
         }

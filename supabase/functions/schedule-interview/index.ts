@@ -90,7 +90,7 @@ serve(async (req) => {
     // Set interview date on candidate_job
     await supabase
       .from("candidate_jobs")
-      .update({ interview_date: slot.start_time, stage: "First Interview" })
+      .update({ interview_date: slot.start_time, stage: "First Stage" })
       .eq("id", candidateJob.id);
 
     // Get recruiter profile for organizer details

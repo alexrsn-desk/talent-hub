@@ -60,8 +60,8 @@ export default function DashboardPage() {
     return {
       ...job,
       shortlist: cjs.filter(cj => cj.stage === "Shortlist").length,
-      submitted: cjs.filter(cj => cj.stage === "Submitted").length,
-      interview: cjs.filter(cj => ["First Interview", "Second Interview", "Client Review"].includes(cj.stage)).length,
+      submitted: cjs.filter(cj => cj.stage === "Sent CV").length,
+      interview: cjs.filter(cj => ["First Stage", "Second Stage", "Sent CV"].includes(cj.stage)).length,
       finalStage: cjs.filter(cj => ["Offer", "Placed"].includes(cj.stage)).length,
       total: cjs.length,
     };

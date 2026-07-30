@@ -24,7 +24,7 @@ interface Props {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   candidateJobId: string;
-  stage: "First Interview" | "Second Interview";
+  stage: "First Stage" | "Second Stage";
   candidate: { id: string; name: string; first_name?: string | null; email?: string | null } | null;
   job: { id: string; title: string; clients?: { company_name?: string | null } | null } | null;
 }

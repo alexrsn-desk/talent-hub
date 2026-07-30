@@ -34,7 +34,7 @@ import { useVirtualizer } from "@tanstack/react-virtual";
 type SortKey = "name" | "job_title" | "status" | "last_contact" | "created_at";
 type SortDir = "asc" | "desc";
 type QuickFilter = "all" | "active" | "passive" | "li" | "hold" | "cold";
-const STAGE_OPTIONS = ["any", "none", "AI Suggested", "Longlist", "Shortlist", "Submitted", "First Interview", "Second Interview", "Offer", "Placed"] as const;
+const STAGE_OPTIONS = ["any", "none", "AI Suggested", "Shortlist", "Shortlist", "Sent CV", "First Stage", "Second Stage", "Offer", "Placed"] as const;
 type StageFilter = typeof STAGE_OPTIONS[number];
 type TimeBucket = "any" | "today" | "week" | "month" | "3m" | "over3m" | "year" | "never";
 
@@ -391,7 +391,7 @@ function RowAddToJobButton({ candidate }: { candidate: Candidate }) {
     await createCandidateJob.mutateAsync({
       candidate_id: candidate.id,
       job_id: job.id,
-      stage: "Longlist",
+      stage: "Shortlist",
       source: "manual",
     });
     setAddedJobId(job.id);
@@ -824,7 +824,7 @@ export default function CandidatesPage() {
             <SelectContent>
               <SelectItem value="any">Any stage</SelectItem>
               <SelectItem value="none">Not in any pipeline</SelectItem>
-              {["AI Suggested","Longlist","Shortlist","Submitted","First Interview","Second Interview","Offer","Placed"].map(s =>
+              {["AI Suggested","Shortlist","Shortlist","Sent CV","First Stage","Second Stage","Offer","Placed"].map(s =>
                 <SelectItem key={s} value={s}>{s}</SelectItem>
               )}
             </SelectContent>

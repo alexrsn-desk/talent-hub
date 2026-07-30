@@ -13,8 +13,8 @@ const MODEL = "google/gemini-2.5-flash";
 const MAX_STEPS = 6;
 
 const STAGES = [
-  "Contact", "Screening", "Shortlist", "Submitted", "Client Review",
-  "First Interview", "Second Interview", "Offer", "Placed", "Rejected",
+  "Contact", "Screening", "Shortlist", "Sent CV", "Sent CV",
+  "First Stage", "Second Stage", "Offer", "Placed", "Rejected",
 ];
 
 const WRITE_REFUSAL = "I can't do that just yet — but I can help you find what you need. Try asking me to search or retrieve information instead.";
@@ -94,7 +94,7 @@ const TOOLS = [
     type: "function",
     function: {
       name: "get_pipeline_for_job",
-      description: "List candidates on a job's pipeline. Optional stage filter (e.g. 'Offer', 'Second Interview').",
+      description: "List candidates on a job's pipeline. Optional stage filter (e.g. 'Offer', 'Second Stage').",
       parameters: {
         type: "object",
         properties: { job_id: { type: "string" }, stage: { type: "string" } },

@@ -98,7 +98,7 @@ export default function JobsPage() {
     }
   }, [jobs, searchParams, selectedJob, setSearchParams]);
 
-  const ACTIVE_STAGES = ["Longlist", "Contact", "Screening", "Shortlist", "Submitted", "Client Review", "First Interview", "Second Interview", "Offer"];
+  const ACTIVE_STAGES = ["Shortlist", "Contact", "Screening", "Shortlist", "Sent CV", "Sent CV", "First Stage", "Second Stage", "Offer"];
 
   const getInPlayBreakdown = (jobId: string) => {
     const cjs = allCandidateJobs.filter((cj: any) => cj.job_id === jobId && ACTIVE_STAGES.includes(cj.stage));
@@ -344,7 +344,7 @@ export function JobFullView({ job, onBack, onUpdate, onDelete, backLabel }: {
     setTimeout(() => setStatusSaved(false), 1800);
   };
 
-  const ACTIVE_STAGES = ["Longlist", "Contact", "Screening", "Shortlist", "Submitted", "Client Review", "First Interview", "Second Interview", "Offer"];
+  const ACTIVE_STAGES = ["Shortlist", "Contact", "Screening", "Shortlist", "Sent CV", "Sent CV", "First Stage", "Second Stage", "Offer"];
 
   const handleConfirmClose = async () => {
     setClosing(true);

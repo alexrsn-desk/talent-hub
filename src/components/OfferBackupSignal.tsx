@@ -60,8 +60,8 @@ export function computeBackupCounts(
   return {
     shortlist: countAt("Shortlist"),
     screening: countAt("Screening"),
-    longlist: countAt("Longlist"),
-    submitted: countAt("Submitted"),
+    longlist: countAt("Shortlist"),
+    submitted: countAt("Sent CV"),
     total: cjs.length,
   };
 }
@@ -262,7 +262,7 @@ export function OfferBackupSignal({
           {[
             { label: "Shortlist", n: counts.shortlist },
             { label: "Screening", n: counts.screening },
-            { label: "Longlist", n: counts.longlist },
+            { label: "Shortlist", n: counts.longlist },
           ].map((row) => (
             <div
               key={row.label}

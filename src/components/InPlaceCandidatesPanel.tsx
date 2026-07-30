@@ -7,10 +7,10 @@ import { Badge } from "@/components/ui/badge";
 const ACTIVE_STAGES = [
   "Screening",
   "Shortlist",
-  "Submitted",
-  "Client Review",
-  "First Interview",
-  "Second Interview",
+  "Sent CV",
+  "Sent CV",
+  "First Stage",
+  "Second Stage",
   "Offer",
 ];
 

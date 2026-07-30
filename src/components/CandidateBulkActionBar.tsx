@@ -85,7 +85,7 @@ const ActionButton = forwardRef<
 ActionButton.displayName = "ActionButton";
 
 // --- Add to Job ---
-const JOB_STAGES = ["Longlist", "Screening", "Shortlist", "Submitted", "First Interview", "Second Interview", "Offer"] as const;
+const JOB_STAGES = ["Shortlist", "Screening", "Shortlist", "Sent CV", "First Stage", "Second Stage", "Offer"] as const;
 const ACTIVE_JOB_STATUSES = new Set(["Active", "Open"]);
 
 function AddToJobAction({ selected, onDone }: { selected: Candidate[]; onDone?: () => void }) {
@@ -94,7 +94,7 @@ function AddToJobAction({ selected, onDone }: { selected: Candidate[]; onDone?: 
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState("");
   const [pickedJob, setPickedJob] = useState<typeof jobs[0] | null>(null);
-  const [stage, setStage] = useState<string>("Longlist");
+  const [stage, setStage] = useState<string>("Shortlist");
 
   const activeJobs = jobs.filter(j => ACTIVE_JOB_STATUSES.has(j.status));
   const filtered = activeJobs.filter(j =>
@@ -102,7 +102,7 @@ function AddToJobAction({ selected, onDone }: { selected: Candidate[]; onDone?: 
     (j.clients?.company_name || "").toLowerCase().includes(search.toLowerCase())
   ).slice(0, 8);
 
-  const reset = () => { setSearch(""); setPickedJob(null); setStage("Longlist"); };
+  const reset = () => { setSearch(""); setPickedJob(null); setStage("Shortlist"); };
 
   const handleConfirm = async () => {
     if (!pickedJob) return;

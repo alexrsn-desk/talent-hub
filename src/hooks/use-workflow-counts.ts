@@ -32,7 +32,7 @@ export function useWorkflowCounts() {
       for (const j of activeJobs as any[]) {
         const stages = byJob.get(j.id) || [];
         const hasShortlist = stages.includes("Shortlist");
-        const hasSubmitted = stages.some((s) => s === "Submitted" || s === "Client Review");
+        const hasSubmitted = stages.some((s) => s === "Sent CV" || s === "Sent CV");
         if (hasShortlist && !hasSubmitted) compare++;
       }
       return { jobLaunch, compare };

@@ -64,7 +64,7 @@ export function useWeekStats(ownerUserId?: string) {
       const cvsP = supabase
         .from("candidate_jobs")
         .select("id, stage, stage_changed_at, owner_user_id")
-        .in("stage", ["Submitted", "Client Review", "First Interview", "Second Interview", "Offer", "Placed"])
+        .in("stage", ["Sent CV", "Sent CV", "First Stage", "Second Stage", "Offer", "Placed"])
         .gte("stage_changed_at", monday.toISOString())
         .lte("stage_changed_at", sunday.toISOString() + "T23:59:59")
         .eq("owner_user_id", owner!);
@@ -94,7 +94,7 @@ export function useWeekStats(ownerUserId?: string) {
       const liveCvsP = supabase
         .from("candidate_jobs")
         .select("id", { count: "exact", head: true })
-        .in("stage", ["Submitted", "Client Review"])
+        .in("stage", ["Sent CV", "Sent CV"])
         .eq("owner_user_id", owner!);
 
       const [overdueR, cvsR, interviewsR, atOfferR, placementsR, liveCvsR] = await Promise.all([
