@@ -424,11 +424,11 @@ export function JobPipelineBoard({ job, onJobUpdate }: { job: Job; onJobUpdate?:
       <Dialog open={!!rejectingCJ} onOpenChange={(o) => !o && setRejectingCJ(null)}>
         <DialogContent className="max-w-sm">
           <DialogHeader>
-            <DialogTitle>Reason for rejection</DialogTitle>
+            <DialogTitle>Reason for rejection / withdrawal</DialogTitle>
           </DialogHeader>
           <div className="space-y-3 py-2">
             <p className="text-sm text-muted-foreground">
-              {rejectingCJ?.cj.candidates?.name ?? "Candidate"} — moving to Rejected
+              {rejectingCJ?.cj.candidates?.name ?? "Candidate"} — flagged at {rejectingCJ?.fromStage}. They stay on record but leave the active board.
             </p>
             <Select value={rejectionReason} onValueChange={setRejectionReason}>
               <SelectTrigger>
@@ -450,11 +450,9 @@ export function JobPipelineBoard({ job, onJobUpdate }: { job: Job; onJobUpdate?:
             <Button
               onClick={() => {
                 if (!rejectingCJ) return;
-                performStageMove(rejectingCJ.cj, rejectingCJ.fromStage, "Rejected", {
-                  rejectionReason,
-                });
+                setWithdrawn(rejectingCJ.cj, true, rejectionReason);
                 setRejectingCJ(null);
-                toast.success(`Marked rejected — ${rejectionReason}`);
+                toast.success(`Marked rejected/withdrawn — ${rejectionReason}`);
               }}
             >
               Confirm
