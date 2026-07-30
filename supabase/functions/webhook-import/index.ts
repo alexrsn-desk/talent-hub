@@ -65,7 +65,7 @@ const STAGE_MAP: Record<string, string> = {
   "applied": "Shortlist",
   "shortlisted": "Shortlist",
   "longlist": "Shortlist",
-  "screening": "Screening",
+  "screening": "Shortlist",
   "sent": "Sent CV",
   "submitted": "Sent CV",
   "client review": "Sent CV",
@@ -76,8 +76,8 @@ const STAGE_MAP: Record<string, string> = {
   "second interview": "Second Stage",
   "offer": "Offer",
   "placed": "Placed",
-  "rejected": "Rejected",
-  "withdrawn": "Rejected",
+  "final interview": "Final Stage",
+  "final stage": "Final Stage",
 };
 
 function mapStage(raw?: string): { stage: string; defaulted: boolean; withdrawn: boolean } {
@@ -86,7 +86,7 @@ function mapStage(raw?: string): { stage: string; defaulted: boolean; withdrawn:
   return {
     stage: stage || "Shortlist",
     defaulted: !stage,
-    withdrawn: s === "withdrawn",
+    withdrawn: s === "withdrawn" || s === "rejected",
   };
 }
 
