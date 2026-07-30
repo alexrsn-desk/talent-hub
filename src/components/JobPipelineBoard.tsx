@@ -172,15 +172,15 @@ export function JobPipelineBoard({ job, onJobUpdate }: { job: Job; onJobUpdate?:
                 stage_from: fromStage,
                 stage_to: toStage,
                 fast_track: true,
-                note: `Moved directly to Shortlist — skipped ${["Contact", "Screening"].filter((s) => s !== fromStage).join(" and ")}`,
+                note: `Moved directly to Shortlist from ${fromStage}`,
               },
             });
             toast.success("Fast-tracked to Shortlist");
           }
-          if (toStage === "First Interview" || toStage === "Second Interview") {
+          if (toStage === "First Stage" || toStage === "Second Stage" || toStage === "Final Stage") {
             // Small delay so the auto-create trigger has time to insert the interview row
             setTimeout(() => {
-              setInterviewPanel({ cj, stage: toStage as "First Interview" | "Second Interview" });
+              setInterviewPanel({ cj, stage: toStage as "First Stage" | "Second Stage" | "Final Stage" });
             }, 400);
           }
           if (toStage === "Offer") {
