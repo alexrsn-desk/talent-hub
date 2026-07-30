@@ -706,11 +706,27 @@ function PipelineCard({
         </Badge>
       )}
 
-      {/* Rejection reason — shown on Rejected cards */}
-      {stage === "Rejected" && cj.rejection_reason && (
-        <Badge variant="outline" className="text-[10px] h-5 px-1.5 border-red-500/40 text-red-400">
-          {cj.rejection_reason}
-        </Badge>
+      {/* Withdrawn / rejected flag */}
+      {cj.withdrawn && (
+        <div className="flex items-center gap-1 flex-wrap">
+          <Badge variant="outline" className="text-[10px] h-5 px-1.5 border-red-500/40 text-red-400">
+            Withdrawn{cj.withdrawn_reason ? ` — ${cj.withdrawn_reason}` : ""}
+          </Badge>
+          <button
+            onClick={(e) => { e.stopPropagation(); onReinstate?.(); }}
+            className="text-[10px] underline text-muted-foreground hover:text-foreground"
+          >
+            Reinstate
+          </button>
+        </div>
+      )}
+      {!cj.withdrawn && (
+        <button
+          onClick={(e) => { e.stopPropagation(); onWithdraw?.(); }}
+          className="opacity-0 group-hover:opacity-100 text-[10px] text-muted-foreground hover:text-red-400 transition-opacity"
+        >
+          Mark rejected / withdrawn
+        </button>
       )}
 
       {/* Offer summary — only on Offer cards */}
