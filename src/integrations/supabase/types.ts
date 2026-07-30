@@ -371,6 +371,9 @@ export type Database = {
           source: string
           stage: string
           stage_changed_at: string
+          withdrawn: boolean
+          withdrawn_at: string | null
+          withdrawn_reason: string | null
         }
         Insert: {
           ai_suggested?: boolean
@@ -388,6 +391,9 @@ export type Database = {
           source?: string
           stage?: string
           stage_changed_at?: string
+          withdrawn?: boolean
+          withdrawn_at?: string | null
+          withdrawn_reason?: string | null
         }
         Update: {
           ai_suggested?: boolean
@@ -405,6 +411,9 @@ export type Database = {
           source?: string
           stage?: string
           stage_changed_at?: string
+          withdrawn?: boolean
+          withdrawn_at?: string | null
+          withdrawn_reason?: string | null
         }
         Relationships: [
           {
