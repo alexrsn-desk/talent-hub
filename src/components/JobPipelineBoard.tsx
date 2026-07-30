@@ -29,17 +29,13 @@ import { AddCandidateToStageDropdown } from "@/components/AddCandidateToStageDro
 
 const PIPELINE_STAGES = [
   "AI Suggested",
-  "Longlist",
-  "Contact",
-  "Screening",
   "Shortlist",
-  "Submitted",
-  "Client Review",
-  "First Interview",
-  "Second Interview",
+  "Sent CV",
+  "First Stage",
+  "Second Stage",
+  "Final Stage",
   "Offer",
   "Placed",
-  "Rejected",
 ] as const;
 
 type Stage = (typeof PIPELINE_STAGES)[number];
@@ -47,49 +43,41 @@ type Stage = (typeof PIPELINE_STAGES)[number];
 // Top-border accent on each column header
 const stageBorder: Record<string, string> = {
   "AI Suggested": "border-t-blue-500",
-  Longlist: "border-t-slate-500",
-  Contact: "border-t-amber-500",
-  Screening: "border-t-amber-500",
   Shortlist: "border-t-emerald-500",
-  Submitted: "border-t-primary",
-  "Client Review": "border-t-primary",
-  "First Interview": "border-t-primary",
-  "Second Interview": "border-t-primary",
+  "Sent CV": "border-t-primary",
+  "First Stage": "border-t-primary",
+  "Second Stage": "border-t-primary",
+  "Final Stage": "border-t-primary",
   Offer: "border-t-primary",
   Placed: "border-t-primary",
-  Rejected: "border-t-red-500",
 };
 
 // Card accent (left edge) — same colour family as the column
 const stageCardAccent: Record<string, string> = {
   "AI Suggested": "border-l-blue-500/60",
-  Longlist: "border-l-slate-500/60",
-  Contact: "border-l-amber-500/60",
-  Screening: "border-l-amber-500/60",
   Shortlist: "border-l-emerald-500/60",
-  Submitted: "border-l-primary/60",
-  "Client Review": "border-l-primary/60",
-  "First Interview": "border-l-primary/60",
-  "Second Interview": "border-l-primary/60",
+  "Sent CV": "border-l-primary/60",
+  "First Stage": "border-l-primary/60",
+  "Second Stage": "border-l-primary/60",
+  "Final Stage": "border-l-primary/60",
   Offer: "border-l-primary/60",
   Placed: "border-l-primary/60",
-  Rejected: "border-l-red-500/60",
 };
 
 // Stage restriction rules — required predecessor stages
 function canMoveTo(targetStage: string, currentStage: string): { ok: boolean; message?: string } {
-  // Cannot enter Submitted unless coming from Shortlist (or later)
-  if (targetStage === "Submitted") {
-    const validPrior = ["Shortlist", "Submitted", "Client Review", "First Interview", "Second Interview", "Offer", "Placed"];
+  // Cannot send a CV unless coming from Shortlist (or later)
+  if (targetStage === "Sent CV") {
+    const validPrior = ["Shortlist", "Sent CV", "First Stage", "Second Stage", "Final Stage", "Offer", "Placed"];
     if (!validPrior.includes(currentStage)) {
-      return { ok: false, message: "This candidate needs to reach Shortlist before being submitted to a client." };
+      return { ok: false, message: "This candidate needs to reach Shortlist before their CV is sent." };
     }
   }
-  // Cannot enter Offer unless at an Interview stage (or later)
+  // Cannot enter Offer unless at an interview stage (or later)
   if (targetStage === "Offer") {
-    const validPrior = ["First Interview", "Second Interview", "Offer", "Placed"];
+    const validPrior = ["First Stage", "Second Stage", "Final Stage", "Offer", "Placed"];
     if (!validPrior.includes(currentStage)) {
-      return { ok: false, message: "This candidate needs to reach an Interview stage before an offer can be made." };
+      return { ok: false, message: "This candidate needs to reach an interview stage before an offer can be made." };
     }
   }
   return { ok: true };
