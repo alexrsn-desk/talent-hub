@@ -461,7 +461,7 @@ export function JobPipelineBoard({ job, onJobUpdate }: { job: Job; onJobUpdate?:
         </DialogContent>
       </Dialog>
 
-      {/* Interview details capture — opens after move to First/Second Interview */}
+      {/* Interview details capture — opens after move to an interview stage */}
       {interviewPanel && (
         <InterviewDetailsPanel
           open={!!interviewPanel}
@@ -590,7 +590,9 @@ export function JobPipelineBoard({ job, onJobUpdate }: { job: Job; onJobUpdate?:
                 updateCandidateJob.mutate(
                   {
                     id: dismissingCJ.id,
-                    stage: "Rejected",
+                    withdrawn: true,
+                    withdrawn_at: new Date().toISOString(),
+                    withdrawn_reason: reasonText || "Not right (AI suggested)",
                     rejection_reason: reasonText || "Not right (AI suggested)",
                     ai_suggestion_dismissed_reason: reasonText,
                   } as any,
@@ -991,9 +993,9 @@ function AiSuggestedCard({
           type="button"
           onClick={(e) => { e.stopPropagation(); onAccept(); }}
           className="text-[10px] px-1.5 py-0.5 rounded border border-emerald-500/40 text-emerald-400 bg-background hover:bg-emerald-500/10 flex items-center gap-0.5"
-          title="Move to Longlist"
+          title="Move to Shortlist"
         >
-          <ArrowRight className="h-2.5 w-2.5" /> Longlist
+          <ArrowRight className="h-2.5 w-2.5" /> Shortlist
         </button>
         <button
           type="button"

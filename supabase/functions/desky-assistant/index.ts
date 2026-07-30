@@ -14,7 +14,7 @@ const MAX_STEPS = 6;
 
 const STAGES = [
   "Contact", "Screening", "Shortlist", "Sent CV", "Sent CV",
-  "First Stage", "Second Stage", "Offer", "Placed", "Rejected",
+  "First Stage", "Second Stage", "Final Stage", "Offer", "Placed",
 ];
 
 const WRITE_REFUSAL = "I can't do that just yet — but I can help you find what you need. Try asking me to search or retrieve information instead.";
@@ -118,7 +118,7 @@ const TOOLS = [
     type: "function",
     function: {
       name: "candidates_at_stage_global",
-      description: "Find every candidate at a given stage across ALL jobs. Use for 'who's at final stage', 'who's at offer', etc. Final stage = Second Interview + Offer.",
+      description: "Find every candidate at a given stage across ALL jobs. Use for 'who's at final stage', 'who's at offer', etc. Final stage = Final Stage + Offer.",
       parameters: {
         type: "object",
         properties: { stage: { type: "string" }, stages: { type: "array", items: { type: "string" } } },

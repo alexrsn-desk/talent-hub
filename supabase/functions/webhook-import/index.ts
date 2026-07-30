@@ -560,7 +560,7 @@ async function processApplication(data: any, action: string, settings: any, user
   }
 
   const noteParts: string[] = [];
-  if (stageInfo.defaulted) noteParts.push(`Unknown stage "${data.stage}" defaulted to Longlist`);
+  if (stageInfo.defaulted) noteParts.push(`Unknown stage "${data.stage}" defaulted to Shortlist`);
   if (stageInfo.withdrawn) noteParts.push("Candidate withdrew");
   if (data.notes) noteParts.push(data.notes);
   if (noteParts.length) {

@@ -107,8 +107,8 @@ serve(async (req) => {
       return !lastNote || lastNote < new Date(now.getTime() - 5 * 86400000).toISOString();
     });
 
-    // In-play pipeline analysis: active = Longlist..Offer (not Placed/Rejected/AI Suggested)
-    const ACTIVE_STAGES = ["Shortlist","Contact","Screening","Shortlist","Sent CV","Sent CV","First Stage","Second Stage","Offer"];
+    // In-play pipeline analysis: active = Shortlist..Offer (not Placed/withdrawn/AI Suggested)
+    const ACTIVE_STAGES = ["Shortlist","Sent CV","First Stage","Second Stage","Final Stage","Offer"];
     const jobsInPlay = openJobs.map((j: any) => {
       const active = cjs.filter((cj: any) => cj.job_id === j.id && ACTIVE_STAGES.includes(cj.stage));
       return { title: j.title, company: j.clients?.company_name, count: active.length };

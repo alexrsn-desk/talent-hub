@@ -634,7 +634,7 @@ export function DataImport() {
                     <Button variant={appMissingJob === "create_closed" ? "default" : "outline"} size="sm" onClick={() => setAppMissingJob("create_closed")}>Create as Closed job</Button>
                     <Button variant={appMissingJob === "skip" ? "default" : "outline"} size="sm" onClick={() => setAppMissingJob("skip")}>Skip row</Button>
                   </div>
-                  <p className="text-[11px] text-muted-foreground">Stages map automatically (e.g. "Sent to client" → Submitted, "1st Interview" → First Interview).</p>
+                  <p className="text-[11px] text-muted-foreground">Stages map automatically (e.g. "Sent to client" → Sent CV, "1st Interview" → First Stage).</p>
                 </div>
               </>
             )}
