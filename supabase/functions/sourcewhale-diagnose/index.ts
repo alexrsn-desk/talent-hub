@@ -28,7 +28,7 @@ Deno.serve(async (req) => {
     { label: 'projects/list', url: 'https://sourcewhale.app/public-api/v1/projects/list', headers: { 'api-key': key } },
     { label: 'campaigns/list', url: 'https://sourcewhale.app/public-api/v1/campaigns/list', headers: { 'api-key': key } },
     { label: 'statistics/dashboard', url: `https://sourcewhale.app/public-api/v1/statistics/dashboard?from=${today}&to=${today}`, headers: { 'api-key': key } },
-    { label: 'candidates/search email', url: 'https://sourcewhale.app/public-api/v1/candidates/search?key=email&value=test@example.com', headers: { 'api-key': key } },
+    { label: 'candidates/search email', url: 'https://sourcewhale.app/public-api/v1/candidates/search?key=email&value=anokhis@gmail.com', headers: { 'api-key': key } },
   ];
 
 
