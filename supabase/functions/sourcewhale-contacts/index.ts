@@ -1,118 +1,100 @@
+// SourceWhale integration on the confirmed-working Public API surface:
+//   campaigns/list, projects/list, statistics/dashboard,
+//   candidates/search, candidates/add, candidates/modify
+// Host + auth: https://sourcewhale.app/public-api/v1 with an `api-key` header.
+//
+// There is no bulk listing/polling endpoint, so "sync" works by looking up our
+// own candidates in SourceWhale one at a time (candidates/search by email, then
+// LinkedIn URL) and enriching them, including campaign name via campaigns/list.
 import { corsHeaders } from 'npm:@supabase/supabase-js@2/cors';
 import { createClient } from 'npm:@supabase/supabase-js@2';
+import {
+  addCandidate,
+  candidateToSwPayload,
+  dashboardStats,
+  getApiKey,
+  listCampaigns,
+  listProjects,
+  modifyCandidate,
+  searchCandidates,
+  swCandidateToPatch,
+} from '../_shared/sourcewhale.ts';
 
-const SOURCEWHALE_BASE = 'https://api.sourcewhale.app/public/v1';
-
-function pick<T = any>(obj: any, keys: string[]): T | undefined {
-  for (const k of keys) {
-    const v = obj?.[k];
-    if (v !== undefined && v !== null && v !== '') return v as T;
-  }
-  return undefined;
-}
-
-function normalizeList(raw: any): any[] {
-  if (!raw) return [];
-  if (Array.isArray(raw)) return raw;
-  for (const k of ['data', 'contacts', 'results', 'items']) {
-    if (Array.isArray(raw?.[k])) return raw[k];
-  }
-  return [];
-}
-
-function buildName(c: any): string {
-  const full = pick<string>(c, ['name', 'full_name', 'fullName']);
-  if (full) return String(full).trim();
-  const first = pick<string>(c, ['first_name', 'firstName', 'firstname']);
-  const last = pick<string>(c, ['last_name', 'lastName', 'lastname']);
-  return [first, last].filter(Boolean).join(' ').trim();
-}
-
-function normName(s: string | null | undefined): string {
-  return (s ?? '').toLowerCase().replace(/\s+/g, ' ').trim();
-}
-
-async function fetchSourceWhale(apiKey: string, qs: URLSearchParams) {
-  const upstream = await fetch(`${SOURCEWHALE_BASE}/contacts?${qs.toString()}`, {
-    headers: { Authorization: `Bearer ${apiKey}`, Accept: 'application/json' },
+const json = (body: unknown, status = 200) =>
+  new Response(JSON.stringify(body), {
+    status,
+    headers: { ...corsHeaders, 'Content-Type': 'application/json' },
   });
-  const text = await upstream.text();
-  let payload: any;
-  try { payload = JSON.parse(text); } catch { payload = { raw: text }; }
-  return { ok: upstream.ok, status: upstream.status, payload };
+
+async function campaignNameMap(apiKey: string) {
+  const campaigns = await listCampaigns(apiKey);
+  return {
+    campaigns,
+    map: new Map(campaigns.map((c) => [c.campaignId, c.campaignName])),
+  };
 }
 
-async function importForOwner(admin: any, apiKey: string, userId: string) {
-  const qs = new URLSearchParams();
-  qs.set('limit', '200');
-  const { ok, status, payload } = await fetchSourceWhale(apiKey, qs);
-  if (!ok) {
-    console.error('SourceWhale upstream error', status);
-    return { ok: false, status, inserted: 0, updated: 0, skipped: 0, total: 0 };
-  }
-  const contacts = normalizeList(payload);
-  let inserted = 0, updated = 0, skipped = 0;
+/** Enrich our candidates for one owner from SourceWhale. */
+async function enrichForOwner(
+  admin: any,
+  apiKey: string,
+  userId: string,
+  limit: number,
+  names: Map<string, string>,
+) {
+  const { data: rows, error } = await admin
+    .from('candidates')
+    .select('id,first_name,last_name,name,email,linkedin_url,sourcewhale_candidate_id,sourcewhale_synced_at')
+    .eq('owner_user_id', userId)
+    .eq('gdpr_deleted', false)
+    .or('email.not.is.null,linkedin_url.not.is.null')
+    .order('sourcewhale_synced_at', { ascending: true, nullsFirst: true })
+    .limit(limit);
 
-  for (const c of contacts) {
-    const name = buildName(c);
-    const email = pick<string>(c, ['email', 'email_address', 'work_email', 'personal_email']);
-    if (!name && !email) { skipped++; continue; }
+  if (error) return { ok: false, error: error.message, matched: 0, updated: 0, notFound: 0, scanned: 0 };
 
-    const job_title = pick<string>(c, ['job_title', 'current_job_title', 'title', 'position']);
-    const current_employer = pick<string>(c, ['company', 'company_name', 'current_employer', 'employer', 'organisation', 'organization']);
-    const linkedin_url = pick<string>(c, ['linkedin_url', 'linkedin', 'linkedinUrl']);
-    const phone = pick<string>(c, ['phone', 'phone_number', 'mobile']);
-    const location = pick<string>(c, ['location', 'city', 'country']);
+  let matched = 0, updated = 0, notFound = 0;
 
-    let existing: any = null;
-    if (email) {
-      const { data } = await admin.from('candidates')
-        .select('id,name,email')
-        .eq('owner_user_id', userId)
-        .ilike('email', email)
-        .limit(50);
-      existing = (data ?? []).find((r: any) => !name || normName(r.name) === normName(name)) ?? null;
+  for (const row of rows ?? []) {
+    let found: any = null;
+
+    const lookups: Array<[string, string]> = [];
+    if (row.sourcewhale_candidate_id) lookups.push(['candidateId', row.sourcewhale_candidate_id]);
+    if (row.email) lookups.push(['email', row.email]);
+    if (row.linkedin_url) lookups.push(['linkedinUrl', String(row.linkedin_url).replace(/^https?:\/\//i, '')]);
+
+    for (const [key, value] of lookups) {
+      const res = await searchCandidates(apiKey, key, value);
+      if (res.candidates.length) { found = res.candidates[0]; break; }
     }
 
-    if (existing) {
-      const patch: any = { source: 'Inbound' };
-      if (job_title) patch.job_title = job_title;
-      if (current_employer) patch.current_employer = current_employer;
-      if (linkedin_url) patch.linkedin_url = linkedin_url;
-      if (phone) patch.phone = phone;
-      if (location) patch.location = location;
-      const { error } = await admin.from('candidates').update(patch).eq('id', existing.id);
-      if (error) { skipped++; continue; }
-      updated++;
-    } else {
-      const { error } = await admin.from('candidates').insert({
-        owner_user_id: userId,
-        name: name || (email as string),
-        email: email ?? null,
-        job_title: job_title ?? null,
-        current_employer: current_employer ?? null,
-        linkedin_url: linkedin_url ?? null,
-        phone: phone ?? null,
-        location: location ?? null,
-        status: 'New',
-        source: 'Inbound',
-      });
-      if (error) { skipped++; continue; }
-      inserted++;
+    if (!found) {
+      notFound++;
+      await admin.from('candidates')
+        .update({ sourcewhale_synced_at: new Date().toISOString() })
+        .eq('id', row.id);
+      continue;
     }
+
+    matched++;
+    const patch = swCandidateToPatch(found, names);
+    // Never overwrite an existing name with a blank/partial one
+    if (!patch.first_name) delete patch.first_name;
+    if (!patch.last_name) delete patch.last_name;
+
+    const { error: upErr } = await admin.from('candidates').update(patch).eq('id', row.id);
+    if (!upErr) updated++;
   }
-  return { ok: true, total: contacts.length, inserted, updated, skipped };
+
+  return { ok: true, scanned: (rows ?? []).length, matched, updated, notFound };
 }
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
 
   try {
-    const apiKey = Deno.env.get('SOURCEWHALE_API_KEY');
-    if (!apiKey) {
-      return new Response(JSON.stringify({ error: 'SOURCEWHALE_API_KEY not configured' }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
-    }
+    const apiKey = getApiKey();
+    if (!apiKey) return json({ error: 'SOURCEWHALE_API_KEY not configured' }, 500);
 
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const anonKey = Deno.env.get('SUPABASE_ANON_KEY')!;
@@ -120,67 +102,132 @@ Deno.serve(async (req) => {
     const admin = createClient(supabaseUrl, serviceKey);
 
     const url = new URL(req.url);
-    const action = url.searchParams.get('action') ?? (req.method === 'POST' ? 'import' : 'list');
+    const action = url.searchParams.get('action') ?? (req.method === 'POST' ? 'enrich' : 'overview');
 
-    // ===== Cron / scheduled mode: runs for all known recruiters =====
-    // No auth required — function has verify_jwt=false and the action
-    // is idempotent (upserts only). Scheduled hourly via pg_cron.
+    // ===== Scheduled mode: enrich every recruiter's desk =====
     if (action === 'cron') {
+      const { map } = await campaignNameMap(apiKey);
       const { data: profiles } = await admin.from('recruiter_profiles').select('user_id');
       const owners = (profiles ?? []).map((p: any) => p.user_id).filter(Boolean);
       const summary: any[] = [];
       for (const owner of owners) {
-        const r = await importForOwner(admin, apiKey, owner);
-        summary.push({ owner, ...r });
+        summary.push({ owner, ...(await enrichForOwner(admin, apiKey, owner, 100, map)) });
       }
-      console.log('sourcewhale cron run', JSON.stringify({ ran: summary.length }));
-      return new Response(JSON.stringify({ ok: true, ran: summary.length, summary }),
-        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+      console.log('sourcewhale cron enrich', JSON.stringify({ owners: summary.length }));
+      return json({ ok: true, ran: summary.length, summary });
     }
 
-    // ===== User-authenticated mode =====
+    // ===== Authenticated modes =====
     const authHeader = req.headers.get('Authorization') ?? '';
-    if (!authHeader.startsWith('Bearer ')) {
-      return new Response(JSON.stringify({ error: 'Unauthorized' }),
-        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
-    }
+    if (!authHeader.startsWith('Bearer ')) return json({ error: 'Unauthorized' }, 401);
     const userClient = createClient(supabaseUrl, anonKey, {
       global: { headers: { Authorization: authHeader } },
     });
     const { data: userRes } = await userClient.auth.getUser();
     const userId = userRes?.user?.id;
-    if (!userId) {
-      return new Response(JSON.stringify({ error: 'Unauthorized' }),
-        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    if (!userId) return json({ error: 'Unauthorized' }, 401);
+
+    switch (action) {
+      case 'campaigns':
+        return json({ campaigns: await listCampaigns(apiKey) });
+
+      case 'projects':
+        return json({ projects: await listProjects(apiKey) });
+
+      case 'stats': {
+        const today = new Date().toISOString().slice(0, 10);
+        const from = url.searchParams.get('from') ??
+          new Date(Date.now() - 6 * 864e5).toISOString().slice(0, 10);
+        const to = url.searchParams.get('to') ?? today;
+        const { ok, status, payload } = await dashboardStats(apiKey, from, to);
+        return ok ? json({ from, to, stats: payload }) : json({ error: 'Upstream error', status }, status);
+      }
+
+      case 'overview': {
+        const [{ campaigns }, projects] = await Promise.all([
+          campaignNameMap(apiKey),
+          listProjects(apiKey),
+        ]);
+        const { count: syncedCount } = await admin
+          .from('candidates')
+          .select('id', { count: 'exact', head: true })
+          .eq('owner_user_id', userId)
+          .not('sourcewhale_candidate_id', 'is', null);
+        const { data: synced } = await admin
+          .from('candidates')
+          .select('id,name,email,job_title,current_employer,sourcewhale_campaign_name,sourcewhale_stage,sourcewhale_status,sourcewhale_last_contacted,sourcewhale_synced_at')
+          .eq('owner_user_id', userId)
+          .not('sourcewhale_candidate_id', 'is', null)
+          .order('sourcewhale_last_contacted', { ascending: false, nullsFirst: false })
+          .limit(500);
+        return json({ campaigns, projects, syncedCount: syncedCount ?? 0, synced: synced ?? [] });
+      }
+
+      case 'search': {
+        const key = url.searchParams.get('key') ?? 'email';
+        const value = url.searchParams.get('value') ?? '';
+        if (!value.trim()) return json({ error: 'value is required' }, 400);
+        const { ok, status, candidates } = await searchCandidates(apiKey, key, value.trim());
+        if (!ok) return json({ error: 'Upstream error', status }, status);
+        const { map } = await campaignNameMap(apiKey);
+        return json({
+          candidates: candidates.map((c) => ({
+            raw: c,
+            campaignName: c?.campaignId ? map.get(c.campaignId) ?? null : null,
+          })),
+        });
+      }
+
+      case 'enrich': {
+        const limit = Math.min(Number(url.searchParams.get('limit') ?? '100'), 300);
+        const { map } = await campaignNameMap(apiKey);
+        const result = await enrichForOwner(admin, apiKey, userId, limit, map);
+        return json(result, result.ok ? 200 : 500);
+      }
+
+      // Push one of our candidates into SourceWhale (add, or modify if already linked)
+      case 'push': {
+        let body: any = {};
+        try { body = await req.json(); } catch { /* ignore */ }
+        const candidateId = body?.candidateId;
+        const campaignId = body?.campaignId;
+        if (!candidateId || typeof candidateId !== 'string') {
+          return json({ error: 'candidateId is required' }, 400);
+        }
+        const { data: row, error } = await admin
+          .from('candidates')
+          .select('id,first_name,last_name,name,email,phone,job_title,current_employer,location,linkedin_url,do_not_contact,sourcewhale_candidate_id')
+          .eq('id', candidateId)
+          .eq('owner_user_id', userId)
+          .maybeSingle();
+        if (error || !row) return json({ error: 'Candidate not found' }, 404);
+        if (row.do_not_contact) return json({ error: 'Candidate is marked do-not-contact' }, 409);
+
+        const payload = candidateToSwPayload(row);
+        if (campaignId) payload.campaignId = campaignId;
+
+        const res = row.sourcewhale_candidate_id
+          ? await modifyCandidate(apiKey, payload)
+          : await addCandidate(apiKey, payload);
+        if (!res.ok) return json({ error: 'Upstream error', status: res.status, details: res.payload }, res.status);
+
+        const returned = (res.payload as any)?.candidate ?? (res.payload as any)?.candidates?.[0] ?? null;
+        const newId = returned?.candidateId ?? (res.payload as any)?.candidateId ?? row.sourcewhale_candidate_id;
+        if (newId) {
+          await admin.from('candidates').update({
+            sourcewhale_candidate_id: newId,
+            sourcewhale_campaign_id: campaignId ?? undefined,
+            sourcewhale_synced_at: new Date().toISOString(),
+          }).eq('id', row.id);
+        }
+        return json({ ok: true, mode: row.sourcewhale_candidate_id ? 'modify' : 'add', result: res.payload });
+      }
+
+      default:
+        return json({ error: `Unknown action: ${action}` }, 400);
     }
-
-    const qs = new URLSearchParams();
-    qs.set('limit', String(Math.min(Number(url.searchParams.get('limit') ?? '100'), 200)));
-    const cursor = url.searchParams.get('cursor');
-    const search = url.searchParams.get('search');
-    if (cursor) qs.set('cursor', cursor);
-    if (search) qs.set('search', search);
-
-    const { ok, status, payload } = await fetchSourceWhale(apiKey, qs);
-    if (!ok) {
-      console.error('SourceWhale error', status, JSON.stringify(payload).slice(0, 300));
-      return new Response(JSON.stringify({ error: 'Upstream error', status, details: payload }),
-        { status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
-    }
-
-    if (action === 'list') {
-      return new Response(JSON.stringify(payload), {
-        status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
-    }
-
-    // action === 'import' — upsert into candidates for the signed-in user
-    const r = await importForOwner(admin, apiKey, userId);
-    return new Response(JSON.stringify({ ok: true, ...r }),
-      { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
   } catch (err) {
     console.error('sourcewhale-contacts failure', err);
-    return new Response(JSON.stringify({ error: (err as Error).message }),
-      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    return json({ error: (err as Error).message }, 500);
   }
 });

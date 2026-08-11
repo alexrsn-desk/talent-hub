@@ -595,6 +595,13 @@ export type Database = {
           salary_current: number | null
           salary_expectation: number | null
           source: string | null
+          sourcewhale_campaign_id: string | null
+          sourcewhale_campaign_name: string | null
+          sourcewhale_candidate_id: string | null
+          sourcewhale_last_contacted: string | null
+          sourcewhale_stage: string | null
+          sourcewhale_status: string | null
+          sourcewhale_synced_at: string | null
           status: string
           summary: string | null
           updated_at: string
@@ -642,6 +649,13 @@ export type Database = {
           salary_current?: number | null
           salary_expectation?: number | null
           source?: string | null
+          sourcewhale_campaign_id?: string | null
+          sourcewhale_campaign_name?: string | null
+          sourcewhale_candidate_id?: string | null
+          sourcewhale_last_contacted?: string | null
+          sourcewhale_stage?: string | null
+          sourcewhale_status?: string | null
+          sourcewhale_synced_at?: string | null
           status?: string
           summary?: string | null
           updated_at?: string
@@ -689,6 +703,13 @@ export type Database = {
           salary_current?: number | null
           salary_expectation?: number | null
           source?: string | null
+          sourcewhale_campaign_id?: string | null
+          sourcewhale_campaign_name?: string | null
+          sourcewhale_candidate_id?: string | null
+          sourcewhale_last_contacted?: string | null
+          sourcewhale_stage?: string | null
+          sourcewhale_status?: string | null
+          sourcewhale_synced_at?: string | null
           status?: string
           summary?: string | null
           updated_at?: string
