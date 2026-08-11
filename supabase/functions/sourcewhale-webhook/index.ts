@@ -3,6 +3,7 @@
 // and writes a row to activity_events for auditing/replay.
 import { corsHeaders } from 'npm:@supabase/supabase-js@2/cors';
 import { createClient } from 'npm:@supabase/supabase-js@2';
+import { splitName, swTime } from '../_shared/sourcewhale.ts';
 
 const SOURCE = 'sourcewhale';
 
@@ -117,15 +118,31 @@ Deno.serve(async (req) => {
       if (existing?.[0]) candidateId = existing[0].id;
     }
 
+    const parsed = splitName(name || email);
     const candidatePatch: any = {
-      name: name || email,
+      first_name: parsed.first_name || null,
+      last_name: parsed.last_name || null,
       email: email ?? null,
       job_title: pick<string>(contact, ['job_title', 'title', 'position']) ?? null,
       current_employer: pick<string>(contact, ['company', 'company_name', 'current_employer', 'employer']) ?? null,
       linkedin_url: pick<string>(contact, ['linkedin_url', 'linkedin']) ?? null,
       phone: pick<string>(contact, ['phone', 'phone_number', 'mobile']) ?? null,
       location: pick<string>(contact, ['location', 'city', 'country']) ?? null,
+      // SourceWhale attribution
+      sourcewhale_candidate_id: pick<string>(contact, ['candidateId', 'candidate_id', 'id']) ?? null,
+      sourcewhale_campaign_id: pick<string>(contact, ['campaignId', 'campaign_id']) ?? null,
+      sourcewhale_campaign_name: pick<string>(contact, ['campaignName', 'campaign_name', 'campaign']) ?? null,
+      sourcewhale_stage: pick<string>(contact, ['stage']) ?? null,
+      sourcewhale_status: pick<string>(contact, ['status']) ?? null,
+      sourcewhale_last_contacted:
+        swTime(pick<number>(contact, ['lastContacted', 'last_contacted'])) ??
+        pick<string>(contact, ['lastContactedAt', 'last_contacted_at']) ?? null,
+      sourcewhale_synced_at: new Date().toISOString(),
     };
+    // Never blank out existing CRM values on update
+    for (const k of Object.keys(candidatePatch)) {
+      if (candidatePatch[k] === null) delete candidatePatch[k];
+    }
 
     if (candidateId) {
       await admin.from('candidates').update(candidatePatch).eq('id', candidateId);
