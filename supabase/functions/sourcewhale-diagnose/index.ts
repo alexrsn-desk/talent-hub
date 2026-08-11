@@ -46,7 +46,7 @@ Deno.serve(async (req) => {
   for (const a of attempts) {
     try {
       const res = await fetch(a.url, { headers: { ...a.headers, Accept: 'application/json' } });
-      const body = (await res.text()).slice(0, 400);
+      const body = (await res.text()).slice(0, 4000);
       results.push({ label: a.label, url: a.url, status: res.status, ok: res.ok, body });
     } catch (e) {
       results.push({ label: a.label, url: a.url, status: 0, ok: false, body: `fetch error: ${(e as Error).message}` });
