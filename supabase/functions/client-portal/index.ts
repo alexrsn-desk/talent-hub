@@ -31,7 +31,9 @@ Deno.serve(async (req) => {
 
     const { data: portal } = await supabase
       .from("client_portals")
-      .select("id, job_id, user_id")
+      .select(
+        "id, job_id, user_id, notify_candidate_on_interview, notify_candidate_on_reject, job_spec_synced_at",
+      )
       .eq("access_token", token)
       .maybeSingle();
 
@@ -53,7 +55,7 @@ Deno.serve(async (req) => {
     if (action === "get") {
       const { data: job } = await supabase
         .from("jobs")
-        .select("id, title, client_id, location")
+        .select("id, title, client_id, location, description")
         .eq("id", jobId)
         .maybeSingle();
       if (!job) return json({ error: "invalid_token" }, 401);
@@ -121,7 +123,8 @@ Deno.serve(async (req) => {
         .maybeSingle();
 
       return json({
-        job: { id: job.id, title: job.title, location: job.location },
+        job: { id: job.id, title: job.title, location: job.location, description: job.description },
+        job_spec_synced_at: portal.job_spec_synced_at ?? null,
         client_name: clientName,
         stages: PORTAL_STAGES,
         interview_stages: INTERVIEW_STAGES,
@@ -134,6 +137,8 @@ Deno.serve(async (req) => {
           { label: "Interview invitations sent to candidates", on: !!settings?.auto_send_confirmation },
           { label: "Interview reminders sent to candidates", on: !!settings?.auto_send_reminder },
           { label: "Outcome / rejection emails sent by the recruiter", on: true },
+          { label: "Interview invitations sent to candidates on this job", on: !!portal.notify_candidate_on_interview },
+          { label: "Rejection emails sent to candidates on this job", on: !!portal.notify_candidate_on_reject },
         ],
       });
     }
