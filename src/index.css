@@ -127,3 +127,50 @@
   ::-webkit-scrollbar-thumb:hover { background: hsl(0 0% 78%); border: 2px solid transparent; background-clip: padding-box; }
   ::-webkit-scrollbar-track { background: transparent; }
 }
+
+/* ─────────────────────────────────────────────────────────────
+   Client Portal theme — self-contained palette scoped to the
+   public /portal/:token page. Warm paper, ink, teal accent.
+   ───────────────────────────────────────────────────────────── */
+.portal-root {
+  --background: 42 33% 98%;      /* #FBFAF7 */
+  --foreground: 213 35% 10%;     /* #111923 */
+  --card: 0 0% 100%;
+  --card-foreground: 213 35% 10%;
+  --popover: 0 0% 100%;
+  --popover-foreground: 213 35% 10%;
+  --primary: 214 36% 14%;        /* #16212F */
+  --primary-foreground: 42 33% 98%;
+  --secondary: 51 17% 92%;       /* #EEEDE7 */
+  --secondary-foreground: 213 35% 10%;
+  --muted: 40 23% 95%;           /* #F5F3EF (surface) */
+  --muted-foreground: 219 8% 42%;/* #636974 */
+  --accent: 166 70% 37%;         /* #1C9F81 */
+  --accent-foreground: 0 0% 100%;
+  --destructive: 359 58% 50%;    /* #CA3638 */
+  --destructive-foreground: 0 0% 100%;
+  --border: 51 10% 87%;          /* #E1E0DA */
+  --input: 51 10% 87%;
+  --ring: 166 70% 37%;
+  font-family: 'Inter Tight', system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+.portal-root h1,
+.portal-root h2,
+.portal-root h3,
+.portal-root h4 {
+  font-family: 'Bricolage Grotesque', 'Inter Tight', system-ui, sans-serif;
+  letter-spacing: -0.02em;
+}
+
+.portal-shadow-soft { box-shadow: 0 1px 2px rgba(0,0,0,0.06), 0 8px 24px rgba(0,0,0,0.06); }
+.portal-shadow-lift { box-shadow: 0 2px 6px rgba(0,0,0,0.08), 0 18px 40px rgba(0,0,0,0.10); }
+
+.portal-panel {
+  background: hsl(var(--card));
+  border: 1px solid hsl(var(--border));
+  border-radius: 16px;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.06), 0 8px 24px rgba(0,0,0,0.06);
+}
