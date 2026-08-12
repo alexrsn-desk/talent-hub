@@ -2586,6 +2586,149 @@ export type Database = {
           },
         ]
       }
+      portal_feedback: {
+        Row: {
+          candidate_job_id: string
+          client_email: string | null
+          comment: string
+          created_at: string
+          id: string
+          rating: number | null
+          stage_at_time: string | null
+        }
+        Insert: {
+          candidate_job_id: string
+          client_email?: string | null
+          comment: string
+          created_at?: string
+          id?: string
+          rating?: number | null
+          stage_at_time?: string | null
+        }
+        Update: {
+          candidate_job_id?: string
+          client_email?: string | null
+          comment?: string
+          created_at?: string
+          id?: string
+          rating?: number | null
+          stage_at_time?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "portal_feedback_candidate_job_id_fkey"
+            columns: ["candidate_job_id"]
+            isOneToOne: false
+            referencedRelation: "candidate_jobs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      portal_notes: {
+        Row: {
+          author_email: string | null
+          body: string
+          client_portal_id: string
+          created_at: string
+          id: string
+        }
+        Insert: {
+          author_email?: string | null
+          body: string
+          client_portal_id: string
+          created_at?: string
+          id?: string
+        }
+        Update: {
+          author_email?: string | null
+          body?: string
+          client_portal_id?: string
+          created_at?: string
+          id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "portal_notes_client_portal_id_fkey"
+            columns: ["client_portal_id"]
+            isOneToOne: false
+            referencedRelation: "client_portals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      portal_scheduling: {
+        Row: {
+          calendly_url: string | null
+          created_at: string
+          id: string
+          job_id: string
+          slots: Json
+          updated_at: string
+        }
+        Insert: {
+          calendly_url?: string | null
+          created_at?: string
+          id?: string
+          job_id: string
+          slots?: Json
+          updated_at?: string
+        }
+        Update: {
+          calendly_url?: string | null
+          created_at?: string
+          id?: string
+          job_id?: string
+          slots?: Json
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "portal_scheduling_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: true
+            referencedRelation: "jobs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      portal_stage_content: {
+        Row: {
+          created_at: string
+          id: string
+          interview_details: string | null
+          job_id: string
+          prep_material: string | null
+          stage: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          interview_details?: string | null
+          job_id: string
+          prep_material?: string | null
+          stage: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          interview_details?: string | null
+          job_id?: string
+          prep_material?: string | null
+          stage?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "portal_stage_content_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "jobs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       quick_notes: {
         Row: {
           category: string
