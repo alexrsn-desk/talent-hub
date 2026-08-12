@@ -116,11 +116,12 @@ function AppRoutes() {
     );
   }
 
-  // Portal route is public (token-based auth)
+  // Portal routes are public (token-based auth)
   if (window.location.pathname.startsWith("/portal")) {
     return (
       <Routes>
         <Route path="/portal" element={<Portal />} />
+        <Route path="/portal/:token" element={<ClientPortal />} />
       </Routes>
     );
   }
