@@ -16,6 +16,7 @@ const LinkedinIcon = ({ className }: { className?: string }) => (
 import { useUpdateCandidate, type Candidate } from "@/hooks/use-data";
 import { PriorityFlagButton, PriorityStarIcon } from "@/components/PriorityFlag";
 import { ProfileTabs } from "@/components/ProfileTabs";
+import { ClientReadyNotes } from "@/components/ClientReadyNotes";
 import { CandidateJobLinks } from "@/components/CandidateJobLinks";
 import { LogTouchpointModal } from "@/components/LogTouchpointModal";
 import { CallPrepButton } from "@/components/CallPrep";
