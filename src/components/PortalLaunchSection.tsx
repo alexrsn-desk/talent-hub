@@ -9,7 +9,7 @@ type Props = {
   jobTitle: string;
   clientName?: string | null;
   portalJobId?: string | null;
-  onUpdate?: () => void;
+  onUpdate?: (...args: any[]) => void;
 };
 
 export function PortalLaunchSection({ jobId, jobTitle, clientName, portalJobId, onUpdate }: Props) {
