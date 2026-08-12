@@ -24,6 +24,7 @@ import {
   Waves,
 } from "lucide-react";
 import { toast } from "sonner";
+import { SourceWhaleSubscriptions } from "@/components/SourceWhaleSubscriptions";
 
 type Campaign = { campaignId: string; campaignName: string };
 type Project = { projectId: string; projectName: string };
@@ -220,6 +221,8 @@ export default function SourceWhaleContacts() {
           <div className="text-2xl font-semibold mt-1">{rows.length}</div>
         </div>
       </div>
+
+      <SourceWhaleSubscriptions />
 
       {campaigns.length > 0 && (
         <div className="flex flex-wrap items-center gap-2">
