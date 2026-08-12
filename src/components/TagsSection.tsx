@@ -79,44 +79,62 @@ export function TagsSection({ entityType, entityId }: TagsSectionProps) {
           <span className="text-xs text-muted-foreground">({tags.length})</span>
         )}
       </button>
-      {categories.map((cat) => {
-        const catTags = tags.filter((t: any) => t.tag_definitions?.category === cat);
-        const availableOptions = activeDefinitions.filter(
-          (d) => d.category === cat && !tagDefIds.has(d.id)
-        );
-        const canAdd = catTags.length < MAX_TAGS_PER_CATEGORY && availableOptions.length > 0;
+      {!collapsed && (
+        <>
+          {categories.map((cat) => {
+            const catTags = tags.filter((t: any) => t.tag_definitions?.category === cat);
+            const availableOptions = activeDefinitions.filter(
+              (d) => d.category === cat && !tagDefIds.has(d.id)
+            );
+            const canAdd = catTags.length < MAX_TAGS_PER_CATEGORY && availableOptions.length > 0;
 
-        if (catTags.length === 0 && !canAdd) return null;
+            if (catTags.length === 0 && !canAdd) return null;
 
-        return (
-          <div key={cat} className="space-y-1.5">
-            <div className="flex items-center gap-2">
-              <span className="text-xs font-medium text-muted-foreground">{TAG_CATEGORIES[cat]}</span>
-              {canAdd && <AddTagButton category={cat} options={availableOptions} onAdd={handleAdd} />}
-            </div>
-            <div className="flex flex-wrap gap-1.5">
-              {catTags.map((t: any) => (
-                <Badge
-                  key={t.id}
-                  variant="secondary"
-                  className="gap-1 pr-1 text-xs"
-                >
-                  {t.source === "ai" && <Wand2 className="h-2.5 w-2.5 text-primary" />}
-                  {t.tag_definitions?.label}
-                  <button
-                    onClick={() => handleRemove(t.id)}
-                    className="ml-0.5 rounded-full p-0.5 hover:bg-muted-foreground/20 transition-colors"
-                  >
-                    <X className="h-2.5 w-2.5" />
-                  </button>
-                </Badge>
-              ))}
-            </div>
-          </div>
-        );
-      })}
-      {tags.length === 0 && (
-        <p className="text-xs text-muted-foreground">No tags yet. Click + on any category to add tags.</p>
+            return (
+              <div key={cat} className="space-y-1.5">
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-medium text-muted-foreground">{TAG_CATEGORIES[cat]}</span>
+                  {canAdd && <AddTagButton category={cat} options={availableOptions} onAdd={handleAdd} />}
+                </div>
+                <div className="flex flex-wrap gap-1.5">
+                  {catTags.map((t: any) => (
+                    <Badge
+                      key={t.id}
+                      variant="secondary"
+                      className="gap-1 pr-1 text-xs"
+                    >
+                      {t.source === "ai" && <Wand2 className="h-2.5 w-2.5 text-primary" />}
+                      {t.tag_definitions?.label}
+                      <button
+                        onClick={() => handleRemove(t.id)}
+                        className="ml-0.5 rounded-full p-0.5 hover:bg-muted-foreground/20 transition-colors"
+                      >
+                        <X className="h-2.5 w-2.5" />
+                      </button>
+                    </Badge>
+                  ))}
+                </div>
+              </div>
+            );
+          })}
+          {tags.length === 0 && (
+            <p className="text-xs text-muted-foreground">No tags yet. Click + on any category to add tags.</p>
+          )}
+        </>
+      )}
+      {collapsed && tags.length > 0 && (
+        <div className="flex flex-wrap gap-1.5">
+          {tags.slice(0, 8).map((t: any) => (
+            <span key={t.id} className="text-xs text-muted-foreground/80">
+              {t.tag_definitions?.label}
+            </span>
+          )).reduce((acc: any[], el, i) => {
+            if (i > 0) acc.push(<span key={`sep-${i}`} className="text-xs text-muted-foreground/40">·</span>);
+            acc.push(el);
+            return acc;
+          }, [])}
+          {tags.length > 8 && <span className="text-xs text-muted-foreground">+{tags.length - 8}</span>}
+        </div>
       )}
     </div>
   );
