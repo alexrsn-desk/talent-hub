@@ -18,3 +18,4 @@ Name fields: first_name/last_name separate, display full name, AI uses first nam
 - [Name fields](mem://preferences/name-fields) — first/last name conventions
 - [Candidate editing](mem://features/candidate-editing) — full edit, quick edit panel, click-to-edit, three-dot context menu
 - [Decay alerts](mem://features/decay-alerts) — relationship decay scan, contact-reason rules, AI draft, coach framing
+- [Client Portal board](mem://features/client-portal-board) — /portal/:token board, own theme, portal_ tables, visibility wall

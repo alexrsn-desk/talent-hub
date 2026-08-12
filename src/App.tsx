@@ -25,6 +25,7 @@ import CallsMeetings from "./pages/CallsMeetings";
 import Sequences from "./pages/Sequences";
 import Auth from "./pages/Auth";
 import Portal from "./pages/Portal";
+import ClientPortal from "./pages/ClientPortal";
 import LiveConversations from "./pages/LiveConversations";
 import BillersWorkflow from "./pages/BillersWorkflow";
 import SourceWhaleContacts from "./pages/SourceWhaleContacts";
@@ -116,11 +117,12 @@ function AppRoutes() {
     );
   }
 
-  // Portal route is public (token-based auth)
+  // Portal routes are public (token-based auth)
   if (window.location.pathname.startsWith("/portal")) {
     return (
       <Routes>
         <Route path="/portal" element={<Portal />} />
+        <Route path="/portal/:token" element={<ClientPortal />} />
       </Routes>
     );
   }
