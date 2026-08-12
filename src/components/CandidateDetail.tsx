@@ -16,6 +16,7 @@ const LinkedinIcon = ({ className }: { className?: string }) => (
 import { useUpdateCandidate, type Candidate } from "@/hooks/use-data";
 import { PriorityFlagButton, PriorityStarIcon } from "@/components/PriorityFlag";
 import { ProfileTabs } from "@/components/ProfileTabs";
+import { ClientReadyNotes } from "@/components/ClientReadyNotes";
 import { CandidateJobLinks } from "@/components/CandidateJobLinks";
 import { LogTouchpointModal } from "@/components/LogTouchpointModal";
 import { CallPrepButton } from "@/components/CallPrep";
@@ -501,6 +502,18 @@ export function CandidateDetail({ candidate, onUpdate, onDelete }: Props) {
       <TagsSection entityType="candidate" entityId={candidate.id} />
       <ActiveSequencesSection entityType="candidate" entityId={candidate.id} entityName={candidate.name} />
       <CandidateJobLinks candidateId={candidate.id} />
+      <ClientReadyNotes
+        candidateId={candidate.id}
+        value={candidate.client_ready_notes}
+        onSave={async (next) => {
+          await onUpdate({ client_ready_notes: next } as any);
+          await logActivity({
+            action_type: "candidate_updated",
+            candidate_id: candidate.id,
+            metadata: { fields_updated: ["client_ready_notes"] },
+          });
+        }}
+      />
       <ProfileTabs entityType="candidate" entityId={candidate.id} />
       <LogTouchpointModal open={touchpointOpen} onOpenChange={setTouchpointOpen} entityType="candidate" entityId={candidate.id} entityName={candidate.name} />
       <SendCheckinPanel open={checkinOpen} onOpenChange={setCheckinOpen} candidates={[candidate]} />

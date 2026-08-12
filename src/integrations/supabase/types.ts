@@ -562,6 +562,7 @@ export type Database = {
           bd_outcome: string | null
           bd_status: string | null
           bd_trigger_notes: string | null
+          client_ready_notes: string | null
           created_at: string
           current_employer: string | null
           dnc_channel: string | null
@@ -616,6 +617,7 @@ export type Database = {
           bd_outcome?: string | null
           bd_status?: string | null
           bd_trigger_notes?: string | null
+          client_ready_notes?: string | null
           created_at?: string
           current_employer?: string | null
           dnc_channel?: string | null
@@ -670,6 +672,7 @@ export type Database = {
           bd_outcome?: string | null
           bd_status?: string | null
           bd_trigger_notes?: string | null
+          client_ready_notes?: string | null
           created_at?: string
           current_employer?: string | null
           dnc_channel?: string | null
@@ -2646,6 +2649,7 @@ export type Database = {
           brand_color: string | null
           campaign_outreach_template: string | null
           client_confirmation_template: string | null
+          client_ready_notes_template: string | null
           created_at: string
           display_name: string | null
           enrichment_budget_pence: number
@@ -2676,6 +2680,7 @@ export type Database = {
           brand_color?: string | null
           campaign_outreach_template?: string | null
           client_confirmation_template?: string | null
+          client_ready_notes_template?: string | null
           created_at?: string
           display_name?: string | null
           enrichment_budget_pence?: number
@@ -2706,6 +2711,7 @@ export type Database = {
           brand_color?: string | null
           campaign_outreach_template?: string | null
           client_confirmation_template?: string | null
+          client_ready_notes_template?: string | null
           created_at?: string
           display_name?: string | null
           enrichment_budget_pence?: number

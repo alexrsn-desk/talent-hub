@@ -353,6 +353,9 @@ export default function SettingsPage() {
       {/* My Templates — Reactivation */}
       <ReactivationTemplateSection />
 
+      {/* My Templates — Client Ready Notes format */}
+      <ClientReadyNotesTemplateSection />
+
       {/* My Templates — Job Launch (5 templates) */}
       <LaunchTemplatesSection />
 
@@ -487,6 +490,67 @@ function ReactivationTemplateSection() {
     </div>
   );
 }
+
+function ClientReadyNotesTemplateSection() {
+  const { user } = useAuth();
+  const [value, setValue] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    if (!user) return;
+    (async () => {
+      const { data } = await supabase
+        .from("recruiter_profiles")
+        .select("client_ready_notes_template")
+        .eq("user_id", user.id)
+        .maybeSingle();
+      setValue(((data as any)?.client_ready_notes_template) || "");
+      setLoading(false);
+    })();
+  }, [user]);
+
+  const save = async () => {
+    if (!user) return;
+    setSaving(true);
+    const { error } = await supabase
+      .from("recruiter_profiles")
+      .update({ client_ready_notes_template: value } as any)
+      .eq("user_id", user.id);
+    setSaving(false);
+    if (error) toast.error(error.message);
+    else toast.success("Client Ready Notes format saved");
+  };
+
+  return (
+    <div className="pt-6 border-t border-border space-y-3">
+      <h2 className="text-sm font-medium">My Templates — Client Ready Notes format</h2>
+      <p className="text-xs text-muted-foreground">
+        Paste an example of how you like to summarise a candidate for a client. AI learns this style and mirrors it when you
+        click "Suggest summary" on a candidate's Client Ready Notes. You always review and edit before anything is shared.
+      </p>
+      {loading ? (
+        <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+      ) : (
+        <>
+          <textarea
+            value={value}
+            onChange={(e) => setValue(e.target.value)}
+            rows={6}
+            className="w-full rounded-lg border border-border bg-background p-3 text-sm font-mono"
+            placeholder="[Name] is a [role] currently at [company], with strong experience in [area]. They've delivered [relevant achievement] and are looking for [motivation]. I think they'd be a strong fit because..."
+          />
+          <Button size="sm" onClick={save} disabled={saving}>
+            {saving ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-1" /> : <Save className="h-3.5 w-3.5 mr-1" />}
+            Save format
+          </Button>
+        </>
+      )}
+    </div>
+  );
+}
+
+
 
 const LAUNCH_TEMPLATES: { key: string; label: string; hint: string; placeholder: string }[] = [
   {
