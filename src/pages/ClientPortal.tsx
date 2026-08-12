@@ -259,23 +259,25 @@ export default function ClientPortal() {
     retry: false,
   });
 
-  const mutate = (action: string, successMessage: string) =>
-    useMutation({
-      mutationFn: (body: Record<string, unknown>) => call(action, body),
-      onSuccess: () => {
-        queryClient.invalidateQueries({ queryKey: ["client-portal", token] });
-        toast({ title: successMessage });
-      },
-      onError: (e: Error) => toast({ title: "Something went wrong", description: e.message, variant: "destructive" }),
-    });
+  const makeMutation = (action: string, successMessage: string) => ({
+    mutationFn: (body: Record<string, unknown>) => call(action, body),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["client-portal", token] });
+      toast({ title: successMessage });
+    },
+    onError: (e: Error) =>
+      toast({ title: "Something went wrong", description: e.message, variant: "destructive" }),
+  });
 
-  /* eslint-disable react-hooks/rules-of-hooks */
-  const moveMutation = mutate("move", "Pipeline updated");
-  const feedbackMutation = mutate("add_feedback", "Feedback saved");
-  const noteMutation = mutate("add_note", "Note added");
-  const stageMutation = mutate("save_stage_content", "Saved — candidates see this when they reach that stage");
-  const schedulingMutation = mutate("save_scheduling", "Saved — candidates see this when they reach that stage");
-  /* eslint-enable react-hooks/rules-of-hooks */
+  const moveMutation = useMutation(makeMutation("move", "Pipeline updated"));
+  const feedbackMutation = useMutation(makeMutation("add_feedback", "Feedback saved"));
+  const noteMutation = useMutation(makeMutation("add_note", "Note added"));
+  const stageMutation = useMutation(
+    makeMutation("save_stage_content", "Saved — candidates see this when they reach that stage"),
+  );
+  const schedulingMutation = useMutation(
+    makeMutation("save_scheduling", "Saved — candidates see this when they reach that stage"),
+  );
 
   const columns = useMemo(() => {
     if (!data) return [] as { stage: string; items: PortalCandidate[] }[];
