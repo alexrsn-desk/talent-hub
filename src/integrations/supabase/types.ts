@@ -1898,6 +1898,41 @@ export type Database = {
         }
         Relationships: []
       }
+      job_stages: {
+        Row: {
+          created_at: string
+          id: string
+          is_system_stage: boolean
+          job_id: string
+          stage_name: string
+          stage_order: number
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_system_stage?: boolean
+          job_id: string
+          stage_name: string
+          stage_order?: number
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_system_stage?: boolean
+          job_id?: string
+          stage_name?: string
+          stage_order?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "job_stages_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "jobs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       job_tags: {
         Row: {
           created_at: string

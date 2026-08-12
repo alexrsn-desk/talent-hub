@@ -22,66 +22,51 @@ import { useOfferByCandidateJob } from "@/hooks/use-offers";
 import { logActivity } from "@/lib/activity-log";
 import { OfferBackupSignal } from "@/components/OfferBackupSignal";
 import { AddCandidateToStageDropdown } from "@/components/AddCandidateToStageDropdown";
+import { JobStagesEditor } from "@/components/JobStagesEditor";
+import { useJobStages, WITHDRAWN_STAGE, FALLBACK_STAGES } from "@/hooks/use-job-stages";
 
 // ============================================================================
 // Stage definitions — reflects real recruitment workflow
 // ============================================================================
 
-const PIPELINE_STAGES = [
-  "AI Suggested",
-  "Shortlist",
-  "Sent CV",
-  "First Stage",
-  "Second Stage",
-  "Final Stage",
-  "Offer",
-  "Placed",
-] as const;
+// Stage colour helpers — work for any custom stage name
+function stageBorderFor(stage: string): string {
+  if (stage === "AI Suggested") return "border-t-blue-500";
+  if (/shortlist/i.test(stage)) return "border-t-emerald-500";
+  return "border-t-primary";
+}
 
-type Stage = (typeof PIPELINE_STAGES)[number];
+function stageAccentFor(stage: string): string {
+  if (stage === "AI Suggested") return "border-l-blue-500/60";
+  if (/shortlist/i.test(stage)) return "border-l-emerald-500/60";
+  return "border-l-primary/60";
+}
 
-// Top-border accent on each column header
-const stageBorder: Record<string, string> = {
-  "AI Suggested": "border-t-blue-500",
-  Shortlist: "border-t-emerald-500",
-  "Sent CV": "border-t-primary",
-  "First Stage": "border-t-primary",
-  "Second Stage": "border-t-primary",
-  "Final Stage": "border-t-primary",
-  Offer: "border-t-primary",
-  Placed: "border-t-primary",
-};
+// Semantic stage detection — the pipeline is per-job now, so behaviours key off
+// meaning rather than a fixed global list.
+const isInterviewStage = (s: string) => /interview|first stage|second stage|final stage/i.test(s);
+const isOfferStage = (s: string) => /^offer/i.test(s);
+const isPlacedStage = (s: string) => /^placed/i.test(s);
+const isShortlistStage = (s: string) => /shortlist/i.test(s);
+const isSubmitStage = (s: string) => /sent cv|submitted|submission/i.test(s);
 
-// Card accent (left edge) — same colour family as the column
-const stageCardAccent: Record<string, string> = {
-  "AI Suggested": "border-l-blue-500/60",
-  Shortlist: "border-l-emerald-500/60",
-  "Sent CV": "border-l-primary/60",
-  "First Stage": "border-l-primary/60",
-  "Second Stage": "border-l-primary/60",
-  "Final Stage": "border-l-primary/60",
-  Offer: "border-l-primary/60",
-  Placed: "border-l-primary/60",
-};
+// Stage restriction rules — required predecessor stages, resolved against this job's own order
+function canMoveTo(targetStage: string, currentStage: string, stages: string[]): { ok: boolean; message?: string } {
+  const idx = (n: string) => stages.indexOf(n);
+  const shortlist = stages.find(isShortlistStage);
+  const submit = stages.find(isSubmitStage);
+  const firstInterview = stages.find(isInterviewStage);
+  const offer = stages.find(isOfferStage);
 
-// Stage restriction rules — required predecessor stages
-function canMoveTo(targetStage: string, currentStage: string): { ok: boolean; message?: string } {
-  // Cannot send a CV unless coming from Shortlist (or later)
-  if (targetStage === "Sent CV") {
-    const validPrior = ["Shortlist", "Sent CV", "First Stage", "Second Stage", "Final Stage", "Offer", "Placed"];
-    if (!validPrior.includes(currentStage)) {
-      return { ok: false, message: "This candidate needs to reach Shortlist before their CV is sent." };
-    }
+  if (submit && targetStage === submit && shortlist && idx(currentStage) < idx(shortlist)) {
+    return { ok: false, message: `This candidate needs to reach ${shortlist} before their CV is sent.` };
   }
-  // Cannot enter Offer unless at an interview stage (or later)
-  if (targetStage === "Offer") {
-    const validPrior = ["First Stage", "Second Stage", "Final Stage", "Offer", "Placed"];
-    if (!validPrior.includes(currentStage)) {
-      return { ok: false, message: "This candidate needs to reach an interview stage before an offer can be made." };
-    }
+  if (offer && targetStage === offer && firstInterview && idx(currentStage) < idx(firstInterview)) {
+    return { ok: false, message: "This candidate needs to reach an interview stage before an offer can be made." };
   }
   return { ok: true };
 }
+
 
 const REJECTION_REASONS = [
   "Client rejected",
@@ -133,10 +118,18 @@ export function JobPipelineBoard({ job, onJobUpdate }: { job: Job; onJobUpdate?:
   const withdrawnCount = candidateJobs.filter((cj) => cj.withdrawn).length;
   const visibleCandidateJobs = showWithdrawn ? candidateJobs : candidateJobs.filter((cj) => !cj.withdrawn);
 
-  const stageMap = PIPELINE_STAGES.reduce((acc, stage) => {
+  // Per-job stage list (ordered). Falls back to the classic list while loading.
+  const { data: jobStages = [] } = useJobStages(job.id);
+  const pipelineStages: string[] = (jobStages.length
+    ? jobStages.filter((s) => s.stage_name !== WITHDRAWN_STAGE).map((s) => s.stage_name)
+    : FALLBACK_STAGES);
+  const shortlistName = pipelineStages.find(isShortlistStage);
+
+  const stageMap = pipelineStages.reduce((acc, stage) => {
     acc[stage] = visibleCandidateJobs.filter((cj) => cj.stage === stage);
     return acc;
   }, {} as Record<string, CandidateJob[]>);
+
 
   const setWithdrawn = (cj: CandidateJob, withdrawn: boolean, reason?: string) => {
     updateCandidateJob.mutate({
@@ -149,9 +142,7 @@ export function JobPipelineBoard({ job, onJobUpdate }: { job: Job; onJobUpdate?:
   };
 
   const performStageMove = (cj: CandidateJob, fromStage: string, toStage: string, opts?: { rejectionReason?: string }) => {
-    const isFastTrack =
-      toStage === "Shortlist" &&
-      ["AI Suggested"].includes(fromStage);
+    const isFastTrack = !!shortlistName && toStage === shortlistName && fromStage === "AI Suggested";
 
 
     updateCandidateJob.mutate(
@@ -177,19 +168,19 @@ export function JobPipelineBoard({ job, onJobUpdate }: { job: Job; onJobUpdate?:
             });
             toast.success("Fast-tracked to Shortlist");
           }
-          if (toStage === "First Stage" || toStage === "Second Stage" || toStage === "Final Stage") {
+          if (isInterviewStage(toStage)) {
             // Small delay so the auto-create trigger has time to insert the interview row
             setTimeout(() => {
-              setInterviewPanel({ cj, stage: toStage as "First Stage" | "Second Stage" | "Final Stage" });
+              setInterviewPanel({ cj, stage: toStage as any });
             }, 400);
           }
-          if (toStage === "Offer") {
+          if (isOfferStage(toStage)) {
             // Small delay so the auto-create trigger has time to insert the offer row
             setTimeout(() => {
               setOfferPanel({ cj });
             }, 400);
           }
-          if (toStage === "Placed") {
+          if (isPlacedStage(toStage)) {
             setTimeout(() => setPlacedPrompt({ cj }), 300);
           }
         },
@@ -206,7 +197,7 @@ export function JobPipelineBoard({ job, onJobUpdate }: { job: Job; onJobUpdate?:
     const cj = candidateJobs.find((c) => c.id === result.draggableId);
     if (!cj) return;
 
-    const check = canMoveTo(toStage, fromStage);
+    const check = canMoveTo(toStage, fromStage, pipelineStages);
     if (!check.ok) {
       toast.error(check.message ?? "Invalid stage transition");
       return;
@@ -257,6 +248,7 @@ export function JobPipelineBoard({ job, onJobUpdate }: { job: Job; onJobUpdate?:
               {showWithdrawn ? "Hide" : "Show"} rejected/withdrawn ({withdrawnCount})
             </button>
           )}
+          <JobStagesEditor jobId={job.id} />
           <p className="text-[11px] text-muted-foreground">
             Drag to progress · Cannot send CV before Shortlist · Cannot Offer before an interview stage
           </p>
@@ -287,14 +279,14 @@ export function JobPipelineBoard({ job, onJobUpdate }: { job: Job; onJobUpdate?:
 
       <DragDropContext onDragEnd={handleDragEnd}>
         <div id={`pipeline-board-${job.id}`} className="flex gap-3 overflow-x-auto pb-4" style={{ minHeight: 320 }}>
-          {PIPELINE_STAGES.map((stage) => {
+          {pipelineStages.map((stage) => {
             const isAiCol = stage === "AI Suggested";
             const colItems = stageMap[stage] || [];
             return (
             <div
               key={stage}
               id={`pipeline-col-${stage}-${job.id}`}
-              className={`flex-shrink-0 w-56 rounded-lg border border-border border-t-2 ${stageBorder[stage]} ${
+              className={`flex-shrink-0 w-56 rounded-lg border border-border border-t-2 ${stageBorderFor(stage)} ${
                 isAiCol ? "bg-blue-500/[0.06]" : "bg-muted/20"
               }`}
             >
@@ -367,12 +359,12 @@ export function JobPipelineBoard({ job, onJobUpdate }: { job: Job; onJobUpdate?:
                               setScheduleOpen(true);
                             }}
                             onFastTrack={() => {
-                              const check = canMoveTo("Shortlist", cj.stage);
+                              const check = canMoveTo(shortlistName ?? "Shortlist", cj.stage, pipelineStages);
                               if (!check.ok) {
                                 toast.error(check.message ?? "Cannot fast-track");
                                 return;
                               }
-                              performStageMove(cj, cj.stage, "Shortlist");
+                              performStageMove(cj, cj.stage, shortlistName ?? "Shortlist");
                             }}
                             onOpenOffer={() => setOfferPanel({ cj })}
                             onWithdraw={() => {
@@ -660,7 +652,7 @@ function PipelineCard({
   // Auto-open the screening panel when card is in Screening stage
   const [screeningOpen, setScreeningOpen] = useState(isScreening);
   const { data: screeningNote } = useScreeningNote(isScreening || screeningOpen ? cj.id : undefined);
-  const { data: offerForCard } = useOfferByCandidateJob(stage === "Offer" ? cj.id : null);
+  const { data: offerForCard } = useOfferByCandidateJob(isOfferStage(stage) ? cj.id : null);
 
   return (
     <div
@@ -669,7 +661,7 @@ function PipelineCard({
       {...dragProvided.dragHandleProps}
       onClick={onOpenProfile}
       className={`group rounded-md border-l-2 border bg-background p-2.5 cursor-pointer hover:border-primary/40 transition-all text-xs space-y-1.5 ${
-        stageCardAccent[stage] ?? ""
+        stageAccentFor(stage)
       } ${dragSnapshot.isDragging ? "shadow-lg ring-1 ring-primary/30" : ""} ${
         cj.candidates?.priority_flag ? "border-yellow-400/50" : "border-border"
       }`}
@@ -752,7 +744,7 @@ function PipelineCard({
       )}
 
       {/* Offer summary — only on Offer cards */}
-      {stage === "Offer" && offerForCard && (
+      {isOfferStage(stage) && offerForCard && (
         <button
           onClick={(e) => { e.stopPropagation(); onOpenOffer?.(); }}
           className="w-full text-left rounded-md border border-border bg-muted/30 px-2 py-1.5 space-y-0.5 hover:border-primary/40 transition-colors"
