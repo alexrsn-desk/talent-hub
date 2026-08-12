@@ -175,9 +175,9 @@ export default function SettingsPage() {
       <div className="space-y-4 border border-border rounded-lg p-4">
         <div className="flex items-center gap-2">
           <Palette className="h-4 w-4 text-primary" />
-          <label className="text-sm font-medium">Client Portal Branding</label>
+          <label className="text-sm font-medium">Agency Branding</label>
         </div>
-        <p className="text-xs text-muted-foreground">This branding appears on your client portal — clients see your agency, not the CRM.</p>
+        <p className="text-xs text-muted-foreground">Your agency name and colours are used on outbound materials — clients see your agency, not the CRM.</p>
 
         <div className="space-y-2">
           <label className="text-xs font-medium">Agency Name</label>
