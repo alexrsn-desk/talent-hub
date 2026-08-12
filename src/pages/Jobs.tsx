@@ -12,6 +12,7 @@ import { useJobs, useUpdateJob, useDeleteJob, useCandidateJobs, useUpdateCandida
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { NotesSection } from "@/components/NotesSection";
 import { JobPipelineBoard } from "@/components/JobPipelineBoard";
+import { ClientPortalLinkSection } from "@/components/ClientPortalLinkSection";
 import { AddJobDialog } from "@/components/AddJobDialog";
 import { ClickToEditField } from "@/components/ClickToEditField";
 import { TagsSection } from "@/components/TagsSection";
