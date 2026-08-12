@@ -432,6 +432,38 @@ export type Database = {
           },
         ]
       }
+      candidate_portals: {
+        Row: {
+          access_token: string
+          candidate_job_id: string
+          created_at: string
+          id: string
+          updated_at: string
+        }
+        Insert: {
+          access_token: string
+          candidate_job_id: string
+          created_at?: string
+          id?: string
+          updated_at?: string
+        }
+        Update: {
+          access_token?: string
+          candidate_job_id?: string
+          created_at?: string
+          id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "candidate_portals_candidate_job_id_fkey"
+            columns: ["candidate_job_id"]
+            isOneToOne: true
+            referencedRelation: "candidate_jobs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       candidate_summaries: {
         Row: {
           ai_summary: string | null
@@ -829,6 +861,9 @@ export type Database = {
           created_at: string
           id: string
           job_id: string
+          job_spec_synced_at: string | null
+          notify_candidate_on_interview: boolean
+          notify_candidate_on_reject: boolean
           updated_at: string
           user_id: string
         }
@@ -837,6 +872,9 @@ export type Database = {
           created_at?: string
           id?: string
           job_id: string
+          job_spec_synced_at?: string | null
+          notify_candidate_on_interview?: boolean
+          notify_candidate_on_reject?: boolean
           updated_at?: string
           user_id: string
         }
@@ -845,6 +883,9 @@ export type Database = {
           created_at?: string
           id?: string
           job_id?: string
+          job_spec_synced_at?: string | null
+          notify_candidate_on_interview?: boolean
+          notify_candidate_on_reject?: boolean
           updated_at?: string
           user_id?: string
         }

@@ -29,7 +29,8 @@ type PortalFeedback = {
 };
 
 type PortalData = {
-  job: { id: string; title: string; location: string | null };
+  job: { id: string; title: string; location: string | null; description: string | null };
+  job_spec_synced_at: string | null;
   client_name: string | null;
   stages: string[];
   interview_stages: string[];
@@ -231,17 +232,30 @@ function CandidateCard({
 
 /* ── page ───────────────────────────────────────────────── */
 
-export default function ClientPortal() {
-  const { token = "" } = useParams();
+export default function ClientPortal({
+  tokenOverride,
+  previewEmail,
+}: {
+  /** When rendered inside the internal Portal Manager preview. */
+  tokenOverride?: string;
+  /** Skips the email gate in preview mode. */
+  previewEmail?: string;
+} = {}) {
+  const params = useParams();
+  const token = tokenOverride ?? params.token ?? "";
   const queryClient = useQueryClient();
   const [tab, setTab] = useState<TabId>("board");
-  const [actorEmail, setActorEmail] = useState<string>("");
+  const [actorEmail, setActorEmail] = useState<string>(previewEmail ?? "");
   const [emailDraft, setEmailDraft] = useState("");
 
   useEffect(() => {
+    if (previewEmail) {
+      setActorEmail(previewEmail);
+      return;
+    }
     const stored = sessionStorage.getItem(`portal_email_${token}`);
     if (stored) setActorEmail(stored);
-  }, [token]);
+  }, [token, previewEmail]);
 
   const call = async (action: string, body: Record<string, unknown> = {}) => {
     const { data, error } = await supabase.functions.invoke("client-portal", {
@@ -356,6 +370,12 @@ export default function ClientPortal() {
               <p className="text-[12px] font-medium uppercase tracking-wide text-accent">{data.client_name}</p>
             )}
             <h1 className="mt-1 text-[24px] font-semibold text-foreground">{data.job.title}</h1>
+            {data.job.description && (
+              <details className="mt-3 max-w-2xl">
+                <summary className="cursor-pointer text-[13px] font-medium text-accent">Job spec</summary>
+                <p className="mt-2 whitespace-pre-wrap text-[14px] text-muted-foreground">{data.job.description}</p>
+              </details>
+            )}
             <div className="mt-4 flex flex-wrap gap-2">
               {TABS.map((t) => (
                 <button

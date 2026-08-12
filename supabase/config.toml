@@ -41,3 +41,6 @@ verify_jwt = false
 
 [functions.client-portal]
 verify_jwt = false
+
+[functions.candidate-portal]
+verify_jwt = false
