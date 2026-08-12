@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 import { Copy, ExternalLink, Link2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
@@ -71,16 +72,16 @@ export function ClientPortalLinkSection({ jobId }: { jobId: string }) {
           </Button>
           <Button size="sm" variant="outline" asChild>
             <a href={url} target="_blank" rel="noreferrer">
-              <ExternalLink className="mr-1.5 h-3.5 w-3.5" /> Open
+              <ExternalLink className="mr-1.5 h-3.5 w-3.5" /> Open live
             </a>
           </Button>
-          <Button size="sm" variant="ghost" onClick={generate} disabled={busy}>
-            Regenerate
+          <Button size="sm" asChild>
+            <Link to={`/jobs/${jobId}/portal`}>Open Portal</Link>
           </Button>
         </div>
       ) : (
         <Button size="sm" className="mt-3" onClick={generate} disabled={busy}>
-          Create portal link
+          Create Client Portal
         </Button>
       )}
     </div>
