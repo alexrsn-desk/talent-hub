@@ -353,6 +353,9 @@ export default function SettingsPage() {
       {/* My Templates — Reactivation */}
       <ReactivationTemplateSection />
 
+      {/* My Templates — Client Ready Notes format */}
+      <ClientReadyNotesTemplateSection />
+
       {/* My Templates — Job Launch (5 templates) */}
       <LaunchTemplatesSection />
 
