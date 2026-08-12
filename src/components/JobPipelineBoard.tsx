@@ -27,61 +27,44 @@ import { AddCandidateToStageDropdown } from "@/components/AddCandidateToStageDro
 // Stage definitions — reflects real recruitment workflow
 // ============================================================================
 
-const PIPELINE_STAGES = [
-  "AI Suggested",
-  "Shortlist",
-  "Sent CV",
-  "First Stage",
-  "Second Stage",
-  "Final Stage",
-  "Offer",
-  "Placed",
-] as const;
+// Stage colour helpers — work for any custom stage name
+function stageBorderFor(stage: string): string {
+  if (stage === "AI Suggested") return "border-t-blue-500";
+  if (/shortlist/i.test(stage)) return "border-t-emerald-500";
+  return "border-t-primary";
+}
 
-type Stage = (typeof PIPELINE_STAGES)[number];
+function stageAccentFor(stage: string): string {
+  if (stage === "AI Suggested") return "border-l-blue-500/60";
+  if (/shortlist/i.test(stage)) return "border-l-emerald-500/60";
+  return "border-l-primary/60";
+}
 
-// Top-border accent on each column header
-const stageBorder: Record<string, string> = {
-  "AI Suggested": "border-t-blue-500",
-  Shortlist: "border-t-emerald-500",
-  "Sent CV": "border-t-primary",
-  "First Stage": "border-t-primary",
-  "Second Stage": "border-t-primary",
-  "Final Stage": "border-t-primary",
-  Offer: "border-t-primary",
-  Placed: "border-t-primary",
-};
+// Semantic stage detection — the pipeline is per-job now, so behaviours key off
+// meaning rather than a fixed global list.
+const isInterviewStage = (s: string) => /interview|first stage|second stage|final stage/i.test(s);
+const isOfferStage = (s: string) => /^offer/i.test(s);
+const isPlacedStage = (s: string) => /^placed/i.test(s);
+const isShortlistStage = (s: string) => /shortlist/i.test(s);
+const isSubmitStage = (s: string) => /sent cv|submitted|submission/i.test(s);
 
-// Card accent (left edge) — same colour family as the column
-const stageCardAccent: Record<string, string> = {
-  "AI Suggested": "border-l-blue-500/60",
-  Shortlist: "border-l-emerald-500/60",
-  "Sent CV": "border-l-primary/60",
-  "First Stage": "border-l-primary/60",
-  "Second Stage": "border-l-primary/60",
-  "Final Stage": "border-l-primary/60",
-  Offer: "border-l-primary/60",
-  Placed: "border-l-primary/60",
-};
+// Stage restriction rules — required predecessor stages, resolved against this job's own order
+function canMoveTo(targetStage: string, currentStage: string, stages: string[]): { ok: boolean; message?: string } {
+  const idx = (n: string) => stages.indexOf(n);
+  const shortlist = stages.find(isShortlistStage);
+  const submit = stages.find(isSubmitStage);
+  const firstInterview = stages.find(isInterviewStage);
+  const offer = stages.find(isOfferStage);
 
-// Stage restriction rules — required predecessor stages
-function canMoveTo(targetStage: string, currentStage: string): { ok: boolean; message?: string } {
-  // Cannot send a CV unless coming from Shortlist (or later)
-  if (targetStage === "Sent CV") {
-    const validPrior = ["Shortlist", "Sent CV", "First Stage", "Second Stage", "Final Stage", "Offer", "Placed"];
-    if (!validPrior.includes(currentStage)) {
-      return { ok: false, message: "This candidate needs to reach Shortlist before their CV is sent." };
-    }
+  if (submit && targetStage === submit && shortlist && idx(currentStage) < idx(shortlist)) {
+    return { ok: false, message: `This candidate needs to reach ${shortlist} before their CV is sent.` };
   }
-  // Cannot enter Offer unless at an interview stage (or later)
-  if (targetStage === "Offer") {
-    const validPrior = ["First Stage", "Second Stage", "Final Stage", "Offer", "Placed"];
-    if (!validPrior.includes(currentStage)) {
-      return { ok: false, message: "This candidate needs to reach an interview stage before an offer can be made." };
-    }
+  if (offer && targetStage === offer && firstInterview && idx(currentStage) < idx(firstInterview)) {
+    return { ok: false, message: "This candidate needs to reach an interview stage before an offer can be made." };
   }
   return { ok: true };
 }
+
 
 const REJECTION_REASONS = [
   "Client rejected",
