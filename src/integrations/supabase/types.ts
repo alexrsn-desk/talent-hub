@@ -565,6 +565,7 @@ export type Database = {
           client_ready_notes: string | null
           created_at: string
           current_employer: string | null
+          cv_file_url: string | null
           dnc_channel: string | null
           dnc_notes: string | null
           dnc_reason: string | null
@@ -620,6 +621,7 @@ export type Database = {
           client_ready_notes?: string | null
           created_at?: string
           current_employer?: string | null
+          cv_file_url?: string | null
           dnc_channel?: string | null
           dnc_notes?: string | null
           dnc_reason?: string | null
@@ -675,6 +677,7 @@ export type Database = {
           client_ready_notes?: string | null
           created_at?: string
           current_employer?: string | null
+          cv_file_url?: string | null
           dnc_channel?: string | null
           dnc_notes?: string | null
           dnc_reason?: string | null
@@ -816,6 +819,41 @@ export type Database = {
             columns: ["client_id"]
             isOneToOne: true
             referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      client_portals: {
+        Row: {
+          access_token: string
+          created_at: string
+          id: string
+          job_id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          access_token: string
+          created_at?: string
+          id?: string
+          job_id: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          access_token?: string
+          created_at?: string
+          id?: string
+          job_id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "client_portals_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "jobs"
             referencedColumns: ["id"]
           },
         ]
@@ -2496,6 +2534,54 @@ export type Database = {
             columns: ["bd_new_manager_contact_id"]
             isOneToOne: false
             referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      portal_candidates: {
+        Row: {
+          candidate_id: string
+          client_notes: string | null
+          client_portal_id: string
+          created_at: string
+          id: string
+          pushed_at: string
+          stage: string
+          updated_at: string
+        }
+        Insert: {
+          candidate_id: string
+          client_notes?: string | null
+          client_portal_id: string
+          created_at?: string
+          id?: string
+          pushed_at?: string
+          stage?: string
+          updated_at?: string
+        }
+        Update: {
+          candidate_id?: string
+          client_notes?: string | null
+          client_portal_id?: string
+          created_at?: string
+          id?: string
+          pushed_at?: string
+          stage?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "portal_candidates_candidate_id_fkey"
+            columns: ["candidate_id"]
+            isOneToOne: false
+            referencedRelation: "candidates"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "portal_candidates_client_portal_id_fkey"
+            columns: ["client_portal_id"]
+            isOneToOne: false
+            referencedRelation: "client_portals"
             referencedColumns: ["id"]
           },
         ]
