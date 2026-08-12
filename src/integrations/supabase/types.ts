@@ -3173,6 +3173,36 @@ export type Database = {
         }
         Relationships: []
       }
+      sourcewhale_subscriptions: {
+        Row: {
+          created_at: string
+          id: string
+          owner_user_id: string
+          subscription_id: string
+          subscription_type: string
+          target_url: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          owner_user_id: string
+          subscription_id: string
+          subscription_type: string
+          target_url: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          owner_user_id?: string
+          subscription_id?: string
+          subscription_type?: string
+          target_url?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       tag_definitions: {
         Row: {
           archived: boolean

@@ -165,3 +165,27 @@ export function candidateToSwPayload(row: any): Record<string, any> {
   set('linkedinUrl', row.linkedin_url);
   return body;
 }
+
+// ---------- Zapier / webhook subscriptions ----------
+//
+// Confirmed with SourceWhale (Aug 2026): the only supported subscriptionType
+// values are `candidateCreated` and `candidateUpdated`. There is NO subscription
+// type for notes, comments, replies or general candidate activity.
+//
+// POST /zapier/subscribe   body { subscriptionType, url }  -> { id }
+// POST /zapier/unsubscribe body { subscriptionId }         -> "success"
+
+export const SW_SUBSCRIPTION_TYPES = ['candidateCreated', 'candidateUpdated'] as const;
+export type SwSubscriptionType = typeof SW_SUBSCRIPTION_TYPES[number];
+
+export function isSwSubscriptionType(v: unknown): v is SwSubscriptionType {
+  return typeof v === 'string' && (SW_SUBSCRIPTION_TYPES as readonly string[]).includes(v);
+}
+
+export function subscribeZapier(apiKey: string, subscriptionType: SwSubscriptionType, url: string) {
+  return swPost<{ id?: string }>(apiKey, '/zapier/subscribe', { subscriptionType, url });
+}
+
+export function unsubscribeZapier(apiKey: string, subscriptionId: string) {
+  return swPost(apiKey, '/zapier/unsubscribe', { subscriptionId });
+}

@@ -32,7 +32,8 @@ Deno.serve(async (req) => {
   ];
 
 
-  const results = [];
+  const results: any[] = [];
+
   for (const a of attempts) {
     try {
       const res = await fetch(a.url, { headers: { ...a.headers, Accept: 'application/json' } });
