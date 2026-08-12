@@ -9,7 +9,7 @@ export type ActivityAction =
   | "contact_created" | "contact_deleted"
   | "interview_scheduled" | "interview_slot_added"
   | "cv_sent" | "bd_contact_made"
-  | "portal_link_generated" | "client_feedback_received";
+  | "client_feedback_received";
 
 interface LogParams {
   action_type: ActivityAction | string;
