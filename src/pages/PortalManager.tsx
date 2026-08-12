@@ -140,7 +140,7 @@ export default function PortalManager() {
   });
 
   const saveToggle = useMutation({
-    mutationFn: async (patch: Record<string, boolean>) => {
+    mutationFn: async (patch: { notify_candidate_on_interview?: boolean; notify_candidate_on_reject?: boolean }) => {
       const { error } = await supabase.from("client_portals").update(patch).eq("job_id", jobId);
       if (error) throw error;
     },
