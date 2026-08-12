@@ -1,0 +1,10 @@
+DROP TRIGGER IF EXISTS trg_jobs_sync_portal_spec ON public.jobs;
+DROP FUNCTION IF EXISTS public.jobs_sync_portal_spec() CASCADE;
+DROP TABLE IF EXISTS public.portal_candidates CASCADE;
+DROP TABLE IF EXISTS public.portal_notes CASCADE;
+DROP TABLE IF EXISTS public.portal_feedback CASCADE;
+DROP TABLE IF EXISTS public.portal_stage_content CASCADE;
+DROP TABLE IF EXISTS public.portal_scheduling CASCADE;
+DROP TABLE IF EXISTS public.candidate_portals CASCADE;
+DROP TABLE IF EXISTS public.client_portal_access CASCADE;
+DROP TABLE IF EXISTS public.client_portals CASCADE;
