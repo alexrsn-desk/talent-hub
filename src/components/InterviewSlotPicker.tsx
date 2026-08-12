@@ -83,7 +83,7 @@ export function InterviewSlotPicker({
           Schedule Interview — {candidateName}
         </h3>
         <p className="text-xs text-muted-foreground mt-1">
-          Add available time slots. The client will pick their preferred time from the portal.
+          Add available time slots. Share these with the client to confirm a preferred time.
         </p>
       </div>
 
@@ -143,7 +143,7 @@ export function InterviewSlotPicker({
         <div className="text-center py-4 space-y-2">
           <Badge className="bg-success/20 text-green-400">Slots shared</Badge>
           <p className="text-xs text-muted-foreground">
-            The client can now see these time slots in their portal and lock in their preferred time.
+            These time slots are saved and ready to share with the client.
           </p>
           <Button variant="outline" size="sm" onClick={onClose}>Done</Button>
         </div>

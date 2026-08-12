@@ -16,7 +16,6 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { ProfileTabs } from "@/components/ProfileTabs";
 import { LogTouchpointModal } from "@/components/LogTouchpointModal";
-import { ClientPortalInvite } from "@/components/ClientPortalInvite";
 import { CallPrepButton } from "@/components/CallPrep";
 import { ClickToEditField } from "@/components/ClickToEditField";
 import { SummaryField } from "@/components/SummaryField";
@@ -545,8 +544,6 @@ function ClientFullView({ client, onBack, onUpdate, onDelete }: {
           <ProfileTabs entityType="client" entityId={client.id} />
         </TabsContent>
       </Tabs>
-
-      <ClientPortalInvite clientId={client.id} />
 
       <LogTouchpointModal
         open={touchpointOpen}
