@@ -24,10 +24,6 @@ import WeeklyIntel from "./pages/WeeklyIntel";
 import CallsMeetings from "./pages/CallsMeetings";
 import Sequences from "./pages/Sequences";
 import Auth from "./pages/Auth";
-import Portal from "./pages/Portal";
-import ClientPortal from "./pages/ClientPortal";
-import CandidatePortal from "./pages/CandidatePortal";
-import PortalManager from "./pages/PortalManager";
 import LiveConversations from "./pages/LiveConversations";
 import BillersWorkflow from "./pages/BillersWorkflow";
 import SourceWhaleContacts from "./pages/SourceWhaleContacts";
@@ -119,24 +115,6 @@ function AppRoutes() {
     );
   }
 
-  // Portal routes are public (token-based auth)
-  if (window.location.pathname.startsWith("/candidate/")) {
-    return (
-      <Routes>
-        <Route path="/candidate/:token" element={<CandidatePortal />} />
-      </Routes>
-    );
-  }
-
-  if (window.location.pathname.startsWith("/portal")) {
-    return (
-      <Routes>
-        <Route path="/portal" element={<Portal />} />
-        <Route path="/portal/:token" element={<ClientPortal />} />
-      </Routes>
-    );
-  }
-
   // OAuth consent route — requires a signed-in user; OAuthConsent redirects to auth if missing.
   if (window.location.pathname === "/.lovable/oauth/consent") {
     return <OAuthConsent />;
@@ -187,7 +165,6 @@ function AppRoutes() {
           <Route path="/jobs/launch" element={<JobLaunchSelector />} />
           <Route path="/jobs/:jobId/compare" element={<CompareSubmit />} />
           <Route path="/jobs/:jobId/launch" element={<JobLaunch />} />
-          <Route path="/jobs/:jobId/portal" element={<PortalManager />} />
           <Route path="/placements" element={<Placements />} />
           <Route path="/bd-pipeline" element={<BDPipeline />} />
           <Route path="/bd-tracker" element={<BDContactTracker />} />

@@ -12,7 +12,7 @@ interface Props {
 }
 
 /**
- * Client-facing summary field. The only note ever shared with a Client Portal.
+ * Client-facing summary field. A short, client-facing summary, separate from internal notes.
  * Never auto-filled — AI suggestions land in the textarea for the recruiter to review.
  */
 export function ClientReadyNotes({ candidateId, value, onSave }: Props) {
@@ -67,7 +67,7 @@ export function ClientReadyNotes({ candidateId, value, onSave }: Props) {
         <div>
           <h3 className="text-sm font-medium">Client Ready Notes</h3>
           <p className="text-xs text-muted-foreground max-w-prose">
-            This is the only note visible to clients if you push this candidate to a Client Portal.
+            A short summary written for sharing with clients — kept separate from internal notes.
             Everything else stays internal.
           </p>
         </div>
