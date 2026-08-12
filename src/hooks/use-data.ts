@@ -22,6 +22,7 @@ export type Candidate = {
   availability: string | null;
   summary?: string | null;
   note?: string | null;
+  client_ready_notes?: string | null;
 
   priority_flag: boolean;
   priority_reason: string | null;
