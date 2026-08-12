@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Plus, X, Wand2 } from "lucide-react";
+import { Plus, X, Wand2, ChevronDown, ChevronRight } from "lucide-react";
 import {
   useTagDefinitions,
   useCandidateTags,
@@ -44,6 +44,8 @@ export function TagsSection({ entityType, entityId }: TagsSectionProps) {
   const activeDefinitions = definitions.filter((d) => !d.archived);
   const categories = Object.keys(TAG_CATEGORIES);
 
+  const [collapsed, setCollapsed] = useState(false);
+
   const handleAdd = (defId: string) => {
     if (entityType === "candidate") {
       addCandidateTag.mutate({ candidate_id: entityId, tag_definition_id: defId });
@@ -62,45 +64,69 @@ export function TagsSection({ entityType, entityId }: TagsSectionProps) {
 
   return (
     <div className="space-y-4">
-      <h3 className="text-sm font-medium">Tags</h3>
-      {categories.map((cat) => {
-        const catTags = tags.filter((t: any) => t.tag_definitions?.category === cat);
-        const availableOptions = activeDefinitions.filter(
-          (d) => d.category === cat && !tagDefIds.has(d.id)
-        );
-        const canAdd = catTags.length < MAX_TAGS_PER_CATEGORY && availableOptions.length > 0;
+      <button
+        type="button"
+        onClick={() => setCollapsed((c) => !c)}
+        className="flex items-center gap-1.5 group"
+      >
+        {collapsed
+          ? <ChevronRight className="h-3.5 w-3.5 text-muted-foreground transition-transform group-hover:text-foreground" />
+          : <ChevronDown className="h-3.5 w-3.5 text-muted-foreground transition-transform group-hover:text-foreground" />}
+        <h3 className="text-sm font-medium group-hover:text-foreground transition-colors">
+          Tags
+        </h3>
+        {!collapsed && tags.length > 0 && (
+          <span className="text-xs text-muted-foreground">({tags.length})</span>
+        )}
+      </button>
+      {!collapsed && (
+        <>
+          {categories.map((cat) => {
+            const catTags = tags.filter((t: any) => t.tag_definitions?.category === cat);
+            const availableOptions = activeDefinitions.filter(
+              (d) => d.category === cat && !tagDefIds.has(d.id)
+            );
+            const canAdd = catTags.length < MAX_TAGS_PER_CATEGORY && availableOptions.length > 0;
 
-        if (catTags.length === 0 && !canAdd) return null;
+            if (catTags.length === 0 && !canAdd) return null;
 
-        return (
-          <div key={cat} className="space-y-1.5">
-            <div className="flex items-center gap-2">
-              <span className="text-xs font-medium text-muted-foreground">{TAG_CATEGORIES[cat]}</span>
-              {canAdd && <AddTagButton category={cat} options={availableOptions} onAdd={handleAdd} />}
-            </div>
-            <div className="flex flex-wrap gap-1.5">
-              {catTags.map((t: any) => (
-                <Badge
-                  key={t.id}
-                  variant="secondary"
-                  className="gap-1 pr-1 text-xs"
-                >
-                  {t.source === "ai" && <Wand2 className="h-2.5 w-2.5 text-primary" />}
-                  {t.tag_definitions?.label}
-                  <button
-                    onClick={() => handleRemove(t.id)}
-                    className="ml-0.5 rounded-full p-0.5 hover:bg-muted-foreground/20 transition-colors"
-                  >
-                    <X className="h-2.5 w-2.5" />
-                  </button>
-                </Badge>
-              ))}
-            </div>
-          </div>
-        );
-      })}
-      {tags.length === 0 && (
-        <p className="text-xs text-muted-foreground">No tags yet. Click + on any category to add tags.</p>
+            return (
+              <div key={cat} className="space-y-1.5">
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-medium text-muted-foreground">{TAG_CATEGORIES[cat]}</span>
+                  {canAdd && <AddTagButton category={cat} options={availableOptions} onAdd={handleAdd} />}
+                </div>
+                <div className="flex flex-wrap gap-1.5">
+                  {catTags.map((t: any) => (
+                    <Badge
+                      key={t.id}
+                      variant="secondary"
+                      className="gap-1 pr-1 text-xs"
+                    >
+                      {t.source === "ai" && <Wand2 className="h-2.5 w-2.5 text-primary" />}
+                      {t.tag_definitions?.label}
+                      <button
+                        onClick={() => handleRemove(t.id)}
+                        className="ml-0.5 rounded-full p-0.5 hover:bg-muted-foreground/20 transition-colors"
+                      >
+                        <X className="h-2.5 w-2.5" />
+                      </button>
+                    </Badge>
+                  ))}
+                </div>
+              </div>
+            );
+          })}
+          {tags.length === 0 && (
+            <p className="text-xs text-muted-foreground">No tags yet. Click + on any category to add tags.</p>
+          )}
+        </>
+      )}
+      {collapsed && tags.length > 0 && (
+        <p className="text-xs text-muted-foreground">
+          {tags.slice(0, 6).map((t: any) => t.tag_definitions?.label).join(" · ")}
+          {tags.length > 6 && ` · +${tags.length - 6} more`}
+        </p>
       )}
     </div>
   );
