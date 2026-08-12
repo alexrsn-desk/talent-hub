@@ -25,6 +25,7 @@ import CallsMeetings from "./pages/CallsMeetings";
 import Sequences from "./pages/Sequences";
 import Auth from "./pages/Auth";
 import Portal from "./pages/Portal";
+import ClientPortal from "./pages/ClientPortal";
 import LiveConversations from "./pages/LiveConversations";
 import BillersWorkflow from "./pages/BillersWorkflow";
 import SourceWhaleContacts from "./pages/SourceWhaleContacts";
