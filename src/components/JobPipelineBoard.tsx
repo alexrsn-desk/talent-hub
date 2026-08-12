@@ -116,10 +116,18 @@ export function JobPipelineBoard({ job, onJobUpdate }: { job: Job; onJobUpdate?:
   const withdrawnCount = candidateJobs.filter((cj) => cj.withdrawn).length;
   const visibleCandidateJobs = showWithdrawn ? candidateJobs : candidateJobs.filter((cj) => !cj.withdrawn);
 
-  const stageMap = PIPELINE_STAGES.reduce((acc, stage) => {
+  // Per-job stage list (ordered). Falls back to the classic list while loading.
+  const { data: jobStages = [] } = useJobStages(job.id);
+  const pipelineStages: string[] = (jobStages.length
+    ? jobStages.filter((s) => s.stage_name !== WITHDRAWN_STAGE).map((s) => s.stage_name)
+    : FALLBACK_STAGES);
+  const shortlistName = pipelineStages.find(isShortlistStage);
+
+  const stageMap = pipelineStages.reduce((acc, stage) => {
     acc[stage] = visibleCandidateJobs.filter((cj) => cj.stage === stage);
     return acc;
   }, {} as Record<string, CandidateJob[]>);
+
 
   const setWithdrawn = (cj: CandidateJob, withdrawn: boolean, reason?: string) => {
     updateCandidateJob.mutate({
