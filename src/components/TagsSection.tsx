@@ -44,6 +44,8 @@ export function TagsSection({ entityType, entityId }: TagsSectionProps) {
   const activeDefinitions = definitions.filter((d) => !d.archived);
   const categories = Object.keys(TAG_CATEGORIES);
 
+  const [collapsed, setCollapsed] = useState(false);
+
   const handleAdd = (defId: string) => {
     if (entityType === "candidate") {
       addCandidateTag.mutate({ candidate_id: entityId, tag_definition_id: defId });
@@ -62,7 +64,21 @@ export function TagsSection({ entityType, entityId }: TagsSectionProps) {
 
   return (
     <div className="space-y-4">
-      <h3 className="text-sm font-medium">Tags</h3>
+      <button
+        type="button"
+        onClick={() => setCollapsed((c) => !c)}
+        className="flex items-center gap-1.5 group"
+      >
+        {collapsed
+          ? <ChevronRight className="h-3.5 w-3.5 text-muted-foreground transition-transform group-hover:text-foreground" />
+          : <ChevronDown className="h-3.5 w-3.5 text-muted-foreground transition-transform group-hover:text-foreground" />}
+        <h3 className="text-sm font-medium group-hover:text-foreground transition-colors">
+          Tags
+        </h3>
+        {!collapsed && tags.length > 0 && (
+          <span className="text-xs text-muted-foreground">({tags.length})</span>
+        )}
+      </button>
       {categories.map((cat) => {
         const catTags = tags.filter((t: any) => t.tag_definitions?.category === cat);
         const availableOptions = activeDefinitions.filter(
