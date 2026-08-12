@@ -34,26 +34,6 @@ Deno.serve(async (req) => {
 
   const results: any[] = [];
 
-  // Zapier subscription surface probes (POST). We deliberately send a body with
-  // the documented field names so validation errors reveal the real contract.
-  const hookUrl = `${Deno.env.get('SUPABASE_URL')}/functions/v1/sourcewhale-webhook`;
-  const posts = [
-    { label: 'zapier/subscribe (subscriptionType+targetUrl)', url: 'https://sourcewhale.app/public-api/v1/zapier/unsubscribe', body: { subscriptionId: '02ca849d-467f-48fd-849a-6cd7654ba7ee' } },
-    { label: 'zapier/subscriptions list', url: 'https://sourcewhale.app/public-api/v1/zapier/subscriptions', body: null },
-  ];
-  for (const p of posts) {
-    try {
-      const res = await fetch(p.url, {
-        method: p.body ? 'POST' : 'GET',
-        headers: { 'api-key': key, Accept: 'application/json', ...(p.body ? { 'Content-Type': 'application/json' } : {}) },
-        body: p.body ? JSON.stringify(p.body) : undefined,
-      });
-      results.push({ label: p.label, url: p.url, status: res.status, ok: res.ok, body: (await res.text()).slice(0, 2000) });
-    } catch (e) {
-      results.push({ label: p.label, url: p.url, status: 0, ok: false, body: `fetch error: ${(e as Error).message}` });
-    }
-  }
-
   for (const a of attempts) {
     try {
       const res = await fetch(a.url, { headers: { ...a.headers, Accept: 'application/json' } });
