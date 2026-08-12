@@ -123,18 +123,10 @@ export function TagsSection({ entityType, entityId }: TagsSectionProps) {
         </>
       )}
       {collapsed && tags.length > 0 && (
-        <div className="flex flex-wrap gap-1.5">
-          {tags.slice(0, 8).map((t: any) => (
-            <span key={t.id} className="text-xs text-muted-foreground/80">
-              {t.tag_definitions?.label}
-            </span>
-          )).reduce((acc: any[], el, i) => {
-            if (i > 0) acc.push(<span key={`sep-${i}`} className="text-xs text-muted-foreground/40">·</span>);
-            acc.push(el);
-            return acc;
-          }, [])}
-          {tags.length > 8 && <span className="text-xs text-muted-foreground">+{tags.length - 8}</span>}
-        </div>
+        <p className="text-xs text-muted-foreground">
+          {tags.slice(0, 6).map((t: any) => t.tag_definitions?.label).join(" · ")}
+          {tags.length > 6 && ` · +${tags.length - 6} more`}
+        </p>
       )}
     </div>
   );
