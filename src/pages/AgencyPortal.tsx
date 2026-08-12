@@ -182,7 +182,11 @@ export default function AgencyPortal() {
 
   const setNotify = async (field: "notify_candidate_on_interview" | "notify_candidate_on_reject", value: boolean) => {
     if (!job) return;
-    await supabase.from("portal_jobs").update({ [field]: value }).eq("id", job.id);
+    const patch =
+      field === "notify_candidate_on_interview"
+        ? { notify_candidate_on_interview: value }
+        : { notify_candidate_on_reject: value };
+    await supabase.from("portal_jobs").update(patch).eq("id", job.id);
     setJob({ ...job, [field]: value });
   };
 
