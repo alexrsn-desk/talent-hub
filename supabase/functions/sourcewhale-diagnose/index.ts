@@ -38,7 +38,7 @@ Deno.serve(async (req) => {
   // the documented field names so validation errors reveal the real contract.
   const hookUrl = `${Deno.env.get('SUPABASE_URL')}/functions/v1/sourcewhale-webhook`;
   const posts = [
-    { label: 'zapier/subscribe (subscriptionType+targetUrl)', url: 'https://sourcewhale.app/public-api/v1/zapier/subscribe', body: { subscriptionType: 'candidateCreated', url: hookUrl } },
+    { label: 'zapier/subscribe (subscriptionType+targetUrl)', url: 'https://sourcewhale.app/public-api/v1/zapier/unsubscribe', body: { subscriptionId: '02ca849d-467f-48fd-849a-6cd7654ba7ee' } },
     { label: 'zapier/subscriptions list', url: 'https://sourcewhale.app/public-api/v1/zapier/subscriptions', body: null },
   ];
   for (const p of posts) {
