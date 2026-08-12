@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Plus, X, Wand2 } from "lucide-react";
+import { Plus, X, Wand2, ChevronDown, ChevronRight } from "lucide-react";
 import {
   useTagDefinitions,
   useCandidateTags,
