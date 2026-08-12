@@ -18,6 +18,10 @@ import {
   modifyCandidate,
   searchCandidates,
   swCandidateToPatch,
+  isSwSubscriptionType,
+  SW_SUBSCRIPTION_TYPES,
+  subscribeZapier,
+  unsubscribeZapier,
 } from '../_shared/sourcewhale.ts';
 
 const json = (body: unknown, status = 200) =>
@@ -221,6 +225,82 @@ Deno.serve(async (req) => {
           }).eq('id', row.id);
         }
         return json({ ok: true, mode: row.sourcewhale_candidate_id ? 'modify' : 'add', result: res.payload });
+      }
+
+      // ===== Zapier/webhook subscriptions =====
+      // Only candidateCreated + candidateUpdated are supported by SourceWhale.
+      case 'subscriptions': {
+        const { data } = await admin
+          .from('sourcewhale_subscriptions')
+          .select('subscription_type,subscription_id,target_url,created_at')
+          .eq('owner_user_id', userId);
+        return json({
+          available: SW_SUBSCRIPTION_TYPES,
+          targetUrl: `${supabaseUrl}/functions/v1/sourcewhale-webhook`,
+          subscriptions: data ?? [],
+        });
+      }
+
+      case 'subscribe': {
+        let body: any = {};
+        try { body = await req.json(); } catch { /* ignore */ }
+        const subscriptionType = body?.subscriptionType;
+        if (!isSwSubscriptionType(subscriptionType)) {
+          return json({
+            error: `subscriptionType must be one of: ${SW_SUBSCRIPTION_TYPES.join(', ')}`,
+          }, 400);
+        }
+        const targetUrl = `${supabaseUrl}/functions/v1/sourcewhale-webhook`;
+
+        // Replace any existing subscription for this type so we never leak hooks.
+        const { data: existing } = await admin
+          .from('sourcewhale_subscriptions')
+          .select('subscription_id')
+          .eq('owner_user_id', userId)
+          .eq('subscription_type', subscriptionType)
+          .maybeSingle();
+        if (existing?.subscription_id) {
+          await unsubscribeZapier(apiKey, existing.subscription_id);
+        }
+
+        const res = await subscribeZapier(apiKey, subscriptionType, targetUrl);
+        const subscriptionId = (res.payload as any)?.id;
+        if (!res.ok || !subscriptionId) {
+          return json({ error: 'Upstream error', status: res.status, details: res.payload }, res.status || 502);
+        }
+
+        const { error: upErr } = await admin.from('sourcewhale_subscriptions').upsert({
+          owner_user_id: userId,
+          subscription_type: subscriptionType,
+          subscription_id: subscriptionId,
+          target_url: targetUrl,
+          updated_at: new Date().toISOString(),
+        }, { onConflict: 'owner_user_id,subscription_type' });
+        if (upErr) return json({ error: upErr.message }, 500);
+
+        return json({ ok: true, subscriptionType, subscriptionId, targetUrl });
+      }
+
+      case 'unsubscribe': {
+        let body: any = {};
+        try { body = await req.json(); } catch { /* ignore */ }
+        const subscriptionType = body?.subscriptionType;
+        if (!isSwSubscriptionType(subscriptionType)) {
+          return json({
+            error: `subscriptionType must be one of: ${SW_SUBSCRIPTION_TYPES.join(', ')}`,
+          }, 400);
+        }
+        const { data: existing } = await admin
+          .from('sourcewhale_subscriptions')
+          .select('id,subscription_id')
+          .eq('owner_user_id', userId)
+          .eq('subscription_type', subscriptionType)
+          .maybeSingle();
+        if (!existing) return json({ ok: true, alreadyRemoved: true });
+
+        const res = await unsubscribeZapier(apiKey, existing.subscription_id);
+        await admin.from('sourcewhale_subscriptions').delete().eq('id', existing.id);
+        return json({ ok: true, upstreamStatus: res.status });
       }
 
       default:
