@@ -38,6 +38,10 @@ import PitchCandidateSelector from "./pages/PitchCandidateSelector";
 import NotFound from "./pages/NotFound";
 import OAuthConsent from "./pages/OAuthConsent";
 import BDContactTracker from "./pages/BDContactTracker";
+import PortalClient from "./pages/PortalClient";
+import PortalCandidate from "./pages/PortalCandidate";
+import AgencyPortal from "./pages/AgencyPortal";
+import AgencyPortalJob from "./pages/AgencyPortalJob";
 
 
 const queryClient = new QueryClient();
@@ -108,6 +112,17 @@ function AppRoutes() {
     })();
   }, [user]);
 
+  // Token-gated public portals — no login, rendered before any auth gate.
+  const portalPath = window.location.pathname;
+  if (/^\/portal\/[^/]+$/.test(portalPath) || /^\/candidate\/[^/]+$/.test(portalPath)) {
+    return (
+      <Routes>
+        <Route path="/portal/:token" element={<PortalClient />} />
+        <Route path="/candidate/:token" element={<PortalCandidate />} />
+      </Routes>
+    );
+  }
+
   if (loading || (user && checkingOnboarding)) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
@@ -143,6 +158,16 @@ function AppRoutes() {
           setShowImportStep(false);
         }}
       />
+    );
+  }
+
+  // Agency Dashboard — its own shell, opened in a new tab from a Desky job.
+  if (portalPath.startsWith("/agency-portal")) {
+    return (
+      <Routes>
+        <Route path="/agency-portal" element={<AgencyPortal />} />
+        <Route path="/agency-portal/:jobId" element={<AgencyPortalJob />} />
+      </Routes>
     );
   }
 
