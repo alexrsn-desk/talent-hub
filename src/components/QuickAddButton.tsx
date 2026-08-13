@@ -1,4 +1,5 @@
 import { useState, useMemo, useRef, useEffect } from "react";
+import { useHasCandidateSelection } from "@/lib/candidate-selection-store";
 import { Plus, NotebookPen, Pencil, X, Search, ArrowLeft, Check, Mic, MicOff } from "lucide-react";
 import { useSpeechRecognition } from "@/hooks/use-speech-recognition";
 import { getVoiceMode, getSilenceSeconds, stripTriggerPhrase } from "@/lib/voice-dictation-settings";
