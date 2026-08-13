@@ -30,3 +30,23 @@ export const notifyCandidateCreated = ({ data }: { data: { candidateId: string }
   const input = z.object({ candidateId: z.string().uuid() }).parse(data);
   return call<{ ok: true }>("notifyCandidateCreated", input);
 };
+
+export type PushToPortalResult = {
+  ok: true;
+  created: boolean;
+  portalCandidateId: string;
+  accessToken: string | null;
+  pushedAt: string;
+  stage: string;
+};
+
+export const pushCandidateToPortal = ({
+  data,
+}: {
+  data: { deskyCandidateId: string; portalJobId: string };
+}) => {
+  const input = z
+    .object({ deskyCandidateId: z.string().uuid(), portalJobId: z.string().uuid() })
+    .parse(data);
+  return call<PushToPortalResult>("pushCandidateToPortal", input);
+};
