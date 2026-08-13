@@ -50,6 +50,7 @@ const SOURCES = ["LinkedIn", "Referral", "Inbound", "Event", "Other"] as const;
 const SECTORS = ["Tech", "Finance", "Healthcare", "Retail", "Other"] as const;
 
 export function QuickAddButton() {
+  const hasSelection = useHasCandidateSelection();
   const [mode, setMode] = useState<Mode>(null);
   const [noteOpen, setNoteOpen] = useState(false);
   const [noteAutoRecord, setNoteAutoRecord] = useState(false);
