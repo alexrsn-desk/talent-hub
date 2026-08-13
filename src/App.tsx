@@ -38,9 +38,6 @@ import PitchCandidateSelector from "./pages/PitchCandidateSelector";
 import NotFound from "./pages/NotFound";
 import OAuthConsent from "./pages/OAuthConsent";
 import BDContactTracker from "./pages/BDContactTracker";
-import AgencyPortal from "./pages/AgencyPortal";
-import PortalClient from "./pages/PortalClient";
-import PortalCandidate from "./pages/PortalCandidate";
 
 
 const queryClient = new QueryClient();
@@ -88,23 +85,8 @@ function ImportBanner() {
   );
 }
 
-function PublicPortalRoutes() {
-  return (
-    <Routes>
-      <Route path="/portal/:token" element={<PortalClient />} />
-      <Route path="/candidate-portal/:token" element={<PortalCandidate />} />
-    </Routes>
-  );
-}
-
 function AppRoutes() {
   const { user, loading } = useAuth();
-  const path = window.location.pathname;
-
-  // Token-gated external portals — no login required
-  if (path.startsWith("/portal/") || path.startsWith("/candidate-portal/")) {
-    return <PublicPortalRoutes />;
-  }
 
   const [checkingOnboarding, setCheckingOnboarding] = useState(true);
   const [onboardingDone, setOnboardingDone] = useState(false);
@@ -184,7 +166,6 @@ function AppRoutes() {
           <Route path="/jobs/launch" element={<JobLaunchSelector />} />
           <Route path="/jobs/:jobId/compare" element={<CompareSubmit />} />
           <Route path="/jobs/:jobId/launch" element={<JobLaunch />} />
-          <Route path="/agency-portal/:jobId" element={<AgencyPortal />} />
           <Route path="/placements" element={<Placements />} />
           <Route path="/bd-pipeline" element={<BDPipeline />} />
           <Route path="/bd-tracker" element={<BDContactTracker />} />
