@@ -59,7 +59,7 @@ export function CandidateBulkActionBar({ selected, onClear }: BulkActionBarProps
         )}
       </div>
 
-      <button onClick={onClear} className="p-2 rounded-md hover:bg-white/10 transition-colors">
+      <button onClick={onClear} aria-label="Clear selection" className="p-2 rounded-md bg-white/10 border border-white/25 text-white hover:bg-white/20 transition-colors">
         <X className="h-5 w-5" />
       </button>
     </div>
