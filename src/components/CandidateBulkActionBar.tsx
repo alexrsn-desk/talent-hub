@@ -75,7 +75,10 @@ const ActionButton = forwardRef<
       ref={ref}
       variant="outline"
       size="sm"
-      className={cn("border-white/30 text-white hover:bg-white/10 hover:text-white", className)}
+      className={cn(
+        "border-white/25 bg-white/10 text-white hover:bg-white/20 hover:text-white",
+        className
+      )}
       {...props}
     >
       {children}
