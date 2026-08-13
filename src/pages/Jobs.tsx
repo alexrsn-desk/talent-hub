@@ -12,7 +12,6 @@ import { useJobs, useUpdateJob, useDeleteJob, useCandidateJobs, useUpdateCandida
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { NotesSection } from "@/components/NotesSection";
 import { JobPipelineBoard } from "@/components/JobPipelineBoard";
-import { PortalLaunchSection } from "@/components/PortalLaunchSection";
 import { AddJobDialog } from "@/components/AddJobDialog";
 import { ClickToEditField } from "@/components/ClickToEditField";
 import { TagsSection } from "@/components/TagsSection";
@@ -485,13 +484,8 @@ export function JobFullView({ job, onBack, onUpdate, onDelete, backLabel }: {
 
       <LaunchStatusSection jobId={job.id} />
 
-      <PortalLaunchSection
-        jobId={job.id}
-        jobTitle={job.title}
-        clientName={(job.clients as any)?.company_name ?? null}
-        portalJobId={(job as any).portal_job_id ?? null}
-        onUpdate={onUpdate}
-      />
+
+
 
 
 
