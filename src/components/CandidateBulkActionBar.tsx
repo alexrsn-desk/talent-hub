@@ -48,7 +48,7 @@ export function CandidateBulkActionBar({ selected, onClear }: BulkActionBarProps
         {isMobile && (
           <Popover open={moreOpen} onOpenChange={setMoreOpen}>
             <PopoverTrigger asChild>
-              <Button variant="outline" size="sm" className="border-white/30 text-white hover:bg-white/10">
+              <Button variant="outline" size="sm" className="border-white/25 bg-white/10 text-white hover:bg-white/20 hover:text-white">
                 <MoreHorizontal className="h-4 w-4 mr-1" /> More
               </Button>
             </PopoverTrigger>
