@@ -1,7 +1,9 @@
 // Authenticated agency-side portal endpoints (port of agency.server.ts).
-// Writes are scoped to the verified caller.
+// Every read/write runs through the CALLER's own Supabase client (anon key +
+// caller JWT), so RLS on the portal_* tables is what actually enforces
+// ownership. The explicit ownership checks below are kept as defence in depth.
 import { createClient } from "npm:@supabase/supabase-js@2";
-import { admin, dispatchWebhooks } from "../_shared/portal-events.ts";
+import { dispatchWebhooks } from "../_shared/portal-events.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -14,17 +16,20 @@ const json = (body: unknown, status = 200) =>
     headers: { ...corsHeaders, "content-type": "application/json" },
   });
 
+/** Authenticated client scoped to the caller — RLS applies to every query. */
 async function requireUser(req: Request) {
   const authHeader = req.headers.get("Authorization") ?? "";
-  const client = createClient(
+  if (!authHeader.startsWith("Bearer ")) throw new Error("Not authenticated");
+  const token = authHeader.slice("Bearer ".length);
+  const db = createClient(
     Deno.env.get("SUPABASE_URL")!,
     Deno.env.get("SUPABASE_ANON_KEY")!,
     { global: { headers: { Authorization: authHeader } }, auth: { persistSession: false } },
   );
-  const { data, error } = await client.auth.getClaims();
+  const { data, error } = await db.auth.getClaims(token);
   const userId = data?.claims?.sub as string | undefined;
   if (error || !userId) throw new Error("Not authenticated");
-  return userId;
+  return { db, userId };
 }
 
 async function sha256(value: string) {
@@ -35,8 +40,11 @@ async function sha256(value: string) {
     .join("");
 }
 
-async function createApiKey(userId: string, input: { name: string; canWrite: boolean }) {
-  const db = admin();
+// deno-lint-ignore no-explicit-any
+type Db = any;
+
+async function createApiKey(db: Db, userId: string, input: { name: string; canWrite: boolean }) {
+
   const raw = `loop_${crypto.randomUUID().replace(/-/g, "")}${crypto.randomUUID().replace(/-/g, "")}`;
   const { data, error } = await db
     .from("portal_api_keys")
@@ -55,8 +63,8 @@ async function createApiKey(userId: string, input: { name: string; canWrite: boo
   return { ...data, key: raw };
 }
 
-async function emitCandidateCreated(userId: string, candidateId: string) {
-  const db = admin();
+async function emitCandidateCreated(db: Db, userId: string, candidateId: string) {
+
   const { data: candidate } = await db
     .from("portal_candidates")
     .select("id, job_id, name, email, headline, current_stage")
@@ -96,13 +104,14 @@ async function emitCandidateCreated(userId: string, candidateId: string) {
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
   try {
-    const userId = await requireUser(req);
+    const { db, userId } = await requireUser(req);
     const { action, payload } = await req.json();
     switch (action) {
       case "generateApiKey":
-        return json(await createApiKey(userId, payload));
+        return json(await createApiKey(db, userId, payload));
       case "notifyCandidateCreated":
-        return json(await emitCandidateCreated(userId, payload.candidateId));
+        return json(await emitCandidateCreated(db, userId, payload.candidateId));
+
       default:
         return json({ error: "Unknown action" }, 400);
     }
