@@ -102,13 +102,14 @@ async function emitCandidateCreated(db: Db, userId: string, candidateId: string)
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
   try {
-    const userId = await requireUser(req);
+    const { db, userId } = await requireUser(req);
     const { action, payload } = await req.json();
     switch (action) {
       case "generateApiKey":
-        return json(await createApiKey(userId, payload));
+        return json(await createApiKey(db, userId, payload));
       case "notifyCandidateCreated":
-        return json(await emitCandidateCreated(userId, payload.candidateId));
+        return json(await emitCandidateCreated(db, userId, payload.candidateId));
+
       default:
         return json({ error: "Unknown action" }, 400);
     }
