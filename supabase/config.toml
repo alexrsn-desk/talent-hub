@@ -39,3 +39,8 @@ verify_jwt = true
 [functions.sourcewhale-diagnose]
 verify_jwt = false
 
+[functions.portal-public]
+verify_jwt = false
+
+[functions.portal-agency]
+verify_jwt = true

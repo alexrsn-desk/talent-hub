@@ -1875,6 +1875,7 @@ export type Database = {
           launch_summary: Json | null
           location: string | null
           owner_user_id: string | null
+          portal_job_id: string | null
           salary_max: number | null
           salary_min: number | null
           search_launched_at: string | null
@@ -1905,6 +1906,7 @@ export type Database = {
           launch_summary?: Json | null
           location?: string | null
           owner_user_id?: string | null
+          portal_job_id?: string | null
           salary_max?: number | null
           salary_min?: number | null
           search_launched_at?: string | null
@@ -1935,6 +1937,7 @@ export type Database = {
           launch_summary?: Json | null
           location?: string | null
           owner_user_id?: string | null
+          portal_job_id?: string | null
           salary_max?: number | null
           salary_min?: number | null
           search_launched_at?: string | null
@@ -1949,6 +1952,13 @@ export type Database = {
             columns: ["client_id"]
             isOneToOne: false
             referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "jobs_portal_job_id_fkey"
+            columns: ["portal_job_id"]
+            isOneToOne: false
+            referencedRelation: "portal_jobs"
             referencedColumns: ["id"]
           },
         ]
@@ -2496,6 +2506,602 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      portal_agency_settings: {
+        Row: {
+          created_at: string
+          from_email: string | null
+          id: string
+          name: string
+          notification_email: string | null
+          notify_candidate_interview: boolean
+          notify_candidate_rejection: boolean
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          from_email?: string | null
+          id?: string
+          name?: string
+          notification_email?: string | null
+          notify_candidate_interview?: boolean
+          notify_candidate_rejection?: boolean
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          from_email?: string | null
+          id?: string
+          name?: string
+          notification_email?: string | null
+          notify_candidate_interview?: boolean
+          notify_candidate_rejection?: boolean
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      portal_api_keys: {
+        Row: {
+          can_read: boolean
+          can_write: boolean
+          created_at: string
+          id: string
+          key_hash: string
+          key_prefix: string
+          last_used_at: string | null
+          name: string
+          revoked_at: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          can_read?: boolean
+          can_write?: boolean
+          created_at?: string
+          id?: string
+          key_hash: string
+          key_prefix: string
+          last_used_at?: string | null
+          name: string
+          revoked_at?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          can_read?: boolean
+          can_write?: boolean
+          created_at?: string
+          id?: string
+          key_hash?: string
+          key_prefix?: string
+          last_used_at?: string | null
+          name?: string
+          revoked_at?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      portal_candidate_emails: {
+        Row: {
+          body: string
+          candidate_id: string
+          created_at: string
+          error: string | null
+          id: string
+          kind: string
+          status: string
+          subject: string
+          to_email: string | null
+        }
+        Insert: {
+          body: string
+          candidate_id: string
+          created_at?: string
+          error?: string | null
+          id?: string
+          kind: string
+          status?: string
+          subject: string
+          to_email?: string | null
+        }
+        Update: {
+          body?: string
+          candidate_id?: string
+          created_at?: string
+          error?: string | null
+          id?: string
+          kind?: string
+          status?: string
+          subject?: string
+          to_email?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "portal_candidate_emails_candidate_id_fkey"
+            columns: ["candidate_id"]
+            isOneToOne: false
+            referencedRelation: "portal_candidates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      portal_candidate_portals: {
+        Row: {
+          access_token: string
+          candidate_id: string
+          created_at: string
+          id: string
+          interview_details: string | null
+          job_pack: string | null
+          prep_material: string | null
+        }
+        Insert: {
+          access_token?: string
+          candidate_id: string
+          created_at?: string
+          id?: string
+          interview_details?: string | null
+          job_pack?: string | null
+          prep_material?: string | null
+        }
+        Update: {
+          access_token?: string
+          candidate_id?: string
+          created_at?: string
+          id?: string
+          interview_details?: string | null
+          job_pack?: string | null
+          prep_material?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "portal_candidate_portals_candidate_id_fkey"
+            columns: ["candidate_id"]
+            isOneToOne: true
+            referencedRelation: "portal_candidates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      portal_candidates: {
+        Row: {
+          client_notes: string | null
+          created_at: string
+          current_stage: string
+          cv_path: string | null
+          email: string | null
+          headline: string | null
+          id: string
+          job_id: string
+          name: string
+          rejected: boolean
+          updated_at: string
+        }
+        Insert: {
+          client_notes?: string | null
+          created_at?: string
+          current_stage?: string
+          cv_path?: string | null
+          email?: string | null
+          headline?: string | null
+          id?: string
+          job_id: string
+          name: string
+          rejected?: boolean
+          updated_at?: string
+        }
+        Update: {
+          client_notes?: string | null
+          created_at?: string
+          current_stage?: string
+          cv_path?: string | null
+          email?: string | null
+          headline?: string | null
+          id?: string
+          job_id?: string
+          name?: string
+          rejected?: boolean
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "portal_candidates_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "portal_jobs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      portal_client_portals: {
+        Row: {
+          access_token: string
+          availability_slots: Json
+          calendly_url: string | null
+          created_at: string
+          id: string
+          job_id: string
+        }
+        Insert: {
+          access_token?: string
+          availability_slots?: Json
+          calendly_url?: string | null
+          created_at?: string
+          id?: string
+          job_id: string
+        }
+        Update: {
+          access_token?: string
+          availability_slots?: Json
+          calendly_url?: string | null
+          created_at?: string
+          id?: string
+          job_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "portal_client_portals_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: true
+            referencedRelation: "portal_jobs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      portal_feedback: {
+        Row: {
+          candidate_id: string
+          client_email: string | null
+          comment: string
+          created_at: string
+          id: string
+          rating: number | null
+          stage_at_time: string | null
+        }
+        Insert: {
+          candidate_id: string
+          client_email?: string | null
+          comment: string
+          created_at?: string
+          id?: string
+          rating?: number | null
+          stage_at_time?: string | null
+        }
+        Update: {
+          candidate_id?: string
+          client_email?: string | null
+          comment?: string
+          created_at?: string
+          id?: string
+          rating?: number | null
+          stage_at_time?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "portal_feedback_candidate_id_fkey"
+            columns: ["candidate_id"]
+            isOneToOne: false
+            referencedRelation: "portal_candidates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      portal_interview_bookings: {
+        Row: {
+          candidate_id: string
+          created_at: string
+          external_reference: string | null
+          id: string
+          slot: string | null
+          status: string
+        }
+        Insert: {
+          candidate_id: string
+          created_at?: string
+          external_reference?: string | null
+          id?: string
+          slot?: string | null
+          status?: string
+        }
+        Update: {
+          candidate_id?: string
+          created_at?: string
+          external_reference?: string | null
+          id?: string
+          slot?: string | null
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "portal_interview_bookings_candidate_id_fkey"
+            columns: ["candidate_id"]
+            isOneToOne: false
+            referencedRelation: "portal_candidates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      portal_job_notes: {
+        Row: {
+          author_email: string | null
+          author_role: string
+          body: string
+          created_at: string
+          id: string
+          job_id: string
+        }
+        Insert: {
+          author_email?: string | null
+          author_role?: string
+          body: string
+          created_at?: string
+          id?: string
+          job_id: string
+        }
+        Update: {
+          author_email?: string | null
+          author_role?: string
+          body?: string
+          created_at?: string
+          id?: string
+          job_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "portal_job_notes_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "portal_jobs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      portal_job_stage_content: {
+        Row: {
+          created_at: string
+          id: string
+          interview_details: string | null
+          job_id: string
+          prep_material: string | null
+          stage: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          interview_details?: string | null
+          job_id: string
+          prep_material?: string | null
+          stage: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          interview_details?: string | null
+          job_id?: string
+          prep_material?: string | null
+          stage?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "portal_job_stage_content_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "portal_jobs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      portal_jobs: {
+        Row: {
+          client_name: string
+          company_info: string | null
+          created_at: string
+          id: string
+          job_spec: string | null
+          job_spec_filename: string | null
+          job_spec_path: string | null
+          notify_candidate_interview: boolean | null
+          notify_candidate_rejection: boolean | null
+          stages: string[]
+          status: string
+          title: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          client_name: string
+          company_info?: string | null
+          created_at?: string
+          id?: string
+          job_spec?: string | null
+          job_spec_filename?: string | null
+          job_spec_path?: string | null
+          notify_candidate_interview?: boolean | null
+          notify_candidate_rejection?: boolean | null
+          stages?: string[]
+          status?: string
+          title: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          client_name?: string
+          company_info?: string | null
+          created_at?: string
+          id?: string
+          job_spec?: string | null
+          job_spec_filename?: string | null
+          job_spec_path?: string | null
+          notify_candidate_interview?: boolean | null
+          notify_candidate_rejection?: boolean | null
+          stages?: string[]
+          status?: string
+          title?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      portal_notifications: {
+        Row: {
+          body: string | null
+          candidate_id: string | null
+          created_at: string
+          id: string
+          job_id: string | null
+          kind: string
+          read: boolean
+          title: string
+        }
+        Insert: {
+          body?: string | null
+          candidate_id?: string | null
+          created_at?: string
+          id?: string
+          job_id?: string | null
+          kind: string
+          read?: boolean
+          title: string
+        }
+        Update: {
+          body?: string | null
+          candidate_id?: string | null
+          created_at?: string
+          id?: string
+          job_id?: string | null
+          kind?: string
+          read?: boolean
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "portal_notifications_candidate_id_fkey"
+            columns: ["candidate_id"]
+            isOneToOne: false
+            referencedRelation: "portal_candidates"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "portal_notifications_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "portal_jobs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      portal_stage_history: {
+        Row: {
+          candidate_id: string
+          changed_by: string | null
+          created_at: string
+          from_stage: string | null
+          id: string
+          to_stage: string
+        }
+        Insert: {
+          candidate_id: string
+          changed_by?: string | null
+          created_at?: string
+          from_stage?: string | null
+          id?: string
+          to_stage: string
+        }
+        Update: {
+          candidate_id?: string
+          changed_by?: string | null
+          created_at?: string
+          from_stage?: string | null
+          id?: string
+          to_stage?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "portal_stage_history_candidate_id_fkey"
+            columns: ["candidate_id"]
+            isOneToOne: false
+            referencedRelation: "portal_candidates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      portal_webhook_deliveries: {
+        Row: {
+          created_at: string
+          error: string | null
+          event: string
+          id: string
+          payload: Json
+          status_code: number | null
+          webhook_id: string
+        }
+        Insert: {
+          created_at?: string
+          error?: string | null
+          event: string
+          id?: string
+          payload: Json
+          status_code?: number | null
+          webhook_id: string
+        }
+        Update: {
+          created_at?: string
+          error?: string | null
+          event?: string
+          id?: string
+          payload?: Json
+          status_code?: number | null
+          webhook_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "portal_webhook_deliveries_webhook_id_fkey"
+            columns: ["webhook_id"]
+            isOneToOne: false
+            referencedRelation: "portal_webhooks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      portal_webhooks: {
+        Row: {
+          active: boolean
+          created_at: string
+          events: string[]
+          id: string
+          secret: string
+          updated_at: string
+          url: string
+          user_id: string
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          events?: string[]
+          id?: string
+          secret?: string
+          updated_at?: string
+          url: string
+          user_id: string
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          events?: string[]
+          id?: string
+          secret?: string
+          updated_at?: string
+          url?: string
+          user_id?: string
+        }
+        Relationships: []
       }
       quick_notes: {
         Row: {
@@ -3671,6 +4277,11 @@ export type Database = {
         }
         Returns: boolean
       }
+      portal_can_access_candidate: {
+        Args: { _candidate_id: string }
+        Returns: boolean
+      }
+      portal_can_access_job: { Args: { _job_id: string }; Returns: boolean }
     }
     Enums: {
       app_role: "manager" | "consultant" | "solo"

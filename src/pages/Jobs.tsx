@@ -15,6 +15,7 @@ import { JobPipelineBoard } from "@/components/JobPipelineBoard";
 import { AddJobDialog } from "@/components/AddJobDialog";
 import { ClickToEditField } from "@/components/ClickToEditField";
 import { TagsSection } from "@/components/TagsSection";
+import { PortalLaunchSection } from "@/components/PortalLaunchSection";
 import { CandidateMatching } from "@/components/CandidateMatching";
 import { usePlacementScores, usePlacementScoreFor } from "@/hooks/use-placement-scores";
 import { PlacementScoreBadge } from "@/components/PlacementScoreBadge";
@@ -483,6 +484,15 @@ export function JobFullView({ job, onBack, onUpdate, onDelete, backLabel }: {
       <CandidateMatching job={job} autoRun />
 
       <LaunchStatusSection jobId={job.id} />
+
+      <PortalLaunchSection
+        jobId={job.id}
+        portalJobId={(job as any).portal_job_id ?? null}
+        title={job.title}
+        clientName={(job as any).clients?.name ?? null}
+        onLinked={(portalJobId) => onUpdate({ portal_job_id: portalJobId } as any)}
+      />
+
 
 
 
