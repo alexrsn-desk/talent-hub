@@ -89,7 +89,10 @@ export function QuickAddButton() {
         onClick={() => { setNoteAutoRecord(false); setNoteOpen(true); }}
         aria-label="Quick Note (Alt+Shift+N to dictate)"
         title="Quick Note — Alt+Shift+N to dictate"
-        className="fixed z-50 right-[172px] bottom-[calc(env(safe-area-inset-bottom,0px)+1rem)] sm:bottom-4 h-11 w-11 rounded-full bg-primary text-primary-foreground shadow-lg ring-1 ring-black/10 flex items-center justify-center hover:opacity-90 transition"
+        className={cn(
+          "fixed z-50 right-[172px] bottom-[calc(env(safe-area-inset-bottom,0px)+1rem)] sm:bottom-4 h-11 w-11 rounded-full bg-primary text-primary-foreground shadow-lg ring-1 ring-black/10 flex items-center justify-center hover:opacity-90 transition",
+          hasSelection && "opacity-0 pointer-events-none translate-y-2 scale-90"
+        )}
       >
         <Pencil className="h-4 w-4" />
       </button>
@@ -98,7 +101,10 @@ export function QuickAddButton() {
         onClick={() => setMode("record_picker")}
         aria-label="Quick Add"
         title="Quick Add"
-        className="fixed z-50 right-[120px] bottom-[calc(env(safe-area-inset-bottom,0px)+1rem)] sm:bottom-4 h-11 w-11 rounded-full bg-primary text-primary-foreground shadow-lg ring-1 ring-black/10 flex items-center justify-center hover:opacity-90 transition"
+        className={cn(
+          "fixed z-50 right-[120px] bottom-[calc(env(safe-area-inset-bottom,0px)+1rem)] sm:bottom-4 h-11 w-11 rounded-full bg-primary text-primary-foreground shadow-lg ring-1 ring-black/10 flex items-center justify-center hover:opacity-90 transition",
+          hasSelection && "opacity-0 pointer-events-none translate-y-2 scale-90"
+        )}
       >
         <Plus className="h-4 w-4" />
       </button>
