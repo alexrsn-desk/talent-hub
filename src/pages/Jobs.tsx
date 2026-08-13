@@ -485,13 +485,8 @@ export function JobFullView({ job, onBack, onUpdate, onDelete, backLabel }: {
 
       <LaunchStatusSection jobId={job.id} />
 
-      <PortalLaunchSection
-        jobId={job.id}
-        jobTitle={job.title}
-        clientName={(job.clients as any)?.company_name ?? null}
-        portalJobId={(job as any).portal_job_id ?? null}
-        onUpdate={onUpdate}
-      />
+
+
 
 
 
