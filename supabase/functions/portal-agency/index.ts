@@ -61,8 +61,8 @@ async function createApiKey(db: Db, userId: string, input: { name: string; canWr
   return { ...data, key: raw };
 }
 
-async function emitCandidateCreated(userId: string, candidateId: string) {
-  const db = admin();
+async function emitCandidateCreated(db: Db, userId: string, candidateId: string) {
+
   const { data: candidate } = await db
     .from("portal_candidates")
     .select("id, job_id, name, email, headline, current_stage")
