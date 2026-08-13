@@ -314,6 +314,8 @@ export function CandidateDetail({ candidate, onUpdate, onDelete }: Props) {
                 </a>
               )}
               {!isDNC && <CallPrepButton entityType="candidate" entityId={candidate.id} entityName={candidate.name} />}
+              <PushToPortalButton candidateId={candidate.id} clientReadyNotes={candidate.client_ready_notes} />
+
               {isDNC ? (
                 <Tooltip>
                   <TooltipTrigger asChild>
