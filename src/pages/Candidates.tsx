@@ -679,6 +679,13 @@ export default function CandidatesPage() {
 
   const selectedCandidates = filtered.filter(c => selectedIds.has(c.id));
 
+  // Sync multi-select count to the global store so unrelated UI (e.g. the
+  // floating Quick Add button) can hide itself while a selection is active.
+  useEffect(() => {
+    setCandidateSelectionCount(selectedCandidates.length);
+    return () => setCandidateSelectionCount(0);
+  }, [selectedCandidates.length]);
+
   const handleCreate = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const fd = new FormData(e.currentTarget);
