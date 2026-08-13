@@ -48,7 +48,7 @@ export function CandidateBulkActionBar({ selected, onClear }: BulkActionBarProps
         {isMobile && (
           <Popover open={moreOpen} onOpenChange={setMoreOpen}>
             <PopoverTrigger asChild>
-              <Button variant="outline" size="sm" className="border-white/30 text-white hover:bg-white/10">
+              <Button variant="outline" size="sm" className="border-white/25 bg-white/10 text-white hover:bg-white/20 hover:text-white">
                 <MoreHorizontal className="h-4 w-4 mr-1" /> More
               </Button>
             </PopoverTrigger>
@@ -59,7 +59,7 @@ export function CandidateBulkActionBar({ selected, onClear }: BulkActionBarProps
         )}
       </div>
 
-      <button onClick={onClear} className="p-2 rounded-md hover:bg-white/10 transition-colors">
+      <button onClick={onClear} aria-label="Clear selection" className="p-2 rounded-md bg-white/10 border border-white/25 text-white hover:bg-white/20 transition-colors">
         <X className="h-5 w-5" />
       </button>
     </div>
@@ -75,7 +75,10 @@ const ActionButton = forwardRef<
       ref={ref}
       variant="outline"
       size="sm"
-      className={cn("border-white/30 text-white hover:bg-white/10 hover:text-white", className)}
+      className={cn(
+        "border-white/25 bg-white/10 text-white hover:bg-white/20 hover:text-white",
+        className
+      )}
       {...props}
     >
       {children}
