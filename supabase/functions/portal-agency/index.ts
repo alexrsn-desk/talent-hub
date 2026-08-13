@@ -19,12 +19,14 @@ const json = (body: unknown, status = 200) =>
 /** Authenticated client scoped to the caller — RLS applies to every query. */
 async function requireUser(req: Request) {
   const authHeader = req.headers.get("Authorization") ?? "";
+  if (!authHeader.startsWith("Bearer ")) throw new Error("Not authenticated");
+  const token = authHeader.slice("Bearer ".length);
   const db = createClient(
     Deno.env.get("SUPABASE_URL")!,
     Deno.env.get("SUPABASE_ANON_KEY")!,
     { global: { headers: { Authorization: authHeader } }, auth: { persistSession: false } },
   );
-  const { data, error } = await db.auth.getClaims();
+  const { data, error } = await db.auth.getClaims(token);
   const userId = data?.claims?.sub as string | undefined;
   if (error || !userId) throw new Error("Not authenticated");
   return { db, userId };
