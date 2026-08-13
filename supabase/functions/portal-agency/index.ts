@@ -1,7 +1,9 @@
 // Authenticated agency-side portal endpoints (port of agency.server.ts).
-// Writes are scoped to the verified caller.
+// Every read/write runs through the CALLER's own Supabase client (anon key +
+// caller JWT), so RLS on the portal_* tables is what actually enforces
+// ownership. The explicit ownership checks below are kept as defence in depth.
 import { createClient } from "npm:@supabase/supabase-js@2";
-import { admin, dispatchWebhooks } from "../_shared/portal-events.ts";
+import { dispatchWebhooks } from "../_shared/portal-events.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -14,17 +16,18 @@ const json = (body: unknown, status = 200) =>
     headers: { ...corsHeaders, "content-type": "application/json" },
   });
 
+/** Authenticated client scoped to the caller — RLS applies to every query. */
 async function requireUser(req: Request) {
   const authHeader = req.headers.get("Authorization") ?? "";
-  const client = createClient(
+  const db = createClient(
     Deno.env.get("SUPABASE_URL")!,
     Deno.env.get("SUPABASE_ANON_KEY")!,
     { global: { headers: { Authorization: authHeader } }, auth: { persistSession: false } },
   );
-  const { data, error } = await client.auth.getClaims();
+  const { data, error } = await db.auth.getClaims();
   const userId = data?.claims?.sub as string | undefined;
   if (error || !userId) throw new Error("Not authenticated");
-  return userId;
+  return { db, userId };
 }
 
 async function sha256(value: string) {
@@ -35,8 +38,11 @@ async function sha256(value: string) {
     .join("");
 }
 
-async function createApiKey(userId: string, input: { name: string; canWrite: boolean }) {
-  const db = admin();
+// deno-lint-ignore no-explicit-any
+type Db = any;
+
+async function createApiKey(db: Db, userId: string, input: { name: string; canWrite: boolean }) {
+
   const raw = `loop_${crypto.randomUUID().replace(/-/g, "")}${crypto.randomUUID().replace(/-/g, "")}`;
   const { data, error } = await db
     .from("portal_api_keys")
