@@ -20,6 +20,8 @@ import { ClientReadyNotes } from "@/components/ClientReadyNotes";
 import { CandidateJobLinks } from "@/components/CandidateJobLinks";
 import { LogTouchpointModal } from "@/components/LogTouchpointModal";
 import { CallPrepButton } from "@/components/CallPrep";
+import { PushToPortalButton } from "@/components/PushToPortalButton";
+
 import { ClickToEditField } from "@/components/ClickToEditField";
 import { SummaryField } from "@/components/SummaryField";
 import { TagsSection } from "@/components/TagsSection";
