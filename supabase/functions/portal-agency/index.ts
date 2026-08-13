@@ -101,6 +101,131 @@ async function emitCandidateCreated(db: Db, userId: string, candidateId: string)
   return { ok: true };
 }
 
+/** Map a Desky pipeline stage onto the portal job's own stage list. */
+function mapStage(deskyStage: string | null, stages: string[]): string {
+  const list = stages?.length ? stages : ["Longlist"];
+  if (!deskyStage) return list[0];
+  const norm = (s: string) => s.toLowerCase().replace(/[^a-z]/g, "");
+  const exact = list.find((s) => norm(s) === norm(deskyStage));
+  if (exact) return exact;
+  const partial = list.find(
+    (s) => norm(s).includes(norm(deskyStage)) || norm(deskyStage).includes(norm(s)),
+  );
+  return partial ?? list[0];
+}
+
+/**
+ * Push (or update) a Desky candidate onto a job's client portal.
+ * Runs on the caller's RLS-scoped client, so ownership of both the Desky
+ * candidate and the portal job is enforced by the database.
+ */
+async function pushCandidateToPortal(
+  db: Db,
+  userId: string,
+  input: { deskyCandidateId: string; portalJobId: string },
+) {
+  const { data: candidate } = await db
+    .from("candidates")
+    .select("id, name, first_name, last_name, email, job_title, cv_file_url, client_ready_notes")
+    .eq("id", input.deskyCandidateId)
+    .maybeSingle();
+  if (!candidate) throw new Error("Candidate not found");
+
+  const { data: job } = await db
+    .from("portal_jobs")
+    .select("id, user_id, title, client_name, stages")
+    .eq("id", input.portalJobId)
+    .maybeSingle();
+  if (!job || job.user_id !== userId) throw new Error("Portal not found for this job");
+
+  // Current Desky pipeline stage for this candidate on the linked Desky job.
+  const { data: link } = await db
+    .from("candidate_jobs")
+    .select("stage, jobs!inner(portal_job_id)")
+    .eq("candidate_id", candidate.id)
+    .eq("jobs.portal_job_id", job.id)
+    .maybeSingle();
+
+  const fullName =
+    [candidate.first_name, candidate.last_name].filter(Boolean).join(" ").trim() ||
+    candidate.name;
+
+  const row = {
+    job_id: job.id,
+    desky_candidate_id: candidate.id,
+    name: fullName,
+    email: candidate.email,
+    headline: candidate.job_title,
+    cv_path: candidate.cv_file_url,
+    client_notes: candidate.client_ready_notes,
+    current_stage: mapStage(link?.stage ?? null, job.stages ?? []),
+    pushed_at: new Date().toISOString(),
+  };
+
+  const { data: existing } = await db
+    .from("portal_candidates")
+    .select("id")
+    .eq("job_id", job.id)
+    .eq("desky_candidate_id", candidate.id)
+    .maybeSingle();
+
+  let portalCandidateId: string;
+  let created = false;
+
+  if (existing) {
+    const { data, error } = await db
+      .from("portal_candidates")
+      .update(row)
+      .eq("id", existing.id)
+      .select("id")
+      .single();
+    if (error) throw new Error(error.message);
+    portalCandidateId = data.id;
+  } else {
+    const { data, error } = await db
+      .from("portal_candidates")
+      .insert(row)
+      .select("id")
+      .single();
+    if (error) throw new Error(error.message);
+    portalCandidateId = data.id;
+    created = true;
+  }
+
+  // Ensure the candidate's own portal link exists.
+  const { data: cp } = await db
+    .from("portal_candidate_portals")
+    .select("access_token")
+    .eq("candidate_id", portalCandidateId)
+    .maybeSingle();
+
+  let accessToken: string | null = cp?.access_token ?? null;
+  if (!accessToken) {
+    const { data: inserted, error } = await db
+      .from("portal_candidate_portals")
+      .insert({ candidate_id: portalCandidateId })
+      .select("access_token")
+      .single();
+    if (error) throw new Error(error.message);
+    accessToken = inserted.access_token;
+  }
+
+  if (created) {
+    await emitCandidateCreated(db, userId, portalCandidateId).catch((e) =>
+      console.error("candidate.created emit failed", e),
+    );
+  }
+
+  return {
+    ok: true as const,
+    created,
+    portalCandidateId,
+    accessToken,
+    pushedAt: row.pushed_at,
+    stage: row.current_stage,
+  };
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
   try {
@@ -111,6 +236,9 @@ Deno.serve(async (req) => {
         return json(await createApiKey(db, userId, payload));
       case "notifyCandidateCreated":
         return json(await emitCandidateCreated(db, userId, payload.candidateId));
+      case "pushCandidateToPortal":
+        return json(await pushCandidateToPortal(db, userId, payload));
+
 
       default:
         return json({ error: "Unknown action" }, 400);

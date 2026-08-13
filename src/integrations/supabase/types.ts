@@ -2673,11 +2673,13 @@ export type Database = {
           created_at: string
           current_stage: string
           cv_path: string | null
+          desky_candidate_id: string | null
           email: string | null
           headline: string | null
           id: string
           job_id: string
           name: string
+          pushed_at: string | null
           rejected: boolean
           updated_at: string
         }
@@ -2686,11 +2688,13 @@ export type Database = {
           created_at?: string
           current_stage?: string
           cv_path?: string | null
+          desky_candidate_id?: string | null
           email?: string | null
           headline?: string | null
           id?: string
           job_id: string
           name: string
+          pushed_at?: string | null
           rejected?: boolean
           updated_at?: string
         }
@@ -2699,11 +2703,13 @@ export type Database = {
           created_at?: string
           current_stage?: string
           cv_path?: string | null
+          desky_candidate_id?: string | null
           email?: string | null
           headline?: string | null
           id?: string
           job_id?: string
           name?: string
+          pushed_at?: string | null
           rejected?: boolean
           updated_at?: string
         }
