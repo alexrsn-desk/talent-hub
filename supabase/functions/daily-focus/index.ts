@@ -311,24 +311,24 @@ serve(async (req) => {
     }
     eligible.sort((a, b) => b.urgency - a.urgency);
 
-    // Mark aged-out items suppressed / resolve items that no longer apply
+    // Mark aged-out items suppressed; resolve tracked items whose situation has cleared
     if (userId) {
-      const agedKeys = new Set(agedOut.map((a) => a.item_key));
+      const agedKeys = agedOut.map((a) => a.item_key);
+      if (agedKeys.length > 0) {
+        await sb.from("brief_item_history").update({ suppressed: true }).eq("user_id", userId).in("item_key", agedKeys);
+      }
+      const { data: openRows } = await sb
+        .from("brief_item_history")
+        .select("item_key")
+        .eq("user_id", userId)
+        .is("resolved_at", null);
       const liveKeys = new Set(keys);
-      await Promise.all([
-        ...(agedKeys.size > 0
-          ? [sb.from("brief_item_history").update({ suppressed: true }).eq("user_id", userId).in("item_key", [...agedKeys])]
-          : []),
-        // anything previously tracked but no longer present has genuinely cleared
-        sb.from("brief_item_history").update({ resolved_at: now.toISOString(), suppressed: false })
-          .eq("user_id", userId).is("resolved_at", null)
-          .then(async (res: any) => res),
-      ]);
-      // re-open rows that are still live (the blanket resolve above would have closed them)
-      if (liveKeys.size > 0) {
-        await sb.from("brief_item_history").update({ resolved_at: null }).eq("user_id", userId).in("item_key", [...liveKeys]);
+      const clearedKeys = (openRows || []).map((r: any) => r.item_key).filter((k: string) => !liveKeys.has(k));
+      if (clearedKeys.length > 0) {
+        await sb.from("brief_item_history").update({ resolved_at: now.toISOString() }).eq("user_id", userId).in("item_key", clearedKeys);
       }
     }
+
 
 
 
