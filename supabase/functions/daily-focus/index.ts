@@ -538,6 +538,9 @@ Return JSON with EXACTLY this shape:
     parsed.aged_out = agedOut;
 
     return new Response(JSON.stringify(parsed), {
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+
 
   } catch (e) {
     console.error("daily-focus error:", e);
