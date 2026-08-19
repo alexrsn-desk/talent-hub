@@ -17,6 +17,16 @@ serve(async (req) => {
     if (!lovableKey) throw new Error("LOVABLE_API_KEY not configured");
 
     const sb = createClient(supabaseUrl, supabaseKey);
+
+    // Identify the caller so brief-item aging is tracked per user
+    let userId: string | null = null;
+    const authHeader = req.headers.get("Authorization") || "";
+    const token = authHeader.replace(/^Bearer\s+/i, "");
+    if (token) {
+      const { data: userData } = await sb.auth.getUser(token);
+      userId = userData?.user?.id ?? null;
+    }
+
     const now = new Date();
     const today = now.toISOString().split("T")[0];
     const twoDaysAgo = new Date(now.getTime() - 2 * 86400000).toISOString().split("T")[0];
