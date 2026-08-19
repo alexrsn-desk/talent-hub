@@ -175,6 +175,57 @@ export type Database = {
           },
         ]
       }
+      brief_item_history: {
+        Row: {
+          created_at: string
+          entity_id: string | null
+          entity_type: string | null
+          fingerprint: string
+          first_surfaced_at: string
+          id: string
+          item_key: string
+          label: string
+          last_shown_at: string | null
+          resolved_at: string | null
+          suppressed: boolean
+          times_shown: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          entity_id?: string | null
+          entity_type?: string | null
+          fingerprint: string
+          first_surfaced_at?: string
+          id?: string
+          item_key: string
+          label: string
+          last_shown_at?: string | null
+          resolved_at?: string | null
+          suppressed?: boolean
+          times_shown?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          entity_id?: string | null
+          entity_type?: string | null
+          fingerprint?: string
+          first_surfaced_at?: string
+          id?: string
+          item_key?: string
+          label?: string
+          last_shown_at?: string | null
+          resolved_at?: string | null
+          suppressed?: boolean
+          times_shown?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       bucket_items: {
         Row: {
           added_at: string
