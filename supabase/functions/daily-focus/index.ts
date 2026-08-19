@@ -101,7 +101,7 @@ serve(async (req) => {
     const placedCandidates = cjs.filter((cj: any) => cj.stage === "Placed");
 
     // AMBER FLAGS data
-    const openJobs = allJobs.filter((j: any) => j.status === "Open");
+    const openJobs = allJobs.filter((j: any) => ["Active", "Open"].includes(j.status));
     const jobsNoSubmissions = openJobs.filter((j: any) => {
       const jobCjs = cjs.filter((cj: any) => cj.job_id === j.id);
       const submitted = jobCjs.some((cj: any) =>
