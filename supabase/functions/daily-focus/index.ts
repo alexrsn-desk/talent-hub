@@ -188,6 +188,150 @@ serve(async (req) => {
     const hour = now.getHours();
     const timeOfDay = hour < 12 ? "morning" : hour < 17 ? "afternoon" : "evening";
 
+    // ── BRIEF ITEM AGING ────────────────────────────────────────────────
+    // Identify the discrete signals that could appear in the brief text, give each a
+    // stable key + a fingerprint of the underlying situation. A signal may appear in the
+    // brief text for a maximum of 2 consecutive generations while nothing changes.
+    type BriefItem = {
+      item_key: string;
+      label: string;
+      entity_type: string | null;
+      entity_id: string | null;
+      fingerprint: string;
+      urgency: number; // higher = more urgent
+    };
+
+    const lastNoteFor = (candidateId: string) =>
+      notes.find((n: any) => n.candidate_id === candidateId)?.created_at?.split("T")[0] || "none";
+    const lastJobNoteFor = (jobId: string) =>
+      notes.find((n: any) => n.job_id === jobId)?.created_at?.split("T")[0] || "none";
+    const daysSince = (d?: string | null) =>
+      d ? Math.max(0, Math.floor((now.getTime() - new Date(d).getTime()) / 86400000)) : 0;
+
+    const briefItems: BriefItem[] = [];
+
+    for (const cj of offerWithNoRecentActivity) {
+      briefItems.push({
+        item_key: `offer:${cj.id}`,
+        label: `${cj.candidates?.name} at Offer on ${cj.jobs?.title}${cj.jobs?.clients?.company_name ? ` (${cj.jobs.clients.company_name})` : ""} — ${daysSince(cj.stage_changed_at || cj.created_at)} days with no update`,
+        entity_type: "candidate",
+        entity_id: cj.candidate_id,
+        fingerprint: `${cj.stage}|${lastNoteFor(cj.candidate_id)}|${cj.stage_changed_at || ""}`,
+        urgency: 100,
+      });
+    }
+
+    for (const cj of feedbackOverdue) {
+      briefItems.push({
+        item_key: `feedback:${cj.id}`,
+        label: `${cj.candidates?.name}'s CV sat with ${cj.jobs?.clients?.company_name || "the client"} for ${daysSince(cj.stage_changed_at || cj.created_at)} days with no feedback`,
+        entity_type: "candidate",
+        entity_id: cj.candidate_id,
+        fingerprint: `${cj.stage}|${lastNoteFor(cj.candidate_id)}|${cj.stage_changed_at || ""}`,
+        urgency: 85,
+      });
+    }
+
+    for (const cj of interviewNoPrepToday) {
+      briefItems.push({
+        item_key: `interview:${cj.id}`,
+        label: `${cj.candidates?.name} interviews for ${cj.jobs?.title} — no prep logged`,
+        entity_type: "candidate",
+        entity_id: cj.candidate_id,
+        fingerprint: `${cj.stage}|${lastNoteFor(cj.candidate_id)}`,
+        urgency: 90,
+      });
+    }
+
+    for (const j of openJobs) {
+      const active = cjs.filter((cj: any) => cj.job_id === j.id && ACTIVE_STAGES.includes(cj.stage));
+      if (active.length > 2) continue;
+      briefItems.push({
+        item_key: `pipeline:${j.id}`,
+        label: `${j.title}${j.clients?.company_name ? ` at ${j.clients.company_name}` : ""} has ${active.length} live candidate${active.length === 1 ? "" : "s"}`,
+        entity_type: "job",
+        entity_id: j.id,
+        fingerprint: `${active.length}|${lastJobNoteFor(j.id)}`,
+        urgency: active.length === 0 ? 80 : 60,
+      });
+    }
+
+    for (const b of bdFollowupsOverdue as any[]) {
+      briefItems.push({
+        item_key: `bd:${b.company}:${b.dueDate}`,
+        label: `${b.company} BD follow-up ${b.daysOverdue} days overdue${b.action ? ` — ${b.action}` : ""}`,
+        entity_type: "client",
+        entity_id: null,
+        fingerprint: `${b.dueDate}|${b.daysOverdue > 0 ? "overdue" : "ok"}`,
+        urgency: 70,
+      });
+    }
+
+    for (const r of reengageCandidatesDue) {
+      briefItems.push({
+        item_key: `reengage-cand:${r.name}:${r.reengageDate}`,
+        label: `${r.name} is due a re-engage call (${r.daysOverdue} days past)`,
+        entity_type: "candidate",
+        entity_id: null,
+        fingerprint: `${r.reengageDate}|${r.lastSpoke || "none"}`,
+        urgency: 65,
+      });
+    }
+
+    // Load history for these items and decide eligibility
+    const keys = briefItems.map((i) => i.item_key);
+    let history: any[] = [];
+    if (userId && keys.length > 0) {
+      const { data } = await sb
+        .from("brief_item_history")
+        .select("*")
+        .eq("user_id", userId)
+        .in("item_key", keys);
+      history = data || [];
+    }
+    const historyByKey = new Map(history.map((h: any) => [h.item_key, h]));
+
+    const eligible: BriefItem[] = [];
+    const agedOut: any[] = [];
+    for (const item of briefItems) {
+      const h = historyByKey.get(item.item_key);
+      const changed = !h || h.fingerprint !== item.fingerprint;
+      const shown = changed ? 0 : h.times_shown || 0;
+      if (shown >= 2) {
+        agedOut.push({
+          item_key: item.item_key,
+          label: item.label,
+          entity_type: item.entity_type,
+          entity_id: item.entity_id,
+          days_open: daysSince(h.first_surfaced_at),
+        });
+      } else {
+        eligible.push(item);
+      }
+    }
+    eligible.sort((a, b) => b.urgency - a.urgency);
+
+    // Mark aged-out items suppressed / resolve items that no longer apply
+    if (userId) {
+      const agedKeys = new Set(agedOut.map((a) => a.item_key));
+      const liveKeys = new Set(keys);
+      await Promise.all([
+        ...(agedKeys.size > 0
+          ? [sb.from("brief_item_history").update({ suppressed: true }).eq("user_id", userId).in("item_key", [...agedKeys])]
+          : []),
+        // anything previously tracked but no longer present has genuinely cleared
+        sb.from("brief_item_history").update({ resolved_at: now.toISOString(), suppressed: false })
+          .eq("user_id", userId).is("resolved_at", null)
+          .then(async (res: any) => res),
+      ]);
+      // re-open rows that are still live (the blanket resolve above would have closed them)
+      if (liveKeys.size > 0) {
+        await sb.from("brief_item_history").update({ resolved_at: null }).eq("user_id", userId).in("item_key", [...liveKeys]);
+      }
+    }
+
+
+
     const deskSnapshot = {
       timeOfDay,
       date: today,
