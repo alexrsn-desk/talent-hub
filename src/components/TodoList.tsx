@@ -8,10 +8,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useTodos, useCreateTodo, useUpdateTodo, useDeleteTodo, type TodoTask } from "@/hooks/use-todos";
 import { useAllUnactionedSignals, useUpdateSignalStatus, useFeedbackSignal, type CallSignal } from "@/hooks/use-signals";
 import { useCandidateJobs, useClients, useTodayFollowUps, useOverdueFollowUps, useTodayInterviews, useCandidates } from "@/hooks/use-data";
+import { useAgedOutBriefItems, useResolveBriefItem } from "@/hooks/use-brief-items";
 import { toast } from "sonner";
 
 // ── Types ──────────────────────────────────────────────
-type AIActionSource = "Signal" | "Pipeline" | "BD" | "Coach" | "Call Prep" | "Sequence";
+type AIActionSource = "Signal" | "Pipeline" | "BD" | "Coach" | "Call Prep" | "Sequence" | "Still Open";
 
 type AIAction = {
   id: string;
@@ -24,6 +25,8 @@ type AIAction = {
   entityType: "candidate" | "client";
   entityId: string;
   signalId?: string;
+  briefItemId?: string;
+  daysOpen?: number;
   // Sequence-only fields (populated when source === "Sequence")
   sequenceName?: string;
   sequenceStep?: number;
@@ -65,6 +68,7 @@ function useAIActions(): AIAction[] {
   const { data: candidates = [] } = useCandidates();
   const { data: overdueFollowups = [] } = useOverdueFollowUps();
   const { data: todayInterviews = [] } = useTodayInterviews();
+  const { data: agedOut = [] } = useAgedOutBriefItems();
 
   return useMemo(() => {
     const actions: AIAction[] = [];
@@ -212,12 +216,31 @@ function useAIActions(): AIAction[] {
       }
     }
 
-    // Sort: red first, then amber, then green, then sequence. Within same, oldest first.
+    // 9. Items that aged out of the morning brief — rephrased, not restated
+    for (const item of agedOut) {
+      const days = daysAgo(item.first_surfaced_at);
+      actions.push({
+        id: `stale-${item.id}`,
+        contactName: item.label,
+        company: "",
+        action: `Still open — ${days} day${days === 1 ? "" : "s"}: did you action this?`,
+        reason: "Surfaced in your brief twice with nothing changing since.",
+        urgency: "amber",
+        source: "Still Open",
+        entityType: item.entity_type === "client" ? "client" : "candidate",
+        entityId: item.entity_id || "",
+        briefItemId: item.id,
+        daysOpen: days,
+      });
+    }
+
+    // Sort: red first, then amber, then green, then sequence. Within same, longest-open first.
     const urgencyOrder: Record<AIAction["urgency"], number> = { red: 0, amber: 1, green: 2, sequence: 3 };
-    actions.sort((a, b) => urgencyOrder[a.urgency] - urgencyOrder[b.urgency]);
+    actions.sort((a, b) =>
+      urgencyOrder[a.urgency] - urgencyOrder[b.urgency] || (b.daysOpen || 0) - (a.daysOpen || 0));
 
     return actions;
-  }, [signals, candidateJobs, clients, candidates, overdueFollowups, todayInterviews]);
+  }, [signals, candidateJobs, clients, candidates, overdueFollowups, todayInterviews, agedOut]);
 }
 
 // ── Source tag colors ──────────────────────────────────
@@ -228,6 +251,7 @@ const sourceColors: Record<AIActionSource, string> = {
   Coach: "bg-violet-400/20 text-violet-400",
   "Call Prep": "bg-emerald-400/20 text-emerald-400",
   Sequence: "bg-teal-400/20 text-teal-400",
+  "Still Open": "bg-orange-400/20 text-orange-400",
 };
 
 // Group/section labels and colors keyed by source
@@ -238,6 +262,7 @@ const sourceGroupMeta: Record<AIActionSource, { label: string; headerClass: stri
   Signal: { label: "Call Signals", headerClass: "text-yellow-400", dotClass: "bg-yellow-400" },
   Coach: { label: "Coach Recommendations", headerClass: "text-violet-400", dotClass: "bg-violet-400" },
   "Call Prep": { label: "Call Prep", headerClass: "text-emerald-400", dotClass: "bg-emerald-400" },
+  "Still Open": { label: "Still Open", headerClass: "text-orange-400", dotClass: "bg-orange-400" },
 };
 
 const urgencyColors: Record<string, string> = {
@@ -403,6 +428,7 @@ function AIActionsSegment() {
   const [groupMode, setGroupMode] = useState<GroupMode>("priority");
   const [focusedIndex, setFocusedIndex] = useState(0);
   const createTodo = useCreateTodo();
+  const resolveBriefItem = useResolveBriefItem();
 
   const visible = aiActions.filter(a => !dismissedIds.has(a.id));
   const sequenceActions = visible.filter(a => a.source === "Sequence" && !skippedIds.has(a.id));
@@ -410,6 +436,9 @@ function AIActionsSegment() {
 
   const handleDismiss = (action: AIAction, reason: "done" | "not_relevant") => {
     setDismissedIds(prev => new Set(prev).add(action.id));
+    if (action.briefItemId) {
+      resolveBriefItem.mutate(action.briefItemId);
+    }
     if (action.signalId) {
       if (reason === "done") {
         updateSignalStatus.mutate({ id: action.signalId, status: "actioned" });
@@ -459,7 +488,7 @@ function AIActionsSegment() {
   // ── Build groups for "type" mode ───────────────────────
   const groupedByType: { source: AIActionSource; actions: AIAction[] }[] = [];
   if (groupMode === "type") {
-    const order: AIActionSource[] = ["Sequence", "Pipeline", "Signal", "BD", "Coach", "Call Prep"];
+    const order: AIActionSource[] = ["Still Open", "Sequence", "Pipeline", "Signal", "BD", "Coach", "Call Prep"];
     for (const src of order) {
       const items = visible.filter(a => a.source === src);
       if (items.length > 0) groupedByType.push({ source: src, actions: items });

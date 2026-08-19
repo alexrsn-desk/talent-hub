@@ -17,6 +17,16 @@ serve(async (req) => {
     if (!lovableKey) throw new Error("LOVABLE_API_KEY not configured");
 
     const sb = createClient(supabaseUrl, supabaseKey);
+
+    // Identify the caller so brief-item aging is tracked per user
+    let userId: string | null = null;
+    const authHeader = req.headers.get("Authorization") || "";
+    const token = authHeader.replace(/^Bearer\s+/i, "");
+    if (token) {
+      const { data: userData } = await sb.auth.getUser(token);
+      userId = userData?.user?.id ?? null;
+    }
+
     const now = new Date();
     const today = now.toISOString().split("T")[0];
     const twoDaysAgo = new Date(now.getTime() - 2 * 86400000).toISOString().split("T")[0];
@@ -91,7 +101,7 @@ serve(async (req) => {
     const placedCandidates = cjs.filter((cj: any) => cj.stage === "Placed");
 
     // AMBER FLAGS data
-    const openJobs = allJobs.filter((j: any) => j.status === "Open");
+    const openJobs = allJobs.filter((j: any) => ["Active", "Open"].includes(j.status));
     const jobsNoSubmissions = openJobs.filter((j: any) => {
       const jobCjs = cjs.filter((cj: any) => cj.job_id === j.id);
       const submitted = jobCjs.some((cj: any) =>
@@ -188,6 +198,150 @@ serve(async (req) => {
     const hour = now.getHours();
     const timeOfDay = hour < 12 ? "morning" : hour < 17 ? "afternoon" : "evening";
 
+    // ── BRIEF ITEM AGING ────────────────────────────────────────────────
+    // Identify the discrete signals that could appear in the brief text, give each a
+    // stable key + a fingerprint of the underlying situation. A signal may appear in the
+    // brief text for a maximum of 2 consecutive generations while nothing changes.
+    type BriefItem = {
+      item_key: string;
+      label: string;
+      entity_type: string | null;
+      entity_id: string | null;
+      fingerprint: string;
+      urgency: number; // higher = more urgent
+    };
+
+    const lastNoteFor = (candidateId: string) =>
+      notes.find((n: any) => n.candidate_id === candidateId)?.created_at?.split("T")[0] || "none";
+    const lastJobNoteFor = (jobId: string) =>
+      notes.find((n: any) => n.job_id === jobId)?.created_at?.split("T")[0] || "none";
+    const daysSince = (d?: string | null) =>
+      d ? Math.max(0, Math.floor((now.getTime() - new Date(d).getTime()) / 86400000)) : 0;
+
+    const briefItems: BriefItem[] = [];
+
+    for (const cj of offerWithNoRecentActivity) {
+      briefItems.push({
+        item_key: `offer:${cj.id}`,
+        label: `${cj.candidates?.name} at Offer on ${cj.jobs?.title}${cj.jobs?.clients?.company_name ? ` (${cj.jobs.clients.company_name})` : ""} — ${daysSince(cj.stage_changed_at || cj.created_at)} days with no update`,
+        entity_type: "candidate",
+        entity_id: cj.candidate_id,
+        fingerprint: `${cj.stage}|${lastNoteFor(cj.candidate_id)}|${cj.stage_changed_at || ""}`,
+        urgency: 100,
+      });
+    }
+
+    for (const cj of feedbackOverdue) {
+      briefItems.push({
+        item_key: `feedback:${cj.id}`,
+        label: `${cj.candidates?.name}'s CV sat with ${cj.jobs?.clients?.company_name || "the client"} for ${daysSince(cj.stage_changed_at || cj.created_at)} days with no feedback`,
+        entity_type: "candidate",
+        entity_id: cj.candidate_id,
+        fingerprint: `${cj.stage}|${lastNoteFor(cj.candidate_id)}|${cj.stage_changed_at || ""}`,
+        urgency: 85,
+      });
+    }
+
+    for (const cj of interviewNoPrepToday) {
+      briefItems.push({
+        item_key: `interview:${cj.id}`,
+        label: `${cj.candidates?.name} interviews for ${cj.jobs?.title} — no prep logged`,
+        entity_type: "candidate",
+        entity_id: cj.candidate_id,
+        fingerprint: `${cj.stage}|${lastNoteFor(cj.candidate_id)}`,
+        urgency: 90,
+      });
+    }
+
+    for (const j of openJobs) {
+      const active = cjs.filter((cj: any) => cj.job_id === j.id && ACTIVE_STAGES.includes(cj.stage));
+      if (active.length > 2) continue;
+      briefItems.push({
+        item_key: `pipeline:${j.id}`,
+        label: `${j.title}${j.clients?.company_name ? ` at ${j.clients.company_name}` : ""} has ${active.length} live candidate${active.length === 1 ? "" : "s"}`,
+        entity_type: "job",
+        entity_id: j.id,
+        fingerprint: `${active.length}|${lastJobNoteFor(j.id)}`,
+        urgency: active.length === 0 ? 80 : 60,
+      });
+    }
+
+    for (const b of bdFollowupsOverdue as any[]) {
+      briefItems.push({
+        item_key: `bd:${b.company}:${b.dueDate}`,
+        label: `${b.company} BD follow-up ${b.daysOverdue} days overdue${b.action ? ` — ${b.action}` : ""}`,
+        entity_type: "client",
+        entity_id: null,
+        fingerprint: `${b.dueDate}|${b.daysOverdue > 0 ? "overdue" : "ok"}`,
+        urgency: 70,
+      });
+    }
+
+    for (const r of reengageCandidatesDue) {
+      briefItems.push({
+        item_key: `reengage-cand:${r.name}:${r.reengageDate}`,
+        label: `${r.name} is due a re-engage call (${r.daysOverdue} days past)`,
+        entity_type: "candidate",
+        entity_id: null,
+        fingerprint: `${r.reengageDate}|${r.lastSpoke || "none"}`,
+        urgency: 65,
+      });
+    }
+
+    // Load history for these items and decide eligibility
+    const keys = briefItems.map((i) => i.item_key);
+    let history: any[] = [];
+    if (userId && keys.length > 0) {
+      const { data } = await sb
+        .from("brief_item_history")
+        .select("*")
+        .eq("user_id", userId)
+        .in("item_key", keys);
+      history = data || [];
+    }
+    const historyByKey = new Map(history.map((h: any) => [h.item_key, h]));
+
+    const eligible: BriefItem[] = [];
+    const agedOut: any[] = [];
+    for (const item of briefItems) {
+      const h = historyByKey.get(item.item_key);
+      const changed = !h || h.fingerprint !== item.fingerprint;
+      const shown = changed ? 0 : h.times_shown || 0;
+      if (shown >= 2) {
+        agedOut.push({
+          item_key: item.item_key,
+          label: item.label,
+          entity_type: item.entity_type,
+          entity_id: item.entity_id,
+          days_open: daysSince(h.first_surfaced_at),
+        });
+      } else {
+        eligible.push(item);
+      }
+    }
+    eligible.sort((a, b) => b.urgency - a.urgency);
+
+    // Mark aged-out items suppressed; resolve tracked items whose situation has cleared
+    if (userId) {
+      const agedKeys = agedOut.map((a) => a.item_key);
+      if (agedKeys.length > 0) {
+        await sb.from("brief_item_history").update({ suppressed: true }).eq("user_id", userId).in("item_key", agedKeys);
+      }
+      const { data: openRows } = await sb
+        .from("brief_item_history")
+        .select("item_key")
+        .eq("user_id", userId)
+        .is("resolved_at", null);
+      const liveKeys = new Set(keys);
+      const clearedKeys = (openRows || []).map((r: any) => r.item_key).filter((k: string) => !liveKeys.has(k));
+      if (clearedKeys.length > 0) {
+        await sb.from("brief_item_history").update({ resolved_at: now.toISOString() }).eq("user_id", userId).in("item_key", clearedKeys);
+      }
+    }
+
+
+
+
     const deskSnapshot = {
       timeOfDay,
       date: today,
@@ -263,28 +417,38 @@ serve(async (req) => {
       },
     };
 
-    const systemPrompt = `You are a sharp, encouraging senior recruiter coaching a solo biller. This is a MORNING COACHING PROMPT, not a status report. Point them at the highest-leverage move toward revenue TODAY.
+    const systemPrompt = `You are a sharp senior recruiter giving a solo biller a spoken 15-second brief. This is a BRIEFING, not a report.
 
-Rules:
-- Lead with ONE clear action prompt framed around what to DO to move toward revenue — not a status statement. Good: "Get 3 live candidates into [Job Title] at [Company] — newly opened, no submissions yet." Bad: "You have 0 submissions on [Job]."
-- Then 2-3 supporting prompts in the same coaching tone. Reuse derived-action signals from the data: an offer sitting quiet → nudge; recent interview → next-step; recent conversation → pitch/BD move; thin pipeline on a specific job → source into it.
-- Be specific — use real names, job titles, companies from the snapshot. Never invent data.
-- Be careful with absence-based claims. If something is "no record found" (e.g. no note logged, no follow-up entered), frame it as a gentle check-in prompt ("Worth a quick check on [Name] at offer — anything moved?"), NOT a factual accusation. Only include absence prompts when they map to a real revenue action; skip admin-hygiene nagging.
-- Tone: sharp, warm, colleague-like. No hedging ("perhaps", "consider"). No system-speak ("your database shows"). No emojis. No lists inside prompts — one crisp sentence each.
-- If the desk is genuinely clean, coach them toward the best offensive move (BD call, sourcing a specific open role, reactivating a warm candidate) — never say "nothing to do".
+HARD LENGTH CAP — non-negotiable:
+- Maximum 3 short lines of prose. No bullet points, no sections, no lists.
+- Line 1 (required): the single most important thing to do now, with why, in one sentence.
+- Line 2 (optional): the second most important thing — ONLY if genuinely distinct and urgent. Omit entirely otherwise.
+- Line 3 (optional): one brief positive note if something genuinely deserves flagging (a reply landed, a placement progressed). Omit rather than pad.
+- Never mention more than 2 action items in total. Everything else belongs in AI Actions, not the brief.
+
+Content rules:
+- You may ONLY build action lines from the "eligibleItems" list provided. Ignore anything not in that list for the action lines — those items have aged out of the brief on purpose.
+- Be specific: real names, job titles, companies. Never invent data.
+- Frame absence-based facts as a check-in, not an accusation.
+- Tone: sharp, warm, colleague-like. No hedging, no system-speak, no emojis.
+- If eligibleItems is empty, give one line coaching the best offensive move from the snapshot (BD call, sourcing a specific role, reactivating a warm candidate).
 
 Return JSON with EXACTLY this shape:
 {
   "greeting": "Short time-of-day greeting, one line",
-  "lead_action": { "prompt": "The single highest-leverage coaching prompt for today", "why": "One short line — why this moves revenue" },
-  "supporting_actions": [
-    { "prompt": "Second action prompt", "why": "Short reason" },
-    { "prompt": "Third action prompt", "why": "Short reason" }
-  ],
-  "bottom_line": "Same as lead_action.prompt — kept for compatibility"
-}
+  "lead_action": { "prompt": "The single most important thing to do now — one sentence including why" },
+  "second_action": { "prompt": "Second action, or null" },
+  "positive_note": "One short positive line, or null",
+  "used_keys": ["item_key values you referenced in lead_action/second_action"],
+  "bottom_line": "Same as lead_action.prompt"
+}`;
 
-supporting_actions must have 2 or 3 items. Every prompt must be a directive ("Get…", "Push…", "Nudge…", "Check in with…", "Line up…") — never a bare statement of fact.`;
+    const briefPayload = {
+      timeOfDay,
+      date: today,
+      eligibleItems: eligible.slice(0, 8).map((i) => ({ item_key: i.item_key, summary: i.label })),
+      snapshot: deskSnapshot,
+    };
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
@@ -296,7 +460,7 @@ supporting_actions must have 2 or 3 items. Every prompt must be a directive ("Ge
         model: "google/gemini-3-flash-preview",
         messages: [
           { role: "system", content: systemPrompt },
-          { role: "user", content: `Here is the full desk snapshot for today:\n\n${JSON.stringify(deskSnapshot, null, 2)}` },
+          { role: "user", content: `Desk data:\n\n${JSON.stringify(briefPayload, null, 2)}` },
         ],
         response_format: { type: "json_object" },
       }),
@@ -326,15 +490,58 @@ supporting_actions must have 2 or 3 items. Every prompt must be a directive ("Ge
     try {
       parsed = JSON.parse(content);
     } catch {
-      parsed = { greeting: "Good " + timeOfDay, lead_action: null, supporting_actions: [], bottom_line: content || "Check your desk." };
+      parsed = { greeting: "Good " + timeOfDay, lead_action: null, bottom_line: content || "Check your desk." };
     }
     if (parsed?.lead_action?.prompt && !parsed.bottom_line) {
       parsed.bottom_line = parsed.lead_action.prompt;
     }
+    // Enforce the cap server-side too
+    parsed.supporting_actions = [];
+    if (parsed.second_action && !parsed.second_action.prompt) parsed.second_action = null;
+
+    // Record which items were actually shown in the brief text (max 2 consecutive shows)
+    const usedKeys: string[] = Array.isArray(parsed.used_keys)
+      ? parsed.used_keys.filter((k: any) => typeof k === "string").slice(0, 2)
+      : eligible.slice(0, 2).map((i) => i.item_key);
+
+    if (userId) {
+      const nowIso = now.toISOString();
+      const rows = briefItems
+        .filter((i) => keys.includes(i.item_key))
+        .map((i) => {
+          const h = historyByKey.get(i.item_key);
+          const changed = !h || h.fingerprint !== i.fingerprint;
+          const wasUsed = usedKeys.includes(i.item_key);
+          const prevShown = changed ? 0 : h?.times_shown || 0;
+          return {
+            user_id: userId,
+            item_key: i.item_key,
+            label: i.label,
+            entity_type: i.entity_type,
+            entity_id: i.entity_id,
+            fingerprint: i.fingerprint,
+            first_surfaced_at: changed ? nowIso : h.first_surfaced_at,
+            last_shown_at: wasUsed ? nowIso : h?.last_shown_at ?? null,
+            times_shown: prevShown + (wasUsed ? 1 : 0),
+            suppressed: !changed && prevShown + (wasUsed ? 1 : 0) >= 2,
+            resolved_at: null,
+          };
+        });
+      if (rows.length > 0) {
+        const { error: upsertErr } = await sb
+          .from("brief_item_history")
+          .upsert(rows, { onConflict: "user_id,item_key" });
+        if (upsertErr) console.error("brief_item_history upsert error:", upsertErr);
+      }
+    }
+
+    parsed.aged_out = agedOut;
 
     return new Response(JSON.stringify(parsed), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
+
+
   } catch (e) {
     console.error("daily-focus error:", e);
     return new Response(JSON.stringify({ error: e instanceof Error ? e.message : "Unknown error" }), {

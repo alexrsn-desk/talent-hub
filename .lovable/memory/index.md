@@ -20,3 +20,4 @@ Name fields: first_name/last_name separate, display full name, AI uses first nam
 - [Decay alerts](mem://features/decay-alerts) — relationship decay scan, contact-reason rules, AI draft, coach framing
 - [Client Portal board](mem://features/client-portal-board) — /portal/:token board, own theme, portal_ tables, visibility wall
 - [Portal Manager + Candidate Portal](mem://features/portal-manager) — /jobs/:jobId/portal manager tabs, /candidate/:token portal, candidate_portals, notify toggles
+- [Morning brief](mem://features/morning-brief) — 3-line brief cap, brief_item_history staleness rule, Still Open AI Actions
