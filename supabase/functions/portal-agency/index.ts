@@ -319,7 +319,7 @@ async function jobForEmail(db: Db, jobId: string) {
   const { data, error } = await db
     .from("portal_jobs")
     .select(
-      "id, user_id, title, client_name, stages, rejection_email_mode, notify_candidate_interview, notify_candidate_rejection",
+      "id, user_id, title, client_name, stages, rejection_email_mode, rejection_send_mode, rejection_template, rejection_ai_guidance, notify_candidate_interview, notify_candidate_rejection",
     )
     .eq("id", jobId)
     .maybeSingle();
@@ -327,6 +327,49 @@ async function jobForEmail(db: Db, jobId: string) {
   if (!data) throw new Error("Job not found");
   return data;
 }
+
+/* --------------------------- APPROVAL QUEUE ------------------------------ */
+
+/** Send a held rejection email. Only ever acts on rows still awaiting approval. */
+async function approvePendingEmail(db: Db, input: { emailId: string; discard?: boolean }) {
+  const { data: row } = await db
+    .from("portal_candidate_emails")
+    .select("id, candidate_id, to_email, subject, body, status")
+    .eq("id", input.emailId)
+    .eq("status", "awaiting_approval")
+    .maybeSingle();
+  if (!row) throw new Error("That email is no longer awaiting approval");
+
+  if (input.discard) {
+    const { error } = await db
+      .from("portal_candidate_emails")
+      .update({ status: "discarded" })
+      .eq("id", row.id)
+      .eq("status", "awaiting_approval");
+    if (error) throw new Error(error.message);
+    return { ok: true as const, sent: false };
+  }
+
+  if (!row.to_email) throw new Error("This candidate has no email address");
+
+  const { data: candidate } = await db
+    .from("portal_candidates")
+    .select("job_id")
+    .eq("id", row.candidate_id)
+    .maybeSingle();
+  const job = candidate ? await jobForEmail(db, candidate.job_id) : null;
+
+  const sent = await sendRaw(db, row.to_email, row.subject, row.body, job?.user_id ?? null);
+  const { error } = await db
+    .from("portal_candidate_emails")
+    .update({ status: sent.ok ? "sent" : "error", error: sent.error })
+    .eq("id", row.id)
+    .eq("status", "awaiting_approval");
+  if (error) throw new Error(error.message);
+  if (!sent.ok) throw new Error(sent.error ?? "Could not send");
+  return { ok: true as const, sent: true };
+}
+
 
 async function bulkSendEmails(
   db: Db,
