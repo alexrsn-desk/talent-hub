@@ -33,6 +33,7 @@ import ReactivationCampaign from "./pages/ReactivationCampaign";
 import JobLaunch from "./pages/JobLaunch";
 import JobLaunchSelector from "./pages/JobLaunchSelector";
 import AskDesky from "./pages/AskDesky";
+import SignalsPage from "./pages/Signals";
 import CompareSubmitSelector from "./pages/CompareSubmitSelector";
 import PitchCandidateSelector from "./pages/PitchCandidateSelector";
 import NotFound from "./pages/NotFound";
@@ -180,6 +181,7 @@ function AppRoutes() {
           <Route path="/" element={<Dashboard />} />
           <Route path="/billers-workflow" element={<BillersWorkflow />} />
           <Route path="/live" element={<LiveConversations />} />
+          <Route path="/signals" element={<SignalsPage />} />
           <Route path="/candidates" element={<CandidatesHub />} />
           <Route path="/candidates/:candidateId/pitch" element={<PitchCandidate />} />
           <Route path="/pitch" element={<PitchCandidateSelector />} />

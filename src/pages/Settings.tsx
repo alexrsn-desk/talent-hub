@@ -18,6 +18,7 @@ import { ScreeningTemplateSettings } from "@/components/ScreeningTemplateSetting
 import { WebhookSettingsSection } from "@/components/WebhookSettings";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { SignalConfigurationSection } from "@/components/SignalConfiguration";
+import { SignalScoringSettings } from "@/components/SignalScoringSettings";
 import { TeamSection } from "@/components/TeamSection";
 import { JoinTeamButton } from "@/components/JoinTeamButton";
 import { DecaySettingsSection } from "@/components/DecaySettingsSection";
@@ -375,6 +376,8 @@ export default function SettingsPage() {
       </div>
 
       {/* Signal Configuration */}
+      <SignalScoringSettings />
+
       <SignalConfigurationSection />
 
       {/* Relationship decay alerts */}
