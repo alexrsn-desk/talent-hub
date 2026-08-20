@@ -20,6 +20,19 @@ async function call<T>(action: string, payload: unknown): Promise<T> {
 
 export type Slot = { id: string; label: string };
 
+export type PortalFeedback = {
+  id: string;
+  candidate_id?: string;
+  client_email: string | null;
+  stage_at_time: string | null;
+  comment: string;
+  rating: number | null;
+  created_at: string;
+  author_role: string;
+  reply_to: string | null;
+  updated_at: string | null;
+};
+
 export type ClientPortalData = {
   job: {
     id: string;
@@ -37,14 +50,7 @@ export type ClientPortalData = {
     currentStage: string;
     rejected: boolean;
     cvUrl: string | null;
-    feedback: {
-      id: string;
-      client_email: string | null;
-      stage_at_time: string | null;
-      comment: string;
-      rating: number | null;
-      created_at: string;
-    }[];
+    feedback: PortalFeedback[];
   }[];
   scheduling: { calendlyUrl: string | null; slots: Slot[] };
   notes: {
@@ -70,13 +76,14 @@ export type CandidatePortalData = {
     title: string;
     clientName: string;
     companyInfo: string | null;
+    companyWebsite: string | null;
+  };
+  stages: { label: string; raw: string; reached: boolean; current: boolean }[];
+  pack: {
+    jobPack: string | null;
     jobSpec: string | null;
     jobSpecUrl: string | null;
     jobSpecFilename: string | null;
-  };
-  stages: { label: string; reached: boolean; current: boolean }[];
-  pack: {
-    jobPack: string | null;
     prepMaterial: string | null;
     interviewDetails: string | null;
   };
@@ -123,6 +130,7 @@ export const clientAddFeedback = ({
     stage: string;
     rating?: number | null;
     clientEmail?: string | null;
+    replyTo?: string | null;
   };
 }) => {
   const input = z
@@ -133,9 +141,34 @@ export const clientAddFeedback = ({
       stage: z.string(),
       rating: z.number().int().min(1).max(5).nullable().optional(),
       clientEmail: z.string().email().nullable().optional(),
+      replyTo: z.string().nullable().optional(),
     })
     .parse(data);
   return call<{ ok: true }>("addFeedback", input);
+};
+
+/** Clients edit their own comments only — ownership is checked server-side by email. */
+export const clientEditFeedback = ({
+  data,
+}: {
+  data: {
+    token: string;
+    feedbackId: string;
+    comment: string;
+    rating?: number | null;
+    clientEmail?: string | null;
+  };
+}) => {
+  const input = z
+    .object({
+      token: z.string(),
+      feedbackId: z.string(),
+      comment: z.string().min(1).max(4000),
+      rating: z.number().int().min(1).max(5).nullable().optional(),
+      clientEmail: z.string().email().nullable().optional(),
+    })
+    .parse(data);
+  return call<{ ok: true }>("clientEditFeedback", input);
 };
 
 export const clientSaveScheduling = ({
