@@ -153,18 +153,20 @@ export function useMonitoredCount() {
     queryKey: ["monitored-count", user?.id],
     enabled: !!user,
     queryFn: async () => {
+      const db = supabase as any;
       const [cands, cons] = await Promise.all([
-        supabase
+        db
           .from("candidates")
           .select("id", { count: "exact", head: true })
           .eq("owner_user_id", user!.id)
-          .eq("monitored" as any, true),
-        supabase
+          .eq("monitored", true),
+        db
           .from("contacts")
           .select("id", { count: "exact", head: true })
           .eq("owner_user_id", user!.id)
-          .eq("monitored" as any, true),
+          .eq("monitored", true),
       ]);
+
       return (cands.count || 0) + (cons.count || 0);
     },
   });
