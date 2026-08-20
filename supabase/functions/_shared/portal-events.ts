@@ -84,6 +84,34 @@ type EmailRow = {
   body: string;
 };
 
+/** Send one email through Resend. Returns the outcome without logging it. */
+export async function sendRaw(
+  db: Db,
+  to: string,
+  subject: string,
+  body: string,
+  ownerUserId?: string | null,
+): Promise<{ ok: boolean; error: string | null }> {
+  const key = Deno.env.get("RESEND_API_KEY");
+  if (!key) return { ok: false, error: "no email provider configured" };
+  const settings = await agencySettings(db, ownerUserId);
+  try {
+    const res = await fetch("https://api.resend.com/emails", {
+      method: "POST",
+      headers: { authorization: `Bearer ${key}`, "content-type": "application/json" },
+      body: JSON.stringify({
+        from: settings?.from_email || "onboarding@resend.dev",
+        to: [to],
+        subject,
+        text: body,
+      }),
+    });
+    return { ok: res.ok, error: res.ok ? null : `provider responded ${res.status}` };
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : "send failed" };
+  }
+}
+
 /** Send via Resend when configured, and always log the attempt. */
 export async function deliver(db: Db, row: EmailRow, ownerUserId?: string | null) {
   if (!row.to_email) {
@@ -92,37 +120,20 @@ export async function deliver(db: Db, row: EmailRow, ownerUserId?: string | null
       .insert({ ...row, status: "skipped", error: "candidate has no email address" });
     return;
   }
-  const key = Deno.env.get("RESEND_API_KEY");
-  if (!key) {
+  const sent = await sendRaw(db, row.to_email, row.subject, row.body, ownerUserId);
+  if (!sent.ok && sent.error === "no email provider configured") {
     await db
       .from("portal_candidate_emails")
-      .insert({ ...row, status: "pending", error: "no email provider configured" });
+      .insert({ ...row, status: "pending", error: sent.error });
     return;
   }
-  const settings = await agencySettings(db, ownerUserId);
-  try {
-    const res = await fetch("https://api.resend.com/emails", {
-      method: "POST",
-      headers: { authorization: `Bearer ${key}`, "content-type": "application/json" },
-      body: JSON.stringify({
-        from: settings?.from_email || "onboarding@resend.dev",
-        to: [row.to_email],
-        subject: row.subject,
-        text: row.body,
-      }),
-    });
-    const ok = res.ok;
-    await db.from("portal_candidate_emails").insert({
-      ...row,
-      status: ok ? "sent" : "error",
-      error: ok ? null : `provider responded ${res.status}`,
-    });
-  } catch (e) {
-    await db
-      .from("portal_candidate_emails")
-      .insert({ ...row, status: "error", error: e instanceof Error ? e.message : "send failed" });
-  }
+  await db.from("portal_candidate_emails").insert({
+    ...row,
+    status: sent.ok ? "sent" : "error",
+    error: sent.error,
+  });
 }
+
 
 
 /* -------------------------------- AI LAYER -------------------------------- */
