@@ -9,6 +9,7 @@ import {
   CandidateEmailBulkBar,
   CandidateEmailPreview,
 } from "@/components/portal/AgencyEmailPanels";
+import { AutoSaveTextarea, CollapsibleBox } from "@/components/portal/CollapsibleBox";
 import { PortalAppShell } from "@/components/portal/PortalAppShell";
 import { supabase } from "@/integrations/supabase/client";
 import { notifyCandidateCreated, setRejectionEmailMode } from "@/lib/agency.functions";
@@ -68,7 +69,7 @@ export default function AgencyPortalJob() {
       const { data, error } = await supabase
         .from("portal_candidates")
         .select(
-          "*, portal_candidate_portals(id, access_token, job_pack, prep_material, interview_details)",
+          "*, portal_candidate_portals(id, access_token, job_pack, prep_material, interview_details, include_job_spec)",
         )
         .eq("job_id", jobId)
         .order("created_at");
@@ -108,7 +109,10 @@ export default function AgencyPortalJob() {
         : null;
       const { error: pErr } = await supabase.from("portal_candidate_portals").insert({
         candidate_id: data.id,
-        job_pack: source?.job_pack ?? job.data?.job_spec ?? null,
+        job_pack:
+          source?.job_pack ??
+          [job.data?.job_spec, job.data?.pack_extra].filter(Boolean).join("\n\n") ??
+          null,
         prep_material: source?.prep_material ?? null,
         interview_details: source?.interview_details ?? null,
       });
@@ -154,6 +158,12 @@ export default function AgencyPortalJob() {
     mutationFn: async (patch: {
       company_info?: string;
       job_spec?: string;
+      pack_extra?: string;
+      title?: string;
+      client_name?: string;
+      rejection_send_mode?: string;
+      rejection_template?: string;
+      rejection_ai_guidance?: string;
       stages?: string[];
       notify_candidate_interview?: boolean | null;
       notify_candidate_rejection?: boolean | null;
@@ -171,7 +181,12 @@ export default function AgencyPortalJob() {
   const savePack = useMutation({
     mutationFn: async (input: {
       id: string;
-      patch: { job_pack?: string; prep_material?: string; interview_details?: string };
+      patch: {
+        job_pack?: string;
+        prep_material?: string;
+        interview_details?: string;
+        include_job_spec?: boolean;
+      };
     }) => {
       const { error } = await supabase
         .from("portal_candidate_portals")
@@ -226,11 +241,27 @@ export default function AgencyPortalJob() {
       </Link>
 
       <div className="mt-4 flex flex-wrap items-end justify-between gap-4">
-        <div>
-          <p className="text-xs font-medium uppercase tracking-wide text-accent">
-            {job.data.client_name}
-          </p>
-          <h1 className="text-3xl font-semibold">{job.data.title}</h1>
+        <div className="w-full max-w-2xl">
+          <input
+            key={`client-${job.data.client_name}`}
+            defaultValue={job.data.client_name}
+            aria-label="Client name"
+            onBlur={(e) => {
+              const v = e.target.value.trim();
+              if (v && v !== job.data?.client_name) saveJob.mutate({ client_name: v });
+            }}
+            className="w-full rounded-md border border-transparent bg-transparent px-1 py-0.5 text-xs font-medium uppercase tracking-wide text-accent outline-none hover:border-border focus:border-input focus:bg-card"
+          />
+          <input
+            key={`title-${job.data.title}`}
+            defaultValue={job.data.title}
+            aria-label="Job title"
+            onBlur={(e) => {
+              const v = e.target.value.trim();
+              if (v && v !== job.data?.title) saveJob.mutate({ title: v });
+            }}
+            className="mt-1 w-full rounded-md border border-transparent bg-transparent px-1 py-0.5 text-3xl font-semibold outline-none hover:border-border focus:border-input focus:bg-card"
+          />
         </div>
       </div>
 
@@ -279,7 +310,7 @@ export default function AgencyPortalJob() {
             <label className="text-sm font-medium">Job spec</label>
             <textarea
               defaultValue={job.data.job_spec ?? ""}
-              rows={6}
+              rows={3}
               onBlur={(e) => saveJob.mutate({ job_spec: e.target.value })}
               className="mt-1 w-full rounded-lg border border-input bg-card px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring"
             />
@@ -316,6 +347,14 @@ export default function AgencyPortalJob() {
             </p>
           </div>
 
+          <AutoSaveTextarea
+            label="Extra detail for job pack"
+            value={job.data.pack_extra}
+            rows={4}
+            onSave={(v) => saveJob.mutate({ pack_extra: v })}
+            helper="Added automatically to the job pack of every new candidate on this job (editable later on each candidate)."
+          />
+
           <div>
             <label className="text-sm font-medium">Pipeline stages (comma separated)</label>
             <input
@@ -331,7 +370,8 @@ export default function AgencyPortalJob() {
               className="mt-1 w-full rounded-lg border border-input bg-card px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring"
             />
             <p className="mt-1 text-xs text-muted-foreground">
-              Rejected is always available as a side-state.
+              Rejected is always available as a side-state. These are the stages that will appear
+              in the client portal.
             </p>
           </div>
         </div>
