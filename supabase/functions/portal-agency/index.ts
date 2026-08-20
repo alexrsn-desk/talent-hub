@@ -3,7 +3,13 @@
 // caller JWT), so RLS on the portal_* tables is what actually enforces
 // ownership. The explicit ownership checks below are kept as defence in depth.
 import { createClient } from "npm:@supabase/supabase-js@2";
-import { dispatchWebhooks } from "../_shared/portal-events.ts";
+import {
+  buildInterviewEmail,
+  buildRejectionEmail,
+  dispatchWebhooks,
+  sendCustomEmail,
+  sendRejectionEmailNow,
+} from "../_shared/portal-events.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -417,8 +423,20 @@ Deno.serve(async (req) => {
         return json(await emitCandidateCreated(db, userId, payload.candidateId));
       case "pushCandidateToPortal":
         return json(await pushCandidateToPortal(db, userId, payload));
-
-
+      case "loadCandidateFeedback":
+        return json(await loadCandidateFeedback(db, payload.candidateId));
+      case "addAgencyReply":
+        return json(await addAgencyReply(db, payload));
+      case "editFeedback":
+        return json(await editFeedback(db, payload));
+      case "setRejectionEmailMode":
+        return json(await setRejectionEmailMode(db, payload));
+      case "bulkSendEmails":
+        return json(await bulkSendEmails(db, payload));
+      case "previewInterviewEmail":
+        return json(await previewInterviewEmail(db, payload));
+      case "previewRejectionEmail":
+        return json(await previewRejectionEmail(db, payload));
       default:
         return json({ error: "Unknown action" }, 400);
     }
