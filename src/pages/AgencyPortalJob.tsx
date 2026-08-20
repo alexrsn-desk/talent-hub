@@ -21,7 +21,6 @@ function copy(url: string) {
 export default function AgencyPortalJob() {
   const { jobId = "" } = useParams();
   const qc = useQueryClient();
-  const [expanded, setExpanded] = useState<string | null>(null);
   const [newName, setNewName] = useState("");
   const [newEmail, setNewEmail] = useState("");
   const [newHeadline, setNewHeadline] = useState("");
@@ -485,11 +484,24 @@ export default function AgencyPortalJob() {
           {candidates.data?.map((c) => {
             const rel = c.portal_candidate_portals as any;
             const portal = Array.isArray(rel) ? rel[0] : rel;
-            const isOpen = expanded === c.id;
+            const openTab = panel?.id === c.id ? panel.tab : null;
+            const isChecked = selected.includes(c.id);
             return (
               <div key={c.id} className="panel p-5">
                 <div className="flex flex-wrap items-center justify-between gap-3">
-                  <div>
+                  <div className="flex items-start gap-3">
+                    <input
+                      type="checkbox"
+                      checked={isChecked}
+                      aria-label={`Select ${c.name}`}
+                      onChange={(e) =>
+                        setSelected((prev) =>
+                          e.target.checked ? [...prev, c.id] : prev.filter((x) => x !== c.id),
+                        )
+                      }
+                      className="mt-1"
+                    />
+                    <div>
                     <p className="font-medium">{c.name}</p>
                     <p className="text-sm text-muted-foreground">
                       {c.headline ?? "—"} ·{" "}
@@ -497,6 +509,7 @@ export default function AgencyPortalJob() {
                         {c.rejected ? "Rejected" : c.current_stage}
                       </span>
                     </p>
+                    </div>
                   </div>
                   <div className="flex items-center gap-2">
                     {portal && (
@@ -507,16 +520,29 @@ export default function AgencyPortalJob() {
                         <Copy className="size-4" /> Candidate link
                       </button>
                     )}
-                    <button
-                      onClick={() => setExpanded(isOpen ? null : c.id)}
-                      className="rounded-lg bg-secondary px-3 py-2 text-sm font-medium hover:bg-muted"
-                    >
-                      {isOpen ? "Close" : "Job pack"}
-                    </button>
+                    {(
+                      [
+                        ["pack", "Job pack"],
+                        ["feedback", "Feedback"],
+                        ["emails", "Emails"],
+                      ] as const
+                    ).map(([tab, label]) => (
+                      <button
+                        key={tab}
+                        onClick={() => setPanel(openTab === tab ? null : { id: c.id, tab })}
+                        className={`rounded-lg px-3 py-2 text-sm font-medium ${
+                          openTab === tab
+                            ? "bg-primary text-primary-foreground"
+                            : "bg-secondary hover:bg-muted"
+                        }`}
+                      >
+                        {label}
+                      </button>
+                    ))}
                   </div>
                 </div>
 
-                {isOpen && portal && (
+                {openTab === "pack" && portal && (
                   <div className="mt-5 grid gap-4 border-t border-border pt-5">
                     <div>
                       <label className="text-sm font-medium">Job pack</label>
@@ -563,10 +589,39 @@ export default function AgencyPortalJob() {
                     </p>
                   </div>
                 )}
+
+                {openTab === "feedback" && (
+                  <div className="mt-5 border-t border-border pt-5">
+                    <AgencyFeedbackThread
+                      candidateId={c.id}
+                      currentStage={c.current_stage}
+                      stages={job.data?.stages ?? []}
+                    />
+                  </div>
+                )}
+
+                {openTab === "emails" && (
+                  <div className="mt-5 border-t border-border pt-5">
+                    <CandidateEmailPreview
+                      candidateId={c.id}
+                      currentStage={c.current_stage}
+                      stages={job.data?.stages ?? []}
+                    />
+                  </div>
+                )}
               </div>
             );
           })}
         </div>
+
+        <CandidateEmailBulkBar
+          candidateIds={selected}
+          onClear={() => setSelected([])}
+          onSent={() => {
+            setSelected([]);
+            qc.invalidateQueries({ queryKey: ["portal-candidates", jobId] });
+          }}
+        />
       </section>
     </PortalAppShell>
   );
