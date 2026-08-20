@@ -4,9 +4,14 @@ import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { toast } from "sonner";
 
+import { AgencyFeedbackThread } from "@/components/portal/AgencyFeedbackThread";
+import {
+  CandidateEmailBulkBar,
+  CandidateEmailPreview,
+} from "@/components/portal/AgencyEmailPanels";
 import { PortalAppShell } from "@/components/portal/PortalAppShell";
 import { supabase } from "@/integrations/supabase/client";
-import { notifyCandidateCreated } from "@/lib/agency.functions";
+import { notifyCandidateCreated, setRejectionEmailMode } from "@/lib/agency.functions";
 
 function copy(url: string) {
   navigator.clipboard.writeText(url);
@@ -23,6 +28,10 @@ export default function AgencyPortalJob() {
   const [newClientNotes, setNewClientNotes] = useState("");
   const [cvFile, setCvFile] = useState<File | null>(null);
   const [copyFrom, setCopyFrom] = useState("");
+  const [selected, setSelected] = useState<string[]>([]);
+  const [panel, setPanel] = useState<{ id: string; tab: "pack" | "feedback" | "emails" } | null>(
+    null,
+  );
 
   useEffect(() => {
     document.title = "Job pipeline — Agency Portal";
@@ -174,6 +183,15 @@ export default function AgencyPortalJob() {
     onSuccess: () => {
       toast.success("Portal updated");
       qc.invalidateQueries({ queryKey: ["portal-candidates", jobId] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const rejectionMode = useMutation({
+    mutationFn: (mode: "template" | "ai") => setRejectionEmailMode({ data: { jobId, mode } }),
+    onSuccess: () => {
+      toast.success("Rejection wording updated");
+      qc.invalidateQueries({ queryKey: ["portal-job", jobId] });
     },
     onError: (e: Error) => toast.error(e.message),
   });
@@ -341,6 +359,35 @@ export default function AgencyPortalJob() {
             fallback={agencyDefaults.data?.notify_candidate_rejection ?? false}
             onChange={(v) => saveJob.mutate({ notify_candidate_rejection: v })}
           />
+
+          <div className="rounded-lg bg-surface p-4">
+            <p className="text-sm font-medium">Rejection email wording</p>
+            <p className="mt-1 text-xs text-muted-foreground">
+              Template is identical every time. AI writes a short, kind note tailored to the role
+              and how far they got — never quoting client feedback.
+            </p>
+            <div className="mt-3 flex gap-2">
+              {(
+                [
+                  ["template", "Template"],
+                  ["ai", "AI worded"],
+                ] as const
+              ).map(([key, text]) => (
+                <button
+                  key={key}
+                  type="button"
+                  onClick={() => rejectionMode.mutate(key)}
+                  className={`rounded-lg px-3 py-1.5 text-xs font-medium ${
+                    (job.data?.rejection_email_mode ?? "template") === key
+                      ? "bg-primary text-primary-foreground"
+                      : "border border-input hover:bg-secondary"
+                  }`}
+                >
+                  {text}
+                </button>
+              ))}
+            </div>
+          </div>
         </div>
       </section>
 
