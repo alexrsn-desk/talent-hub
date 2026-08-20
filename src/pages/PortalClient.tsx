@@ -11,16 +11,20 @@ import {
   clientAddNote,
   clientMoveCandidate,
   clientSaveScheduling,
+  clientSaveBriefingNotes,
   clientSaveStageContent,
   getClientPortal,
 } from "@/lib/portal.functions";
-import type { PortalFeedback } from "@/lib/portal.functions";
+import type { ClientPortalData, PortalFeedback } from "@/lib/portal.functions";
 
-const TABS = ["board", "notes", "prep", "scheduling"] as const;
+const BRIEF_TAG = "[Briefing] ";
+
+const TABS = ["briefing", "board", "notes", "prep", "scheduling"] as const;
 type Tab = (typeof TABS)[number];
 const TAB_LABELS: Record<Tab, string> = {
+  briefing: "Briefing details",
   board: "Review board",
-  notes: "General notes",
+  notes: "Discussion notes",
   prep: "Interview prep & details",
   scheduling: "Scheduling & settings",
 };
@@ -131,6 +135,15 @@ export default function ClientPortal() {
       toast.success("Note added");
       invalidate();
     },
+  });
+
+  const saveBriefing = useMutation({
+    mutationFn: (notes: string) => clientSaveBriefingNotes({ data: { token, notes } }),
+    onSuccess: () => {
+      toast.success("Briefing notes saved");
+      invalidate();
+    },
+    onError: (e: Error) => toast.error(e.message || "Could not save"),
   });
 
   const saveStage = useMutation({
@@ -278,7 +291,21 @@ export default function ClientPortal() {
         </div>
       )}
 
-      {tab === "notes" && <NotesTab notes={notes} onAdd={(body) => addNote.mutate(body)} />}
+      {tab === "briefing" && (
+        <BriefingTab
+          job={job}
+          notes={notes.filter((n) => n.body.startsWith(BRIEF_TAG))}
+          onSaveNotes={(v) => saveBriefing.mutate(v)}
+          onComment={(body) => addNote.mutate(`${BRIEF_TAG}${body}`)}
+        />
+      )}
+
+      {tab === "notes" && (
+        <NotesTab
+          notes={notes.filter((n) => !n.body.startsWith(BRIEF_TAG))}
+          onAdd={(body) => addNote.mutate(body)}
+        />
+      )}
 
       {tab === "prep" && <PrepTab content={stageContent} onSave={(v) => saveStage.mutate(v)} />}
 
@@ -432,7 +459,7 @@ function NotesTab({
   return (
     <div className="mx-auto max-w-3xl px-4 py-8">
       <div className="panel p-6">
-        <h2 className="text-lg font-semibold">General notes for the search</h2>
+        <h2 className="text-lg font-semibold">Discussion notes for the search</h2>
         <p className="mt-1 text-sm text-muted-foreground">
           Search updates, patterns across candidates, changes to requirements. Every entry is kept
           with its timestamp — nothing overwrites anything.
@@ -462,6 +489,111 @@ function NotesTab({
               <p className="whitespace-pre-wrap">{n.body}</p>
               <p className="mt-2 text-xs text-muted-foreground">
                 {n.author_email ?? n.author_role} · {formatStamp(n.created_at)}
+              </p>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function BriefingTab({
+  job,
+  notes,
+  onSaveNotes,
+  onComment,
+}: {
+  job: ClientPortalData["job"];
+  notes: ClientPortalData["notes"];
+  onSaveNotes: (v: string) => void;
+  onComment: (body: string) => void;
+}) {
+  const [draft, setDraft] = useState("");
+  return (
+    <div className="mx-auto max-w-3xl space-y-4 px-4 py-8">
+      <div className="panel p-6">
+        <h2 className="text-lg font-semibold">The role</h2>
+        {job.jobSpecText ? (
+          <p className="mt-2 whitespace-pre-wrap text-sm text-muted-foreground">
+            {job.jobSpecText}
+          </p>
+        ) : (
+          <p className="mt-2 text-sm text-muted-foreground">No spec text yet.</p>
+        )}
+        {job.jobSpecUrl && (
+          <a
+            href={job.jobSpecUrl}
+            target="_blank"
+            rel="noreferrer"
+            className="mt-3 inline-flex items-center gap-2 text-sm text-accent underline-offset-4 hover:underline"
+          >
+            <FileText className="size-4" />
+            {job.jobSpecFilename ?? "Job description"}
+          </a>
+        )}
+      </div>
+
+      {job.companyInfo && (
+        <div className="panel p-6">
+          <h2 className="text-lg font-semibold">About the company</h2>
+          <p className="mt-2 whitespace-pre-wrap text-sm text-muted-foreground">
+            {job.companyInfo}
+          </p>
+        </div>
+      )}
+
+      <div className="panel p-6">
+        <h2 className="text-lg font-semibold">Briefing notes</h2>
+        <p className="mt-1 text-sm text-muted-foreground">
+          The major stuff that isn't in the spec — must-haves, dealbreakers, team context, package
+          flexibility, any extra notes.
+        </p>
+        <textarea
+          key={job.briefingNotes ?? ""}
+          defaultValue={job.briefingNotes ?? ""}
+          rows={8}
+          onBlur={(e) => {
+            if (e.target.value !== (job.briefingNotes ?? "")) onSaveNotes(e.target.value);
+          }}
+          className="mt-4 w-full rounded-lg border border-input bg-card px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring"
+        />
+        <p className="mt-1 text-xs text-muted-foreground">Saves when you click outside the box.</p>
+      </div>
+
+      <div className="panel p-6">
+        <h2 className="text-lg font-semibold">Comments on the brief</h2>
+        <p className="mt-1 text-sm text-muted-foreground">
+          e.g. requesting a change to the job spec, or flagging an absolute must-have.
+        </p>
+        <textarea
+          rows={3}
+          value={draft}
+          onChange={(e) => setDraft(e.target.value)}
+          placeholder="Please add Kubernetes to the spec — it's a genuine dealbreaker."
+          className="mt-4 w-full rounded-lg border border-input bg-card px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring"
+        />
+        <button
+          onClick={() => {
+            if (!draft.trim()) return;
+            onComment(draft.trim());
+            setDraft("");
+          }}
+          className="mt-3 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:opacity-90"
+        >
+          Add comment
+        </button>
+
+        <div className="mt-6 space-y-3 border-t border-border pt-6">
+          {notes.length === 0 && (
+            <p className="text-sm text-muted-foreground">No comments on the brief yet.</p>
+          )}
+          {notes.map((n) => (
+            <div key={n.id} className="rounded-lg bg-surface p-4 text-sm">
+              <p className="whitespace-pre-wrap">{n.body.replace(BRIEF_TAG, "")}</p>
+              <p className="mt-2 text-xs text-muted-foreground">
+                {n.author_role === "agency" ? "Recruiter" : "Client"}
+                {n.author_email ? ` · ${n.author_email}` : ""} · {formatStamp(n.created_at)}
               </p>
             </div>
           ))}
