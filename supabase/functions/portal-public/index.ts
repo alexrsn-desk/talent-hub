@@ -271,6 +271,7 @@ async function addFeedback(input: {
     .from("portal_candidates")
     .select("id, name")
     .eq("id", input.candidateId)
+    .eq("job_id", job.id)
     .maybeSingle();
   if (!candidate) throw new Error("Candidate not found for this job");
 
@@ -579,6 +580,8 @@ Deno.serve(async (req) => {
         return json(await moveCandidate(payload));
       case "addFeedback":
         return json(await addFeedback(payload));
+      case "clientEditFeedback":
+        return json(await clientEditFeedback(payload));
       case "saveScheduling":
         return json(await saveScheduling(payload));
       case "addJobNote":
