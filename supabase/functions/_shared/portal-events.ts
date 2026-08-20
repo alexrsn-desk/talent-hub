@@ -165,6 +165,9 @@ export type EmailJob = {
   notify_candidate_interview?: boolean | null;
   notify_candidate_rejection?: boolean | null;
   rejection_email_mode?: string | null;
+  rejection_send_mode?: string | null;
+  rejection_template?: string | null;
+  rejection_ai_guidance?: string | null;
 };
 
 export type EmailCandidate = {
@@ -174,7 +177,19 @@ export type EmailCandidate = {
   job_id?: string;
 };
 
+export function fillPlaceholders(text: string, candidate: EmailCandidate, job: EmailJob) {
+  return text
+    .replaceAll("{{first_name}}", firstName(candidate.name))
+    .replaceAll("{{name}}", candidate.name)
+    .replaceAll("{{role}}", job.title)
+    .replaceAll("{{job_title}}", job.title)
+    .replaceAll("{{client}}", job.client_name)
+    .replaceAll("{{client_name}}", job.client_name);
+}
+
 export function templateRejectionBody(candidate: EmailCandidate, job: EmailJob) {
+  const custom = (job.rejection_template ?? "").trim();
+  if (custom) return fillPlaceholders(custom, candidate, job);
   return [
     `Hi ${firstName(candidate.name)},`,
     "",
@@ -209,6 +224,8 @@ export async function aiRejectionBody(db: Db, candidate: EmailCandidate, job: Em
 
   if (!notes) return null;
 
+  const guidance = (job.rejection_ai_guidance ?? "").trim();
+
   const prompt = `You are a recruiter writing a rejection email to a candidate.
 
 Role: ${job.title} at ${job.client_name}
@@ -216,7 +233,7 @@ Candidate first name: ${firstName(candidate.name)}
 
 Private client feedback (NEVER quote, paraphrase closely, or attribute any of this — use it only to decide what constructive theme to mention):
 ${notes}
-
+${guidance ? `\nRecruiter's candidate-safe guidance for turning that feedback into candidate-facing wording (follow it closely):\n${guidance}\n` : ""}
 Write the email body only (no subject, no markdown, no placeholders like [Name]).
 Rules:
 - Warm, kind, human and brief: 100-150 words.
@@ -241,22 +258,36 @@ export async function buildRejectionEmail(
   return { subject, body: templateRejectionBody(candidate, job), ai: false };
 }
 
-/** Build and send a rejection email immediately, ignoring the per-job toggle. */
+/**
+ * Build a rejection email, then either send it immediately or park it for
+ * approval depending on the job's rejection_send_mode ('auto' | 'approve').
+ */
 export async function sendRejectionEmailNow(db: Db, candidate: EmailCandidate, job: EmailJob) {
   const email = await buildRejectionEmail(db, candidate, job);
-  await deliver(
-    db,
-    {
+  const row = {
+    candidate_id: candidate.id,
+    kind: "rejection",
+    to_email: candidate.email,
+    subject: email.subject,
+    body: email.body,
+  };
+
+  if ((job.rejection_send_mode ?? "approve") === "approve") {
+    await db.from("portal_candidate_emails").insert({ ...row, status: "awaiting_approval" });
+    await db.from("portal_notifications").insert({
+      kind: "email.awaiting_approval",
+      title: `Rejection email awaiting approval — ${candidate.name}`,
+      body: email.subject,
+      job_id: job.id ?? candidate.job_id ?? null,
       candidate_id: candidate.id,
-      kind: "rejection",
-      to_email: candidate.email,
-      subject: email.subject,
-      body: email.body,
-    },
-    job.user_id ?? null,
-  );
-  return email;
+    });
+    return { ...email, heldForApproval: true as const };
+  }
+
+  await deliver(db, row, job.user_id ?? null);
+  return { ...email, heldForApproval: false as const };
 }
+
 
 export async function maybeEmailRejection(db: Db, candidate: EmailCandidate, job: EmailJob) {
   const settings = await agencySettings(db, job.user_id ?? null);
