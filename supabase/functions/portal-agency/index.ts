@@ -8,6 +8,7 @@ import {
   buildRejectionEmail,
   dispatchWebhooks,
   sendCustomEmail,
+  sendRaw,
   sendRejectionEmailNow,
 } from "../_shared/portal-events.ts";
 
@@ -478,6 +479,8 @@ Deno.serve(async (req) => {
         return json(await bulkSendEmails(db, payload));
       case "previewInterviewEmail":
         return json(await previewInterviewEmail(db, payload));
+      case "approvePendingEmail":
+        return json(await approvePendingEmail(db, payload));
       case "previewRejectionEmail":
         return json(await previewRejectionEmail(db, payload));
       default:
