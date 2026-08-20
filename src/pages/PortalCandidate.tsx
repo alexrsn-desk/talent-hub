@@ -106,32 +106,49 @@ export default function CandidatePortal() {
         </section>
 
         {p.job.companyInfo && (
-          <CollapsibleProse title="About the company" body={p.job.companyInfo} />
-        )}
-        {p.job.jobSpec && <CollapsibleProse title="The role" body={p.job.jobSpec} />}
-
-        {p.job.jobSpecUrl && (
-          <section className="panel p-6">
-            <h2 className="text-lg font-semibold">Job description</h2>
-            <a
-              href={p.job.jobSpecUrl}
-              target="_blank"
-              rel="noreferrer"
-              className="mt-3 inline-flex items-center gap-2 text-sm text-accent underline-offset-4 hover:underline"
-            >
-              <FileText className="size-4" />
-              {p.job.jobSpecFilename ?? "Download the job description"}
-            </a>
-          </section>
+          <CollapsibleProse title="About the company" body={p.job.companyInfo}>
+            {p.job.companyWebsite && (
+              <a
+                href={p.job.companyWebsite}
+                target="_blank"
+                rel="noreferrer"
+                className="mt-3 inline-flex items-center gap-2 text-sm text-accent underline-offset-4 hover:underline"
+              >
+                Visit their website <ExternalLink className="size-3.5" />
+              </a>
+            )}
+          </CollapsibleProse>
         )}
 
-        {p.pack.jobPack && <CollapsibleProse title="Your job pack" body={p.pack.jobPack} />}
+        {/* Everything about the role itself lives in one place: your job pack. */}
+        {(p.pack.jobPack || p.pack.jobSpec || p.pack.jobSpecUrl) && (
+          <CollapsibleProse title="Your job pack" body={p.pack.jobPack ?? ""}>
+            {p.pack.jobSpec && (
+              <div className="mt-4 whitespace-pre-wrap text-sm leading-relaxed text-foreground/90">
+                {p.pack.jobSpec}
+              </div>
+            )}
+            {p.pack.jobSpecUrl && (
+              <a
+                href={p.pack.jobSpecUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="mt-4 inline-flex items-center gap-2 text-sm text-accent underline-offset-4 hover:underline"
+              >
+                <FileText className="size-4" />
+                {p.pack.jobSpecFilename ?? "Download the job description"}
+              </a>
+            )}
+          </CollapsibleProse>
+        )}
 
-        {/* Interview details always sit above prep. */}
+        {/* Interview details and prep unlock only once you reach that stage. */}
         {p.pack.interviewDetails && (
-          <Prose title="Interview details" body={p.pack.interviewDetails} />
+          <CollapsibleProse title="Interview details" body={p.pack.interviewDetails} />
         )}
-        {p.pack.prepMaterial && <Prose title="Interview prep" body={p.pack.prepMaterial} />}
+        {p.pack.prepMaterial && (
+          <CollapsibleProse title="Interview prep" body={p.pack.prepMaterial} />
+        )}
 
         {p.stageContent.map((s) => (
           <section key={s.stage} className="panel p-6">
@@ -220,7 +237,15 @@ export default function CandidatePortal() {
   );
 }
 
-function CollapsibleProse({ title, body }: { title: string; body: string }) {
+function CollapsibleProse({
+  title,
+  body,
+  children,
+}: {
+  title: string;
+  body: string;
+  children?: React.ReactNode;
+}) {
   const [open, setOpen] = useState(true);
   return (
     <section className="panel overflow-hidden">
@@ -237,21 +262,11 @@ function CollapsibleProse({ title, body }: { title: string; body: string }) {
         )}
       </button>
       {open && (
-        <div className="whitespace-pre-wrap px-6 pb-6 text-sm leading-relaxed text-foreground/90">
-          {body}
+        <div className="px-6 pb-6 text-sm leading-relaxed text-foreground/90">
+          {body && <div className="whitespace-pre-wrap">{body}</div>}
+          {children}
         </div>
       )}
-    </section>
-  );
-}
-
-function Prose({ title, body }: { title: string; body: string }) {
-  return (
-    <section className="panel p-6">
-      <h2 className="text-lg font-semibold">{title}</h2>
-      <div className="mt-3 whitespace-pre-wrap text-sm leading-relaxed text-foreground/90">
-        {body}
-      </div>
     </section>
   );
 }

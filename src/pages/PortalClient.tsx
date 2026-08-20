@@ -4,14 +4,17 @@ import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import { toast } from "sonner";
 
+import { FeedbackThread } from "@/components/portal/FeedbackThread";
 import {
   clientAddFeedback,
+  clientEditFeedback,
   clientAddNote,
   clientMoveCandidate,
   clientSaveScheduling,
   clientSaveStageContent,
   getClientPortal,
 } from "@/lib/portal.functions";
+import type { PortalFeedback } from "@/lib/portal.functions";
 
 const TABS = ["board", "notes", "prep", "scheduling"] as const;
 type Tab = (typeof TABS)[number];
@@ -75,6 +78,7 @@ export default function ClientPortal() {
       comment: string;
       rating: number | null;
       stage: string;
+      replyTo?: string | null;
     }) =>
       clientAddFeedback({
         data: {
@@ -84,6 +88,7 @@ export default function ClientPortal() {
           rating: v.rating,
           stage: v.stage,
           clientEmail: reviewer,
+          replyTo: v.replyTo ?? null,
         },
       }),
     onSuccess: () => {
@@ -91,6 +96,24 @@ export default function ClientPortal() {
       invalidate();
     },
     onError: () => toast.error("Could not save feedback"),
+  });
+
+  const editFeedback = useMutation({
+    mutationFn: (v: { id: string; comment: string; rating: number | null }) =>
+      clientEditFeedback({
+        data: {
+          token,
+          feedbackId: v.id,
+          comment: v.comment,
+          rating: v.rating,
+          clientEmail: reviewer,
+        },
+      }),
+    onSuccess: () => {
+      toast.success("Comment updated");
+      invalidate();
+    },
+    onError: (e: Error) => toast.error(e.message || "Could not update comment"),
   });
 
   const scheduling = useMutation({
@@ -229,14 +252,9 @@ export default function ClientPortal() {
                         onReject={() =>
                           move.mutate({ candidateId: c.id, toStage: stage, reject: true })
                         }
-                        onFeedback={(comment, rating, fbStage) =>
-                          feedback.mutate({
-                            candidateId: c.id,
-                            comment,
-                            rating,
-                            stage: fbStage,
-                          })
-                        }
+                        reviewer={reviewer}
+                        onFeedback={(v) => feedback.mutate({ candidateId: c.id, ...v })}
+                        onEditFeedback={(v) => editFeedback.mutate(v)}
                       />
                     ))}
                 </div>
@@ -291,32 +309,31 @@ type Candidate = {
   clientNotes: string | null;
   currentStage: string;
   cvUrl: string | null;
-  feedback: {
-    id: string;
-    client_email: string | null;
-    stage_at_time: string | null;
-    comment: string;
-    rating: number | null;
-    created_at: string;
-  }[];
+  feedback: PortalFeedback[];
 };
 
 function CandidateCard({
   candidate,
   stages,
+  reviewer,
   onMove,
   onReject,
   onFeedback,
+  onEditFeedback,
 }: {
   candidate: Candidate;
   stages: string[];
+  reviewer: string | null;
   onMove: (stage: string) => void;
   onReject: () => void;
-  onFeedback: (comment: string, rating: number | null, stage: string) => void;
+  onFeedback: (v: {
+    comment: string;
+    rating: number | null;
+    stage: string;
+    replyTo: string | null;
+  }) => void;
+  onEditFeedback: (v: { id: string; comment: string; rating: number | null }) => void;
 }) {
-  const [comment, setComment] = useState("");
-  const [rating, setRating] = useState<number | null>(null);
-  const [fbStage, setFbStage] = useState(candidate.currentStage);
   const [openThread, setOpenThread] = useState(false);
 
   return (
@@ -382,63 +399,16 @@ function CandidateCard({
       </button>
 
       {openThread && (
-        <div className="mt-3 space-y-3 border-t border-border pt-3">
-          {candidate.feedback.map((f) => (
-            <div key={f.id} className="rounded-lg bg-surface p-3 text-sm">
-              <p>{f.comment}</p>
-              <p className="mt-1 text-xs text-muted-foreground">
-                {f.client_email ?? "client"} · {formatStamp(f.created_at)}
-                {f.stage_at_time ? ` · ${f.stage_at_time}` : ""}
-                {f.rating ? ` · ${f.rating}/5` : ""}
-              </p>
-            </div>
-          ))}
-          <label className="block text-xs font-medium text-muted-foreground">
-            Stage this relates to
-            <select
-              value={fbStage}
-              onChange={(e) => setFbStage(e.target.value)}
-              className="mt-1 w-full rounded-lg border border-input bg-card px-2 py-1.5 text-sm font-normal text-foreground"
-            >
-              {stages.map((s) => (
-                <option key={s} value={s}>
-                  {s}
-                </option>
-              ))}
-            </select>
-          </label>
-          <textarea
-            rows={3}
-            value={comment}
-            onChange={(e) => setComment(e.target.value)}
-            placeholder="Add your thoughts…"
-            className="w-full rounded-lg border border-input bg-card px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring"
+        <div className="mt-3 border-t border-border pt-3">
+          <FeedbackThread
+            feedback={candidate.feedback}
+            stages={stages}
+            currentStage={candidate.currentStage}
+            viewer="client"
+            viewerEmail={reviewer}
+            onPost={onFeedback}
+            onEdit={onEditFeedback}
           />
-          <div className="flex items-center gap-1">
-            {[1, 2, 3, 4, 5].map((n) => (
-              <button
-                key={n}
-                onClick={() => setRating(n === rating ? null : n)}
-                className="p-0.5"
-                aria-label={`Rate ${n}`}
-              >
-                <Star
-                  className={`size-4 ${rating && n <= rating ? "fill-accent text-accent" : "text-muted-foreground"}`}
-                />
-              </button>
-            ))}
-            <button
-              onClick={() => {
-                if (!comment.trim()) return;
-                onFeedback(comment.trim(), rating, fbStage);
-                setComment("");
-                setRating(null);
-              }}
-              className="ml-auto rounded-lg bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground"
-            >
-              Post
-            </button>
-          </div>
         </div>
       )}
     </div>

@@ -4,9 +4,14 @@ import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { toast } from "sonner";
 
+import { AgencyFeedbackThread } from "@/components/portal/AgencyFeedbackThread";
+import {
+  CandidateEmailBulkBar,
+  CandidateEmailPreview,
+} from "@/components/portal/AgencyEmailPanels";
 import { PortalAppShell } from "@/components/portal/PortalAppShell";
 import { supabase } from "@/integrations/supabase/client";
-import { notifyCandidateCreated } from "@/lib/agency.functions";
+import { notifyCandidateCreated, setRejectionEmailMode } from "@/lib/agency.functions";
 
 function copy(url: string) {
   navigator.clipboard.writeText(url);
@@ -16,13 +21,16 @@ function copy(url: string) {
 export default function AgencyPortalJob() {
   const { jobId = "" } = useParams();
   const qc = useQueryClient();
-  const [expanded, setExpanded] = useState<string | null>(null);
   const [newName, setNewName] = useState("");
   const [newEmail, setNewEmail] = useState("");
   const [newHeadline, setNewHeadline] = useState("");
   const [newClientNotes, setNewClientNotes] = useState("");
   const [cvFile, setCvFile] = useState<File | null>(null);
   const [copyFrom, setCopyFrom] = useState("");
+  const [selected, setSelected] = useState<string[]>([]);
+  const [panel, setPanel] = useState<{ id: string; tab: "pack" | "feedback" | "emails" } | null>(
+    null,
+  );
 
   useEffect(() => {
     document.title = "Job pipeline — Agency Portal";
@@ -174,6 +182,15 @@ export default function AgencyPortalJob() {
     onSuccess: () => {
       toast.success("Portal updated");
       qc.invalidateQueries({ queryKey: ["portal-candidates", jobId] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const rejectionMode = useMutation({
+    mutationFn: (mode: "template" | "ai") => setRejectionEmailMode({ data: { jobId, mode } }),
+    onSuccess: () => {
+      toast.success("Rejection wording updated");
+      qc.invalidateQueries({ queryKey: ["portal-job", jobId] });
     },
     onError: (e: Error) => toast.error(e.message),
   });
@@ -341,6 +358,35 @@ export default function AgencyPortalJob() {
             fallback={agencyDefaults.data?.notify_candidate_rejection ?? false}
             onChange={(v) => saveJob.mutate({ notify_candidate_rejection: v })}
           />
+
+          <div className="rounded-lg bg-surface p-4">
+            <p className="text-sm font-medium">Rejection email wording</p>
+            <p className="mt-1 text-xs text-muted-foreground">
+              Template is identical every time. AI writes a short, kind note tailored to the role
+              and how far they got — never quoting client feedback.
+            </p>
+            <div className="mt-3 flex gap-2">
+              {(
+                [
+                  ["template", "Template"],
+                  ["ai", "AI worded"],
+                ] as const
+              ).map(([key, text]) => (
+                <button
+                  key={key}
+                  type="button"
+                  onClick={() => rejectionMode.mutate(key)}
+                  className={`rounded-lg px-3 py-1.5 text-xs font-medium ${
+                    (job.data?.rejection_email_mode ?? "template") === key
+                      ? "bg-primary text-primary-foreground"
+                      : "border border-input hover:bg-secondary"
+                  }`}
+                >
+                  {text}
+                </button>
+              ))}
+            </div>
+          </div>
         </div>
       </section>
 
@@ -438,11 +484,24 @@ export default function AgencyPortalJob() {
           {candidates.data?.map((c) => {
             const rel = c.portal_candidate_portals as any;
             const portal = Array.isArray(rel) ? rel[0] : rel;
-            const isOpen = expanded === c.id;
+            const openTab = panel?.id === c.id ? panel.tab : null;
+            const isChecked = selected.includes(c.id);
             return (
               <div key={c.id} className="panel p-5">
                 <div className="flex flex-wrap items-center justify-between gap-3">
-                  <div>
+                  <div className="flex items-start gap-3">
+                    <input
+                      type="checkbox"
+                      checked={isChecked}
+                      aria-label={`Select ${c.name}`}
+                      onChange={(e) =>
+                        setSelected((prev) =>
+                          e.target.checked ? [...prev, c.id] : prev.filter((x) => x !== c.id),
+                        )
+                      }
+                      className="mt-1"
+                    />
+                    <div>
                     <p className="font-medium">{c.name}</p>
                     <p className="text-sm text-muted-foreground">
                       {c.headline ?? "—"} ·{" "}
@@ -450,6 +509,7 @@ export default function AgencyPortalJob() {
                         {c.rejected ? "Rejected" : c.current_stage}
                       </span>
                     </p>
+                    </div>
                   </div>
                   <div className="flex items-center gap-2">
                     {portal && (
@@ -460,16 +520,29 @@ export default function AgencyPortalJob() {
                         <Copy className="size-4" /> Candidate link
                       </button>
                     )}
-                    <button
-                      onClick={() => setExpanded(isOpen ? null : c.id)}
-                      className="rounded-lg bg-secondary px-3 py-2 text-sm font-medium hover:bg-muted"
-                    >
-                      {isOpen ? "Close" : "Job pack"}
-                    </button>
+                    {(
+                      [
+                        ["pack", "Job pack"],
+                        ["feedback", "Feedback"],
+                        ["emails", "Emails"],
+                      ] as const
+                    ).map(([tab, label]) => (
+                      <button
+                        key={tab}
+                        onClick={() => setPanel(openTab === tab ? null : { id: c.id, tab })}
+                        className={`rounded-lg px-3 py-2 text-sm font-medium ${
+                          openTab === tab
+                            ? "bg-primary text-primary-foreground"
+                            : "bg-secondary hover:bg-muted"
+                        }`}
+                      >
+                        {label}
+                      </button>
+                    ))}
                   </div>
                 </div>
 
-                {isOpen && portal && (
+                {openTab === "pack" && portal && (
                   <div className="mt-5 grid gap-4 border-t border-border pt-5">
                     <div>
                       <label className="text-sm font-medium">Job pack</label>
@@ -516,10 +589,39 @@ export default function AgencyPortalJob() {
                     </p>
                   </div>
                 )}
+
+                {openTab === "feedback" && (
+                  <div className="mt-5 border-t border-border pt-5">
+                    <AgencyFeedbackThread
+                      candidateId={c.id}
+                      currentStage={c.current_stage}
+                      stages={job.data?.stages ?? []}
+                    />
+                  </div>
+                )}
+
+                {openTab === "emails" && (
+                  <div className="mt-5 border-t border-border pt-5">
+                    <CandidateEmailPreview
+                      candidateId={c.id}
+                      currentStage={c.current_stage}
+                      stages={job.data?.stages ?? []}
+                    />
+                  </div>
+                )}
               </div>
             );
           })}
         </div>
+
+        <CandidateEmailBulkBar
+          candidateIds={selected}
+          onClear={() => setSelected([])}
+          onSent={() => {
+            setSelected([]);
+            qc.invalidateQueries({ queryKey: ["portal-candidates", jobId] });
+          }}
+        />
       </section>
     </PortalAppShell>
   );
