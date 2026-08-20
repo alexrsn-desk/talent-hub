@@ -288,7 +288,38 @@ serve(async (req) => {
       });
     }
 
+    // Desky Signals — the single highest-priority NEW signal is eligible for the
+    // brief text, under the same aging rules as everything else. It stays
+    // viewable/actionable on the Signals tab.
+    if (userId) {
+      const { data: topSignals } = await sb
+        .from("signals")
+        .select("id, person_id, person_type, signal_type, reason_for_recommendation, opportunity_score, detected_at")
+        .eq("user_id", userId)
+        .eq("status", "new")
+        .order("opportunity_score", { ascending: false })
+        .limit(1);
+      const ts: any = (topSignals || [])[0];
+      if (ts) {
+        let personName = "A key relationship";
+        if (ts.person_id) {
+          const table = ts.person_type === "contact" ? "contacts" : "candidates";
+          const { data: p } = await sb.from(table).select("name").eq("id", ts.person_id).maybeSingle();
+          if (p?.name) personName = p.name;
+        }
+        briefItems.push({
+          item_key: `signal:${ts.id}`,
+          label: `${personName} — ${ts.reason_for_recommendation || ts.signal_type}`,
+          entity_type: ts.person_type || null,
+          entity_id: ts.person_id || null,
+          fingerprint: `${ts.signal_type}|${ts.detected_at}`,
+          urgency: Math.min(95, 60 + Math.round((ts.opportunity_score || 0) / 4)),
+        });
+      }
+    }
+
     // Load history for these items and decide eligibility
+
     const keys = briefItems.map((i) => i.item_key);
     let history: any[] = [];
     if (userId && keys.length > 0) {
