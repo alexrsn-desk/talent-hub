@@ -43,6 +43,7 @@ import PortalClient from "./pages/PortalClient";
 import PortalCandidate from "./pages/PortalCandidate";
 import AgencyPortal from "./pages/AgencyPortal";
 import AgencyPortalJob from "./pages/AgencyPortalJob";
+import AgencyPortalActivity from "./pages/AgencyPortalActivity";
 
 
 const queryClient = new QueryClient();
@@ -167,6 +168,7 @@ function AppRoutes() {
     return (
       <Routes>
         <Route path="/agency-portal" element={<AgencyPortal />} />
+        <Route path="/agency-portal/activity" element={<AgencyPortalActivity />} />
         <Route path="/agency-portal/:jobId" element={<AgencyPortalJob />} />
       </Routes>
     );

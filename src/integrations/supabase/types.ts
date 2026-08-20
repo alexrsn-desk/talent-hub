@@ -2710,6 +2710,7 @@ export type Database = {
           candidate_id: string
           created_at: string
           id: string
+          include_job_spec: boolean
           interview_details: string | null
           job_pack: string | null
           prep_material: string | null
@@ -2719,6 +2720,7 @@ export type Database = {
           candidate_id: string
           created_at?: string
           id?: string
+          include_job_spec?: boolean
           interview_details?: string | null
           job_pack?: string | null
           prep_material?: string | null
@@ -2728,6 +2730,7 @@ export type Database = {
           candidate_id?: string
           created_at?: string
           id?: string
+          include_job_spec?: boolean
           interview_details?: string | null
           job_pack?: string | null
           prep_material?: string | null
@@ -2997,6 +3000,7 @@ export type Database = {
       }
       portal_jobs: {
         Row: {
+          briefing_notes: string | null
           client_name: string
           company_info: string | null
           created_at: string
@@ -3006,7 +3010,11 @@ export type Database = {
           job_spec_path: string | null
           notify_candidate_interview: boolean | null
           notify_candidate_rejection: boolean | null
+          pack_extra: string | null
+          rejection_ai_guidance: string | null
           rejection_email_mode: string
+          rejection_send_mode: string
+          rejection_template: string | null
           stages: string[]
           status: string
           title: string
@@ -3014,6 +3022,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          briefing_notes?: string | null
           client_name: string
           company_info?: string | null
           created_at?: string
@@ -3023,7 +3032,11 @@ export type Database = {
           job_spec_path?: string | null
           notify_candidate_interview?: boolean | null
           notify_candidate_rejection?: boolean | null
+          pack_extra?: string | null
+          rejection_ai_guidance?: string | null
           rejection_email_mode?: string
+          rejection_send_mode?: string
+          rejection_template?: string | null
           stages?: string[]
           status?: string
           title: string
@@ -3031,6 +3044,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          briefing_notes?: string | null
           client_name?: string
           company_info?: string | null
           created_at?: string
@@ -3040,7 +3054,11 @@ export type Database = {
           job_spec_path?: string | null
           notify_candidate_interview?: boolean | null
           notify_candidate_rejection?: boolean | null
+          pack_extra?: string | null
+          rejection_ai_guidance?: string | null
           rejection_email_mode?: string
+          rejection_send_mode?: string
+          rejection_template?: string | null
           stages?: string[]
           status?: string
           title?: string

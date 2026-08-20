@@ -36,7 +36,7 @@ async function requireClientPortal(token: string) {
   const { data: job } = await db
     .from("portal_jobs")
     .select(
-      "id, user_id, title, client_name, company_info, job_spec, job_spec_path, job_spec_filename, stages, status, notify_candidate_interview, notify_candidate_rejection, rejection_email_mode",
+      "id, user_id, title, client_name, company_info, job_spec, job_spec_path, job_spec_filename, stages, status, briefing_notes, notify_candidate_interview, notify_candidate_rejection, rejection_email_mode",
     )
     .eq("id", portal.job_id)
     .maybeSingle();
@@ -49,7 +49,7 @@ async function requireCandidatePortal(token: string) {
   const db = admin();
   const { data: portal } = await db
     .from("portal_candidate_portals")
-    .select("id, candidate_id, job_pack, prep_material, interview_details")
+    .select("id, candidate_id, job_pack, prep_material, interview_details, include_job_spec")
     .eq("access_token", token)
     .maybeSingle();
   if (!portal) return null;
@@ -151,6 +151,9 @@ async function loadClientPortal(token: string) {
       stages: job.stages as string[],
       jobSpecUrl: await signed(db, "job-specs", job.job_spec_path),
       jobSpecFilename: job.job_spec_filename,
+      jobSpecText: job.job_spec as string | null,
+      companyInfo: job.company_info as string | null,
+      briefingNotes: job.briefing_notes as string | null,
     },
     candidates: await Promise.all(
       (candidates ?? []).map(async (c: Record<string, unknown>) => ({
@@ -410,6 +413,18 @@ async function addJobNote(input: { token: string; body: string; authorEmail?: st
   return { ok: true };
 }
 
+async function saveBriefingNotes(input: { token: string; notes: string }) {
+  const ctx = await requireClientPortal(input.token);
+  if (!ctx) throw new Error("Invalid portal token");
+  const { db, job } = ctx;
+  const { error } = await db
+    .from("portal_jobs")
+    .update({ briefing_notes: input.notes })
+    .eq("id", job.id);
+  if (error) throw new Error(error.message);
+  return { ok: true };
+}
+
 async function saveStageContent(input: {
   token: string;
   stage: string;
@@ -499,6 +514,7 @@ async function loadCandidatePortal(token: string) {
     }));
 
   const showScheduling = isInterviewStage(candidate.current_stage) && !candidate.rejected;
+  const includeSpec = portal.include_job_spec !== false;
 
   // Candidate-facing stage labels: "Submitted" reads as "Application Submitted",
   // and the internal "Reviewed" stage is hidden from candidates entirely.
@@ -530,8 +546,8 @@ async function loadCandidatePortal(token: string) {
     pack: {
       jobPack: portal.job_pack,
       jobSpec: job.job_spec,
-      jobSpecUrl: await signed(db, "job-specs", job.job_spec_path),
-      jobSpecFilename: job.job_spec_filename,
+      jobSpecUrl: includeSpec ? await signed(db, "job-specs", job.job_spec_path) : null,
+      jobSpecFilename: includeSpec ? job.job_spec_filename : null,
       // Prep material and interview details unlock only at interview stage.
       prepMaterial: showScheduling ? portal.prep_material : null,
       interviewDetails: showScheduling ? portal.interview_details : null,
@@ -597,6 +613,8 @@ Deno.serve(async (req) => {
         return json(await saveScheduling(payload));
       case "addJobNote":
         return json(await addJobNote(payload));
+      case "saveBriefingNotes":
+        return json(await saveBriefingNotes(payload));
       case "saveStageContent":
         return json(await saveStageContent(payload));
       case "loadCandidatePortal":
