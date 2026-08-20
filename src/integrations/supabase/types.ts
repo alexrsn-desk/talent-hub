@@ -2835,31 +2835,40 @@ export type Database = {
       }
       portal_feedback: {
         Row: {
+          author_role: string
           candidate_id: string
           client_email: string | null
           comment: string
           created_at: string
           id: string
           rating: number | null
+          reply_to: string | null
           stage_at_time: string | null
+          updated_at: string | null
         }
         Insert: {
+          author_role?: string
           candidate_id: string
           client_email?: string | null
           comment: string
           created_at?: string
           id?: string
           rating?: number | null
+          reply_to?: string | null
           stage_at_time?: string | null
+          updated_at?: string | null
         }
         Update: {
+          author_role?: string
           candidate_id?: string
           client_email?: string | null
           comment?: string
           created_at?: string
           id?: string
           rating?: number | null
+          reply_to?: string | null
           stage_at_time?: string | null
+          updated_at?: string | null
         }
         Relationships: [
           {
@@ -2867,6 +2876,13 @@ export type Database = {
             columns: ["candidate_id"]
             isOneToOne: false
             referencedRelation: "portal_candidates"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "portal_feedback_reply_to_fkey"
+            columns: ["reply_to"]
+            isOneToOne: false
+            referencedRelation: "portal_feedback"
             referencedColumns: ["id"]
           },
         ]
@@ -2990,6 +3006,7 @@ export type Database = {
           job_spec_path: string | null
           notify_candidate_interview: boolean | null
           notify_candidate_rejection: boolean | null
+          rejection_email_mode: string
           stages: string[]
           status: string
           title: string
@@ -3006,6 +3023,7 @@ export type Database = {
           job_spec_path?: string | null
           notify_candidate_interview?: boolean | null
           notify_candidate_rejection?: boolean | null
+          rejection_email_mode?: string
           stages?: string[]
           status?: string
           title: string
@@ -3022,6 +3040,7 @@ export type Database = {
           job_spec_path?: string | null
           notify_candidate_interview?: boolean | null
           notify_candidate_rejection?: boolean | null
+          rejection_email_mode?: string
           stages?: string[]
           status?: string
           title?: string
