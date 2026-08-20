@@ -115,6 +115,19 @@ export const setRejectionEmailMode = ({
   return call<{ ok: true }>("setRejectionEmailMode", input);
 };
 
+/* --------------------------- APPROVAL QUEUE ----------------------------- */
+
+export const approvePendingEmail = ({
+  data,
+}: {
+  data: { emailId: string; discard?: boolean };
+}) => {
+  const input = z
+    .object({ emailId: z.string().uuid(), discard: z.boolean().optional() })
+    .parse(data);
+  return call<{ ok: true; sent: boolean }>("approvePendingEmail", input);
+};
+
 /* ------------------------------ BULK EMAILS ------------------------------ */
 
 export type BulkEmailResult = {

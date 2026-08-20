@@ -41,6 +41,9 @@ export type ClientPortalData = {
     stages: string[];
     jobSpecUrl: string | null;
     jobSpecFilename: string | null;
+    jobSpecText: string | null;
+    companyInfo: string | null;
+    briefingNotes: string | null;
   };
   candidates: {
     id: string;
@@ -215,6 +218,15 @@ export const clientSaveStageContent = ({
     })
     .parse(data);
   return call<{ ok: true }>("saveStageContent", input);
+};
+
+export const clientSaveBriefingNotes = ({
+  data,
+}: {
+  data: { token: string; notes: string };
+}) => {
+  const input = z.object({ token: z.string(), notes: z.string().max(20000) }).parse(data);
+  return call<{ ok: true }>("saveBriefingNotes", input);
 };
 
 export const getCandidatePortal = ({ data }: { data: { token: string } }) => {
