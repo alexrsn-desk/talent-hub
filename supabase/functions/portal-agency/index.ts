@@ -226,7 +226,186 @@ async function pushCandidateToPortal(
   };
 }
 
+/* ------------------------- FEEDBACK THREADS (AGENCY) ---------------------- */
+
+async function loadCandidateFeedback(db: Db, candidateId: string) {
+  const { data, error } = await db
+    .from("portal_feedback")
+    .select(
+      "id, candidate_id, client_email, stage_at_time, comment, rating, created_at, author_role, reply_to, updated_at",
+    )
+    .eq("candidate_id", candidateId)
+    .order("created_at", { ascending: true });
+  if (error) throw new Error(error.message);
+  return { feedback: data ?? [] };
+}
+
+/** Agency staff reply inside a candidate's feedback thread. */
+async function addAgencyReply(
+  db: Db,
+  input: { candidateId: string; comment: string; stage?: string | null; replyTo?: string | null },
+) {
+  if (!input.comment?.trim()) throw new Error("Reply cannot be empty");
+
+  const { data: candidate } = await db
+    .from("portal_candidates")
+    .select("id, name, job_id, current_stage")
+    .eq("id", input.candidateId)
+    .maybeSingle();
+  if (!candidate) throw new Error("Candidate not found");
+
+  const { data, error } = await db
+    .from("portal_feedback")
+    .insert({
+      candidate_id: candidate.id,
+      stage_at_time: input.stage ?? candidate.current_stage,
+      comment: input.comment.trim(),
+      author_role: "agency",
+      reply_to: input.replyTo ?? null,
+    })
+    .select("id")
+    .single();
+  if (error) throw new Error(error.message);
+  return { ok: true as const, id: data.id };
+}
+
+/** Agency staff may edit any comment on their own jobs (their replies and client comments). */
+async function editFeedback(
+  db: Db,
+  input: { feedbackId: string; comment: string; rating?: number | null },
+) {
+  if (!input.comment?.trim()) throw new Error("Comment cannot be empty");
+  const update: Record<string, unknown> = {
+    comment: input.comment.trim(),
+    updated_at: new Date().toISOString(),
+  };
+  if (input.rating !== undefined) update.rating = input.rating;
+
+  const { error } = await db.from("portal_feedback").update(update).eq("id", input.feedbackId);
+  if (error) throw new Error(error.message);
+  return { ok: true as const };
+}
+
+/* ------------------------------ JOB SETTINGS ----------------------------- */
+
+async function setRejectionEmailMode(db: Db, input: { jobId: string; mode: string }) {
+  if (!["template", "ai"].includes(input.mode)) throw new Error("Invalid mode");
+  const { error } = await db
+    .from("portal_jobs")
+    .update({ rejection_email_mode: input.mode })
+    .eq("id", input.jobId);
+  if (error) throw new Error(error.message);
+  return { ok: true as const };
+}
+
+/* ------------------------------ BULK EMAILS ------------------------------ */
+
+async function candidatesForEmail(db: Db, ids: string[]) {
+  const { data, error } = await db
+    .from("portal_candidates")
+    .select("id, name, email, job_id, current_stage")
+    .in("id", ids);
+  if (error) throw new Error(error.message);
+  return data ?? [];
+}
+
+async function jobForEmail(db: Db, jobId: string) {
+  const { data, error } = await db
+    .from("portal_jobs")
+    .select(
+      "id, user_id, title, client_name, stages, rejection_email_mode, notify_candidate_interview, notify_candidate_rejection",
+    )
+    .eq("id", jobId)
+    .maybeSingle();
+  if (error) throw new Error(error.message);
+  if (!data) throw new Error("Job not found");
+  return data;
+}
+
+async function bulkSendEmails(
+  db: Db,
+  input: {
+    candidateIds: string[];
+    kind: "general" | "reject";
+    subject?: string;
+    body?: string;
+    markRejected?: boolean;
+  },
+) {
+  const ids = (input.candidateIds ?? []).filter(Boolean);
+  if (!ids.length) throw new Error("No candidates selected");
+
+  const candidates = await candidatesForEmail(db, ids);
+  const results: { candidateId: string; name: string; ok: boolean; error?: string }[] = [];
+  const jobs = new Map<string, Awaited<ReturnType<typeof jobForEmail>>>();
+
+  for (const candidate of candidates) {
+    try {
+      if (!jobs.has(candidate.job_id)) jobs.set(candidate.job_id, await jobForEmail(db, candidate.job_id));
+      const job = jobs.get(candidate.job_id)!;
+
+      if (input.kind === "reject") {
+        await sendRejectionEmailNow(db, candidate, job);
+        if (input.markRejected !== false) {
+          await db.from("portal_candidates").update({ rejected: true }).eq("id", candidate.id);
+        }
+      } else {
+        if (!input.subject?.trim() || !input.body?.trim()) {
+          throw new Error("Subject and message are required");
+        }
+        await sendCustomEmail(db, candidate, job, input.subject.trim(), input.body);
+      }
+      results.push({ candidateId: candidate.id, name: candidate.name, ok: true });
+    } catch (e) {
+      results.push({
+        candidateId: candidate.id,
+        name: candidate.name,
+        ok: false,
+        error: e instanceof Error ? e.message : "send failed",
+      });
+    }
+  }
+
+  return { ok: true as const, sent: results.filter((r) => r.ok).length, results };
+}
+
+/* -------------------------- EMAIL PREVIEW (AI) --------------------------- */
+
+async function previewInterviewEmail(
+  db: Db,
+  input: { candidateId: string; stage?: string | null },
+) {
+  const { data: candidate } = await db
+    .from("portal_candidates")
+    .select("id, name, email, job_id, current_stage")
+    .eq("id", input.candidateId)
+    .maybeSingle();
+  if (!candidate) throw new Error("Candidate not found");
+
+  const job = await jobForEmail(db, candidate.job_id);
+  const stage = input.stage ?? candidate.current_stage;
+  const email = await buildInterviewEmail(db, candidate, job, stage);
+  return { ...email, stage, toEmail: candidate.email };
+}
+
+async function previewRejectionEmail(db: Db, input: { candidateId: string; mode?: string }) {
+  const { data: candidate } = await db
+    .from("portal_candidates")
+    .select("id, name, email, job_id, current_stage")
+    .eq("id", input.candidateId)
+    .maybeSingle();
+  if (!candidate) throw new Error("Candidate not found");
+
+  const job = await jobForEmail(db, candidate.job_id);
+  const email = await buildRejectionEmail(db, candidate, {
+    ...job,
+    rejection_email_mode: input.mode ?? job.rejection_email_mode,
+  });
+  return { ...email, toEmail: candidate.email };
+}
+
 Deno.serve(async (req) => {
+
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
   try {
     const { db, userId } = await requireUser(req);
