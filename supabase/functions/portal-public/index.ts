@@ -532,8 +532,9 @@ async function loadCandidatePortal(token: string) {
       jobSpec: job.job_spec,
       jobSpecUrl: await signed(db, "job-specs", job.job_spec_path),
       jobSpecFilename: job.job_spec_filename,
-      prepMaterial: portal.prep_material,
-      interviewDetails: portal.interview_details,
+      // Prep material and interview details unlock only at interview stage.
+      prepMaterial: showScheduling ? portal.prep_material : null,
+      interviewDetails: showScheduling ? portal.interview_details : null,
     },
     stageContent,
     scheduling: showScheduling
