@@ -4,14 +4,17 @@ import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import { toast } from "sonner";
 
+import { FeedbackThread } from "@/components/portal/FeedbackThread";
 import {
   clientAddFeedback,
+  clientEditFeedback,
   clientAddNote,
   clientMoveCandidate,
   clientSaveScheduling,
   clientSaveStageContent,
   getClientPortal,
 } from "@/lib/portal.functions";
+import type { PortalFeedback } from "@/lib/portal.functions";
 
 const TABS = ["board", "notes", "prep", "scheduling"] as const;
 type Tab = (typeof TABS)[number];
