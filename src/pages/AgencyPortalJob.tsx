@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ArrowLeft, Copy, FileText, Link2, Plus, Upload } from "lucide-react";
+import { ArrowLeft, Copy, FileText, Link2, Plus, Upload, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { toast } from "sonner";
@@ -426,7 +426,61 @@ export default function AgencyPortalJob() {
                 </button>
               ))}
             </div>
+
+            <p className="mt-4 text-sm font-medium">When it sends</p>
+            <div className="mt-2 flex gap-2">
+              {(
+                [
+                  ["auto", "Send automatically"],
+                  ["approve", "Hold for approval"],
+                ] as const
+              ).map(([key, text]) => (
+                <button
+                  key={key}
+                  type="button"
+                  onClick={() => saveJob.mutate({ rejection_send_mode: key })}
+                  className={`rounded-lg px-3 py-1.5 text-xs font-medium ${
+                    (job.data?.rejection_send_mode ?? "approve") === key
+                      ? "bg-primary text-primary-foreground"
+                      : "border border-input hover:bg-secondary"
+                  }`}
+                >
+                  {text}
+                </button>
+              ))}
+            </div>
+            <p className="mt-2 text-xs text-muted-foreground">
+              Held emails wait in Activity → Emails awaiting approval until you send them.
+            </p>
           </div>
+
+          {(job.data.rejection_email_mode ?? "template") === "template" ? (
+            <CollapsibleBox
+              title="Rejection email template"
+              description="Placeholders: {{first_name}}, {{name}}, {{role}}, {{client}}. Leave blank to use the default agency wording."
+              defaultOpen={false}
+            >
+              <AutoSaveTextarea
+                value={job.data.rejection_template}
+                rows={8}
+                placeholder={"Hi {{first_name}},\n\nThank you for your time on the {{role}} process with {{client}}…"}
+                onSave={(v) => saveJob.mutate({ rejection_template: v })}
+              />
+            </CollapsibleBox>
+          ) : (
+            <CollapsibleBox
+              title="Candidate-safe guidance"
+              description="Steers how client feedback is turned into candidate-facing wording. The client is never quoted."
+              defaultOpen={false}
+            >
+              <AutoSaveTextarea
+                value={job.data.rejection_ai_guidance}
+                rows={6}
+                placeholder="Always frame gaps as experience-level, never as ability. Never mention salary. Offer one constructive theme only."
+                onSave={(v) => saveJob.mutate({ rejection_ai_guidance: v })}
+              />
+            </CollapsibleBox>
+          )}
         </div>
       </section>
 
@@ -624,6 +678,46 @@ export default function AgencyPortalJob() {
                         className="mt-1 w-full rounded-lg border border-input bg-card px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring"
                       />
                     </div>
+                    {job.data.job_spec_path && (
+                      <div>
+                        <label className="text-sm font-medium">Attached job spec</label>
+                        {portal.include_job_spec === false ? (
+                          <p className="mt-1 text-sm text-muted-foreground">
+                            Not included ·{" "}
+                            <button
+                              type="button"
+                              onClick={() =>
+                                savePack.mutate({
+                                  id: portal.id,
+                                  patch: { include_job_spec: true },
+                                })
+                              }
+                              className="text-accent underline-offset-4 hover:underline"
+                            >
+                              Add back
+                            </button>
+                          </p>
+                        ) : (
+                          <span className="mt-1 inline-flex items-center gap-2 rounded-full border border-input bg-surface px-3 py-1.5 text-sm">
+                            <FileText className="size-4" />
+                            {job.data.job_spec_filename ?? "Job spec"}
+                            <button
+                              type="button"
+                              aria-label="Exclude the job spec for this candidate"
+                              onClick={() =>
+                                savePack.mutate({
+                                  id: portal.id,
+                                  patch: { include_job_spec: false },
+                                })
+                              }
+                              className="text-muted-foreground hover:text-destructive"
+                            >
+                              <X className="size-4" />
+                            </button>
+                          </span>
+                        )}
+                      </div>
+                    )}
                     <p className="text-xs text-muted-foreground">
                       Changes save when you click outside a field.
                     </p>
@@ -642,11 +736,13 @@ export default function AgencyPortalJob() {
 
                 {openTab === "emails" && (
                   <div className="mt-5 border-t border-border pt-5">
-                    <CandidateEmailPreview
-                      candidateId={c.id}
-                      currentStage={c.current_stage}
-                      stages={job.data?.stages ?? []}
-                    />
+                    <CollapsibleBox title="AI interview invite" defaultOpen>
+                      <CandidateEmailPreview
+                        candidateId={c.id}
+                        currentStage={c.current_stage}
+                        stages={job.data?.stages ?? []}
+                      />
+                    </CollapsibleBox>
                   </div>
                 )}
               </div>
