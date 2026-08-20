@@ -76,6 +76,55 @@ export function resolveToggle(jobValue: boolean | null | undefined, fallback: bo
   return jobValue === null || jobValue === undefined ? fallback : jobValue;
 }
 
+type EmailRow = {
+  candidate_id: string;
+  kind: string;
+  to_email: string | null;
+  subject: string;
+  body: string;
+};
+
+/** Send via Resend when configured, and always log the attempt. */
+export async function deliver(db: Db, row: EmailRow, ownerUserId?: string | null) {
+  if (!row.to_email) {
+    await db
+      .from("portal_candidate_emails")
+      .insert({ ...row, status: "skipped", error: "candidate has no email address" });
+    return;
+  }
+  const key = Deno.env.get("RESEND_API_KEY");
+  if (!key) {
+    await db
+      .from("portal_candidate_emails")
+      .insert({ ...row, status: "pending", error: "no email provider configured" });
+    return;
+  }
+  const settings = await agencySettings(db, ownerUserId);
+  try {
+    const res = await fetch("https://api.resend.com/emails", {
+      method: "POST",
+      headers: { authorization: `Bearer ${key}`, "content-type": "application/json" },
+      body: JSON.stringify({
+        from: settings?.from_email || "onboarding@resend.dev",
+        to: [row.to_email],
+        subject: row.subject,
+        text: row.body,
+      }),
+    });
+    const ok = res.ok;
+    await db.from("portal_candidate_emails").insert({
+      ...row,
+      status: ok ? "sent" : "error",
+      error: ok ? null : `provider responded ${res.status}`,
+    });
+  } catch (e) {
+    await db
+      .from("portal_candidate_emails")
+      .insert({ ...row, status: "error", error: e instanceof Error ? e.message : "send failed" });
+  }
+}
+
+
 /* -------------------------------- AI LAYER -------------------------------- */
 
 /** Single call into the Lovable AI gateway (Gemini 2.5 Flash). Returns null on any failure. */
