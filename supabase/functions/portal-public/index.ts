@@ -261,6 +261,7 @@ async function addFeedback(input: {
   stage: string;
   rating?: number | null;
   clientEmail?: string | null;
+  replyTo?: string | null;
 }) {
   const ctx = await requireClientPortal(input.token);
   if (!ctx) throw new Error("Invalid portal token");
@@ -270,9 +271,19 @@ async function addFeedback(input: {
     .from("portal_candidates")
     .select("id, name")
     .eq("id", input.candidateId)
-    .eq("job_id", job.id)
     .maybeSingle();
   if (!candidate) throw new Error("Candidate not found for this job");
+
+  // A reply must belong to the same candidate thread.
+  if (input.replyTo) {
+    const { data: parent } = await db
+      .from("portal_feedback")
+      .select("id")
+      .eq("id", input.replyTo)
+      .eq("candidate_id", candidate.id)
+      .maybeSingle();
+    if (!parent) throw new Error("Cannot reply to that comment");
+  }
 
   const { data: row, error } = await db
     .from("portal_feedback")
@@ -282,6 +293,8 @@ async function addFeedback(input: {
       stage_at_time: input.stage,
       comment: input.comment,
       rating: input.rating ?? null,
+      author_role: "client",
+      reply_to: input.replyTo ?? null,
     })
     .select("id")
     .single();
@@ -307,6 +320,54 @@ async function addFeedback(input: {
 
   return { ok: true };
 }
+
+/** Clients may edit only their own comments, and only within this portal's job. */
+async function clientEditFeedback(input: {
+  token: string;
+  feedbackId: string;
+  comment: string;
+  rating?: number | null;
+  clientEmail?: string | null;
+}) {
+  const ctx = await requireClientPortal(input.token);
+  if (!ctx) throw new Error("Invalid portal token");
+  const { db, job } = ctx;
+
+  const { data: row } = await db
+    .from("portal_feedback")
+    .select("id, candidate_id, client_email, author_role")
+    .eq("id", input.feedbackId)
+    .maybeSingle();
+  if (!row) throw new Error("Comment not found");
+  if ((row.author_role ?? "client") !== "client") {
+    throw new Error("Recruiter replies can only be edited by the agency");
+  }
+
+  const { data: candidate } = await db
+    .from("portal_candidates")
+    .select("id")
+    .eq("id", row.candidate_id)
+    .eq("job_id", job.id)
+    .maybeSingle();
+  if (!candidate) throw new Error("Comment not found for this job");
+
+  const actor = (input.clientEmail ?? "").trim().toLowerCase();
+  const author = (row.client_email ?? "").trim().toLowerCase();
+  if (!actor || actor !== author) throw new Error("You can only edit your own comments");
+
+  const { error } = await db
+    .from("portal_feedback")
+    .update({
+      comment: input.comment,
+      rating: input.rating ?? null,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", row.id);
+  if (error) throw new Error(error.message);
+
+  return { ok: true };
+}
+
 
 async function saveScheduling(input: {
   token: string;
