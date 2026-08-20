@@ -36,7 +36,7 @@ async function requireClientPortal(token: string) {
   const { data: job } = await db
     .from("portal_jobs")
     .select(
-      "id, user_id, title, client_name, company_info, job_spec, job_spec_path, job_spec_filename, stages, status, notify_candidate_interview, notify_candidate_rejection",
+      "id, user_id, title, client_name, company_info, job_spec, job_spec_path, job_spec_filename, stages, status, notify_candidate_interview, notify_candidate_rejection, rejection_email_mode",
     )
     .eq("id", portal.job_id)
     .maybeSingle();
