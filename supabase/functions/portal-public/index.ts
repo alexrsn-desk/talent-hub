@@ -114,9 +114,11 @@ async function loadClientPortal(token: string) {
   const { data: feedback } = ids.length
     ? await db
       .from("portal_feedback")
-      .select("id, candidate_id, client_email, stage_at_time, comment, rating, created_at")
+      .select(
+        "id, candidate_id, client_email, stage_at_time, comment, rating, created_at, author_role, reply_to, updated_at",
+      )
       .in("candidate_id", ids)
-      .order("created_at", { ascending: false })
+      .order("created_at", { ascending: true })
     : { data: [] };
 
   const { data: notes } = await db
