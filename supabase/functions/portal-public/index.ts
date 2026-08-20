@@ -500,28 +500,38 @@ async function loadCandidatePortal(token: string) {
 
   const showScheduling = isInterviewStage(candidate.current_stage) && !candidate.rejected;
 
+  // Candidate-facing stage labels: "Submitted" reads as "Application Submitted",
+  // and the internal "Reviewed" stage is hidden from candidates entirely.
+  const candidateStages = stages
+    .map((label, i) => ({
+      label: /^submitted$/i.test(label) ? "Application Submitted" : label,
+      raw: label,
+      reached: currentIndex >= i,
+      current: i === currentIndex,
+    }))
+    .filter((s) => !/^reviewed$/i.test(s.raw));
+
   return {
     candidate: {
       id: candidate.id,
       name: candidate.name,
-      currentStage: candidate.current_stage,
+      currentStage: /^submitted$/i.test(candidate.current_stage)
+        ? "Application Submitted"
+        : candidate.current_stage,
       rejected: candidate.rejected,
     },
     job: {
       title: job.title,
       clientName: job.client_name,
       companyInfo: job.company_info,
+      companyWebsite: (job.company_info ?? "").match(/https?:\/\/\S+/)?.[0] ?? null,
+    },
+    stages: candidateStages,
+    pack: {
+      jobPack: portal.job_pack,
       jobSpec: job.job_spec,
       jobSpecUrl: await signed(db, "job-specs", job.job_spec_path),
       jobSpecFilename: job.job_spec_filename,
-    },
-    stages: stages.map((label, i) => ({
-      label,
-      reached: currentIndex >= i,
-      current: i === currentIndex,
-    })),
-    pack: {
-      jobPack: portal.job_pack,
       prepMaterial: portal.prep_material,
       interviewDetails: portal.interview_details,
     },
