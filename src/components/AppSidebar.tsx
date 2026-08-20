@@ -1,5 +1,5 @@
 import { NavLink } from "@/components/NavLink";
-import { LayoutDashboard, Users, Building2, UserCircle, Briefcase, TrendingUp, Sparkles, Settings, BarChart3, PhoneCall, Link2, Award, MessagesSquare, Target, Waves, Rocket, Columns, RefreshCw, MessageCircle, PlayCircle, Inbox, Table2 } from "lucide-react";
+import { LayoutDashboard, Users, Building2, UserCircle, Briefcase, TrendingUp, Sparkles, Settings, BarChart3, PhoneCall, Link2, Award, MessagesSquare, Target, Waves, Rocket, Columns, RefreshCw, MessageCircle, PlayCircle, Inbox, Table2, Radar } from "lucide-react";
 import {
   Sidebar,
   SidebarContent,
@@ -42,6 +42,7 @@ const dataItems: Item[] = [
 ];
 
 const aiItems: Item[] = [
+  { title: "Signals", url: "/signals", icon: Radar },
   { title: "Ask Desky", url: "/ask", icon: MessageCircle },
 ];
 

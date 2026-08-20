@@ -5,6 +5,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useNotes, useCreateNote } from "@/hooks/use-data";
 import { useSignalCounts } from "@/hooks/use-signals";
 import { NoteCard } from "@/components/NoteCard";
+import { PersonSignalTimeline } from "@/components/PersonSignalTimeline";
 import { Send, Phone, Mail, Users, MessageSquare, Globe, FileText, Smartphone, MessageCircle } from "lucide-react";
 
 const ACTIVITY_TYPES = [
@@ -65,6 +66,7 @@ export function NotesSection({ entityType, entityId }: { entityType: "candidate"
         </div>
       </div>
       <div className="space-y-1.5 max-h-[500px] overflow-y-auto">
+        {entityType === "candidate" && <PersonSignalTimeline personType="candidate" personId={entityId} />}
         {notes.map((n) => (
           <NoteCard key={n.id} note={n} unactionedCount={signalCounts[n.id] || 0} />
         ))}

@@ -321,6 +321,17 @@ serve(async (req) => {
         }
       }
 
+      // Desky Signals: store any extracted future-timing date so the internal
+      // scan can raise a 'follow_up_due' signal when that time arrives.
+      if (candidateId && s.suggested_date) {
+        await sb
+          .from("candidates")
+          .update({ suggested_reengage_date: s.suggested_date })
+          .eq("id", candidateId);
+        sideEffects.push("suggested_reengage_date_set");
+      }
+
+
       signalsToStore.push(s);
     }
 

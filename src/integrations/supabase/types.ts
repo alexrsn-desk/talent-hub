@@ -634,6 +634,7 @@ export type Database = {
           last_name: string
           linkedin_url: string | null
           location: string | null
+          monitored: boolean
           name: string
           note: string | null
           notice_period: string | null
@@ -645,6 +646,8 @@ export type Database = {
           priority_reason: string | null
           reengage_date: string | null
           reengage_reason: string | null
+          relationship_score: number
+          relationship_score_updated_at: string | null
           salary_current: number | null
           salary_expectation: number | null
           source: string | null
@@ -656,6 +659,7 @@ export type Database = {
           sourcewhale_status: string | null
           sourcewhale_synced_at: string | null
           status: string
+          suggested_reengage_date: string | null
           summary: string | null
           updated_at: string
         }
@@ -690,6 +694,7 @@ export type Database = {
           last_name?: string
           linkedin_url?: string | null
           location?: string | null
+          monitored?: boolean
           name: string
           note?: string | null
           notice_period?: string | null
@@ -701,6 +706,8 @@ export type Database = {
           priority_reason?: string | null
           reengage_date?: string | null
           reengage_reason?: string | null
+          relationship_score?: number
+          relationship_score_updated_at?: string | null
           salary_current?: number | null
           salary_expectation?: number | null
           source?: string | null
@@ -712,6 +719,7 @@ export type Database = {
           sourcewhale_status?: string | null
           sourcewhale_synced_at?: string | null
           status?: string
+          suggested_reengage_date?: string | null
           summary?: string | null
           updated_at?: string
         }
@@ -746,6 +754,7 @@ export type Database = {
           last_name?: string
           linkedin_url?: string | null
           location?: string | null
+          monitored?: boolean
           name?: string
           note?: string | null
           notice_period?: string | null
@@ -757,6 +766,8 @@ export type Database = {
           priority_reason?: string | null
           reengage_date?: string | null
           reengage_reason?: string | null
+          relationship_score?: number
+          relationship_score_updated_at?: string | null
           salary_current?: number | null
           salary_expectation?: number | null
           source?: string | null
@@ -768,6 +779,7 @@ export type Database = {
           sourcewhale_status?: string | null
           sourcewhale_synced_at?: string | null
           status?: string
+          suggested_reengage_date?: string | null
           summary?: string | null
           updated_at?: string
         }
@@ -1135,14 +1147,18 @@ export type Database = {
           last_name: string
           linkedin_url: string | null
           mobile_phone: string | null
+          monitored: boolean
           name: string
           owner_user_id: string | null
           personal_email: string | null
           phone: string | null
           reengage_date: string | null
           reengage_reason: string | null
+          relationship_score: number
+          relationship_score_updated_at: string | null
           source: string | null
           status: string
+          suggested_reengage_date: string | null
           summary: string | null
         }
         Insert: {
@@ -1174,14 +1190,18 @@ export type Database = {
           last_name?: string
           linkedin_url?: string | null
           mobile_phone?: string | null
+          monitored?: boolean
           name: string
           owner_user_id?: string | null
           personal_email?: string | null
           phone?: string | null
           reengage_date?: string | null
           reengage_reason?: string | null
+          relationship_score?: number
+          relationship_score_updated_at?: string | null
           source?: string | null
           status?: string
+          suggested_reengage_date?: string | null
           summary?: string | null
         }
         Update: {
@@ -1213,14 +1233,18 @@ export type Database = {
           last_name?: string
           linkedin_url?: string | null
           mobile_phone?: string | null
+          monitored?: boolean
           name?: string
           owner_user_id?: string | null
           personal_email?: string | null
           phone?: string | null
           reengage_date?: string | null
           reengage_reason?: string | null
+          relationship_score?: number
+          relationship_score_updated_at?: string | null
           source?: string | null
           status?: string
+          suggested_reengage_date?: string | null
           summary?: string | null
         }
         Relationships: [
@@ -3839,6 +3863,113 @@ export type Database = {
         }
         Relationships: []
       }
+      signal_score_settings: {
+        Row: {
+          anniversary_lookahead_days: number
+          anniversary_months: number
+          created_at: string
+          going_cold_days: number
+          monitor_min_score: number
+          monitor_top_percent: number
+          updated_at: string
+          user_id: string
+          weights: Json
+        }
+        Insert: {
+          anniversary_lookahead_days?: number
+          anniversary_months?: number
+          created_at?: string
+          going_cold_days?: number
+          monitor_min_score?: number
+          monitor_top_percent?: number
+          updated_at?: string
+          user_id: string
+          weights?: Json
+        }
+        Update: {
+          anniversary_lookahead_days?: number
+          anniversary_months?: number
+          created_at?: string
+          going_cold_days?: number
+          monitor_min_score?: number
+          monitor_top_percent?: number
+          updated_at?: string
+          user_id?: string
+          weights?: Json
+        }
+        Relationships: []
+      }
+      signals: {
+        Row: {
+          assigned_user: string | null
+          company_id: string | null
+          confidence: string
+          created_at: string
+          detected_at: string
+          id: string
+          new_value: string | null
+          opportunity_score: number
+          person_id: string | null
+          person_type: string | null
+          previous_value: string | null
+          provider: string
+          reason_for_recommendation: string | null
+          relationship_score: number
+          signal_type: string
+          status: string
+          suggested_action: string | null
+          user_id: string
+        }
+        Insert: {
+          assigned_user?: string | null
+          company_id?: string | null
+          confidence?: string
+          created_at?: string
+          detected_at?: string
+          id?: string
+          new_value?: string | null
+          opportunity_score?: number
+          person_id?: string | null
+          person_type?: string | null
+          previous_value?: string | null
+          provider?: string
+          reason_for_recommendation?: string | null
+          relationship_score?: number
+          signal_type: string
+          status?: string
+          suggested_action?: string | null
+          user_id: string
+        }
+        Update: {
+          assigned_user?: string | null
+          company_id?: string | null
+          confidence?: string
+          created_at?: string
+          detected_at?: string
+          id?: string
+          new_value?: string | null
+          opportunity_score?: number
+          person_id?: string | null
+          person_type?: string | null
+          previous_value?: string | null
+          provider?: string
+          reason_for_recommendation?: string | null
+          relationship_score?: number
+          signal_type?: string
+          status?: string
+          suggested_action?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "signals_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       sourcewhale_subscriptions: {
         Row: {
           created_at: string
@@ -4327,6 +4458,20 @@ export type Database = {
       can_access_owner: { Args: { _owner: string }; Returns: boolean }
       claim_team_invite: { Args: { _code: string }; Returns: string }
       clear_user_data: { Args: never; Returns: Json }
+      desky_is_senior_title: { Args: { _title: string }; Returns: boolean }
+      desky_last_touchpoint: {
+        Args: { _person_id: string; _person_type: string }
+        Returns: string
+      }
+      desky_recalc_person: {
+        Args: { _person_id: string; _person_type: string }
+        Returns: undefined
+      }
+      desky_relationship_score: {
+        Args: { _person_id: string; _person_type: string }
+        Returns: number
+      }
+      desky_signals_scan: { Args: never; Returns: Json }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
