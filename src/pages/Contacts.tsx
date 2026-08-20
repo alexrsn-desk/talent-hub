@@ -24,6 +24,7 @@ import { CalendarClock } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { EntityDecayAlert } from "@/components/EntityDecayAlert";
+import { PersonSignalTimeline } from "@/components/PersonSignalTimeline";
 import { DoNotContactBanner } from "@/components/DoNotContactBanner";
 import { DoNotContactDialog } from "@/components/DoNotContactDialog";
 import { RequestDeletionDialog } from "@/components/RequestDeletionDialog";
@@ -286,6 +287,7 @@ export function ContactFullView({ contact, client, onBack, onDelete, onContactUp
           setAt={(contact as any).dnc_set_at}
         />
       )}
+      <PersonSignalTimeline personType="contact" personId={contact.id} />
       <EntityDecayAlert
         entityType="contact"
         entityId={contact.id}
