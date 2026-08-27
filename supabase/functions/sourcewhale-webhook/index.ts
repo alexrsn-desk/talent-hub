@@ -100,7 +100,6 @@ Deno.serve(async (req) => {
       ?? firstOf(contact?.emails)
       ?? pick<string>(contact, ['lastSentTo']);
     const name = buildName(contact);
-    const name = buildName(contact);
 
     if (!email && !name) {
       results.push({ ok: false, reason: 'no identifier' });
