@@ -243,6 +243,8 @@ export default function JobLaunch() {
       setPickedKnown(new Set(k.map((c) => c.id))); // pre-ticked
       setPickedDb(new Set()); // relevant but no recent conversation — recruiter opts in
       setPickedLi(new Set());
+      const allIds = [...k, ...dbList, ...l].map((c) => c.id);
+      if (jobId && allIds.length) runJudgements.mutate({ job_id: jobId, candidate_ids: allIds.slice(0, 30) });
       if (k.length + dbList.length + l.length === 0) {
         toast.info("No candidates in your database matched this role at 40%+ relevance.");
       }
