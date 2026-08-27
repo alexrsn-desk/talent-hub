@@ -22,6 +22,8 @@ import {
 } from "@/hooks/use-data";
 import { useAuth } from "@/contexts/AuthContext";
 import { logActivity } from "@/lib/activity-log";
+import { useJobJudgements, useRunJobJudgements } from "@/hooks/use-judgement";
+import { JudgementBadge, JudgementReasoning } from "@/components/JudgementScore";
 
 type ExtraCand = {
   ref_id: string;
