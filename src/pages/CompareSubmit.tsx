@@ -209,6 +209,15 @@ export default function CompareSubmitPage() {
       }
       setTicked(newTicked);
       setExpanded(newExpanded);
+
+      // Judgement scores — separate from the matching score, never blended.
+      const realIds = selected.map((s) => s.existing_id).filter(Boolean) as string[];
+      if (realIds.length) {
+        runJudgements.mutate(
+          { job_id: jobId, candidate_ids: realIds },
+          { onError: (e: any) => console.error("judgement scoring failed", e?.message) },
+        );
+      }
     } catch (e: any) {
       toast.error(e?.message || "AI assessment failed");
     } finally {
@@ -216,6 +225,7 @@ export default function CompareSubmitPage() {
       setAssessing(false);
       setLoadingMessage("");
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [extras, jobId, perContext, selected]);
 
   // ───────────────────────── Step 5 — draft email ─────────────────────────
