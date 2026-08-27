@@ -928,6 +928,7 @@ function AssessmentStep(props: {
         const a = assessments.find((x) => x.ref_id === s.ref_id);
         const tier = a?.tier || "moderate";
         const isExpanded = expanded.has(s.ref_id);
+        const j = judgementOf(s);
         return (
           <Card key={s.ref_id} className="p-4">
             <div className="flex items-start gap-3">
@@ -942,6 +943,7 @@ function AssessmentStep(props: {
                       {tierEmoji(tier)} {tierLabel(tier)} — {a.score}%
                     </Badge>
                   )}
+                  <JudgementBadge judgement={j} compact />
                 </div>
               </div>
               <Button variant="ghost" size="icon" onClick={() => toggleExpand(s.ref_id)}>
@@ -955,6 +957,8 @@ function AssessmentStep(props: {
                   <div className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-1">Why this match</div>
                   <p className="text-foreground/90 leading-relaxed">{a.reason}</p>
                 </div>
+                <JudgementReasoning judgement={j} />
+
                 {a.watch_outs.length > 0 && (
                   <div>
                     <div className="text-xs font-medium text-yellow-400 uppercase tracking-wide mb-1">Watch out for</div>
