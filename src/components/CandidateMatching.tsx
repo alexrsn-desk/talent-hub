@@ -89,6 +89,10 @@ export function CandidateMatching({ job, autoRun = false }: { job: Job; autoRun?
   const [sendDialogOpen, setSendDialogOpen] = useState(false);
   const [recruiterName, setRecruiterName] = useState<string>("");
 
+  const { data: judgements = {} } = useJobJudgements(job.id);
+  const runJudgements = useRunJobJudgements();
+  const [sortBy, setSortBy] = useState<"matching" | "judgement">("matching");
+
   useEffect(() => {
     if (!user) return;
     supabase.from("recruiter_profiles").select("display_name").eq("user_id", user.id).maybeSingle()
