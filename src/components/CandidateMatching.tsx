@@ -313,15 +313,32 @@ export function CandidateMatching({ job, autoRun = false }: { job: Job; autoRun?
       )}
 
       {data && sorted.length > 0 && (
-        <div className="flex items-center justify-between gap-2">
+        <div className="flex items-center justify-between gap-2 flex-wrap">
           <span className="text-xs text-muted-foreground">
             {sorted.length} suggestion{sorted.length === 1 ? "" : "s"}
           </span>
-          <Button size="sm" variant="outline" onClick={addAllToPipeline} className="h-7 gap-1 text-xs">
-            <ListPlus className="h-3.5 w-3.5" /> Add all to pipeline
-          </Button>
+          <div className="flex items-center gap-2">
+            <div className="flex items-center rounded-md border border-border overflow-hidden text-xs">
+              <button
+                className={`px-2 py-1 ${sortBy === "matching" ? "bg-muted font-medium" : "text-muted-foreground"}`}
+                onClick={() => setSortBy("matching")}
+              >
+                Sort: Matching
+              </button>
+              <button
+                className={`px-2 py-1 ${sortBy === "judgement" ? "bg-muted font-medium" : "text-muted-foreground"}`}
+                onClick={() => setSortBy("judgement")}
+              >
+                Judgement
+              </button>
+            </div>
+            <Button size="sm" variant="outline" onClick={addAllToPipeline} className="h-7 gap-1 text-xs">
+              <ListPlus className="h-3.5 w-3.5" /> Add all to pipeline
+            </Button>
+          </div>
         </div>
       )}
+
 
       {data && filtered ? (
         <div className="space-y-2">
