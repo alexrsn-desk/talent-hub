@@ -127,11 +127,17 @@ Deno.serve(async (req) => {
       first_name: parsed.first_name || null,
       last_name: parsed.last_name || null,
       email: email ?? null,
-      job_title: pick<string>(contact, ['job_title', 'title', 'position']) ?? null,
-      current_employer: pick<string>(contact, ['company', 'company_name', 'current_employer', 'employer']) ?? null,
-      linkedin_url: pick<string>(contact, ['linkedin_url', 'linkedin']) ?? null,
-      phone: pick<string>(contact, ['phone', 'phone_number', 'mobile']) ?? null,
-      location: pick<string>(contact, ['location', 'city', 'country']) ?? null,
+      job_title: pick<string>(contact, ['job_title', 'title', 'position', 'role', 'headline'])
+        ?? firstOf(contact?.titles)
+        ?? (Array.isArray(contact?.experience) ? contact.experience[0]?.role : undefined)
+        ?? null,
+      current_employer: pick<string>(contact, ['company', 'company_name', 'current_employer', 'employer', 'unparsedCompany'])
+        ?? (Array.isArray(contact?.experience) ? contact.experience[0]?.company : undefined)
+        ?? null,
+      linkedin_url: normalizeUrl(pick<string>(contact, ['linkedin_url', 'linkedinUrl', 'linkedin'])),
+      phone: pick<string>(contact, ['phone', 'phone_number', 'mobile']) ?? firstOf(contact?.phones) ?? null,
+      location: pick<string>(contact, ['location'])
+        ?? [contact?.city, contact?.state, contact?.country].filter(Boolean).join(', ') || null,
       // SourceWhale attribution
       sourcewhale_candidate_id: pick<string>(contact, ['candidateId', 'candidate_id', 'id']) ?? null,
       sourcewhale_campaign_id: pick<string>(contact, ['campaignId', 'campaign_id']) ?? null,
