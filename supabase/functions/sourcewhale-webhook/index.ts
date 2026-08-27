@@ -158,7 +158,7 @@ Deno.serve(async (req) => {
       linkedin_url: normalizeUrl(pick<string>(contact, ['linkedin_url', 'linkedinUrl', 'linkedin'])),
       phone: pick<string>(contact, ['phone', 'phone_number', 'mobile']) ?? firstOf(contact?.phones) ?? null,
       location: pick<string>(contact, ['location'])
-        ?? [contact?.city, contact?.state, contact?.country].filter(Boolean).join(', ') || null,
+        ?? ([contact?.city, contact?.state, contact?.country].filter(Boolean).join(', ') || null),
       // SourceWhale attribution
       sourcewhale_candidate_id: pick<string>(contact, ['candidateId', 'candidate_id', 'id']) ?? null,
       sourcewhale_campaign_id: pick<string>(contact, ['campaignId', 'campaign_id']) ?? null,
