@@ -431,9 +431,9 @@ export function CandidateMatching({ job, autoRun = false }: { job: Job; autoRun?
 }
 
 function Card({
-  match, job, checked, onToggle, existingStage, added, adding, onAdd,
+  match, job, judgement, checked, onToggle, existingStage, added, adding, onAdd,
 }: {
-  match: MatchResult; job: Job; checked: boolean; onToggle: () => void;
+  match: MatchResult; job: Job; judgement?: JobJudgement | null; checked: boolean; onToggle: () => void;
   existingStage: string | null; added: boolean; adding: boolean; onAdd: () => void;
 }) {
   const s = scoreColor(match.score);
