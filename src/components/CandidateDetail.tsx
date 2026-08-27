@@ -27,6 +27,7 @@ import { SummaryField } from "@/components/SummaryField";
 import { TagsSection } from "@/components/TagsSection";
 import { TalentPoolSelector } from "@/components/TalentPoolSelector";
 import { ScreeningCompleteness } from "@/components/ScreeningCompleteness";
+import { JudgementPanel } from "@/components/JudgementPanel";
 import { ActiveSequencesSection } from "@/components/ActiveSequencesSection";
 import { AddToSequencePanel } from "@/components/AddToSequencePanel";
 import { ReengageInlineEditor, formatReengageDate } from "@/components/ReengageDate";
