@@ -7,6 +7,18 @@ import { splitName, swTime } from '../_shared/sourcewhale.ts';
 
 const SOURCE = 'sourcewhale';
 
+function firstOf(v: any): string | undefined {
+  if (!Array.isArray(v)) return undefined;
+  const found = v.find((x) => typeof x === 'string' && x.trim());
+  return found ? String(found).trim() : undefined;
+}
+
+function normalizeUrl(u: string | undefined): string | null {
+  if (!u || !String(u).trim()) return null;
+  const s = String(u).trim();
+  return /^https?:\/\//i.test(s) ? s : `https://${s.replace(/^\/+/, '')}`;
+}
+
 function pick<T = any>(o: any, keys: string[]): T | undefined {
   for (const k of keys) {
     const v = o?.[k];
