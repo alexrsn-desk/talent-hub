@@ -343,7 +343,7 @@ export function CandidateMatching({ job, autoRun = false }: { job: Job; autoRun?
       {data && filtered ? (
         <div className="space-y-2">
           {filtered.map(m => (
-            <Card key={m.candidate_id} match={m} job={job} checked={selected.has(m.candidate_id)} onToggle={() => toggleSelected(m.candidate_id)}
+            <Card key={m.candidate_id} match={m} job={job} judgement={judgements[m.candidate_id]} checked={selected.has(m.candidate_id)} onToggle={() => toggleSelected(m.candidate_id)}
               existingStage={existingStageByCandidate.get(m.candidate_id) || null}
               added={locallyAdded.has(m.candidate_id)} adding={addingId === m.candidate_id} onAdd={() => addOne(m)} />
           ))}
@@ -356,7 +356,7 @@ export function CandidateMatching({ job, autoRun = false }: { job: Job; autoRun?
           </div>
           <div className="space-y-2">
             {top5.map(m => (
-              <Card key={m.candidate_id} match={m} job={job} checked={selected.has(m.candidate_id)} onToggle={() => toggleSelected(m.candidate_id)}
+              <Card key={m.candidate_id} match={m} job={job} judgement={judgements[m.candidate_id]} checked={selected.has(m.candidate_id)} onToggle={() => toggleSelected(m.candidate_id)}
                 existingStage={existingStageByCandidate.get(m.candidate_id) || null}
                 added={locallyAdded.has(m.candidate_id)} adding={addingId === m.candidate_id} onAdd={() => addOne(m)} />
             ))}
@@ -375,7 +375,7 @@ export function CandidateMatching({ job, autoRun = false }: { job: Job; autoRun?
           {showMore && (
             <div className="space-y-2">
               {rest.map(m => (
-                <Card key={m.candidate_id} match={m} job={job} checked={selected.has(m.candidate_id)} onToggle={() => toggleSelected(m.candidate_id)}
+                <Card key={m.candidate_id} match={m} job={job} judgement={judgements[m.candidate_id]} checked={selected.has(m.candidate_id)} onToggle={() => toggleSelected(m.candidate_id)}
                   existingStage={existingStageByCandidate.get(m.candidate_id) || null}
                   added={locallyAdded.has(m.candidate_id)} adding={addingId === m.candidate_id} onAdd={() => addOne(m)} />
               ))}
