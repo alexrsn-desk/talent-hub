@@ -501,6 +501,7 @@ export function CandidateDetail({ candidate, onUpdate, onDelete }: Props) {
         />
       )}
 
+      <JudgementPanel candidateId={candidate.id} />
       <ScreeningCompleteness candidateId={candidate.id} />
       <TalentPoolSelector candidateId={candidate.id} />
       <TagsSection entityType="candidate" entityId={candidate.id} />
