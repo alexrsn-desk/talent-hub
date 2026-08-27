@@ -16,6 +16,8 @@ import { MultiCandidateSendDialog } from "@/components/MultiCandidateSendDialog"
 import { useAuth } from "@/contexts/AuthContext";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Check, Plus } from "lucide-react";
+import { useJobJudgements, useRunJobJudgements, type JobJudgement } from "@/hooks/use-judgement";
+import { JudgementBadge, JudgementReasoning } from "@/components/JudgementScore";
 
 interface MatchResult {
   candidate_id: string;
