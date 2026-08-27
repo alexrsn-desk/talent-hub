@@ -102,6 +102,7 @@ export default function CompareSubmitPage() {
   const [sending, setSending] = useState(false);
   const [sentSummary, setSentSummary] = useState<{ count: number } | null>(null);
   const [recruiterFirstName, setRecruiterFirstName] = useState<string>("");
+  const runJudgements = useRunJobJudgements();
 
   // ───────────────────────── Draft persistence ─────────────────────────
   useEffect(() => {
