@@ -16,6 +16,8 @@ import { MultiCandidateSendDialog } from "@/components/MultiCandidateSendDialog"
 import { useAuth } from "@/contexts/AuthContext";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Check, Plus } from "lucide-react";
+import { useJobJudgements, useRunJobJudgements, type JobJudgement } from "@/hooks/use-judgement";
+import { JudgementBadge, JudgementReasoning } from "@/components/JudgementScore";
 
 interface MatchResult {
   candidate_id: string;
@@ -87,6 +89,10 @@ export function CandidateMatching({ job, autoRun = false }: { job: Job; autoRun?
   const [sendDialogOpen, setSendDialogOpen] = useState(false);
   const [recruiterName, setRecruiterName] = useState<string>("");
 
+  const { data: judgements = {} } = useJobJudgements(job.id);
+  const runJudgements = useRunJobJudgements();
+  const [sortBy, setSortBy] = useState<"matching" | "judgement">("matching");
+
   useEffect(() => {
     if (!user) return;
     supabase.from("recruiter_profiles").select("display_name").eq("user_id", user.id).maybeSingle()
@@ -115,6 +121,9 @@ export function CandidateMatching({ job, autoRun = false }: { job: Job; autoRun?
       const top5 = (result?.matches || []).slice(0, 5).map((m: MatchResult) => m.candidate_id);
       setSelected(new Set(top5));
       setRemovedTop(new Set());
+      // Judgement scores run separately — never blended into the matching score.
+      const ids = (result?.matches || []).slice(0, 20).map((m: MatchResult) => m.candidate_id);
+      if (ids.length) runJudgements.mutate({ job_id: job.id, candidate_ids: ids });
     } catch (e: any) {
       setError(e.message || "Matching failed");
       toast.error(e.message || "Matching failed");
@@ -132,7 +141,13 @@ export function CandidateMatching({ job, autoRun = false }: { job: Job; autoRun?
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [briefKey]);
 
-  const sorted = useMemo(() => (data?.matches || []).slice().sort((a, b) => b.score - a.score), [data]);
+  const sorted = useMemo(() => {
+    const list = (data?.matches || []).slice();
+    if (sortBy === "judgement") {
+      return list.sort((a, b) => (judgements[b.candidate_id]?.score ?? -1) - (judgements[a.candidate_id]?.score ?? -1));
+    }
+    return list.sort((a, b) => b.score - a.score);
+  }, [data, sortBy, judgements]);
   const top5 = sorted.slice(0, 5);
   const rest = sorted.slice(5, 20);
   const visibleRest = showMore ? rest : rest.slice(0, 0);
@@ -298,20 +313,37 @@ export function CandidateMatching({ job, autoRun = false }: { job: Job; autoRun?
       )}
 
       {data && sorted.length > 0 && (
-        <div className="flex items-center justify-between gap-2">
+        <div className="flex items-center justify-between gap-2 flex-wrap">
           <span className="text-xs text-muted-foreground">
             {sorted.length} suggestion{sorted.length === 1 ? "" : "s"}
           </span>
-          <Button size="sm" variant="outline" onClick={addAllToPipeline} className="h-7 gap-1 text-xs">
-            <ListPlus className="h-3.5 w-3.5" /> Add all to pipeline
-          </Button>
+          <div className="flex items-center gap-2">
+            <div className="flex items-center rounded-md border border-border overflow-hidden text-xs">
+              <button
+                className={`px-2 py-1 ${sortBy === "matching" ? "bg-muted font-medium" : "text-muted-foreground"}`}
+                onClick={() => setSortBy("matching")}
+              >
+                Sort: Matching
+              </button>
+              <button
+                className={`px-2 py-1 ${sortBy === "judgement" ? "bg-muted font-medium" : "text-muted-foreground"}`}
+                onClick={() => setSortBy("judgement")}
+              >
+                Judgement
+              </button>
+            </div>
+            <Button size="sm" variant="outline" onClick={addAllToPipeline} className="h-7 gap-1 text-xs">
+              <ListPlus className="h-3.5 w-3.5" /> Add all to pipeline
+            </Button>
+          </div>
         </div>
       )}
+
 
       {data && filtered ? (
         <div className="space-y-2">
           {filtered.map(m => (
-            <Card key={m.candidate_id} match={m} job={job} checked={selected.has(m.candidate_id)} onToggle={() => toggleSelected(m.candidate_id)}
+            <Card key={m.candidate_id} match={m} job={job} judgement={judgements[m.candidate_id]} checked={selected.has(m.candidate_id)} onToggle={() => toggleSelected(m.candidate_id)}
               existingStage={existingStageByCandidate.get(m.candidate_id) || null}
               added={locallyAdded.has(m.candidate_id)} adding={addingId === m.candidate_id} onAdd={() => addOne(m)} />
           ))}
@@ -324,7 +356,7 @@ export function CandidateMatching({ job, autoRun = false }: { job: Job; autoRun?
           </div>
           <div className="space-y-2">
             {top5.map(m => (
-              <Card key={m.candidate_id} match={m} job={job} checked={selected.has(m.candidate_id)} onToggle={() => toggleSelected(m.candidate_id)}
+              <Card key={m.candidate_id} match={m} job={job} judgement={judgements[m.candidate_id]} checked={selected.has(m.candidate_id)} onToggle={() => toggleSelected(m.candidate_id)}
                 existingStage={existingStageByCandidate.get(m.candidate_id) || null}
                 added={locallyAdded.has(m.candidate_id)} adding={addingId === m.candidate_id} onAdd={() => addOne(m)} />
             ))}
@@ -343,7 +375,7 @@ export function CandidateMatching({ job, autoRun = false }: { job: Job; autoRun?
           {showMore && (
             <div className="space-y-2">
               {rest.map(m => (
-                <Card key={m.candidate_id} match={m} job={job} checked={selected.has(m.candidate_id)} onToggle={() => toggleSelected(m.candidate_id)}
+                <Card key={m.candidate_id} match={m} job={job} judgement={judgements[m.candidate_id]} checked={selected.has(m.candidate_id)} onToggle={() => toggleSelected(m.candidate_id)}
                   existingStage={existingStageByCandidate.get(m.candidate_id) || null}
                   added={locallyAdded.has(m.candidate_id)} adding={addingId === m.candidate_id} onAdd={() => addOne(m)} />
               ))}
@@ -399,9 +431,9 @@ export function CandidateMatching({ job, autoRun = false }: { job: Job; autoRun?
 }
 
 function Card({
-  match, job, checked, onToggle, existingStage, added, adding, onAdd,
+  match, job, judgement, checked, onToggle, existingStage, added, adding, onAdd,
 }: {
-  match: MatchResult; job: Job; checked: boolean; onToggle: () => void;
+  match: MatchResult; job: Job; judgement?: JobJudgement | null; checked: boolean; onToggle: () => void;
   existingStage: string | null; added: boolean; adding: boolean; onAdd: () => void;
 }) {
   const s = scoreColor(match.score);
@@ -440,7 +472,8 @@ function Card({
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
             <span className="font-medium text-sm">{match.candidate_name}</span>
-            <Badge variant="outline" className={`${s.text} text-xs`}>{match.score}% · {s.label}</Badge>
+            <Badge variant="outline" className={`${s.text} text-xs`}>Matching: {match.score}% · {s.label}</Badge>
+            <JudgementBadge judgement={judgement} compact />
             {match.status && <Badge variant="secondary" className="text-xs">{match.status}</Badge>}
           </div>
           <p className="text-xs text-muted-foreground truncate">
@@ -460,6 +493,11 @@ function Card({
       <p className="text-xs text-foreground/80 leading-relaxed pl-7">
         {match.explanation}
       </p>
+
+      <div className="pl-7">
+        <JudgementReasoning judgement={judgement} />
+      </div>
+
 
       <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs pl-7">
         <span className={sal.cls}>{sal.icon} {sal.text}</span>

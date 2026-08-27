@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
+import { useJobJudgements, useRunJobJudgements, type JobJudgement } from "@/hooks/use-judgement";
+import { JudgementBadge, JudgementReasoning } from "@/components/JudgementScore";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -36,6 +38,8 @@ const STEPS = ["Brief", "Who You Know", "Generate", "Review", "Launch"] as const
 
 export default function JobLaunch() {
   const { jobId } = useParams<{ jobId: string }>();
+  const { data: judgements = {} } = useJobJudgements(jobId);
+  const runJudgements = useRunJobJudgements();
   const navigate = useNavigate();
   const [step, setStep] = useState(0);
 
@@ -239,6 +243,8 @@ export default function JobLaunch() {
       setPickedKnown(new Set(k.map((c) => c.id))); // pre-ticked
       setPickedDb(new Set()); // relevant but no recent conversation — recruiter opts in
       setPickedLi(new Set());
+      const allIds = [...k, ...dbList, ...l].map((c) => c.id);
+      if (jobId && allIds.length) runJudgements.mutate({ job_id: jobId, candidate_ids: allIds.slice(0, 30) });
       if (k.length + dbList.length + l.length === 0) {
         toast.info("No candidates in your database matched this role at 40%+ relevance.");
       }
@@ -606,6 +612,7 @@ export default function JobLaunch() {
             ) : (
               <div className="space-y-6">
                 <Group
+                  judgements={judgements}
                   title="Spoken to — warm relationships"
                   hint="Relevant and spoken to in the last 90 days. Pre-ticked. Will receive a personalised, warm message."
                   dotClass="bg-green-500"
@@ -620,6 +627,7 @@ export default function JobLaunch() {
                   }
                 />
                 <Group
+                  judgements={judgements}
                   title="In your database — no recent conversation"
                   hint="Relevant, but you haven't spoken with them recently. Opt in to send a re-engagement email."
                   dotClass="bg-amber-500"
@@ -634,6 +642,7 @@ export default function JobLaunch() {
                   }
                 />
                 <Group
+                  judgements={judgements}
                   title="Wider network — LI connections & uncontacted"
                   hint="Relevant, no direct relationship yet. Will receive a short LinkedIn DM."
                   dotClass="bg-blue-500"
@@ -918,6 +927,7 @@ function Group({
   candidates,
   picked,
   onToggle,
+  judgements = {},
 }: {
   title: string;
   hint: string;
@@ -925,6 +935,7 @@ function Group({
   candidates: MatchCandidate[];
   picked: Set<string>;
   onToggle: (id: string) => void;
+  judgements?: Record<string, JobJudgement>;
 }) {
   return (
     <div>
@@ -946,9 +957,11 @@ function Group({
               <div className="flex items-center gap-2 flex-wrap">
                 <span className="text-sm font-medium">{c.name}</span>
                 <span className="text-xs text-muted-foreground">· {c.job_title || "?"} @ {c.current_employer || "?"}</span>
-                <span className="ml-auto text-[11px] rounded-full bg-primary/15 text-primary px-2 py-0.5">{c.match_score}%</span>
+                <span className="ml-auto text-[11px] rounded-full bg-primary/15 text-primary px-2 py-0.5">Matching: {c.match_score}%</span>
+                <JudgementBadge judgement={judgements[c.id]} compact />
               </div>
               <p className="text-xs text-muted-foreground mt-0.5">{c.match_reason}</p>
+              <JudgementReasoning judgement={judgements[c.id]} />
             </div>
           </label>
         ))}
