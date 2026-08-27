@@ -850,6 +850,7 @@ async function extractTextFromFile(file: File): Promise<string> {
 
 // ───────────────────────── Step 3 ─────────────────────────
 function AssessmentStep(props: {
+  jobId: string;
   selected: SelectedCand[]; assessments: Assessment[];
   ticked: Set<string>; setTicked: (v: Set<string>) => void;
   expanded: Set<string>; setExpanded: (v: Set<string>) => void;
@@ -857,8 +858,10 @@ function AssessmentStep(props: {
   assessing: boolean; loadingMessage: string;
   onRerun: () => void; onBack: () => void; onContinue: () => void;
 }) {
-  const { selected, assessments, ticked, setTicked, expanded, setExpanded, personalNotes, setPersonalNotes,
+  const { jobId, selected, assessments, ticked, setTicked, expanded, setExpanded, personalNotes, setPersonalNotes,
     assessing, loadingMessage, onRerun, onBack, onContinue } = props;
+  const { data: judgements = {} } = useJobJudgements(jobId);
+  const [sortBy, setSortBy] = useState<"matching" | "judgement">("matching");
 
   const toggleTick = (id: string) => {
     const n = new Set(ticked);
@@ -871,11 +874,18 @@ function AssessmentStep(props: {
     setExpanded(n);
   };
 
-  // Sort: order by assessment.score desc; candidates without assessment go last
+  const judgementOf = (s: SelectedCand) => judgements[s.existing_id || s.ref_id] || null;
+
+  // Sort independently by matching score or judgement score
   const ordered = useMemo(() => {
-    const scoreOf = (id: string) => assessments.find((a) => a.ref_id === id)?.score ?? -1;
-    return [...selected].sort((a, b) => scoreOf(b.ref_id) - scoreOf(a.ref_id));
-  }, [selected, assessments]);
+    const matchOf = (id: string) => assessments.find((a) => a.ref_id === id)?.score ?? -1;
+    return [...selected].sort((a, b) => {
+      if (sortBy === "judgement") {
+        return (judgements[b.existing_id || b.ref_id]?.score ?? -1) - (judgements[a.existing_id || a.ref_id]?.score ?? -1);
+      }
+      return matchOf(b.ref_id) - matchOf(a.ref_id);
+    });
+  }, [selected, assessments, judgements, sortBy]);
 
   if (assessing) {
     return (
@@ -889,12 +899,29 @@ function AssessmentStep(props: {
 
   return (
     <div className="space-y-3">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between flex-wrap gap-2">
         <h2 className="text-lg font-semibold">AI Assessment</h2>
-        <Button variant="outline" size="sm" onClick={onRerun} className="gap-1">
-          <Sparkles className="h-3.5 w-3.5" /> Re-run
-        </Button>
+        <div className="flex items-center gap-2">
+          <div className="flex items-center rounded-md border border-border overflow-hidden text-xs">
+            <button
+              className={`px-2 py-1 ${sortBy === "matching" ? "bg-muted font-medium" : "text-muted-foreground"}`}
+              onClick={() => setSortBy("matching")}
+            >
+              Sort: Matching
+            </button>
+            <button
+              className={`px-2 py-1 ${sortBy === "judgement" ? "bg-muted font-medium" : "text-muted-foreground"}`}
+              onClick={() => setSortBy("judgement")}
+            >
+              Judgement
+            </button>
+          </div>
+          <Button variant="outline" size="sm" onClick={onRerun} className="gap-1">
+            <Sparkles className="h-3.5 w-3.5" /> Re-run
+          </Button>
+        </div>
       </div>
+
 
       {ordered.map((s) => {
         const a = assessments.find((x) => x.ref_id === s.ref_id);
