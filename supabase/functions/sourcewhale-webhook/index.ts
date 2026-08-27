@@ -7,6 +7,18 @@ import { splitName, swTime } from '../_shared/sourcewhale.ts';
 
 const SOURCE = 'sourcewhale';
 
+function firstOf(v: any): string | undefined {
+  if (!Array.isArray(v)) return undefined;
+  const found = v.find((x) => typeof x === 'string' && x.trim());
+  return found ? String(found).trim() : undefined;
+}
+
+function normalizeUrl(u: string | undefined): string | null {
+  if (!u || !String(u).trim()) return null;
+  const s = String(u).trim();
+  return /^https?:\/\//i.test(s) ? s : `https://${s.replace(/^\/+/, '')}`;
+}
+
 function pick<T = any>(o: any, keys: string[]): T | undefined {
   for (const k of keys) {
     const v = o?.[k];
@@ -83,7 +95,11 @@ Deno.serve(async (req) => {
     const contact = ev.data ?? ev.candidate ?? ev.contact ?? ev.person ?? ev;
     const externalId = pick<string>(ev, ['id', 'event_id']) ?? pick<string>(contact, ['id', 'contact_id', 'candidate_id']);
 
-    const email = pick<string>(contact, ['email', 'email_address', 'work_email', 'personal_email']);
+    // SourceWhale sends `emails: [...]` / `phones: [...]` arrays, not scalar fields.
+    const email = pick<string>(contact, ['email', 'email_address', 'work_email', 'personal_email'])
+      ?? firstOf(contact?.emails)
+      ?? pick<string>(contact, ['lastSentTo']);
+    const name = buildName(contact);
     const name = buildName(contact);
 
     if (!email && !name) {
@@ -107,9 +123,18 @@ Deno.serve(async (req) => {
       if (data && data.length === 1) ownerUserId = data[0].user_id;
     }
 
-    // Upsert candidate by email within this owner
+    // Match existing candidate by SourceWhale id first, then email
     let candidateId: string | null = null;
-    if (ownerUserId && email) {
+    const swId = pick<string>(contact, ['candidateId', 'candidate_id', 'id']);
+    if (ownerUserId && swId) {
+      const { data: existing } = await admin.from('candidates')
+        .select('id')
+        .eq('owner_user_id', ownerUserId)
+        .eq('sourcewhale_candidate_id', swId)
+        .limit(1);
+      if (existing?.[0]) candidateId = existing[0].id;
+    }
+    if (!candidateId && ownerUserId && email) {
       const { data: existing } = await admin.from('candidates')
         .select('id')
         .eq('owner_user_id', ownerUserId)
@@ -123,11 +148,17 @@ Deno.serve(async (req) => {
       first_name: parsed.first_name || null,
       last_name: parsed.last_name || null,
       email: email ?? null,
-      job_title: pick<string>(contact, ['job_title', 'title', 'position']) ?? null,
-      current_employer: pick<string>(contact, ['company', 'company_name', 'current_employer', 'employer']) ?? null,
-      linkedin_url: pick<string>(contact, ['linkedin_url', 'linkedin']) ?? null,
-      phone: pick<string>(contact, ['phone', 'phone_number', 'mobile']) ?? null,
-      location: pick<string>(contact, ['location', 'city', 'country']) ?? null,
+      job_title: pick<string>(contact, ['job_title', 'title', 'position', 'role', 'headline'])
+        ?? firstOf(contact?.titles)
+        ?? (Array.isArray(contact?.experience) ? contact.experience[0]?.role : undefined)
+        ?? null,
+      current_employer: pick<string>(contact, ['company', 'company_name', 'current_employer', 'employer', 'unparsedCompany'])
+        ?? (Array.isArray(contact?.experience) ? contact.experience[0]?.company : undefined)
+        ?? null,
+      linkedin_url: normalizeUrl(pick<string>(contact, ['linkedin_url', 'linkedinUrl', 'linkedin'])),
+      phone: pick<string>(contact, ['phone', 'phone_number', 'mobile']) ?? firstOf(contact?.phones) ?? null,
+      location: pick<string>(contact, ['location'])
+        ?? ([contact?.city, contact?.state, contact?.country].filter(Boolean).join(', ') || null),
       // SourceWhale attribution
       sourcewhale_candidate_id: pick<string>(contact, ['candidateId', 'candidate_id', 'id']) ?? null,
       sourcewhale_campaign_id: pick<string>(contact, ['campaignId', 'campaign_id']) ?? null,
