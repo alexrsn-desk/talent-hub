@@ -83,7 +83,11 @@ Deno.serve(async (req) => {
     const contact = ev.data ?? ev.candidate ?? ev.contact ?? ev.person ?? ev;
     const externalId = pick<string>(ev, ['id', 'event_id']) ?? pick<string>(contact, ['id', 'contact_id', 'candidate_id']);
 
-    const email = pick<string>(contact, ['email', 'email_address', 'work_email', 'personal_email']);
+    // SourceWhale sends `emails: [...]` / `phones: [...]` arrays, not scalar fields.
+    const email = pick<string>(contact, ['email', 'email_address', 'work_email', 'personal_email'])
+      ?? firstOf(contact?.emails)
+      ?? pick<string>(contact, ['lastSentTo']);
+    const name = buildName(contact);
     const name = buildName(contact);
 
     if (!email && !name) {
