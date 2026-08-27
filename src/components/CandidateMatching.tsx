@@ -472,7 +472,8 @@ function Card({
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
             <span className="font-medium text-sm">{match.candidate_name}</span>
-            <Badge variant="outline" className={`${s.text} text-xs`}>{match.score}% · {s.label}</Badge>
+            <Badge variant="outline" className={`${s.text} text-xs`}>Matching: {match.score}% · {s.label}</Badge>
+            <JudgementBadge judgement={judgement} compact />
             {match.status && <Badge variant="secondary" className="text-xs">{match.status}</Badge>}
           </div>
           <p className="text-xs text-muted-foreground truncate">
@@ -492,6 +493,11 @@ function Card({
       <p className="text-xs text-foreground/80 leading-relaxed pl-7">
         {match.explanation}
       </p>
+
+      <div className="pl-7">
+        <JudgementReasoning judgement={judgement} />
+      </div>
+
 
       <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs pl-7">
         <span className={sal.cls}>{sal.icon} {sal.text}</span>
