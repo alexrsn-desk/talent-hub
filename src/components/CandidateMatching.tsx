@@ -141,7 +141,13 @@ export function CandidateMatching({ job, autoRun = false }: { job: Job; autoRun?
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [briefKey]);
 
-  const sorted = useMemo(() => (data?.matches || []).slice().sort((a, b) => b.score - a.score), [data]);
+  const sorted = useMemo(() => {
+    const list = (data?.matches || []).slice();
+    if (sortBy === "judgement") {
+      return list.sort((a, b) => (judgements[b.candidate_id]?.score ?? -1) - (judgements[a.candidate_id]?.score ?? -1));
+    }
+    return list.sort((a, b) => b.score - a.score);
+  }, [data, sortBy, judgements]);
   const top5 = sorted.slice(0, 5);
   const rest = sorted.slice(5, 20);
   const visibleRest = showMore ? rest : rest.slice(0, 0);
