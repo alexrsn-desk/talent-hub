@@ -117,6 +117,9 @@ export function CandidateMatching({ job, autoRun = false }: { job: Job; autoRun?
       const top5 = (result?.matches || []).slice(0, 5).map((m: MatchResult) => m.candidate_id);
       setSelected(new Set(top5));
       setRemovedTop(new Set());
+      // Judgement scores run separately — never blended into the matching score.
+      const ids = (result?.matches || []).slice(0, 20).map((m: MatchResult) => m.candidate_id);
+      if (ids.length) runJudgements.mutate({ job_id: job.id, candidate_ids: ids });
     } catch (e: any) {
       setError(e.message || "Matching failed");
       toast.error(e.message || "Matching failed");
