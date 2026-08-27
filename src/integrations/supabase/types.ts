@@ -405,6 +405,149 @@ export type Database = {
         }
         Relationships: []
       }
+      call_transcripts: {
+        Row: {
+          call_date: string
+          candidate_id: string | null
+          content: string
+          created_at: string
+          duration_minutes: number | null
+          extraction_status: string
+          id: string
+          source: string
+          user_id: string
+        }
+        Insert: {
+          call_date?: string
+          candidate_id?: string | null
+          content: string
+          created_at?: string
+          duration_minutes?: number | null
+          extraction_status?: string
+          id?: string
+          source?: string
+          user_id?: string
+        }
+        Update: {
+          call_date?: string
+          candidate_id?: string | null
+          content?: string
+          created_at?: string
+          duration_minutes?: number | null
+          extraction_status?: string
+          id?: string
+          source?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "call_transcripts_candidate_id_fkey"
+            columns: ["candidate_id"]
+            isOneToOne: false
+            referencedRelation: "candidates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      candidate_impact_claims: {
+        Row: {
+          candidate_id: string
+          claimed_impact: string | null
+          created_at: string
+          id: string
+          specificity: string
+          transcript_id: string | null
+          user_id: string
+          what_they_did: string
+        }
+        Insert: {
+          candidate_id: string
+          claimed_impact?: string | null
+          created_at?: string
+          id?: string
+          specificity?: string
+          transcript_id?: string | null
+          user_id?: string
+          what_they_did: string
+        }
+        Update: {
+          candidate_id?: string
+          claimed_impact?: string | null
+          created_at?: string
+          id?: string
+          specificity?: string
+          transcript_id?: string | null
+          user_id?: string
+          what_they_did?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "candidate_impact_claims_candidate_id_fkey"
+            columns: ["candidate_id"]
+            isOneToOne: false
+            referencedRelation: "candidates"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "candidate_impact_claims_transcript_id_fkey"
+            columns: ["transcript_id"]
+            isOneToOne: false
+            referencedRelation: "call_transcripts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      candidate_job_judgements: {
+        Row: {
+          candidate_id: string
+          dealbreaker: string | null
+          evidence_level: string
+          generated_at: string
+          id: string
+          job_id: string
+          reasoning: string | null
+          score: number | null
+          user_id: string
+        }
+        Insert: {
+          candidate_id: string
+          dealbreaker?: string | null
+          evidence_level?: string
+          generated_at?: string
+          id?: string
+          job_id: string
+          reasoning?: string | null
+          score?: number | null
+          user_id?: string
+        }
+        Update: {
+          candidate_id?: string
+          dealbreaker?: string | null
+          evidence_level?: string
+          generated_at?: string
+          id?: string
+          job_id?: string
+          reasoning?: string | null
+          score?: number | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "candidate_job_judgements_candidate_id_fkey"
+            columns: ["candidate_id"]
+            isOneToOne: false
+            referencedRelation: "candidates"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "candidate_job_judgements_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "jobs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       candidate_jobs: {
         Row: {
           ai_suggested: boolean
@@ -479,6 +622,44 @@ export type Database = {
             columns: ["job_id"]
             isOneToOne: false
             referencedRelation: "jobs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      candidate_judgements: {
+        Row: {
+          candidate_id: string
+          evidence_meta: Json
+          generated_at: string
+          id: string
+          low_specificity_flag: boolean
+          summary: string | null
+          user_id: string
+        }
+        Insert: {
+          candidate_id: string
+          evidence_meta?: Json
+          generated_at?: string
+          id?: string
+          low_specificity_flag?: boolean
+          summary?: string | null
+          user_id?: string
+        }
+        Update: {
+          candidate_id?: string
+          evidence_meta?: Json
+          generated_at?: string
+          id?: string
+          low_specificity_flag?: boolean
+          summary?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "candidate_judgements_candidate_id_fkey"
+            columns: ["candidate_id"]
+            isOneToOne: true
+            referencedRelation: "candidates"
             referencedColumns: ["id"]
           },
         ]
@@ -1929,6 +2110,7 @@ export type Database = {
       }
       jobs: {
         Row: {
+          additional_context: string | null
           client_id: string | null
           created_at: string
           date_opened: string
@@ -1960,6 +2142,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          additional_context?: string | null
           client_id?: string | null
           created_at?: string
           date_opened?: string
@@ -1991,6 +2174,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          additional_context?: string | null
           client_id?: string | null
           created_at?: string
           date_opened?: string
