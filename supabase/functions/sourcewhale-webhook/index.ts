@@ -123,9 +123,18 @@ Deno.serve(async (req) => {
       if (data && data.length === 1) ownerUserId = data[0].user_id;
     }
 
-    // Upsert candidate by email within this owner
+    // Match existing candidate by SourceWhale id first, then email
     let candidateId: string | null = null;
-    if (ownerUserId && email) {
+    const swId = pick<string>(contact, ['candidateId', 'candidate_id', 'id']);
+    if (ownerUserId && swId) {
+      const { data: existing } = await admin.from('candidates')
+        .select('id')
+        .eq('owner_user_id', ownerUserId)
+        .eq('sourcewhale_candidate_id', swId)
+        .limit(1);
+      if (existing?.[0]) candidateId = existing[0].id;
+    }
+    if (!candidateId && ownerUserId && email) {
       const { data: existing } = await admin.from('candidates')
         .select('id')
         .eq('owner_user_id', ownerUserId)
