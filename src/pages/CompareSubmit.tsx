@@ -487,6 +487,7 @@ export default function CompareSubmitPage() {
 
       {step === 2 && (
         <AssessmentStep
+          jobId={jobId}
           selected={selected}
           assessments={assessments}
           ticked={ticked} setTicked={setTicked}
