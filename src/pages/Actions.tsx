@@ -135,11 +135,15 @@ function ActionRow({
                 <Briefcase className="h-3 w-3" /> Add to job
               </Button>
             )}
-            {item.href && (
+            {item.href && item.ctaLabel ? (
+              <Button size="sm" className="h-7 text-[11px]" onClick={() => nav(item.href!)}>
+                {item.ctaLabel}
+              </Button>
+            ) : item.href ? (
               <Button size="sm" variant="ghost" className="h-7 text-[11px]" onClick={() => nav(item.href!)}>
                 Open
               </Button>
-            )}
+            ) : null}
             <Button size="sm" variant="ghost" className="h-7 gap-1 text-[11px]" onClick={() => onDone(item)}>
               <Check className="h-3 w-3" /> Done
             </Button>

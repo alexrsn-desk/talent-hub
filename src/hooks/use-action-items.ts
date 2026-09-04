@@ -27,6 +27,8 @@ export type ActionItem = {
   sourceLabel?: string;
   /** brief_item_history row id — resolving it clears the "still open" item */
   briefItemId?: string;
+  /** Label for a primary deep-link button into a workflow */
+  ctaLabel?: string;
 };
 
 const narrowTone = (tone: DealSignal["tone"]): ActionTone =>
@@ -34,6 +36,7 @@ const narrowTone = (tone: DealSignal["tone"]): ActionTone =>
 
 const sourceOf = (item: DealSignal): string => {
   if (item.kind === "conversation") return "From a call";
+  if (item.kind === "opportunity") return "Opportunity";
   return "Deal at risk";
 };
 
@@ -79,6 +82,7 @@ export function useActionItems() {
         candidateId: it.logEntityType === "candidate" ? it.logEntityId : undefined,
         sourceQuote: it.sourceQuote,
         sourceLabel: it.sourceLabel,
+        ctaLabel: it.ctaLabel,
       });
     }
 
