@@ -49,11 +49,11 @@ function ActionRow({
         className="group flex min-h-[42px] cursor-pointer items-center gap-3 px-3 transition-colors hover:bg-muted/40"
       >
         <span className={cn("h-2 w-2 shrink-0 rounded-full", toneDot[item.tone])} aria-hidden />
-        <span className="hidden shrink-0 text-[10px] font-medium uppercase tracking-[0.1em] text-muted-foreground sm:inline sm:w-[128px] truncate">
+        <span className="hidden shrink-0 truncate text-[10px] font-medium uppercase tracking-[0.1em] text-muted-foreground sm:block sm:w-[120px]">
           {item.source}
         </span>
         <span className="min-w-0 flex-1 truncate text-[13px] font-medium">{item.title}</span>
-        <span className="hidden max-w-[34%] truncate text-[12px] text-muted-foreground md:inline">
+        <span className="hidden w-[28%] shrink-0 truncate text-[12px] text-muted-foreground md:block">
           {item.why}
         </span>
         <div className="shrink-0 flex items-center gap-2 opacity-70 transition-opacity group-hover:opacity-100">
@@ -189,7 +189,7 @@ export default function ActionsPage() {
         </Button>
       </div>
 
-      <section className="rounded-xl border border-border bg-card">
+      <section className="overflow-hidden rounded-xl border border-border bg-card">
         {isLoading && visible.length === 0 ? (
           <div className="flex items-center justify-center py-10">
             <Loader2 className="h-5 w-5 animate-spin text-primary" />
