@@ -27,7 +27,9 @@ export type DealSignal = {
   logEntityType?: "candidate" | "client";
   logEntityId?: string;
   logEntityName?: string;
-  kind?: "risk" | "conversation" | "grouped";
+  kind?: "risk" | "conversation" | "grouped" | "opportunity";
+  /** Label for the primary deep-link button, e.g. "Launch search". */
+  ctaLabel?: string;
   sourceQuote?: string;
   sourceLabel?: string;
   /** When present, this row is a rolled-up pattern; items live in `children`. */
