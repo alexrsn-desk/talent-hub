@@ -40,11 +40,20 @@ export type DealSignal = {
 export type DealSignalThresholds = {
   offerColdDays: number;
   clientSilenceDays: number;
+  /** Days an active job may sit with an empty pipeline before it is flagged. */
+  emptyPipelineDays: number;
+  /** Days a candidate may sit at Shortlist before submission is chased. */
+  readyToSubmitDays: number;
+  /** Days of silence before a relationship counts as gone quiet. */
+  reactivationDays: number;
 };
 
 export const DEFAULT_THRESHOLDS: DealSignalThresholds = {
   offerColdDays: 4,
   clientSilenceDays: 14,
+  emptyPipelineDays: 7,
+  readyToSubmitDays: 3,
+  reactivationDays: 42,
 };
 
 export type DealSignalsData = {
