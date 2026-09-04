@@ -15,16 +15,17 @@ import { useLiveConversationsOverdueCount } from "@/hooks/use-live-conversations
 import { useWorkflowCounts } from "@/hooks/use-workflow-counts";
 import { usePinnedSections, SECTION_META, type CandidateSection } from "@/hooks/use-pinned-sections";
 
-type BadgeKey = "live" | "placements" | "wf-launch" | "wf-compare" | "wf-reactivation";
+type BadgeKey = "live" | "placements" | "wf-launch" | "wf-compare" | "wf-reactivation" | "actions";
 type Item = { title: string; url: string; icon: any; badge?: BadgeKey };
 
 const workspaceItems: Item[] = [
   { title: "Dashboard", url: "/", icon: LayoutDashboard },
-  { title: "Biller's Workflow", url: "/billers-workflow", icon: Target },
+  { title: "Actions", url: "/actions", icon: ListChecks, badge: "actions" },
   { title: "Live Conversations", url: "/live", icon: MessagesSquare, badge: "live" },
   { title: "AI Coach", url: "/coach", icon: Sparkles },
   { title: "Weekly Intel", url: "/weekly", icon: BarChart3 },
 ];
+
 
 const workflowItems: Item[] = [
   { title: "Job Launch", url: "/jobs/launch", icon: Rocket, badge: "wf-launch" },
