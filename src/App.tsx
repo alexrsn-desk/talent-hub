@@ -26,6 +26,8 @@ import Sequences from "./pages/Sequences";
 import Auth from "./pages/Auth";
 import LiveConversations from "./pages/LiveConversations";
 import BillersWorkflow from "./pages/BillersWorkflow";
+import ActionsPage from "./pages/Actions";
+
 import SourceWhaleContacts from "./pages/SourceWhaleContacts";
 import CompareSubmit from "./pages/CompareSubmit";
 import PitchCandidate from "./pages/PitchCandidate";
