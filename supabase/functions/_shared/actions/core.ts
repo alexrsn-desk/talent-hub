@@ -49,7 +49,8 @@ export class ActionError extends Error {
 
 /** Wrap a Supabase error so internal details never leak to the caller. */
 // deno-lint-ignore no-explicit-any
-export function unwrap<T>(res: { data: T | null; error: any }, what: string): NonNullable<T> {
+// deno-lint-ignore no-explicit-any
+export function unwrap(res: { data: any; error: any }, what: string): any {
   if (res.error) {
     console.error(`[action-layer] ${what} failed:`, res.error);
     if (res.error.code === "PGRST116") throw new ActionError("not_found", `${what}: record not found`, 404);
