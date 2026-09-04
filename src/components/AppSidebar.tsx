@@ -87,9 +87,11 @@ export function AppSidebar() {
       case "wf-launch": return { count: wf.jobLaunch, color: "bg-amber-500" };
       case "wf-compare": return { count: wf.compare, color: "bg-primary" };
       case "wf-reactivation": return { count: wf.reactivation, color: "bg-amber-500" };
+      case "actions": return { count: actions.total, color: actions.urgent > 0 ? "bg-[#EF4444]" : "bg-amber-500" };
       default: return { count: 0, color: "" };
     }
   };
+
 
   return (
     <Sidebar collapsible="icon">
