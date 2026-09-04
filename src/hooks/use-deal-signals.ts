@@ -198,6 +198,7 @@ export function useDealSignals(
             .select("id,note_id,signal_type,trigger_phrase,explanation,suggested_action,priority_score,status,created_at,notes!inner(candidate_id,client_id,owner_user_id)")
             .eq("signal_type", "Campaign Reply").eq("status", "unactioned")
             .order("created_at", { ascending: false }).limit(100),
+          supabase.from("placements").select("id,candidate_id,client_id,owner_user_id").limit(1000),
         ]);
 
       const filterOwner = (rows: any[] | null) =>
