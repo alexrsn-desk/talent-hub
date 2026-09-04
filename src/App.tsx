@@ -181,7 +181,9 @@ function AppRoutes() {
       <AppLayout>
         <Routes>
           <Route path="/" element={<Dashboard />} />
+          <Route path="/actions" element={<ActionsPage />} />
           <Route path="/billers-workflow" element={<BillersWorkflow />} />
+
           <Route path="/live" element={<LiveConversations />} />
           <Route path="/signals" element={<SignalsPage />} />
           <Route path="/candidates" element={<CandidatesHub />} />
