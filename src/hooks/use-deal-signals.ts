@@ -184,10 +184,10 @@ export function useDealSignals(
     queryKey: ["deal-signals-v1", viewUserId || "me", thresholds],
     staleTime: 30_000,
     queryFn: async (): Promise<DealSignalsData> => {
-      const [cjRes, jobsRes, clientsRes, candsRes, notesRes, jobTagsRes, candTagsRes, offersRes, signalsRes] =
+      const [cjRes, jobsRes, clientsRes, candsRes, notesRes, jobTagsRes, candTagsRes, offersRes, signalsRes, placementsRes] =
         await Promise.all([
           supabase.from("candidate_jobs").select("id,candidate_id,job_id,stage,stage_changed_at,created_at,owner_user_id"),
-          supabase.from("jobs").select("id,title,status,client_id,owner_user_id,clients(company_name,contact_name)"),
+          supabase.from("jobs").select("id,title,status,client_id,created_at,search_launched_at,launch_ignored_at,owner_user_id,clients(company_name,contact_name)"),
           supabase.from("clients").select("id,company_name,contact_name,status,last_activity_date,owner_user_id"),
           supabase.from("candidates").select("id,name,job_title,status,notice_period,owner_user_id"),
           supabase.from("notes").select("id,candidate_id,client_id,activity_type,content,created_at").order("created_at", { ascending: false }).limit(1500),
