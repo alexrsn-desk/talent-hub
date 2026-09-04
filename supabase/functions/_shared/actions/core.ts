@@ -49,7 +49,6 @@ export class ActionError extends Error {
 
 /** Wrap a Supabase error so internal details never leak to the caller. */
 // deno-lint-ignore no-explicit-any
-// deno-lint-ignore no-explicit-any
 export function unwrap(res: { data: any; error: any }, what: string): any {
   if (res.error) {
     console.error(`[action-layer] ${what} failed:`, res.error);
