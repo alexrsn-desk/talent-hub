@@ -890,13 +890,24 @@ function AIActionRow({ action, expanded, onToggle, onDismiss, onAddToList, onSki
 }
 
 // ── Main TodoList Component ────────────────────────────
-export function TodoList() {
+export function TodoList({ listOnly = false }: { listOnly?: boolean } = {}) {
   const { data: todos = [] } = useTodos();
   const aiActions = useAIActions();
 
   const activeTodos = todos.filter(t => !t.completed).length;
   const aiCount = aiActions.length;
   const topUrgent = aiActions.find(a => a.urgency === "red");
+
+  // Compact variant: just the manual list, used where AI actions are already shown.
+  if (listOnly) {
+    return (
+      <div className="rounded-lg border border-border bg-card overflow-hidden">
+        <div className="p-4">
+          <MyListSegment />
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="rounded-lg border border-border bg-card overflow-hidden">
@@ -924,3 +935,4 @@ export function TodoList() {
     </div>
   );
 }
+
