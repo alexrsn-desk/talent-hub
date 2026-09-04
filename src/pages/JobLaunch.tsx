@@ -889,7 +889,7 @@ export default function JobLaunch() {
               <p className="text-xs">All outputs logged to the job record. Touchpoints added for every contacted candidate.</p>
               <div className="flex gap-2 pt-2">
                 <Button size="sm" variant="outline" onClick={() => navigate(`/jobs?focus=${jobId}`)}>Back to job</Button>
-                <Button size="sm" variant="outline" onClick={() => navigate("/billers-workflow")}>Open Biller's Workflow</Button>
+                <Button size="sm" variant="outline" onClick={() => navigate("/actions")}>Open Actions</Button>
               </div>
             </div>
           ) : (

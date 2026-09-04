@@ -361,7 +361,7 @@ export default function ReactivationCampaign() {
           </p>
         </div>
         <div className="flex justify-center gap-2">
-          <Button variant="outline" onClick={() => nav("/billers-workflow")}>Back to Biller's Workflow</Button>
+          <Button variant="outline" onClick={() => nav("/actions")}>Back to Actions</Button>
           <Button onClick={() => nav("/bd-pipeline")}>Done</Button>
         </div>
       </div>
