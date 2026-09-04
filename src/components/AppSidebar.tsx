@@ -14,6 +14,8 @@ import { useActivePlacementCount } from "@/hooks/use-placements";
 import { useLiveConversationsOverdueCount } from "@/hooks/use-live-conversations";
 import { useWorkflowCounts } from "@/hooks/use-workflow-counts";
 import { usePinnedSections, SECTION_META, type CandidateSection } from "@/hooks/use-pinned-sections";
+import { useActionsCount } from "@/hooks/use-action-items";
+
 
 type BadgeKey = "live" | "placements" | "wf-launch" | "wf-compare" | "wf-reactivation" | "actions";
 type Item = { title: string; url: string; icon: any; badge?: BadgeKey };
