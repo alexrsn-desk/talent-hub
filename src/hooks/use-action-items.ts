@@ -43,6 +43,11 @@ const sourceOf = (item: BillerItem): string => {
  * Workflow detection logic, relationship decay reach-outs, items that aged
  * out of the brief and overdue follow-ups.
  */
+/** Strips decorative leading emoji/symbols from generated titles. */
+function cleanTitle(t: string) {
+  return t.replace(/^[^\p{L}\p{N}]+/u, "").trim();
+}
+
 export function useActionItems() {
   const thresholds = loadThresholds();
   const { data: workflow, isLoading, refetch, isFetching } = useBillersWorkflow(null, thresholds);
@@ -68,7 +73,7 @@ export function useActionItems() {
         id: it.id,
         tone: narrowTone(it.tone),
         source: sourceOf(it),
-        title: it.title,
+        title: cleanTitle(it.title),
         why: it.signal || it.sub || "",
         action: it.action,
         urgency: it.urgency + (it.bdTarget ? 50 : 0),
