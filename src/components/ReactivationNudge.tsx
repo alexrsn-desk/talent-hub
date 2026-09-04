@@ -1,5 +1,5 @@
 import { useNavigate } from "react-router-dom";
-import { useBillersWorkflow } from "@/hooks/use-billers-workflow";
+import { useWorkflowCounts } from "@/hooks/use-workflow-counts";
 import { Sparkles, ArrowRight } from "lucide-react";
 
 /**
@@ -8,16 +8,7 @@ import { Sparkles, ArrowRight } from "lucide-react";
  */
 export function ReactivationNudge() {
   const nav = useNavigate();
-  const { data } = useBillersWorkflow();
-  if (!data) return null;
-
-  const reactivationCount = data.feedTheBeast.filter(
-    (i) =>
-      i.id.startsWith("ftb-bd") ||
-      i.id.startsWith("ftb-warm") ||
-      i.id.startsWith("ftb-ref") ||
-      i.id.startsWith("ftb-silver")
-  ).length;
+  const { reactivation: reactivationCount } = useWorkflowCounts();
 
   if (reactivationCount < 2) return null;
 
