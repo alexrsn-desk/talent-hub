@@ -79,6 +79,8 @@ export function AppSidebar() {
   const liveOverdue = useLiveConversationsOverdueCount();
   const wf = useWorkflowCounts();
   const { data: pinned = [] } = usePinnedSections();
+  const actions = useActionsCount();
+
 
   const getBadge = (key?: BadgeKey) => {
     switch (key) {
