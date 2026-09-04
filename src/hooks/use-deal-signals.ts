@@ -381,6 +381,145 @@ export function useDealSignals(
         });
       }
 
+      // ── Background opportunity detection ──────────────────────────
+      // These five run continuously and deep-link straight into the
+      // relevant workflow; they have no dedicated UI of their own.
+      const placements = filterOwner(placementsRes.data as any);
+      const activeJobs = (jobs as any[]).filter((j: any) => j.status === "Active");
+      const noteCountByClient = new Map<string, number>();
+      const noteCountByCand = new Map<string, number>();
+      for (const n of notes as any[]) {
+        if (n.client_id) noteCountByClient.set(n.client_id, (noteCountByClient.get(n.client_id) || 0) + 1);
+        if (n.candidate_id) noteCountByCand.set(n.candidate_id, (noteCountByCand.get(n.candidate_id) || 0) + 1);
+      }
+      const placedClientIds = new Set((placements as any[]).map((p: any) => p.client_id).filter(Boolean));
+
+      for (const job of activeJobs) {
+        const company = job.clients?.company_name || "—";
+        const rows = cjsByJob.get(job.id) || [];
+        const inPipeline = rows.filter((r: any) => r.stage && r.stage !== "AI Suggested");
+        const openDays = daysSince(job.created_at);
+
+        // 1 — Empty pipeline
+        if (inPipeline.length === 0 && openDays >= thresholds.emptyPipelineDays && !job.launch_ignored_at) {
+          items.push({
+            id: `op-emptypipe-${job.id}`,
+            tone: "amber", kind: "opportunity",
+            title: `${job.title} at ${company} has no candidates yet — worth launching a search`,
+            sub: `Open ${openDays} days with an empty pipeline`,
+            signal: "A live role with nobody in it is the fastest way to lose the client's confidence.",
+            action: "Launch a search for this role",
+            ctaLabel: "Launch search",
+            href: `/jobs/${job.id}/launch`,
+            urgency: 300 + Math.min(openDays, 60),
+            logEntityType: "client",
+            logEntityId: job.client_id || undefined,
+            logEntityName: company,
+          });
+        }
+
+        // 2 — Ready to submit
+        const shortlisted = rows.filter(
+          (r: any) => r.stage === "Shortlist" &&
+            daysSince(r.stage_changed_at || r.created_at) >= thresholds.readyToSubmitDays,
+        );
+        const alreadySent = rows.some((r: any) => r.stage === "Sent CV");
+        if (shortlisted.length > 0 && !alreadySent) {
+          const waited = Math.max(...shortlisted.map((r: any) => daysSince(r.stage_changed_at || r.created_at)));
+          items.push({
+            id: `op-readysubmit-${job.id}`,
+            tone: "amber", kind: "opportunity",
+            title: `${shortlisted.length} candidate${shortlisted.length === 1 ? "" : "s"} shortlisted for ${job.title} — ready to submit`,
+            sub: `${company} · waiting ${waited} day${waited === 1 ? "" : "s"}`,
+            signal: "Shortlisted candidates go off the boil fast — get them in front of the client.",
+            action: "Compare them and send the CVs",
+            ctaLabel: "Compare & Submit",
+            href: `/jobs/${job.id}/compare`,
+            urgency: 340 + Math.min(waited, 40),
+            logEntityType: "client",
+            logEntityId: job.client_id || undefined,
+            logEntityName: company,
+          });
+        }
+
+        // 5 — Unlaunched search
+        if (!job.search_launched_at && !job.launch_ignored_at && inPipeline.length > 0) {
+          items.push({
+            id: `op-unlaunched-${job.id}`,
+            tone: "green", kind: "opportunity",
+            title: `${job.title} at ${company} hasn't had its search launched yet`,
+            sub: `Open ${openDays} days`,
+            signal: "A launched search covers the market properly instead of relying on who you remember.",
+            action: "Run the launch workflow for this role",
+            ctaLabel: "Launch search",
+            href: `/jobs/${job.id}/launch`,
+            urgency: 160 + Math.min(openDays, 40),
+            logEntityType: "client",
+            logEntityId: job.client_id || undefined,
+            logEntityName: company,
+          });
+        }
+      }
+
+      // 3 — Cold clients and past placements (genuine relationships only)
+      const liveRoleClientIds = new Set(activeJobs.map((j: any) => j.client_id).filter(Boolean));
+      let quietCount = 0;
+      for (const c of clients as any[]) {
+        if (liveRoleClientIds.has(c.id)) continue;
+        const genuine = placedClientIds.has(c.id) || (noteCountByClient.get(c.id) || 0) >= 2;
+        if (!genuine) continue;
+        const last = lastClientNote.get(c.id)?.created_at || c.last_activity_date;
+        if (daysSince(last) >= thresholds.reactivationDays) quietCount++;
+      }
+      for (const p of placements as any[]) {
+        const cand = candById.get(p.candidate_id) as any;
+        if (!cand) continue;
+        const last = lastCandNote.get(p.candidate_id)?.created_at;
+        if (daysSince(last) >= thresholds.reactivationDays) quietCount++;
+      }
+      if (quietCount >= 3) {
+        items.push({
+          id: `op-reactivation-${Math.min(quietCount, 99)}`,
+          tone: "green", kind: "opportunity",
+          title: `${quietCount} relationships have gone quiet — worth a reactivation campaign`,
+          sub: "Past clients and placed candidates you have real history with",
+          signal: "Warm history converts far better than cold outreach.",
+          action: "Build a reactivation campaign for this group",
+          ctaLabel: "Build campaign",
+          href: `/reactivation`,
+          urgency: 150 + Math.min(quietCount, 40),
+        });
+      }
+
+      // 4 — Speculative pitches
+      const candOnActiveJob = new Set(
+        cjs.filter((r: any) => activeJobIds.has(r.job_id) && r.stage !== "AI Suggested")
+          .map((r: any) => r.candidate_id),
+      );
+      let pitchCount = 0;
+      for (const c of candidates as any[]) {
+        if (pitchCount >= 3) break;
+        if (c.status !== "Active") continue;
+        if (candOnActiveJob.has(c.id)) continue;
+        const strong = (c.relationship_score || 0) >= 20 || (noteCountByCand.get(c.id) || 0) >= 2;
+        if (!strong) continue;
+        pitchCount++;
+        items.push({
+          id: `op-pitch-${c.id}`,
+          tone: "green", kind: "opportunity",
+          title: `${c.name} has no current role match — worth pitching speculatively`,
+          sub: [c.job_title, c.current_employer].filter(Boolean).join(" · ") || undefined,
+          signal: "A strong candidate with nowhere to go is a BD conversation waiting to happen.",
+          action: "Find companies worth pitching them to",
+          ctaLabel: "Find opportunities",
+          href: `/candidates/${c.id}/pitch`,
+          urgency: 140,
+          logEntityType: "candidate",
+          logEntityId: c.id,
+          logEntityName: c.name,
+        });
+      }
+
       // ── Campaign replies waiting to be actioned ───────────────────
       const replySignals = (signalsRes.data || []).filter(
         (s: any) => !viewUserId || s.notes?.owner_user_id === viewUserId,
