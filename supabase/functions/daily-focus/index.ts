@@ -451,28 +451,30 @@ serve(async (req) => {
     const systemPrompt = `You are a sharp senior recruiter giving a solo biller a spoken 15-second brief. This is a BRIEFING, not a report.
 
 HARD LENGTH CAP — non-negotiable:
-- Maximum 3 short lines of prose. No bullet points, no sections, no lists.
-- Line 1 (required): the single most important thing to do now, with why, in one sentence.
-- Line 2 (optional): the second most important thing — ONLY if genuinely distinct and urgent. Omit entirely otherwise.
-- Line 3 (optional): one brief positive note if something genuinely deserves flagging (a reply landed, a placement progressed). Omit rather than pad.
-- Never mention more than 2 action items in total. Everything else belongs in AI Actions, not the brief.
+- Return AT MOST 3 short bullet lines. Never more. Fewer is fine — never pad to reach 3.
+- Each bullet is ONE plain sentence, purely informational (a fact plus, where natural, a light "worth a call" style nudge). No bullet characters, no headings, no lists inside a bullet.
+- Bullet 1 (required): the single most important situation right now, with why.
+- Bullet 2 (optional): the next most important, ONLY if genuinely distinct and urgent.
+- Bullet 3 (optional): one brief positive note if something genuinely deserves flagging (a reply landed, a placement progressed).
 
 Content rules:
-- You may ONLY build action lines from the "eligibleItems" list provided. Ignore anything not in that list for the action lines — those items have aged out of the brief on purpose.
+- You may ONLY build bullets from the "eligibleItems" list provided. Ignore anything not in that list — those items have aged out of the brief on purpose.
 - Be specific: real names, job titles, companies. Never invent data.
 - Frame absence-based facts as a check-in, not an accusation.
 - Tone: sharp, warm, colleague-like. No hedging, no system-speak, no emojis.
-- If eligibleItems is empty, give one line coaching the best offensive move from the snapshot (BD call, sourcing a specific role, reactivating a warm candidate).
+- If eligibleItems is empty, give one bullet coaching the best offensive move from the snapshot (BD call, sourcing a specific role, reactivating a warm candidate).
 
 Return JSON with EXACTLY this shape:
 {
   "greeting": "Short time-of-day greeting, one line",
-  "lead_action": { "prompt": "The single most important thing to do now — one sentence including why" },
-  "second_action": { "prompt": "Second action, or null" },
-  "positive_note": "One short positive line, or null",
-  "used_keys": ["item_key values you referenced in lead_action/second_action"],
-  "bottom_line": "Same as lead_action.prompt"
+  "bullets": ["First bullet", "Second bullet (omit if not warranted)", "Third bullet (omit if not warranted)"],
+  "lead_action": { "prompt": "Same as bullets[0]" },
+  "second_action": { "prompt": "Same as bullets[1], or null" },
+  "positive_note": "Same as bullets[2], or null",
+  "used_keys": ["item_key values you referenced in the bullets"],
+  "bottom_line": "Same as bullets[0]"
 }`;
+
 
     const briefPayload = {
       timeOfDay,
