@@ -19,7 +19,7 @@ async function getApp(ctx: ActionCtx, id: string) {
   return row;
 }
 
-async function resolveApp(ctx: ActionCtx, i: { application_id?: string; candidate_id?: string; job_id?: string }) {
+async function resolveApp(ctx: ActionCtx, i: { application_id?: string; candidate_id?: string; job_id?: string }): Promise<any> {
   if (i.application_id) return await getApp(ctx, i.application_id);
   if (i.candidate_id && i.job_id) {
     const row = unwrap(
