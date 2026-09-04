@@ -352,7 +352,10 @@ Deno.serve(async (req) => {
       // Strip server-managed columns so PostgREST doesn't send explicit NULLs
       // for rows that don't spread an existing DB row (batched upserts unify
       // the column list, so a missing created_at on one row becomes NULL for all).
-      const cleaned = upserts.map(({ created_at, updated_at, ...rest }) => rest);
+      // `id` is dropped too: the conflict target resolves existing rows, and a
+      // mixed column list would otherwise send id = NULL for the new rows.
+      const cleaned = upserts.map(({ created_at, updated_at, id, ...rest }) => rest);
+
       const { error: upErr } = await sb
         .from("decay_alerts")
         .upsert(cleaned, { onConflict: "owner_user_id,entity_type,entity_id" });

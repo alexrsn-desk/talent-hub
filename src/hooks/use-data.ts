@@ -2,6 +2,8 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { logActivity } from "@/lib/activity-log";
 import { upsertCallRefNote } from "@/lib/call-reference";
+import { deskyAction } from "@/lib/desky-actions";
+
 
 // Types
 export type Candidate = {
@@ -325,6 +327,17 @@ export function useCreateCandidateJob() {
       ai_suggested_score?: number | null;
       ai_suggested_reason?: string | null;
     }) => {
+      // Plain pipeline links go through the shared Desky Action Layer
+      // (validation, stage checks and audit logging live server-side).
+      if (!link.ai_suggested) {
+        return await deskyAction<any>("add_candidate_to_job", {
+          candidate_id: link.candidate_id,
+          job_id: link.job_id,
+          stage: link.stage,
+          source: link.source,
+        });
+      }
+      // AI-suggestion links carry attribution fields the action layer doesn't own yet.
       const { data: { user } } = await supabase.auth.getUser();
       const { data, error } = await supabase.from("candidate_jobs").insert({ ...link, owner_user_id: user?.id } as any).select().single();
       if (error) throw error;
@@ -340,6 +353,7 @@ export function useCreateCandidateJob() {
     onSuccess: () => qc.invalidateQueries({ queryKey: ["candidate_jobs"] }),
   });
 }
+
 
 export function useUpdateCandidateJob() {
   const qc = useQueryClient();

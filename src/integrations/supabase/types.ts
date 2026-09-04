@@ -10,10 +10,73 @@ export type Database = {
   // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
-    PostgrestVersion: "14.17"
+    PostgrestVersion: "14.5"
   }
   public: {
     Tables: {
+      action_proposals: {
+        Row: {
+          action: string
+          affected: Json
+          affected_count: number
+          approved_at: string | null
+          approved_by: string | null
+          created_at: string
+          error: string | null
+          executed_at: string | null
+          expires_at: string
+          id: string
+          input: Json
+          intent: string | null
+          owner_user_id: string
+          requested_by: string
+          requires_external_send: boolean
+          result: Json | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          action: string
+          affected?: Json
+          affected_count?: number
+          approved_at?: string | null
+          approved_by?: string | null
+          created_at?: string
+          error?: string | null
+          executed_at?: string | null
+          expires_at?: string
+          id?: string
+          input?: Json
+          intent?: string | null
+          owner_user_id?: string
+          requested_by?: string
+          requires_external_send?: boolean
+          result?: Json | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          action?: string
+          affected?: Json
+          affected_count?: number
+          approved_at?: string | null
+          approved_by?: string | null
+          created_at?: string
+          error?: string | null
+          executed_at?: string | null
+          expires_at?: string
+          id?: string
+          input?: Json
+          intent?: string | null
+          owner_user_id?: string
+          requested_by?: string
+          requires_external_send?: boolean
+          result?: Json | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       activity_events: {
         Row: {
           candidate_id: string | null
@@ -1593,6 +1656,51 @@ export type Database = {
         }
         Relationships: []
       }
+      email_templates: {
+        Row: {
+          approved: boolean
+          archived: boolean
+          body: string
+          category: string
+          created_at: string
+          id: string
+          key: string
+          name: string
+          owner_user_id: string
+          subject: string
+          updated_at: string
+          variables: Json
+        }
+        Insert: {
+          approved?: boolean
+          archived?: boolean
+          body?: string
+          category?: string
+          created_at?: string
+          id?: string
+          key: string
+          name: string
+          owner_user_id?: string
+          subject?: string
+          updated_at?: string
+          variables?: Json
+        }
+        Update: {
+          approved?: boolean
+          archived?: boolean
+          body?: string
+          category?: string
+          created_at?: string
+          id?: string
+          key?: string
+          name?: string
+          owner_user_id?: string
+          subject?: string
+          updated_at?: string
+          variables?: Json
+        }
+        Relationships: []
+      }
       enrichment_usage: {
         Row: {
           client_id: string | null
@@ -2227,6 +2335,7 @@ export type Database = {
           activity_type: string
           candidate_id: string | null
           client_id: string | null
+          contact_id: string | null
           content: string
           created_at: string
           duration: number | null
@@ -2241,6 +2350,7 @@ export type Database = {
           activity_type?: string
           candidate_id?: string | null
           client_id?: string | null
+          contact_id?: string | null
           content: string
           created_at?: string
           duration?: number | null
@@ -2255,6 +2365,7 @@ export type Database = {
           activity_type?: string
           candidate_id?: string | null
           client_id?: string | null
+          contact_id?: string | null
           content?: string
           created_at?: string
           duration?: number | null
@@ -2278,6 +2389,13 @@ export type Database = {
             columns: ["client_id"]
             isOneToOne: false
             referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "notes_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
             referencedColumns: ["id"]
           },
           {
@@ -4358,45 +4476,98 @@ export type Database = {
       }
       todo_tasks: {
         Row: {
+          candidate_id: string | null
+          client_id: string | null
           completed: boolean
           completed_at: string | null
+          contact_id: string | null
           created_at: string
           due_date: string | null
           id: string
+          job_id: string | null
+          kind: string | null
           owner_user_id: string | null
           position: number
           priority: string
+          reason: string | null
           recurrence: string | null
+          source: string | null
+          status: string | null
           title: string
           user_id: string | null
         }
         Insert: {
+          candidate_id?: string | null
+          client_id?: string | null
           completed?: boolean
           completed_at?: string | null
+          contact_id?: string | null
           created_at?: string
           due_date?: string | null
           id?: string
+          job_id?: string | null
+          kind?: string | null
           owner_user_id?: string | null
           position?: number
           priority?: string
+          reason?: string | null
           recurrence?: string | null
+          source?: string | null
+          status?: string | null
           title: string
           user_id?: string | null
         }
         Update: {
+          candidate_id?: string | null
+          client_id?: string | null
           completed?: boolean
           completed_at?: string | null
+          contact_id?: string | null
           created_at?: string
           due_date?: string | null
           id?: string
+          job_id?: string | null
+          kind?: string | null
           owner_user_id?: string | null
           position?: number
           priority?: string
+          reason?: string | null
           recurrence?: string | null
+          source?: string | null
+          status?: string | null
           title?: string
           user_id?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "todo_tasks_candidate_id_fkey"
+            columns: ["candidate_id"]
+            isOneToOne: false
+            referencedRelation: "candidates"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "todo_tasks_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "todo_tasks_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "todo_tasks_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "jobs"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       usage_logs: {
         Row: {
@@ -4723,12 +4894,12 @@ export type Tables<
   DefaultSchemaTableNameOrOptions extends
     | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
         DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -4752,11 +4923,11 @@ export type TablesInsert<
   DefaultSchemaTableNameOrOptions extends
     | keyof DefaultSchema["Tables"]
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -4777,11 +4948,11 @@ export type TablesUpdate<
   DefaultSchemaTableNameOrOptions extends
     | keyof DefaultSchema["Tables"]
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -4802,11 +4973,11 @@ export type Enums<
   DefaultSchemaEnumNameOrOptions extends
     | keyof DefaultSchema["Enums"]
     | { schema: keyof DatabaseWithoutInternals },
-  EnumName extends DefaultSchemaEnumNameOrOptions extends {
+  EnumName extends (DefaultSchemaEnumNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaEnumNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -4819,11 +4990,11 @@ export type CompositeTypes<
   PublicCompositeTypeNameOrOptions extends
     | keyof DefaultSchema["CompositeTypes"]
     | { schema: keyof DatabaseWithoutInternals },
-  CompositeTypeName extends PublicCompositeTypeNameOrOptions extends {
+  CompositeTypeName extends (PublicCompositeTypeNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
-    : never = never,
+    : never) = never,
 > = PublicCompositeTypeNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
