@@ -44,3 +44,6 @@ verify_jwt = false
 
 [functions.portal-agency]
 verify_jwt = true
+
+[functions.desky-actions]
+verify_jwt = false
