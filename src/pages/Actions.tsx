@@ -8,7 +8,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
 import { LogTouchpointModal } from "@/components/LogTouchpointModal";
-import { markItemDone, snoozeItem } from "@/hooks/use-billers-workflow";
+import { markItemDone, snoozeItem } from "@/hooks/use-deal-signals";
 import { useActionItems, type ActionItem, type ActionTone } from "@/hooks/use-action-items";
 import { useResolveBriefItem } from "@/hooks/use-brief-items";
 import { TodoList } from "@/components/TodoList";

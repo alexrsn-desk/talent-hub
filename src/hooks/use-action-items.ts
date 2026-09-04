@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { useBillersWorkflow, loadThresholds, type BillerItem } from "@/hooks/use-billers-workflow";
+import { useDealSignals, loadThresholds, type DealSignal } from "@/hooks/use-deal-signals";
 import { useDecayAlerts } from "@/hooks/use-decay";
 import { useClients, useContacts, useOverdueFollowUps } from "@/hooks/use-data";
 import { useAgedOutBriefItems } from "@/hooks/use-brief-items";
@@ -29,18 +29,17 @@ export type ActionItem = {
   briefItemId?: string;
 };
 
-const narrowTone = (tone: BillerItem["tone"]): ActionTone =>
+const narrowTone = (tone: DealSignal["tone"]): ActionTone =>
   tone === "red" ? "red" : tone === "green" ? "green" : "amber";
 
-const sourceOf = (item: BillerItem): string => {
+const sourceOf = (item: DealSignal): string => {
   if (item.kind === "conversation") return "From a call";
-  if (item.bdTarget) return "BD target";
-  return item.section === "close" ? "Close & protect" : "Feed the beast";
+  return "Deal at risk";
 };
 
 /**
- * One prioritised list of everything worth doing, merging the Biller's
- * Workflow detection logic, relationship decay reach-outs, items that aged
+ * One prioritised list of everything worth doing, merging the
+ * deal-risk signals, relationship decay reach-outs, items that aged
  * out of the brief and overdue follow-ups.
  */
 /** Strips decorative leading emoji/symbols from generated titles. */
@@ -50,7 +49,7 @@ function cleanTitle(t: string) {
 
 export function useActionItems() {
   const thresholds = loadThresholds();
-  const { data: workflow, isLoading, refetch, isFetching } = useBillersWorkflow(null, thresholds);
+  const { data: workflow, isLoading, refetch, isFetching } = useDealSignals(null, thresholds);
   const { data: decay = [] } = useDecayAlerts();
   const { data: clients = [] } = useClients();
   const { data: contacts = [] } = useContacts();
@@ -60,11 +59,7 @@ export function useActionItems() {
   const items = useMemo<ActionItem[]>(() => {
     const out: ActionItem[] = [];
 
-    const fromWorkflow = [
-      ...(workflow?.dailyBdTargets || []),
-      ...(workflow?.closeProtect || []),
-      ...(workflow?.feedTheBeast || []),
-    ];
+    const fromWorkflow = workflow?.items || [];
     const seen = new Set<string>();
     for (const it of fromWorkflow) {
       if (seen.has(it.id)) continue;
@@ -76,7 +71,7 @@ export function useActionItems() {
         title: cleanTitle(it.title),
         why: it.signal || it.sub || "",
         action: it.action,
-        urgency: it.urgency + (it.bdTarget ? 50 : 0),
+        urgency: it.urgency,
         href: it.href,
         logEntityType: it.logEntityType,
         logEntityId: it.logEntityId,
