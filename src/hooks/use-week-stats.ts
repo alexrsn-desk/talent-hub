@@ -104,13 +104,35 @@ export function useWeekStats(ownerUserId?: string) {
         .in("stage", ["Sent CV", "Sent CV"])
         .eq("owner_user_id", owner!);
 
-      const [overdueR, cvsR, interviewsR, atOfferR, placementsR, liveCvsR] = await Promise.all([
-        overdueP, cvsP, interviewsP, atOfferP, placementsP, liveCvsP,
+      // Interviews booked this week (created during the week)
+      const bookedP = supabase
+        .from("interviews")
+        .select("id", { count: "exact", head: true })
+        .gte("created_at", monday.toISOString())
+        .lte("created_at", sunday.toISOString() + "T23:59:59")
+        .eq("owner_user_id", owner!);
+
+      // BD touchpoints this week — client/contact notes logged with a real activity type
+      const bdP = supabase
+        .from("notes")
+        .select("id, client_id, contact_id, activity_type, created_at")
+        .gte("created_at", monday.toISOString())
+        .lte("created_at", sunday.toISOString() + "T23:59:59")
+        .eq("owner_user_id", owner!);
+
+      const [overdueR, cvsR, interviewsR, atOfferR, placementsR, liveCvsR, bookedR, bdR] = await Promise.all([
+        overdueP, cvsP, interviewsP, atOfferP, placementsP, liveCvsP, bookedP, bdP,
       ]);
 
       const placements = (placementsR.data || []).filter((p: any) => {
         const d = p.start_date || p.offer_accepted_date;
         return d && d >= mondayIso && d <= sundayIso;
+      }).length;
+
+      const bdTouchpoints = (bdR.data || []).filter((n: any) => {
+        if (!n.client_id && !n.contact_id) return false;
+        const t = (n.activity_type || "").toLowerCase();
+        return t && t !== "note";
       }).length;
 
       const stats: WeekStats = {
@@ -123,7 +145,11 @@ export function useWeekStats(ownerUserId?: string) {
         atOffer: atOfferR.count ?? 0,
         placements,
         liveCvsOut: liveCvsR.count ?? 0,
+        interviewsBooked: bookedR.count ?? 0,
+        interviewsTakingPlace: interviewsR.count ?? 0,
+        bdTouchpoints,
       };
+
       return stats;
     },
     staleTime: 60_000,
