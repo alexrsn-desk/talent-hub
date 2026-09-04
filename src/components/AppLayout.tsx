@@ -13,7 +13,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
         <SidebarProvider>
           <div className="min-h-screen flex w-full">
             <AppSidebar />
-            <div className="flex-1 flex flex-col">
+            <div className="flex-1 min-w-0 flex flex-col">
               <header className="h-14 flex items-center justify-between border-b border-border/70 px-5 gap-3 bg-background/80 backdrop-blur-sm sticky top-0 z-30">
                 <SidebarTrigger />
                 <div className="flex-1 flex justify-center">

@@ -1,5 +1,5 @@
 import { NavLink } from "@/components/NavLink";
-import { LayoutDashboard, Users, Building2, UserCircle, Briefcase, TrendingUp, Sparkles, Settings, BarChart3, PhoneCall, Link2, Award, MessagesSquare, Target, Waves, Rocket, Columns, RefreshCw, MessageCircle, PlayCircle, Inbox, Table2, Radar } from "lucide-react";
+import { LayoutDashboard, Users, Building2, UserCircle, Briefcase, TrendingUp, Sparkles, Settings, BarChart3, PhoneCall, Link2, Award, MessagesSquare, Target, Waves, Rocket, Columns, RefreshCw, MessageCircle, PlayCircle, Inbox, Table2, Radar, ListChecks } from "lucide-react";
 import {
   Sidebar,
   SidebarContent,
@@ -14,17 +14,20 @@ import { useActivePlacementCount } from "@/hooks/use-placements";
 import { useLiveConversationsOverdueCount } from "@/hooks/use-live-conversations";
 import { useWorkflowCounts } from "@/hooks/use-workflow-counts";
 import { usePinnedSections, SECTION_META, type CandidateSection } from "@/hooks/use-pinned-sections";
+import { useActionsCount } from "@/hooks/use-action-items";
 
-type BadgeKey = "live" | "placements" | "wf-launch" | "wf-compare" | "wf-reactivation";
+
+type BadgeKey = "live" | "placements" | "wf-launch" | "wf-compare" | "wf-reactivation" | "actions";
 type Item = { title: string; url: string; icon: any; badge?: BadgeKey };
 
 const workspaceItems: Item[] = [
   { title: "Dashboard", url: "/", icon: LayoutDashboard },
-  { title: "Biller's Workflow", url: "/billers-workflow", icon: Target },
+  { title: "Actions", url: "/actions", icon: ListChecks, badge: "actions" },
   { title: "Live Conversations", url: "/live", icon: MessagesSquare, badge: "live" },
   { title: "AI Coach", url: "/coach", icon: Sparkles },
   { title: "Weekly Intel", url: "/weekly", icon: BarChart3 },
 ];
+
 
 const workflowItems: Item[] = [
   { title: "Job Launch", url: "/jobs/launch", icon: Rocket, badge: "wf-launch" },
@@ -78,6 +81,8 @@ export function AppSidebar() {
   const liveOverdue = useLiveConversationsOverdueCount();
   const wf = useWorkflowCounts();
   const { data: pinned = [] } = usePinnedSections();
+  const actions = useActionsCount();
+
 
   const getBadge = (key?: BadgeKey) => {
     switch (key) {
@@ -86,9 +91,11 @@ export function AppSidebar() {
       case "wf-launch": return { count: wf.jobLaunch, color: "bg-amber-500" };
       case "wf-compare": return { count: wf.compare, color: "bg-primary" };
       case "wf-reactivation": return { count: wf.reactivation, color: "bg-amber-500" };
+      case "actions": return { count: actions.total, color: actions.urgent > 0 ? "bg-[#EF4444]" : "bg-amber-500" };
       default: return { count: 0, color: "" };
     }
   };
+
 
   return (
     <Sidebar collapsible="icon">
