@@ -12,7 +12,14 @@ export type WeekStats = {
   placements: number;
   /** Live CVs out — all candidates currently at Submitted or Client Review (all time, all active jobs) */
   liveCvsOut: number;
+  /** Interviews booked (created) this week */
+  interviewsBooked: number;
+  /** Interviews actually taking place this week (scheduled_at in week) */
+  interviewsTakingPlace: number;
+  /** Client / contact touchpoints logged this week */
+  bdTouchpoints: number;
 };
+
 
 /** Returns the Monday (00:00) of the current week as a Date */
 export function getWeekStart(d = new Date()): Date {
