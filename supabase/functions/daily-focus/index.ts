@@ -531,6 +531,17 @@ Return JSON with EXACTLY this shape:
     // Enforce the cap server-side too
     parsed.supporting_actions = [];
     if (parsed.second_action && !parsed.second_action.prompt) parsed.second_action = null;
+    const fallbackBullets = [
+      parsed?.lead_action?.prompt || parsed?.bottom_line,
+      parsed?.second_action?.prompt,
+      parsed?.positive_note,
+    ];
+    const rawBullets = Array.isArray(parsed.bullets) && parsed.bullets.length ? parsed.bullets : fallbackBullets;
+    parsed.bullets = rawBullets
+      .filter((b: any) => typeof b === "string" && b.trim().length > 0)
+      .map((b: string) => b.trim())
+      .slice(0, 3);
+
 
     // Record which items were actually shown in the brief text (max 2 consecutive shows)
     const usedKeys: string[] = Array.isArray(parsed.used_keys)
