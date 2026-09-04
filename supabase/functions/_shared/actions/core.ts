@@ -12,7 +12,9 @@ export type ActionKind = "read" | "write" | "external";
 export type ActionCtx = {
   userId: string;
   /** User-scoped client — RLS applies. */
-  db: SupabaseClient;
+  // deno-lint-ignore no-explicit-any
+  db: SupabaseClient<any>;
+
   /** Caller identity for auditing: "ui", "mcp", "viktor", ... */
   requestedBy: string;
   /** Raw bearer token, for actions that re-invoke other edge functions. */
