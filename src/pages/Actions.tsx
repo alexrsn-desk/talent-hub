@@ -176,7 +176,7 @@ export default function ActionsPage() {
   };
 
   return (
-    <div className="space-y-5">
+    <div className="min-w-0 space-y-5">
       <div className="flex items-start justify-between gap-3">
         <div>
           <h1 className="text-xl font-semibold tracking-tight">Actions</h1>
@@ -220,7 +220,7 @@ export default function ActionsPage() {
       </section>
 
       {/* Manual tasks stay alongside the generated list */}
-      <TodoList />
+      <TodoList listOnly />
 
       {logItem && logItem.logEntityType && logItem.logEntityId && logItem.logEntityName && (
         <LogTouchpointModal
