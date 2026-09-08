@@ -26,12 +26,12 @@ const ICONS: Record<string, React.ComponentType<{ className?: string }>> = {
   cv_sent: Send,
 };
 
-function describe(row: any): string {
+function describe(row: any, names: Record<string, string>): string {
   const m = row.metadata ?? {};
-  const who = m.candidate_name || m.name || "A candidate";
+  const who = names[row.candidate_id] || m.candidate_name || m.name || "A candidate";
   switch (row.action_type) {
     case "stage_change":
-      return `${who} moved${m.from ? ` from ${m.from}` : ""}${m.to ? ` to ${m.to}` : ""}`;
+      return `${who} moved${m.stage_from ?? m.from ? ` from ${m.stage_from ?? m.from}` : ""}${m.stage_to ?? m.to ? ` to ${m.stage_to ?? m.to}` : ""}`;
     case "candidate_job_linked":
       return `${who} added to the pipeline${m.stage ? ` at ${m.stage}` : ""}`;
     case "candidate_job_unlinked":
@@ -41,9 +41,9 @@ function describe(row: any): string {
     case "touchpoint_logged":
       return `Touchpoint logged${m.medium ? ` (${m.medium})` : ""}`;
     case "interview_scheduled":
-      return `Interview scheduled${m.candidate_name ? ` with ${m.candidate_name}` : ""}`;
+      return `Interview scheduled with ${who}`;
     case "cv_sent":
-      return `CV sent${m.candidate_name ? ` for ${m.candidate_name}` : ""}`;
+      return `CV sent for ${who}`;
     case "job_created":
       return "Job created";
     case "job_updated":
@@ -60,16 +60,23 @@ export function JobActivityTimeline({ jobId }: { jobId: string }) {
     queryKey: ["job-activity-timeline", jobId],
     queryFn: async () => {
       const [log, notes, launches] = await Promise.all([
-        supabase.from("activity_log").select("id, action_type, metadata, created_at").eq("job_id", jobId).order("created_at", { ascending: false }).limit(150),
+        supabase.from("activity_log").select("id, action_type, metadata, candidate_id, created_at").eq("job_id", jobId).order("created_at", { ascending: false }).limit(150),
         supabase.from("notes").select("id, content, activity_type, created_at").eq("job_id", jobId).order("created_at", { ascending: false }).limit(100),
         supabase.from("job_launches").select("id, launched_at, known_count, li_count").eq("job_id", jobId).order("launched_at", { ascending: false }),
       ]);
+
+      const candidateIds = [...new Set(((log.data ?? []) as any[]).map((r) => r.candidate_id).filter(Boolean))];
+      const names: Record<string, string> = {};
+      if (candidateIds.length) {
+        const { data: cands } = await supabase.from("candidates").select("id, name").in("id", candidateIds);
+        for (const c of (cands ?? []) as any[]) names[c.id] = c.name;
+      }
 
       const entries: Entry[] = [];
 
       for (const r of (log.data ?? []) as any[]) {
         if (r.action_type === "note_created") continue; // notes come from the notes feed below
-        entries.push({ id: `log-${r.id}`, at: r.created_at, icon: ICONS[r.action_type] ?? ActivityIcon, text: describe(r) });
+        entries.push({ id: `log-${r.id}`, at: r.created_at, icon: ICONS[r.action_type] ?? ActivityIcon, text: describe(r, names) });
       }
 
       for (const n of (notes.data ?? []) as any[]) {
