@@ -167,6 +167,36 @@ export async function runAssistantTool(
     return { ok: false, kind: def.kind, error: `Invalid input — ${issues}`, code: "invalid_input" };
   }
 
+  // Server-side rule: a stage may only be written if the recruiter actually
+  // named it (case/word-order insensitive). Otherwise the model must ask.
+  if (def.kind === "write" && typeof (parsed.data as any).stage === "string" && userRequest) {
+    const words = (s: string) => s.toLowerCase().replace(/[^a-z0-9 ]+/g, " ").split(/\s+/).filter(Boolean);
+    const reqWords = new Set(words(userRequest));
+    const stage = (parsed.data as any).stage as string;
+    const named = words(stage).every((w) => reqWords.has(w));
+    if (!named) {
+      let valid: string[] = [];
+      try {
+        const jobId = (parsed.data as any).job_id as string | undefined;
+        const appId = (parsed.data as any).application_id as string | undefined;
+        let jid = jobId;
+        if (!jid && appId) {
+          const { data } = await ctx.db.from("candidate_jobs").select("job_id").eq("id", appId).maybeSingle();
+          jid = data?.job_id;
+        }
+        if (jid) {
+          const { data } = await ctx.db.from("job_stages").select("stage_name, stage_order").eq("job_id", jid).order("stage_order");
+          valid = (data ?? []).map((s: { stage_name: string }) => s.stage_name);
+        }
+      } catch { /* fall through with empty list */ }
+      const msg =
+        `Stage confirmation required: the recruiter did not name the stage "${stage}" exactly, so nothing was changed. ` +
+        `Ask them to choose one of this job's stages: ${valid.join(", ") || "(see get_job)"}.`;
+      await log(ctx, userRequest, name, parsed.data, collectIds(parsed.data, null), null, false, msg, false);
+      return { ok: false, kind: def.kind, error: msg, code: "stage_confirmation_required" };
+    }
+  }
+
   // deno-lint-ignore no-explicit-any
   let result: any;
   try {
