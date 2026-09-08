@@ -330,7 +330,7 @@ export const candidateActions: ActionDef[] = [
     }),
     handler: async (i, ctx) => {
       const def = await resolveTag(ctx, i.tag, i.category ?? "Skill", i.create_if_missing ?? true);
-      const rows = i.candidate_ids.map((candidate_id) => ({ candidate_id, tag_definition_id: def.id, source: "action_layer" }));
+      const rows = i.candidate_ids.map((candidate_id: string) => ({ candidate_id, tag_definition_id: def.id, source: "action_layer" }));
       const { error } = await ctx.db.from("candidate_tags").upsert(rows, { onConflict: "candidate_id,tag_definition_id", ignoreDuplicates: true });
       if (error) return unwrap({ data: null, error }, "add_candidate_tag");
       for (const cid of i.candidate_ids) await audit(ctx, "candidate_tagged", { candidate_id: cid, metadata: { tag: def.label } });
@@ -398,7 +398,7 @@ export const candidateActions: ActionDef[] = [
     },
     handler: async (i, ctx) => {
       const pool = await requirePool(ctx, i);
-      const rows = i.candidate_ids.map((candidate_id) => ({ candidate_id, pool_id: pool.id, owner_user_id: ctx.userId, added_by: ctx.userId }));
+      const rows = i.candidate_ids.map((candidate_id: string) => ({ candidate_id, pool_id: pool.id, owner_user_id: ctx.userId, added_by: ctx.userId }));
       const { error } = await ctx.db.from("candidate_talent_pools").upsert(rows, { onConflict: "candidate_id,pool_id", ignoreDuplicates: true });
       if (error) return unwrap({ data: null, error }, "add_candidates_to_talent_pool");
       for (const cid of i.candidate_ids) await audit(ctx, "talent_pool_added", { candidate_id: cid, metadata: { pool_id: pool.id, pool: pool.name } });

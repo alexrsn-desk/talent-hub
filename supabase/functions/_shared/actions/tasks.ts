@@ -187,8 +187,8 @@ export const taskActions: ActionDef[] = [
       const owner = i.owner_user_id ?? ctx.userId;
       const base = { title: i.title, due_date: i.due_date, reason: i.reason ?? null, kind: "followup", status: "open", source: "action_layer", user_id: owner, owner_user_id: owner, job_id: i.job_id ?? null };
       const rows = [
-        ...(i.candidate_ids ?? []).map((candidate_id) => ({ ...base, candidate_id })),
-        ...(i.contact_ids ?? []).map((contact_id) => ({ ...base, contact_id })),
+        ...(i.candidate_ids ?? []).map((candidate_id: string) => ({ ...base, candidate_id })),
+        ...(i.contact_ids ?? []).map((contact_id: string) => ({ ...base, contact_id })),
       ];
       if (!rows.length) throw new ActionError("invalid_input", "Provide candidate_ids or contact_ids");
       const { data, error } = await ctx.db.from("todo_tasks").insert(rows as any).select(TASK_FIELDS);
