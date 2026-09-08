@@ -41,9 +41,9 @@ function describe(row: any, names: Record<string, string>): string {
     case "touchpoint_logged":
       return `Touchpoint logged${m.medium ? ` (${m.medium})` : ""}`;
     case "interview_scheduled":
-      return `Interview scheduled with ${who}`;
+      return row.candidate_id || m.candidate_name ? `Interview scheduled with ${who}` : "Interview scheduled";
     case "cv_sent":
-      return `CV sent for ${who}`;
+      return row.candidate_id || m.candidate_name ? `CV sent for ${who}` : "CV sent";
     case "job_created":
       return "Job created";
     case "job_updated":
