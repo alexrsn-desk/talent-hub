@@ -75,12 +75,13 @@ Deno.serve(async (req) => {
     const allMsgs = allSelected.filter((r) => r.status !== "skipped");
 
     // Resolve the target stage against this job's own configured stages
-    const { data: stages = [] } = await sb
+    const { data: stages, error: stagesErr } = await sb
       .from("job_stages")
-      .select("name, position")
+      .select("stage_name, stage_order")
       .eq("job_id", job_id)
-      .order("position", { ascending: true });
-    const stageNames = (stages as any[]).map((s) => s.name as string);
+      .order("stage_order", { ascending: true });
+    if (stagesErr) return json({ error: `job_stages lookup failed: ${stagesErr.message}` }, 500);
+    const stageNames = ((stages as any[]) ?? []).map((s) => (s.stage_name ?? "") as string).filter(Boolean);
     const targetStage =
       stageNames.find((n) => n.trim().toLowerCase() === "shortlist") ||
       stageNames.find((n) => n.trim().toLowerCase().includes("shortlist")) ||
@@ -89,10 +90,11 @@ Deno.serve(async (req) => {
 
     // existing links
     const candIds = Array.from(new Set(allSelected.map((m) => m.candidate_id)));
-    const { data: existing = [] } = candIds.length
+    const { data: existing, error: existingErr } = candIds.length
       ? await sb.from("candidate_jobs").select("id, candidate_id").eq("job_id", job_id).in("candidate_id", candIds)
       : { data: [] };
-    const haveLink = new Set((existing as any[]).map((e) => e.candidate_id));
+    if (existingErr) return json({ error: `candidate_jobs lookup failed: ${existingErr.message}` }, 500);
+    const haveLink = new Set(((existing as any[]) ?? []).map((e) => e.candidate_id));
 
     const newLinks = candIds.filter((id) => !haveLink.has(id)).map((id) => ({
       owner_user_id: user.id,
