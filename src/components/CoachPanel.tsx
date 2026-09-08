@@ -38,6 +38,7 @@ const TOOL_LABELS: Record<string, string> = {
 };
 
 function describeToolEvent(ev: { type: string; tool: string; ok?: boolean }): string | null {
+  if (ev.type === "thinking") return "Thinking…";
   if (ev.type === "tool_start") return `${TOOL_LABELS[ev.tool] ?? "Working"}…`;
   if (ev.type === "tool_end") return ev.ok === false ? "Action failed — checking what to do" : "Verifying…";
   return null;
@@ -48,6 +49,7 @@ async function streamChat({
   onDelta,
   onDone,
   onError,
+  onStatus,
 }: {
   messages: Msg[];
   onDelta: (text: string) => void;
