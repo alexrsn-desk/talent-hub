@@ -70,11 +70,25 @@ Deno.serve(async (req) => {
       .single();
     if (launchErr) return json({ error: launchErr.message }, 500);
 
-    // 2) Pipeline links + activity logs for each non-skipped message
-    const allMsgs = [...personal_records, ...li_records].filter((r) => r.status !== "skipped" && r.candidate_id);
+    // 2) Pipeline links for every SELECTED candidate (even if the message was skipped)
+    const allSelected = [...personal_records, ...li_records].filter((r) => r.candidate_id);
+    const allMsgs = allSelected.filter((r) => r.status !== "skipped");
+
+    // Resolve the target stage against this job's own configured stages
+    const { data: stages = [] } = await sb
+      .from("job_stages")
+      .select("name, position")
+      .eq("job_id", job_id)
+      .order("position", { ascending: true });
+    const stageNames = (stages as any[]).map((s) => s.name as string);
+    const targetStage =
+      stageNames.find((n) => n.trim().toLowerCase() === "shortlist") ||
+      stageNames.find((n) => n.trim().toLowerCase().includes("shortlist")) ||
+      stageNames[0] ||
+      "Shortlist";
 
     // existing links
-    const candIds = Array.from(new Set(allMsgs.map((m) => m.candidate_id)));
+    const candIds = Array.from(new Set(allSelected.map((m) => m.candidate_id)));
     const { data: existing = [] } = candIds.length
       ? await sb.from("candidate_jobs").select("id, candidate_id").eq("job_id", job_id).in("candidate_id", candIds)
       : { data: [] };
@@ -84,12 +98,23 @@ Deno.serve(async (req) => {
       owner_user_id: user.id,
       candidate_id: id,
       job_id,
-      stage: "Contact",
-      source: "Job Launch",
+      stage: targetStage,
+      source: `Job Launch (${launch.id})`,
     }));
     if (newLinks.length) {
-      await sb.from("candidate_jobs").insert(newLinks as any);
+      const { error: linkErr } = await sb.from("candidate_jobs").insert(newLinks as any);
+      if (linkErr) return json({ error: `pipeline link failed: ${linkErr.message}` }, 500);
+      await sb.from("notes").insert(
+        newLinks.map((l) => ({
+          owner_user_id: user.id,
+          candidate_id: l.candidate_id,
+          job_id,
+          activity_type: "stage_change",
+          content: `Added to ${targetStage} from Job Launch (launch ${launch.id})`,
+        })) as any,
+      );
     }
+
 
     // activity logs (touchpoints)
     const noteRows = allMsgs.map((m) => ({
