@@ -13,8 +13,6 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { NotesSection } from "@/components/NotesSection";
 import { JobPipelineBoard } from "@/components/JobPipelineBoard";
 import { AddJobDialog } from "@/components/AddJobDialog";
-import { ClickToEditField } from "@/components/ClickToEditField";
-import { TagsSection } from "@/components/TagsSection";
 import { PortalLaunchSection } from "@/components/PortalLaunchSection";
 import { CandidateMatching } from "@/components/CandidateMatching";
 import { usePlacementScores, usePlacementScoreFor } from "@/hooks/use-placement-scores";
@@ -30,8 +28,6 @@ import { logActivity } from "@/lib/activity-log";
 
 export const JOB_STATUSES = ["Active", "On Hold", "Filled", "Closed"] as const;
 const CLOSE_STATUSES = ["Filled", "Closed"] as const;
-const JOB_TYPES = ["Perm", "Contract"] as const;
-const FEE_TYPES = ["Percentage", "Fixed"] as const;
 
 // Legacy values "Open" and "Cancelled" still display correctly via the color map.
 export const statusColor: Record<string, string> = {
@@ -559,52 +555,6 @@ export function JobFullView({ job, onBack, onUpdate, onDelete, backLabel }: {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </div>
-  );
-}
-
-function JobDescriptionEditor({ job, onUpdate }: { job: Job; onUpdate: (u: Partial<Job>) => Promise<void> }) {
-  const initial = (job as any).description || "";
-  const [value, setValue] = useState<string>(initial);
-  const [saving, setSaving] = useState(false);
-  const [saved, setSaved] = useState(false);
-
-  useEffect(() => { setValue(initial); }, [initial]);
-
-  const dirty = value.trim() !== initial.trim();
-
-  const save = async () => {
-    setSaving(true);
-    try {
-      await onUpdate({ description: value.trim() || null } as any);
-      setSaved(true);
-      setTimeout(() => setSaved(false), 1800);
-      if (value.trim()) toast.success("JD saved — finding matching candidates");
-    } catch (e: any) {
-      toast.error(e?.message || "Failed to save JD");
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  return (
-    <div className="rounded-lg border border-border p-4 space-y-2">
-      <div className="flex items-center justify-between">
-        <h2 className="text-sm font-medium">Job Description</h2>
-        <div className="flex items-center gap-2">
-          {saved && <span className="text-xs text-green-400 flex items-center gap-1"><Check className="h-3 w-3" /> Saved</span>}
-          <Button size="sm" onClick={save} disabled={!dirty || saving}>
-            {saving ? "Saving…" : initial ? "Update JD" : "Save JD"}
-          </Button>
-        </div>
-      </div>
-      <Textarea
-        rows={6}
-        placeholder="Paste the full job description here. Saving will auto-match candidates from your database."
-        value={value}
-        onChange={(e) => setValue(e.target.value)}
-        className="text-sm"
-      />
     </div>
   );
 }
