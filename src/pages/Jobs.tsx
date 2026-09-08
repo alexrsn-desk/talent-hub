@@ -424,87 +424,103 @@ export function JobFullView({ job, onBack, onUpdate, onDelete, backLabel }: {
 
   const displayStatus = job.status === "Open" ? "Active" : job.status === "Cancelled" ? "Closed" : job.status;
 
+  const placedCount = (allCandidateJobs as any[]).filter((cj) => cj.stage === "Placed" && !cj.withdrawn).length;
+  const headcount = (job as any).headcount ?? 1;
+  const salaryLine = job.salary_min || job.salary_max
+    ? `£${(job.salary_min ?? job.salary_max)!.toLocaleString("en-GB")}${job.salary_max && job.salary_min ? ` – £${job.salary_max.toLocaleString("en-GB")}` : ""}`
+    : "Salary not set";
+
   return (
-    <div className="space-y-6">
-      <div className="flex items-center gap-3 flex-wrap">
-        <Button variant="ghost" size="sm" onClick={onBack} className="gap-1">
-          <ArrowLeft className="h-4 w-4" />
-          {backLabel ? <span className="text-sm">Back to {backLabel}</span> : null}
-        </Button>
-        <div className="flex-1 min-w-[200px]">
-          <h1 className="text-xl font-semibold">{job.title}</h1>
-          <p className="text-sm text-muted-foreground">
-            {(job.clients as any)?.company_name || "No client"} · {job.location || "Remote"} · {job.job_type}
-          </p>
-        </div>
-        <div className="flex items-center gap-2">
-          <StatusSelect value={job.status} onChange={handleStatusChange} />
-          {statusSaved && (
-            <span className="text-xs text-green-400 flex items-center gap-1 animate-in fade-in">
-              <Check className="h-3 w-3" /> Saved
-            </span>
-          )}
-        </div>
-        <IntakeCallCompanionButton jobId={job.id} jobTitle={job.title} />
-        <Button asChild variant="default" size="sm" className="gap-1">
-          <Link to={`/jobs/${job.id}/launch`}>
-            <Rocket className="h-4 w-4" /> {(job as any).search_launched_at ? "Re-launch search" : "Launch search"}
-          </Link>
-        </Button>
-        <Button asChild variant="outline" size="sm" className="gap-1">
-          <Link to={`/jobs/${job.id}/compare`}><GitCompare className="h-4 w-4" /> Compare & Submit Candidates</Link>
-        </Button>
-        {!["Filled", "Closed", "Cancelled"].includes(job.status) && (
-          <Button variant="outline" size="sm" onClick={() => setCloseOpen(true)} className="gap-1">
-            <XCircle className="h-4 w-4" /> Close Job
+    <div className="space-y-5">
+      {/* Page header — shared across all tabs */}
+      <div className="space-y-3">
+        <div className="flex items-center gap-3 flex-wrap">
+          <Button variant="ghost" size="sm" onClick={onBack} className="gap-1">
+            <ArrowLeft className="h-4 w-4" />
+            {backLabel ? <span className="text-sm">Back to {backLabel}</span> : null}
           </Button>
-        )}
-        <Button variant="ghost" size="icon" onClick={onDelete}>
-          <Trash2 className="h-4 w-4 text-destructive" />
-        </Button>
+          <div className="ml-auto flex items-center gap-2 flex-wrap">
+            <IntakeCallCompanionButton jobId={job.id} jobTitle={job.title} />
+            <Button asChild variant="outline" size="sm" className="gap-1">
+              <Link to={`/jobs/${job.id}/compare`}><GitCompare className="h-4 w-4" /> Compare & Submit</Link>
+            </Button>
+            {!["Filled", "Closed", "Cancelled"].includes(job.status) && (
+              <Button variant="outline" size="sm" onClick={() => setCloseOpen(true)} className="gap-1">
+                <XCircle className="h-4 w-4" /> Close Job
+              </Button>
+            )}
+            <Button variant="ghost" size="icon" onClick={onDelete}>
+              <Trash2 className="h-4 w-4 text-destructive" />
+            </Button>
+          </div>
+        </div>
+
+        <div className="flex items-start gap-3 flex-wrap">
+          <div className="min-w-[220px] flex-1">
+            <h1 className="text-2xl font-semibold tracking-tight">{job.title}</h1>
+            <div className="mt-1 flex items-center gap-2 flex-wrap text-sm">
+              {job.client_id ? (
+                <Link to={`/clients?clientId=${job.client_id}`} className="text-primary hover:underline">
+                  {(job.clients as any)?.company_name || "Client"}
+                </Link>
+              ) : (
+                <span className="text-muted-foreground">No client</span>
+              )}
+              <Badge className={`${statusColor[job.status] || "bg-muted/30"} border-0`}>{displayStatus}</Badge>
+            </div>
+            <p className="mt-1.5 text-xs text-muted-foreground">
+              {salaryLine} · {job.location || "Location not set"} · {placedCount} of {headcount} filled
+            </p>
+          </div>
+          <div className="flex items-center gap-2">
+            <StatusSelect value={job.status} onChange={handleStatusChange} />
+            {statusSaved && (
+              <span className="text-xs text-green-400 flex items-center gap-1 animate-in fade-in">
+                <Check className="h-3 w-3" /> Saved
+              </span>
+            )}
+          </div>
+        </div>
       </div>
 
-      {placementScore && <PlacementScorePanel score={placementScore} />}
+      <Tabs defaultValue="pipeline" className="space-y-4">
+        <TabsList>
+          <TabsTrigger value="pipeline">Pipeline</TabsTrigger>
+          <TabsTrigger value="details">Details</TabsTrigger>
+          <TabsTrigger value="launch">Job Launch</TabsTrigger>
+          <TabsTrigger value="portal">Portal</TabsTrigger>
+          <TabsTrigger value="history">History &amp; Notes</TabsTrigger>
+        </TabsList>
 
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-sm rounded-lg border border-border p-4">
-        <ClickToEditField label="Title" value={job.title} field="title" layout="stacked" onSave={(v) => handleFieldSave("title", v)} entityType="job" entityId={job.id} />
-        <ClickToEditField label="Location" value={job.location || ""} field="location" layout="stacked" onSave={(v) => handleFieldSave("location", v)} entityType="job" entityId={job.id} />
-        <ClickToEditField label="Status" value={displayStatus} field="status" options={JOB_STATUSES} layout="stacked" onSave={(v) => handleFieldSave("status", v)} entityType="job" entityId={job.id} />
-        <ClickToEditField label="Type" value={job.job_type} field="job_type" options={JOB_TYPES} layout="stacked" onSave={(v) => handleFieldSave("job_type", v)} entityType="job" entityId={job.id} />
-        <ClickToEditField label="Salary Min (£)" value={job.salary_min?.toString() || ""} field="salary_min" type="number" layout="stacked" onSave={(v) => handleFieldSave("salary_min", v)} entityType="job" entityId={job.id} />
-        <ClickToEditField label="Salary Max (£)" value={job.salary_max?.toString() || ""} field="salary_max" type="number" layout="stacked" onSave={(v) => handleFieldSave("salary_max", v)} entityType="job" entityId={job.id} />
-        <ClickToEditField label="Fee Type" value={job.fee_type || ""} field="fee_type" options={FEE_TYPES} layout="stacked" onSave={(v) => handleFieldSave("fee_type", v)} entityType="job" entityId={job.id} />
-        <ClickToEditField label="Fee Value" value={job.fee_value?.toString() || ""} field="fee_value" type="number" layout="stacked" onSave={(v) => handleFieldSave("fee_value", v)} entityType="job" entityId={job.id} />
-      </div>
+        <TabsContent value="pipeline" className="space-y-4">
+          {placementScore && <PlacementScorePanel score={placementScore} />}
+          <JobPipelineBoard job={job} onJobUpdate={onUpdate} />
+          <CandidateMatching job={job} autoRun />
+        </TabsContent>
 
-      <TagsSection entityType="job" entityId={job.id} />
+        <TabsContent value="details">
+          <JobDetailsTab job={job} onUpdate={onUpdate} />
+        </TabsContent>
 
-      <JobDescriptionEditor job={job} onUpdate={onUpdate} />
+        <TabsContent value="launch">
+          <JobLaunchTab job={job} />
+        </TabsContent>
 
-      <CandidateMatching job={job} autoRun />
+        <TabsContent value="portal">
+          <PortalLaunchSection
+            jobId={job.id}
+            portalJobId={(job as any).portal_job_id ?? null}
+            title={job.title}
+            clientName={(job.clients as any)?.company_name ?? null}
+            onLinked={(portalJobId) => onUpdate({ portal_job_id: portalJobId } as any)}
+          />
+        </TabsContent>
 
-      <LaunchStatusSection jobId={job.id} />
-
-      <PortalLaunchSection
-        jobId={job.id}
-        portalJobId={(job as any).portal_job_id ?? null}
-        title={job.title}
-        clientName={(job as any).clients?.name ?? null}
-        onLinked={(portalJobId) => onUpdate({ portal_job_id: portalJobId } as any)}
-      />
-
-
-
-
-
-
-
-      <div>
-        <h2 className="text-sm font-medium mb-3">Candidate Pipeline</h2>
-        <JobPipelineBoard job={job} onJobUpdate={onUpdate} />
-      </div>
-
-      <NotesSection entityType="job" entityId={job.id} />
+        <TabsContent value="history" className="space-y-4">
+          <NotesSection entityType="job" entityId={job.id} />
+          <JobActivityTimeline jobId={job.id} />
+        </TabsContent>
+      </Tabs>
 
       <Dialog open={closeOpen} onOpenChange={setCloseOpen}>
         <DialogContent className="max-w-sm">
