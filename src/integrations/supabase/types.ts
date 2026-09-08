@@ -2282,6 +2282,7 @@ export type Database = {
           description: string | null
           fee_type: string | null
           fee_value: number | null
+          headcount: number
           id: string
           ideal_candidate_line: string | null
           incomplete_profile: boolean
@@ -2314,6 +2315,7 @@ export type Database = {
           description?: string | null
           fee_type?: string | null
           fee_value?: number | null
+          headcount?: number
           id?: string
           ideal_candidate_line?: string | null
           incomplete_profile?: boolean
@@ -2346,6 +2348,7 @@ export type Database = {
           description?: string | null
           fee_type?: string | null
           fee_value?: number | null
+          headcount?: number
           id?: string
           ideal_candidate_line?: string | null
           incomplete_profile?: boolean

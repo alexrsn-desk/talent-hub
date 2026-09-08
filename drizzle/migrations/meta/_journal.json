@@ -22,6 +22,13 @@
       "when": 1788870641214,
       "tag": "0002_coach_admin_extensions",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1788881097467,
+      "tag": "0003_add_jobs_headcount",
+      "breakpoints": true
     }
   ]
 }
