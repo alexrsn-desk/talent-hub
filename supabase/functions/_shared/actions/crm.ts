@@ -25,7 +25,10 @@ const contactWritable = {
   bd_next_followup_date: z.string().date().optional().nullable(),
   reengage_date: z.string().date().optional().nullable(),
   reengage_reason: z.string().max(500).optional().nullable(),
+  owner_user_id: uuid.optional(),
 };
+
+const normName = (s: string) => s.toLowerCase().replace(/\b(ltd|limited|plc|inc|llc|gmbh|the)\b/g, "").replace(/[^a-z0-9]+/g, " ").trim();
 
 const companyWritable = {
   company_name: z.string().min(1).max(200).optional(),
@@ -42,6 +45,8 @@ const companyWritable = {
   next_action: z.string().max(400).optional().nullable(),
   next_action_due_date: z.string().date().optional().nullable(),
   next_followup_date: z.string().date().optional().nullable(),
+  heat: z.string().max(30).optional().nullable(),
+  owner_user_id: uuid.optional(),
 };
 
 export const crmActions: ActionDef[] = [
@@ -165,11 +170,22 @@ export const crmActions: ActionDef[] = [
   {
     name: "create_company",
     kind: "write",
-    description: "Create a company (client) record.",
-    schema: z.object({ ...companyWritable, company_name: z.string().min(1).max(200) }),
+    description:
+      "Create a company (client) record. Refuses with code duplicate_company (returning the match) if a company with an equivalent name already exists, unless allow_duplicate is true.",
+    schema: z.object({ ...companyWritable, company_name: z.string().min(1).max(200), allow_duplicate: z.boolean().optional() }),
     handler: async (i, ctx) => {
+      const { allow_duplicate, ...fields } = i;
+      if (!allow_duplicate) {
+        const { data } = await ctx.db.from("clients").select("id, company_name, status").ilike("company_name", `%${fields.company_name.split(/\s+/)[0]}%`).limit(50);
+        const target = normName(fields.company_name);
+        // deno-lint-ignore no-explicit-any
+        const dup = (data ?? []).find((c: any) => normName(c.company_name) === target);
+        if (dup) {
+          throw new ActionError("duplicate_company", `A company called "${dup.company_name}" already exists (id ${dup.id}). Use it, or pass allow_duplicate.`, 409);
+        }
+      }
       const row = unwrap(
-        await ctx.db.from("clients").insert({ ...i, owner_user_id: ctx.userId }).select(COMPANY_FIELDS).single(),
+        await ctx.db.from("clients").insert({ ...fields, owner_user_id: fields.owner_user_id ?? ctx.userId }).select(COMPANY_FIELDS).single(),
         "create_company",
       );
       await audit(ctx, "client_created", { client_id: row.id });
@@ -179,7 +195,7 @@ export const crmActions: ActionDef[] = [
   {
     name: "update_company",
     kind: "write",
-    description: "Update fields on an existing company (client).",
+    description: "Update fields on an existing company (client), including status, heat, next action or owner.",
     schema: z.object({ company_id: uuid, patch: z.object(companyWritable) }),
     handler: async (i, ctx) => {
       if (!Object.keys(i.patch).length) throw new ActionError("invalid_input", "patch is empty");
@@ -189,6 +205,59 @@ export const crmActions: ActionDef[] = [
       );
       await audit(ctx, "client_updated", { client_id: row.id, metadata: { fields: Object.keys(i.patch) } });
       return row;
+    },
+  },
+  {
+    name: "get_company_activity",
+    kind: "read",
+    description: "Everything attached to a company: its contacts, jobs, recent notes and logged changes.",
+    schema: z.object({ company_id: uuid, ...paging }),
+    handler: async (i, ctx) => {
+      const limit = i.limit ?? 50;
+      const [{ data: contacts }, { data: jobs }, { data: notes }, { data: log }] = await Promise.all([
+        ctx.db.from("contacts").select(CONTACT_FIELDS).eq("client_id", i.company_id),
+        ctx.db.from("jobs").select("id, title, status, location, date_opened").eq("client_id", i.company_id).order("created_at", { ascending: false }),
+        ctx.db.from("notes").select("*").eq("client_id", i.company_id).order("created_at", { ascending: false }).limit(limit),
+        ctx.db.from("activity_log").select("*").eq("client_id", i.company_id).order("created_at", { ascending: false }).limit(limit),
+      ]);
+      return { contacts: contacts ?? [], jobs: jobs ?? [], notes: notes ?? [], changes: log ?? [] };
+    },
+  },
+  {
+    name: "get_contact_activity",
+    kind: "read",
+    description: "Recent notes and touchpoints for a contact, newest first.",
+    schema: z.object({ contact_id: uuid, ...paging }),
+    handler: async (i, ctx) => {
+      const limit = i.limit ?? 50;
+      const [{ data: notes }, { data: events }] = await Promise.all([
+        ctx.db.from("notes").select("*").eq("contact_id", i.contact_id).order("created_at", { ascending: false }).limit(limit),
+        ctx.db.from("activity_events").select("*").eq("contact_id", i.contact_id).order("occurred_at", { ascending: false }).limit(limit),
+      ]);
+      return { notes: notes ?? [], touchpoints: events ?? [] };
+    },
+  },
+  {
+    name: "list_team_members",
+    kind: "read",
+    description: "List the people records can be owned by: the signed-in user plus their team. Use the returned user_id as owner_user_id.",
+    schema: z.object({}),
+    handler: async (_i, ctx) => {
+      const [{ data: me }, { data: team }] = await Promise.all([
+        ctx.db.from("recruiter_profiles").select("user_id, display_name").eq("user_id", ctx.userId).maybeSingle(),
+        ctx.db.from("team_members").select("manager_user_id, member_user_id, name, email, active")
+          .or(`manager_user_id.eq.${ctx.userId},member_user_id.eq.${ctx.userId}`).eq("active", true),
+      ]);
+      const rows: { user_id: string; name: string; email?: string | null; relation: string }[] = [
+        { user_id: ctx.userId, name: me?.display_name ?? "Me", relation: "self" },
+      ];
+      for (const t of team ?? []) {
+        if (t.member_user_id !== ctx.userId) rows.push({ user_id: t.member_user_id, name: t.name, email: t.email, relation: "team member" });
+        if (t.manager_user_id !== ctx.userId && !rows.some((r) => r.user_id === t.manager_user_id)) {
+          rows.push({ user_id: t.manager_user_id, name: "Manager", relation: "manager" });
+        }
+      }
+      return { rows };
     },
   },
 ];

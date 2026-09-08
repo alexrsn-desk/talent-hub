@@ -1,9 +1,30 @@
-// Job and pipeline read actions. Stages always come from the job's own
+// Job and pipeline actions. Stages always come from the job's own
 // job_stages rows — the action layer never introduces a second stage list.
-import { type ActionCtx, type ActionDef, ActionError, paging, unwrap, uuid, z } from "./core.ts";
+import { type ActionCtx, type ActionDef, ActionError, audit, paging, unwrap, uuid, z } from "./core.ts";
 
 const JOB_FIELDS =
-  "id, title, client_id, location, salary_min, salary_max, job_type, status, fee_type, fee_value, date_opened, description, key_skills, similar_titles, intake_summary, launch_hook, ideal_candidate_line, search_launched_at, launch_summary, created_at, updated_at";
+  "id, title, client_id, location, salary_min, salary_max, job_type, status, fee_type, fee_value, date_opened, description, key_skills, similar_titles, intake_summary, launch_hook, ideal_candidate_line, search_launched_at, launch_summary, additional_context, owner_user_id, created_at, updated_at";
+
+/** The only valid job statuses — the same list the Jobs page uses. */
+export const JOB_STATUSES = ["Active", "On Hold", "Filled", "Closed"] as const;
+
+const jobWritable = {
+  title: z.string().min(1).max(200).optional(),
+  client_id: uuid.optional().nullable(),
+  location: z.string().max(200).optional().nullable(),
+  salary_min: z.number().int().min(0).optional().nullable(),
+  salary_max: z.number().int().min(0).optional().nullable(),
+  job_type: z.string().max(60).optional().nullable(),
+  status: z.enum(JOB_STATUSES).optional(),
+  fee_type: z.enum(["Percentage", "Fixed"]).optional().nullable(),
+  fee_value: z.number().min(0).optional().nullable(),
+  date_opened: z.string().date().optional().nullable(),
+  description: z.string().max(20000).optional().nullable(),
+  key_skills: z.array(z.string().max(80)).max(40).optional(),
+  similar_titles: z.array(z.string().max(120)).max(20).optional(),
+  additional_context: z.string().max(8000).optional().nullable(),
+  owner_user_id: uuid.optional(),
+};
 
 export async function jobStages(ctx: ActionCtx, jobId: string): Promise<string[]> {
   const { data } = await ctx.db.from("job_stages").select("stage_name, stage_order")
@@ -12,6 +33,42 @@ export async function jobStages(ctx: ActionCtx, jobId: string): Promise<string[]
 }
 
 export const jobActions: ActionDef[] = [
+  {
+    name: "create_job",
+    kind: "write",
+    description:
+      "Create a job (role) for a client. Requires title and client_id. Status must be one of Active, On Hold, Filled, Closed. Default pipeline stages are seeded automatically.",
+    schema: z.object({ ...jobWritable, title: z.string().min(1).max(200), client_id: uuid }),
+    handler: async (i, ctx) => {
+      const row = unwrap(
+        await ctx.db.from("jobs").insert({
+          ...i,
+          status: i.status ?? "Active",
+          date_opened: i.date_opened ?? new Date().toISOString().slice(0, 10),
+          owner_user_id: i.owner_user_id ?? ctx.userId,
+        }).select(JOB_FIELDS).single(),
+        "create_job",
+      );
+      await audit(ctx, "job_created", { job_id: row.id, client_id: row.client_id });
+      return { ...row, stages: await jobStages(ctx, row.id) };
+    },
+  },
+  {
+    name: "update_job",
+    kind: "write",
+    description:
+      "Update fields on a job, including status (Active / On Hold / Filled / Closed — use this to mark a role filled, on hold or closed), salary, location, fee or owner.",
+    schema: z.object({ job_id: uuid, patch: z.object(jobWritable) }),
+    handler: async (i, ctx) => {
+      if (!Object.keys(i.patch).length) throw new ActionError("invalid_input", "patch is empty");
+      const row = unwrap(
+        await ctx.db.from("jobs").update(i.patch).eq("id", i.job_id).select(JOB_FIELDS).single(),
+        "update_job",
+      );
+      await audit(ctx, "job_updated", { job_id: row.id, client_id: row.client_id, metadata: { fields: Object.keys(i.patch), status: i.patch.status ?? null } });
+      return row;
+    },
+  },
   {
     name: "get_job",
     kind: "read",

@@ -8,6 +8,16 @@ import { useFeatureLimit, useLogUsage } from "@/hooks/use-usage";
 
 type Msg = { role: "user" | "assistant"; content: string };
 
+/** Where the recruiter is right now, so "this candidate" / "this job" resolve. Read-only hint. */
+function pageContext() {
+  if (typeof window === "undefined") return null;
+  const path = window.location.pathname;
+  const params = new URLSearchParams(window.location.search);
+  const m = path.match(/^\/(candidates|jobs|clients|contacts|placements)(?:\/([0-9a-f-]{36}))?/i);
+  const id = m?.[2] ?? params.get("id") ?? params.get("jobId") ?? params.get("candidateId") ?? null;
+  return { path, section: m?.[1] ?? null, record_id: id };
+}
+
 const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/recruitment-coach`;
 
 const SUGGESTIONS = [
@@ -70,7 +80,7 @@ async function streamChat({
         Authorization: `Bearer ${session.access_token}`,
         apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
       },
-      body: JSON.stringify({ messages }),
+      body: JSON.stringify({ messages, context: pageContext() }),
     });
 
     if (!resp.ok) {

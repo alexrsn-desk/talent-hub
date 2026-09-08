@@ -15,6 +15,13 @@
       "when": 1788867015305,
       "tag": "0001_create_coach_action_log",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1788870641214,
+      "tag": "0002_coach_admin_extensions",
+      "breakpoints": true
     }
   ]
 }
