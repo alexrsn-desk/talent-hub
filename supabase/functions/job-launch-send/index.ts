@@ -1,6 +1,6 @@
 // Job Launch — finalises a launch:
 // - Saves a job_launches record with the chosen outputs
-// - Adds known/LI candidates to the job pipeline at the Contact stage
+// - Adds every selected candidate to the job pipeline at its Shortlist stage (source = Job Launch)
 // - Logs touchpoint activities for every message marked as sent/queued
 // - Marks the job as launched (search_launched_at, launch_summary)
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
