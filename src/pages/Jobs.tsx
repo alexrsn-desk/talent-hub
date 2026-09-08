@@ -21,7 +21,10 @@ import { usePlacementScores, usePlacementScoreFor } from "@/hooks/use-placement-
 import { PlacementScoreBadge } from "@/components/PlacementScoreBadge";
 import { PlacementScorePanel } from "@/components/PlacementScorePanel";
 import { IntakeCallCompanionButton } from "@/components/IntakeCallCompanion";
-import { LaunchStatusSection } from "@/components/LaunchStatusSection";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { JobDetailsTab } from "@/components/job/JobDetailsTab";
+import { JobLaunchTab } from "@/components/job/JobLaunchTab";
+import { JobActivityTimeline } from "@/components/job/JobActivityTimeline";
 import { toast } from "sonner";
 import { logActivity } from "@/lib/activity-log";
 
