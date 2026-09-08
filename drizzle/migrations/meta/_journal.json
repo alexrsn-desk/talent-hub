@@ -8,6 +8,13 @@
       "when": 1788535678161,
       "tag": "0000_action_layer_foundations",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1788867015305,
+      "tag": "0001_create_coach_action_log",
+      "breakpoints": true
     }
   ]
 }

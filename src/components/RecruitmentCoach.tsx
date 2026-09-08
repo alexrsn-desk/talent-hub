@@ -3,6 +3,7 @@ import ReactMarkdown from "react-markdown";
 import { Send, Sparkles, Loader2, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
 import { useFeatureLimit, useLogUsage } from "@/hooks/use-usage";
 import { UsageLimitGuard } from "@/components/UsageLimitGuard";
 
@@ -18,23 +19,57 @@ const SUGGESTIONS = [
   "Draft a candidate submission for my strongest shortlist",
 ];
 
+const TOOL_LABELS: Record<string, string> = {
+  search_candidates: "Looking up candidates",
+  get_candidate: "Checking candidate",
+  search_jobs: "Looking up jobs",
+  get_job: "Checking job and its stages",
+  get_open_jobs: "Checking live jobs",
+  get_candidates_for_job: "Checking the pipeline",
+  get_pipeline_for_job: "Checking the pipeline",
+  get_application: "Checking if already on the job",
+  add_candidate_to_job: "Adding to job",
+  change_application_stage: "Moving stage",
+  create_submission: "Recording CV sent",
+  remove_candidate_from_job: "Removing from job",
+  add_note: "Saving note",
+  create_task: "Creating task",
+  complete_task: "Completing task",
+  create_activity: "Logging activity",
+};
+
+function describeToolEvent(ev: { type: string; tool: string; ok?: boolean }): string | null {
+  if (ev.type === "thinking") return "Thinking…";
+  if (ev.type === "tool_start") return `${TOOL_LABELS[ev.tool] ?? "Working"}…`;
+  if (ev.type === "tool_end") return ev.ok === false ? "Action failed — checking what to do" : "Verifying…";
+  return null;
+}
+
 async function streamChat({
   messages,
   onDelta,
   onDone,
   onError,
+  onStatus,
 }: {
   messages: Msg[];
   onDelta: (text: string) => void;
   onDone: () => void;
   onError: (err: string) => void;
+  onStatus?: (status: string | null) => void;
 }) {
   try {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session?.access_token) {
+      onError("Please sign in to use the coach");
+      return;
+    }
     const resp = await fetch(CHAT_URL, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+        Authorization: `Bearer ${session.access_token}`,
+        apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
       },
       body: JSON.stringify({ messages }),
     });
@@ -70,6 +105,7 @@ async function streamChat({
         if (jsonStr === "[DONE]") break;
         try {
           const parsed = JSON.parse(jsonStr);
+          if (parsed.desky_event) { onStatus?.(describeToolEvent(parsed.desky_event)); continue; }
           const content = parsed.choices?.[0]?.delta?.content;
           if (content) onDelta(content);
         } catch {
@@ -89,6 +125,7 @@ async function streamChat({
         if (jsonStr === "[DONE]") continue;
         try {
           const parsed = JSON.parse(jsonStr);
+          if (parsed.desky_event) { onStatus?.(describeToolEvent(parsed.desky_event)); continue; }
           const content = parsed.choices?.[0]?.delta?.content;
           if (content) onDelta(content);
         } catch {}
@@ -105,6 +142,7 @@ export function RecruitmentCoach() {
   const [messages, setMessages] = useState<Msg[]>([]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [toolStatus, setToolStatus] = useState<string | null>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
@@ -143,10 +181,12 @@ export function RecruitmentCoach() {
     await streamChat({
       messages: newMessages,
       onDelta: updateAssistant,
-      onDone: () => setIsLoading(false),
+      onStatus: setToolStatus,
+      onDone: () => { setIsLoading(false); setToolStatus(null); },
       onError: (err) => {
         toast.error(err);
         setIsLoading(false);
+        setToolStatus(null);
       },
     });
   };
@@ -225,10 +265,11 @@ export function RecruitmentCoach() {
           ))
         )}
 
-        {isLoading && messages[messages.length - 1]?.role !== "assistant" && (
+        {isLoading && (toolStatus || messages[messages.length - 1]?.role !== "assistant") && (
           <div className="flex justify-start">
-            <div className="bg-muted/50 border border-border rounded-lg px-3.5 py-2.5">
+            <div className="bg-muted/50 border border-border rounded-lg px-3.5 py-2.5 flex items-center">
               <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+              {toolStatus && <span className="ml-2 text-xs text-muted-foreground">{toolStatus}</span>}
             </div>
           </div>
         )}

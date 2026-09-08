@@ -1161,6 +1161,48 @@ export type Database = {
         }
         Relationships: []
       }
+      coach_action_log: {
+        Row: {
+          action: string
+          affected_ids: Json
+          created_at: string
+          error: string | null
+          id: string
+          input: Json
+          owner_user_id: string
+          result: Json | null
+          success: boolean
+          user_request: string | null
+          verified: boolean
+        }
+        Insert: {
+          action: string
+          affected_ids?: Json
+          created_at?: string
+          error?: string | null
+          id?: string
+          input?: Json
+          owner_user_id: string
+          result?: Json | null
+          success: boolean
+          user_request?: string | null
+          verified?: boolean
+        }
+        Update: {
+          action?: string
+          affected_ids?: Json
+          created_at?: string
+          error?: string | null
+          id?: string
+          input?: Json
+          owner_user_id?: string
+          result?: Json | null
+          success?: boolean
+          user_request?: string | null
+          verified?: boolean
+        }
+        Relationships: []
+      }
       company_intel: {
         Row: {
           client_id: string

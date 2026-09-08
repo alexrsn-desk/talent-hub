@@ -1,11 +1,25 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
+import { ActionError, buildContext } from "../_shared/actions/core.ts";
+import { assistantTools, runAssistantTool } from "../_shared/actions/tools.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers":
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
+
+const ACTION_RULES = `
+TAKING ACTION IN DESKY (tools):
+You have tools that call Desky's real action layer. They are the ONLY way anything changes. Text you write changes nothing.
+- When the recruiter asks you to add, move, update, note, or task anything: use the tools. Never describe an action as done unless the tool returned ok=true AND verified=true.
+- Resolve people and jobs first: search_candidates (by name), search_jobs (by title; the result includes client.company_name). Confirm exactly ONE match for each. If several match, STOP and ask which one — never guess. If none match, say so.
+- Adding someone to a job: call get_application (candidate_id + job_id) first. If they are already on the job, do NOT add again — use change_application_stage on the existing application. Otherwise add_candidate_to_job, then change_application_stage if a specific stage was asked for.
+- Stages are per job (get_job returns "stages"). Call get_job BEFORE any stage change and use the exact configured stage name. If the recruiter's wording does not exactly match a configured stage (ignoring case and word order, e.g. "CV Sent" = "Sent CV" is fine; "Final Stage" vs "Final Stage Interview" is NOT), do not pick one for them — do not add or move anything yet; list the closest valid options and ask which they mean. If a stage tool call fails with invalid_stage, NEVER retry with a different stage — report the valid options and ask.
+- A near-match on a name (e.g. "Tatiana Tian" vs a record "Tatiana Cian") is NOT a confirmed match. Ask "Did you mean Tatiana Cian?" and wait — do not act on it.
+- Report ONLY what the tools returned. If a tool returned ok=false, say clearly that the action was NOT completed and why, e.g. "I found Tatiana Tian and the Social Finance role, but the application update failed, so I haven't changed the pipeline."
+- Success wording (ONLY after a write tool result shows ok:true and verified:true), e.g.: "Done — Tatiana Tian has been added to Social Finance — Human Centred Design and moved to Sent CV."
+- If you have only searched/read so far, you have done nothing. Never write "Done", "I've added", "moved" etc. in that state.
+- Never claim to have emailed, messaged or contacted anyone; no tool does that.`;
 
 const SYSTEM_PROMPT = `You are an elite recruitment performance coach built into a recruitment CRM called RecruiterCRM. You have 20+ years of experience billing at the highest level in tech recruitment across the UK market.
 
@@ -159,9 +173,10 @@ serve(async (req) => {
     const lovableKey = Deno.env.get("LOVABLE_API_KEY");
     if (!lovableKey) throw new Error("LOVABLE_API_KEY not configured");
 
-    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-    const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    const sb = createClient(supabaseUrl, supabaseKey);
+    // User-scoped context: desk data and every tool call run under the
+    // caller's own permissions (RLS), exactly like the desky-actions endpoint.
+    const ctx = await buildContext(req);
+    const sb = ctx.db;
 
     const now = new Date();
     const today = now.toISOString().split("T")[0];
@@ -625,50 +640,178 @@ Current date and time: ${dayOfWeek}, ${today} at ${timeStr}
 Day of week: ${dayOfWeek}`;
 
     // Build messages array with system prompt + desk data injected
-    const aiMessages = [
-      { role: "system", content: SYSTEM_PROMPT },
+    // deno-lint-ignore no-explicit-any
+    const aiMessages: any[] = [
+      { role: "system", content: SYSTEM_PROMPT + "\n" + ACTION_RULES },
       { role: "user", content: `Here is my current desk data. Use this to inform all your responses:\n\n${deskContext}` },
       { role: "assistant", content: "Got it — I can see your full desk. What do you need?" },
       ...messages,
     ];
+    const lastUser = [...messages].reverse().find((m: any) => m.role === "user");
+    const userRequest: string | null = typeof lastUser?.content === "string" ? lastUser.content : null;
+    const tools = assistantTools();
 
-    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${lovableKey}`,
-        "Content-Type": "application/json",
+    const enc = new TextEncoder();
+    const sse = (obj: unknown) => enc.encode(`data: ${JSON.stringify(obj)}\n\n`);
+    const contentChunk = (text: string) => sse({ choices: [{ delta: { content: text } }] });
+
+    type ToolCall = { id: string; type: "function"; function: { name: string; arguments: string } };
+
+    /** One model round: streams content deltas to the client, collects tool calls. */
+    const runRound = async (
+      controller: ReadableStreamDefaultController<Uint8Array>,
+    ): Promise<{ content: string; toolCalls: ToolCall[] }> => {
+      const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${lovableKey}`, "Content-Type": "application/json" },
+        body: JSON.stringify({
+          model: "google/gemini-3-flash-preview",
+          messages: aiMessages,
+          tools,
+          stream: true,
+        }),
+      });
+      if (!response.ok || !response.body) {
+        const status = response.status;
+        const errText = await response.text().catch(() => "");
+        console.error("AI gateway error:", status, errText);
+        if (status === 429) throw new ActionError("rate_limited", "Rate limited — try again in a moment.", 429);
+        if (status === 402) throw new ActionError("credits", "AI credits exhausted. Add funds in Settings > Workspace > Usage.", 402);
+        throw new Error(`AI gateway returned ${status}`);
+      }
+
+      let content = "";
+      const calls = new Map<number, ToolCall>();
+      const reader = response.body.getReader();
+      const dec = new TextDecoder();
+      let buf = "";
+      const handleLine = (line: string) => {
+        if (!line.startsWith("data: ")) return;
+        const payload = line.slice(6).trim();
+        if (!payload || payload === "[DONE]") return;
+        // deno-lint-ignore no-explicit-any
+        let parsed: any;
+        try { parsed = JSON.parse(payload); } catch { return; }
+        const delta = parsed.choices?.[0]?.delta;
+        if (!delta) return;
+        if (typeof delta.content === "string" && delta.content) {
+          // Buffered: the reply is only released once the server has checked
+          // that any claimed change is backed by a verified write this turn.
+          content += delta.content;
+          controller.enqueue(sse({ desky_event: { type: "thinking" } }));
+        }
+        if (Array.isArray(delta.tool_calls)) {
+          for (const tc of delta.tool_calls) {
+            const idx = tc.index ?? 0;
+            const cur = calls.get(idx) ?? { id: tc.id ?? `call_${idx}`, type: "function", function: { name: "", arguments: "" } };
+            if (tc.id) cur.id = tc.id;
+            if (tc.function?.name) cur.function.name += tc.function.name;
+            if (tc.function?.arguments) cur.function.arguments += tc.function.arguments;
+            calls.set(idx, cur);
+          }
+        }
+      };
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buf += dec.decode(value, { stream: true });
+        let nl: number;
+        while ((nl = buf.indexOf("\n")) !== -1) {
+          const line = buf.slice(0, nl).replace(/\r$/, "");
+          buf = buf.slice(nl + 1);
+          handleLine(line);
+        }
+      }
+      if (buf.trim()) handleLine(buf.trim());
+      return { content, toolCalls: [...calls.values()] };
+    };
+
+    // Phrases that assert a change was made. Deterministic guard — the model
+    // is never trusted to decide on its own that something succeeded.
+    const CLAIM_RE =
+      /\b(done|added|moved|updated|created|logged|scheduled|removed|withdrawn|completed|marked|recorded|has been (added|moved|updated|placed)|now (in|on) the pipeline|i(?:'ve| have) (added|moved|updated|created|logged|put))\b/i;
+    const NO_CHANGE_NOTICE =
+      "**Nothing has been changed in Desky.** No action was completed for this request — the wording above was not backed by a verified action. Tell me exactly who and which role, and I'll do it properly.";
+
+    const stream = new ReadableStream<Uint8Array>({
+      async start(controller) {
+        try {
+          const MAX_ROUNDS = 8;
+          let verifiedWrites = 0;
+          let failedWrites = 0;
+          let guardTries = 0;
+          let finalContent = "";
+          for (let round = 0; round < MAX_ROUNDS; round++) {
+            const { content, toolCalls } = await runRound(controller);
+
+            if (!toolCalls.length) {
+              // Guard: a success claim with no verified write this turn is bounced back.
+              if (verifiedWrites === 0 && CLAIM_RE.test(content) && guardTries < 2) {
+                guardTries++;
+                aiMessages.push({ role: "assistant", content });
+                aiMessages.push({
+                  role: "user",
+                  content:
+                    `[SYSTEM CHECK — not from the recruiter] Your reply says a change was made, but no write tool returned ok=true this turn` +
+                    (failedWrites ? ` (${failedWrites} write attempt(s) FAILED)` : "") +
+                    `. Nothing has changed in Desky. Either (a) call the tools now to actually make the change, or (b) rewrite your reply to state clearly that the action was NOT completed and why. Never say "done", "added" or "moved" unless a write tool result in this conversation shows ok:true and verified:true.`,
+                });
+                continue;
+              }
+              finalContent = content;
+              if (verifiedWrites === 0 && CLAIM_RE.test(content)) {
+                // Guard exhausted: override with an explicit correction.
+                finalContent = `${NO_CHANGE_NOTICE}\n\n---\n_Model draft (not actioned):_\n\n${content}`;
+              }
+              break;
+            }
+
+            aiMessages.push({ role: "assistant", content: content || null, tool_calls: toolCalls });
+            for (const call of toolCalls) {
+              // deno-lint-ignore no-explicit-any
+              let args: any = {};
+              try { args = call.function.arguments ? JSON.parse(call.function.arguments) : {}; } catch { args = {}; }
+              controller.enqueue(sse({ desky_event: { type: "tool_start", tool: call.function.name } }));
+              const result = await runAssistantTool(call.function.name, args, ctx, userRequest);
+              if (result.kind !== "read") {
+                if (result.ok && result.verified) verifiedWrites++;
+                else failedWrites++;
+              }
+              controller.enqueue(sse({ desky_event: { type: "tool_end", tool: call.function.name, ok: result.ok, kind: result.kind } }));
+              aiMessages.push({
+                role: "tool",
+                tool_call_id: call.id,
+                content: JSON.stringify(result).slice(0, 60000),
+              });
+            }
+            if (round === MAX_ROUNDS - 1) {
+              finalContent =
+                "I stopped before finishing — too many steps were needed. " +
+                (verifiedWrites
+                  ? `${verifiedWrites} change(s) were completed and verified; nothing else was changed.`
+                  : "No changes were made to Desky.");
+            }
+          }
+          if (finalContent) controller.enqueue(contentChunk(finalContent));
+        } catch (e) {
+          console.error("recruitment-coach stream error:", e);
+          const msg = e instanceof ActionError ? e.message : "Something went wrong while talking to the AI. No changes were made after this point.";
+          controller.enqueue(contentChunk(`\n\n_${msg}_`));
+        } finally {
+          controller.enqueue(enc.encode("data: [DONE]\n\n"));
+          controller.close();
+        }
       },
-      body: JSON.stringify({
-        model: "google/gemini-3-flash-preview",
-        messages: aiMessages,
-        stream: true,
-      }),
     });
 
-    if (!response.ok) {
-      const status = response.status;
-      if (status === 429) {
-        return new Response(JSON.stringify({ error: "Rate limited — try again in a moment." }), {
-          status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
-      if (status === 402) {
-        return new Response(JSON.stringify({ error: "AI credits exhausted. Add funds in Settings > Workspace > Usage." }), {
-          status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
-      const errText = await response.text();
-      console.error("AI gateway error:", status, errText);
-      throw new Error(`AI gateway returned ${status}`);
-    }
-
-    return new Response(response.body, {
+    return new Response(stream, {
       headers: { ...corsHeaders, "Content-Type": "text/event-stream" },
     });
   } catch (e) {
     console.error("recruitment-coach error:", e);
+    const status = e instanceof ActionError ? e.status : 500;
     return new Response(JSON.stringify({ error: e instanceof Error ? e.message : "Unknown error" }), {
-      status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      status, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
 });

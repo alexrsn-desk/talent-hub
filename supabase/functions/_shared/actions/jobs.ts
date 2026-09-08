@@ -35,7 +35,7 @@ export const jobActions: ActionDef[] = [
       ...paging,
     }),
     handler: async (i, ctx) => {
-      let q = ctx.db.from("jobs").select(JOB_FIELDS)
+      let q = ctx.db.from("jobs").select(`${JOB_FIELDS}, client:clients(id, company_name)`)
         .order("updated_at", { ascending: false })
         .range(i.offset ?? 0, (i.offset ?? 0) + (i.limit ?? 25) - 1);
       if (i.query) q = q.ilike("title", `%${i.query}%`);
