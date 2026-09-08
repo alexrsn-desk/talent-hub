@@ -1,8 +1,8 @@
-// Candidate, note and candidate-activity actions.
+// Candidate, note, tag, talent-pool and candidate-activity actions.
 import { type ActionCtx, type ActionDef, ActionError, audit, paging, unwrap, uuid, z } from "./core.ts";
 
 const CANDIDATE_FIELDS =
-  "id, first_name, last_name, name, job_title, current_employer, location, email, phone, linkedin_url, status, source, salary_current, salary_expectation, notice_period, availability, summary, client_ready_notes, reengage_date, reengage_reason, do_not_contact, dnc_reason, relationship_score, created_at, updated_at";
+  "id, first_name, last_name, name, job_title, current_employer, location, work_preference, email, phone, linkedin_url, status, source, salary_current, salary_expectation, notice_period, availability, summary, client_ready_notes, reengage_date, reengage_reason, do_not_contact, dnc_reason, relationship_score, owner_user_id, created_at, updated_at";
 
 async function requireCandidate(ctx: ActionCtx, id: string) {
   const row = unwrap(
@@ -19,6 +19,7 @@ const candidateWritable = {
   job_title: z.string().max(200).optional().nullable(),
   current_employer: z.string().max(200).optional().nullable(),
   location: z.string().max(200).optional().nullable(),
+  work_preference: z.string().max(60).optional().nullable(),
   email: z.string().email().max(200).optional().nullable(),
   phone: z.string().max(50).optional().nullable(),
   linkedin_url: z.string().url().max(400).optional().nullable(),
@@ -32,7 +33,48 @@ const candidateWritable = {
   client_ready_notes: z.string().max(8000).optional().nullable(),
   reengage_date: z.string().date().optional().nullable(),
   reengage_reason: z.string().max(500).optional().nullable(),
+  /** Reassign the record to another user on the team (see list_team_members). */
+  owner_user_id: uuid.optional(),
 };
+
+const norm = (s: string) => s.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+
+/** Find an existing talent pool by name (case/punctuation-insensitive) so minor naming differences never create duplicates. */
+async function findPool(ctx: ActionCtx, name: string) {
+  const { data } = await ctx.db.from("talent_pools").select("id, name, description, owner_user_id");
+  const target = norm(name);
+  // deno-lint-ignore no-explicit-any
+  const rows: any[] = data ?? [];
+  return rows.find((p) => norm(p.name) === target) ??
+    rows.find((p) => norm(p.name).includes(target) || target.includes(norm(p.name))) ?? null;
+}
+
+async function requirePool(ctx: ActionCtx, i: { pool_id?: string; pool_name?: string }) {
+  if (i.pool_id) {
+    const row = unwrap(await ctx.db.from("talent_pools").select("id, name").eq("id", i.pool_id).maybeSingle(), "talent_pool");
+    if (!row) throw new ActionError("not_found", "Talent pool not found", 404);
+    return row;
+  }
+  if (i.pool_name) {
+    const row = await findPool(ctx, i.pool_name);
+    if (!row) throw new ActionError("not_found", `No talent pool called "${i.pool_name}". Use create_talent_pool first.`, 404);
+    return row;
+  }
+  throw new ActionError("invalid_input", "Provide pool_id or pool_name");
+}
+
+/** Find-or-create a tag definition by label (case-insensitive). */
+async function resolveTag(ctx: ActionCtx, label: string, category: string, create: boolean) {
+  const { data } = await ctx.db.from("tag_definitions").select("id, label, category, archived").ilike("label", label.trim());
+  // deno-lint-ignore no-explicit-any
+  const existing = (data ?? []).find((t: any) => !t.archived) ?? (data ?? [])[0];
+  if (existing) return existing;
+  if (!create) throw new ActionError("not_found", `Tag "${label}" does not exist`, 404);
+  return unwrap(
+    await ctx.db.from("tag_definitions").insert({ label: label.trim(), category }).select("id, label, category").single(),
+    "create_tag",
+  );
+}
 
 export const candidateActions: ActionDef[] = [
   {
@@ -62,6 +104,8 @@ export const candidateActions: ActionDef[] = [
       contacted_since: z.string().date().optional(),
       not_contacted_since: z.string().date().optional(),
       followup_due_before: z.string().date().optional(),
+      created_since: z.string().datetime().optional(),
+      owner_user_id: uuid.optional(),
       include_do_not_contact: z.boolean().optional(),
       ...paging,
     }),
@@ -73,10 +117,20 @@ export const candidateActions: ActionDef[] = [
 
       if (i.query) {
         q = q.or(
-          `name.ilike.%${i.query}%,job_title.ilike.%${i.query}%,current_employer.ilike.%${i.query}%,email.ilike.%${i.query}%`,
+          `name.ilike.%${i.query}%,first_name.ilike.%${i.query}%,last_name.ilike.%${i.query}%,job_title.ilike.%${i.query}%,current_employer.ilike.%${i.query}%,email.ilike.%${i.query}%`,
         );
       }
-      if (i.name) q = q.ilike("name", `%${i.name}%`);
+      if (i.name) {
+        const parts = i.name.trim().split(/\s+/);
+        if (parts.length >= 2) {
+          // "First Last" — match either full name or first+last independently (handles middle names / reversed order).
+          q = q.or(`name.ilike.%${i.name}%,and(first_name.ilike.%${parts[0]}%,last_name.ilike.%${parts[parts.length - 1]}%)`);
+        } else {
+          q = q.or(`name.ilike.%${i.name}%,first_name.ilike.%${i.name}%,last_name.ilike.%${i.name}%`);
+        }
+      }
+      if (i.created_since) q = q.gte("created_at", i.created_since);
+      if (i.owner_user_id) q = q.eq("owner_user_id", i.owner_user_id);
       if (i.email) q = q.ilike("email", `%${i.email}%`);
       if (i.linkedin_url) q = q.ilike("linkedin_url", `%${i.linkedin_url}%`);
       if (i.current_employer) q = q.ilike("current_employer", `%${i.current_employer}%`);
@@ -226,6 +280,160 @@ export const candidateActions: ActionDef[] = [
       const { data, error } = await q;
       if (error) return unwrap({ data: null, error }, "get_notes");
       return { rows: data ?? [] };
+    },
+  },
+  {
+    name: "bulk_update_candidates",
+    kind: "write",
+    description: "Apply the same field changes (e.g. owner_user_id, status, location) to several candidates at once.",
+    schema: z.object({ candidate_ids: z.array(uuid).min(1).max(200), patch: z.object(candidateWritable) }),
+    preview: async (i, ctx) => {
+      const { data } = await ctx.db.from("candidates").select("id, name, job_title, owner_user_id").in("id", i.candidate_ids);
+      return {
+        affected: data ?? [],
+        summary: `Update ${data?.length ?? 0} candidate(s): set ${Object.keys(i.patch).join(", ")}`,
+      };
+    },
+    handler: async (i, ctx) => {
+      if (!Object.keys(i.patch).length) throw new ActionError("invalid_input", "patch is empty");
+      const { data, error } = await ctx.db.from("candidates").update(i.patch).in("id", i.candidate_ids).select("id, name, owner_user_id, status");
+      if (error) return unwrap({ data: null, error }, "bulk_update_candidates");
+      for (const r of data ?? []) {
+        await audit(ctx, "candidate_updated", { candidate_id: r.id, metadata: { fields: Object.keys(i.patch), bulk: true } });
+      }
+      return { updated: (data ?? []).length, rows: data ?? [] };
+    },
+  },
+
+  // ---- Tags -----------------------------------------------------------
+  {
+    name: "list_tags",
+    kind: "read",
+    description: "List the tag definitions available to apply to candidates and jobs.",
+    schema: z.object({ query: z.string().max(80).optional() }),
+    handler: async (i, ctx) => {
+      let q = ctx.db.from("tag_definitions").select("id, label, category").eq("archived", false).order("category").order("position");
+      if (i.query) q = q.ilike("label", `%${i.query}%`);
+      const { data } = await q;
+      return { rows: data ?? [] };
+    },
+  },
+  {
+    name: "add_candidate_tag",
+    kind: "write",
+    description: "Add a tag to one or more candidates. Reuses an existing tag with the same label; creates it only if create_if_missing is true.",
+    schema: z.object({
+      candidate_ids: z.array(uuid).min(1).max(200),
+      tag: z.string().min(1).max(80),
+      category: z.string().max(60).optional(),
+      create_if_missing: z.boolean().optional(),
+    }),
+    handler: async (i, ctx) => {
+      const def = await resolveTag(ctx, i.tag, i.category ?? "Skill", i.create_if_missing ?? true);
+      const rows = i.candidate_ids.map((candidate_id) => ({ candidate_id, tag_definition_id: def.id, source: "action_layer" }));
+      const { error } = await ctx.db.from("candidate_tags").upsert(rows, { onConflict: "candidate_id,tag_definition_id", ignoreDuplicates: true });
+      if (error) return unwrap({ data: null, error }, "add_candidate_tag");
+      for (const cid of i.candidate_ids) await audit(ctx, "candidate_tagged", { candidate_id: cid, metadata: { tag: def.label } });
+      return { tag: def, candidate_ids: i.candidate_ids };
+    },
+  },
+  {
+    name: "remove_candidate_tag",
+    kind: "write",
+    description: "Remove a tag from one or more candidates.",
+    schema: z.object({ candidate_ids: z.array(uuid).min(1).max(200), tag: z.string().min(1).max(80) }),
+    handler: async (i, ctx) => {
+      const def = await resolveTag(ctx, i.tag, "Skill", false);
+      const { data, error } = await ctx.db.from("candidate_tags").delete()
+        .eq("tag_definition_id", def.id).in("candidate_id", i.candidate_ids).select("candidate_id");
+      if (error) return unwrap({ data: null, error }, "remove_candidate_tag");
+      return { tag: def, removed: (data ?? []).length, candidate_ids: i.candidate_ids };
+    },
+  },
+
+  // ---- Talent pools ---------------------------------------------------
+  {
+    name: "search_talent_pools",
+    kind: "read",
+    description: "List talent pools (optionally filtered by name) with member counts.",
+    schema: z.object({ query: z.string().max(120).optional() }),
+    handler: async (i, ctx) => {
+      let q = ctx.db.from("talent_pools").select("id, name, description, target_size, created_at").order("name");
+      if (i.query) q = q.ilike("name", `%${i.query}%`);
+      const { data } = await q;
+      const pools = data ?? [];
+      const { data: links } = await ctx.db.from("candidate_talent_pools").select("pool_id");
+      const counts = new Map<string, number>();
+      for (const l of links ?? []) counts.set(l.pool_id, (counts.get(l.pool_id) ?? 0) + 1);
+      // deno-lint-ignore no-explicit-any
+      return { rows: pools.map((p: any) => ({ ...p, member_count: counts.get(p.id) ?? 0 })) };
+    },
+  },
+  {
+    name: "create_talent_pool",
+    kind: "write",
+    description: "Create a talent pool. If a pool with an equivalent name already exists it is returned instead of creating a duplicate.",
+    schema: z.object({ name: z.string().min(1).max(120), description: z.string().max(2000).optional() }),
+    handler: async (i, ctx) => {
+      const existing = await findPool(ctx, i.name);
+      if (existing) return { ...existing, existed: true };
+      const row = unwrap(
+        await ctx.db.from("talent_pools").insert({ owner_user_id: ctx.userId, name: i.name.trim(), description: i.description ?? null })
+          .select("id, name, description").single(),
+        "create_talent_pool",
+      );
+      await audit(ctx, "talent_pool_created", { metadata: { pool_id: row.id, name: row.name } });
+      return { ...row, existed: false };
+    },
+  },
+  {
+    name: "add_candidates_to_talent_pool",
+    kind: "write",
+    description: "Add one or more candidates to a talent pool (by pool_id or pool_name). Already-members are skipped.",
+    schema: z.object({ candidate_ids: z.array(uuid).min(1).max(200), pool_id: uuid.optional(), pool_name: z.string().max(120).optional() }),
+    preview: async (i, ctx) => {
+      const pool = await requirePool(ctx, i);
+      const { data } = await ctx.db.from("candidates").select("id, name").in("id", i.candidate_ids);
+      return { affected: data ?? [], summary: `Add ${data?.length ?? 0} candidate(s) to talent pool "${pool.name}"` };
+    },
+    handler: async (i, ctx) => {
+      const pool = await requirePool(ctx, i);
+      const rows = i.candidate_ids.map((candidate_id) => ({ candidate_id, pool_id: pool.id, owner_user_id: ctx.userId, added_by: ctx.userId }));
+      const { error } = await ctx.db.from("candidate_talent_pools").upsert(rows, { onConflict: "candidate_id,pool_id", ignoreDuplicates: true });
+      if (error) return unwrap({ data: null, error }, "add_candidates_to_talent_pool");
+      for (const cid of i.candidate_ids) await audit(ctx, "talent_pool_added", { candidate_id: cid, metadata: { pool_id: pool.id, pool: pool.name } });
+      return { pool, candidate_ids: i.candidate_ids };
+    },
+  },
+  {
+    name: "remove_candidates_from_talent_pool",
+    kind: "write",
+    description: "Remove one or more candidates from a talent pool.",
+    schema: z.object({ candidate_ids: z.array(uuid).min(1).max(200), pool_id: uuid.optional(), pool_name: z.string().max(120).optional() }),
+    preview: async (i, ctx) => {
+      const pool = await requirePool(ctx, i);
+      const { data } = await ctx.db.from("candidate_talent_pools").select("candidate_id").eq("pool_id", pool.id).in("candidate_id", i.candidate_ids);
+      return { affected: data ?? [], summary: `Remove ${data?.length ?? 0} candidate(s) from talent pool "${pool.name}"` };
+    },
+    handler: async (i, ctx) => {
+      const pool = await requirePool(ctx, i);
+      const { data, error } = await ctx.db.from("candidate_talent_pools").delete()
+        .eq("pool_id", pool.id).in("candidate_id", i.candidate_ids).select("candidate_id");
+      if (error) return unwrap({ data: null, error }, "remove_candidates_from_talent_pool");
+      return { pool, removed: (data ?? []).length, candidate_ids: i.candidate_ids };
+    },
+  },
+  {
+    name: "list_talent_pool_candidates",
+    kind: "read",
+    description: "List the candidates in a talent pool.",
+    schema: z.object({ pool_id: uuid.optional(), pool_name: z.string().max(120).optional(), ...paging }),
+    handler: async (i, ctx) => {
+      const pool = await requirePool(ctx, i);
+      const { data } = await ctx.db.from("candidate_talent_pools")
+        .select("added_at, candidate:candidates(id, name, job_title, current_employer, location, email, do_not_contact)")
+        .eq("pool_id", pool.id).limit(i.limit ?? 100);
+      return { pool, rows: data ?? [] };
     },
   },
 ];

@@ -258,6 +258,10 @@ export const applicationActions: ActionDef[] = [
     }),
     handler: async (i, ctx) => {
       const app = await resolveApp(ctx, i);
+      const { data: dup } = await ctx.db.from("placements").select("id, status, start_date").eq("candidate_job_id", app.id).maybeSingle();
+      if (dup && !Object.keys(i).some((k) => ["start_date", "salary_placed_at", "fee_amount", "notes"].includes(k))) {
+        throw new ActionError("already_placed", `A placement already exists for this application (id ${dup.id}). Use update_placement to change it.`, 409);
+      }
       const stages = await jobStages(ctx, app.job_id);
       const placedStage = stages.find((s) => /placed/i.test(s)) ?? "Placed";
       await ctx.db.from("candidate_jobs").update({ stage: placedStage }).eq("id", app.id);
@@ -283,4 +287,163 @@ export const applicationActions: ActionDef[] = [
       return row ?? { application_id: app.id, stage: placedStage };
     },
   },
+  {
+    name: "record_rejection",
+    kind: "write",
+    description:
+      "Record that a candidate was rejected (by the client) or withdrew from a job: marks the application withdrawn with the reason and logs it. Does not send anything.",
+    schema: z.object({
+      application_id: uuid.optional(),
+      candidate_id: uuid.optional(),
+      job_id: uuid.optional(),
+      reason: z.string().max(1000).optional(),
+      rejected_by: z.enum(["client", "candidate", "recruiter"]).optional(),
+    }),
+    handler: async (i, ctx) => {
+      const app = await resolveApp(ctx, i);
+      const who = i.rejected_by ?? "client";
+      const row = unwrap(
+        await ctx.db.from("candidate_jobs").update({
+          withdrawn: true,
+          withdrawn_at: new Date().toISOString(),
+          withdrawn_reason: who === "candidate" ? (i.reason ?? "Candidate withdrew") : (i.reason ?? "Rejected"),
+          rejection_reason: who === "candidate" ? null : (i.reason ?? "Rejected"),
+        // deno-lint-ignore no-explicit-any
+        } as any).eq("id", app.id).select(APP_FIELDS).single(),
+        "record_rejection",
+      );
+      await ctx.db.from("notes").insert({
+        owner_user_id: ctx.userId, candidate_id: app.candidate_id, job_id: app.job_id,
+        activity_type: who === "candidate" ? "withdrawn" : "rejected",
+        content: `${who === "candidate" ? "Candidate withdrew" : "Rejected by " + who} at ${app.stage}${i.reason ? `: ${i.reason}` : ""}`,
+      // deno-lint-ignore no-explicit-any
+      } as any);
+      await audit(ctx, "candidate_rejected", {
+        candidate_id: app.candidate_id, job_id: app.job_id, candidate_job_id: app.id,
+        metadata: { stage: app.stage, rejected_by: who, reason: i.reason ?? null },
+      });
+      return row;
+    },
+  },
+  {
+    name: "bulk_change_stage",
+    kind: "write",
+    description:
+      "Move several applications on one job to the same stage in one go (e.g. everyone at First Stage to Second Stage). Provide application_ids, or from_stage to select everyone at that stage, plus exclude_candidate_ids.",
+    schema: z.object({
+      job_id: uuid,
+      stage: z.string().min(1).max(80),
+      application_ids: z.array(uuid).max(200).optional(),
+      from_stage: z.string().max(80).optional(),
+      exclude_candidate_ids: z.array(uuid).max(200).optional(),
+    }),
+    preview: async (i, ctx) => {
+      const apps = await selectApps(ctx, i);
+      return { affected: apps, summary: `Move ${apps.length} application(s) on this job to ${i.stage}` };
+    },
+    handler: async (i, ctx) => {
+      await assertStage(ctx, i.job_id, i.stage);
+      const apps = await selectApps(ctx, i);
+      if (!apps.length) throw new ActionError("not_found", "No matching applications on this job", 404);
+      const ids = apps.map((a) => a.id);
+      const { data, error } = await ctx.db.from("candidate_jobs").update({ stage: i.stage }).in("id", ids).select(APP_FIELDS);
+      if (error) return unwrap({ data: null, error }, "bulk_change_stage");
+      for (const a of apps) {
+        await audit(ctx, "stage_change", {
+          candidate_id: a.candidate_id, job_id: a.job_id, candidate_job_id: a.id, metadata: { from: a.stage, to: i.stage, bulk: true },
+        });
+      }
+      return { moved: (data ?? []).length, rows: data ?? [] };
+    },
+  },
+  {
+    name: "get_application_history",
+    kind: "read",
+    description: "Stage changes, notes, interviews and any offer/placement for one application.",
+    schema: z.object({ application_id: uuid.optional(), candidate_id: uuid.optional(), job_id: uuid.optional() }),
+    handler: async (i, ctx) => {
+      const app = await resolveApp(ctx, i);
+      const [{ data: log }, { data: notes }, { data: interviews }, { data: offer }, { data: placement }] = await Promise.all([
+        ctx.db.from("activity_log").select("*").eq("candidate_job_id", app.id).order("created_at", { ascending: false }),
+        ctx.db.from("notes").select("*").eq("candidate_id", app.candidate_id).eq("job_id", app.job_id).order("created_at", { ascending: false }),
+        ctx.db.from("interviews").select("*").eq("candidate_job_id", app.id).order("scheduled_at", { ascending: false }),
+        ctx.db.from("offers").select("*").eq("candidate_job_id", app.id).maybeSingle(),
+        ctx.db.from("placements").select("*").eq("candidate_job_id", app.id).maybeSingle(),
+      ]);
+      return { application: app, changes: log ?? [], notes: notes ?? [], interviews: interviews ?? [], offer, placement };
+    },
+  },
+  {
+    name: "get_placement",
+    kind: "read",
+    description: "Fetch a placement by placement_id, application_id, or candidate_id + job_id.",
+    schema: z.object({ placement_id: uuid.optional(), application_id: uuid.optional(), candidate_id: uuid.optional(), job_id: uuid.optional() }),
+    handler: async (i, ctx) => {
+      let q = ctx.db.from("placements").select("*");
+      if (i.placement_id) q = q.eq("id", i.placement_id);
+      else if (i.application_id) q = q.eq("candidate_job_id", i.application_id);
+      else if (i.candidate_id && i.job_id) q = q.eq("candidate_id", i.candidate_id).eq("job_id", i.job_id);
+      else throw new ActionError("invalid_input", "Provide placement_id, application_id, or candidate_id + job_id");
+      const row = unwrap(await q.maybeSingle(), "get_placement");
+      if (!row) throw new ActionError("not_found", "Placement not found", 404);
+      return row;
+    },
+  },
+  {
+    name: "update_placement",
+    kind: "write",
+    description: "Update an existing placement: start date, salary, fee, invoice flags, status, notes.",
+    schema: z.object({
+      placement_id: uuid,
+      patch: z.object({
+        start_date: z.string().date().optional().nullable(),
+        offer_accepted_date: z.string().date().optional().nullable(),
+        salary_placed_at: z.number().int().min(0).optional().nullable(),
+        fee_type: z.enum(["Percentage", "Fixed"]).optional(),
+        fee_percentage: z.number().min(0).max(100).optional().nullable(),
+        fee_amount: z.number().min(0).optional().nullable(),
+        invoice_date: z.string().date().optional().nullable(),
+        payment_terms_days: z.number().int().min(0).optional(),
+        guarantee_weeks: z.number().int().min(0).optional(),
+        invoice_raised: z.boolean().optional(),
+        invoice_paid: z.boolean().optional(),
+        status: z.enum(["pre_start", "active", "guaranteed", "settled", "at_risk", "fallen_through"]).optional(),
+        fall_through_reason: z.string().max(2000).optional().nullable(),
+        notes: z.string().max(8000).optional().nullable(),
+      }),
+    }),
+    handler: async (i, ctx) => {
+      if (!Object.keys(i.patch).length) throw new ActionError("invalid_input", "patch is empty");
+      // deno-lint-ignore no-explicit-any
+      const patch: any = { ...i.patch };
+      if (patch.invoice_raised === true) patch.invoice_raised_at = new Date().toISOString();
+      if (patch.invoice_paid === true) patch.invoice_paid_at = new Date().toISOString();
+      if (patch.status === "fallen_through") patch.fall_through_at = new Date().toISOString();
+      const row = unwrap(
+        await ctx.db.from("placements").update(patch).eq("id", i.placement_id).select("*").single(),
+        "update_placement",
+      );
+      await audit(ctx, "placement_updated", {
+        candidate_id: row.candidate_id, job_id: row.job_id, client_id: row.client_id, candidate_job_id: row.candidate_job_id,
+        metadata: { placement_id: row.id, fields: Object.keys(i.patch) },
+      });
+      return row;
+    },
+  },
 ];
+
+async function selectApps(
+  ctx: ActionCtx,
+  i: { job_id: string; application_ids?: string[]; from_stage?: string; exclude_candidate_ids?: string[] },
+  // deno-lint-ignore no-explicit-any
+): Promise<any[]> {
+  let q = ctx.db.from("candidate_jobs").select(APP_FIELDS).eq("job_id", i.job_id).eq("withdrawn", false);
+  if (i.application_ids?.length) q = q.in("id", i.application_ids);
+  else if (i.from_stage) q = q.eq("stage", i.from_stage);
+  else throw new ActionError("invalid_input", "Provide application_ids or from_stage");
+  const { data, error } = await q;
+  if (error) return unwrap({ data: null, error }, "bulk_change_stage");
+  const excl = new Set(i.exclude_candidate_ids ?? []);
+  // deno-lint-ignore no-explicit-any
+  return (data ?? []).filter((a: any) => !excl.has(a.candidate_id));
+}

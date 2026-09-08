@@ -906,6 +906,7 @@ export type Database = {
           suggested_reengage_date: string | null
           summary: string | null
           updated_at: string
+          work_preference: string | null
         }
         Insert: {
           availability?: string | null
@@ -966,6 +967,7 @@ export type Database = {
           suggested_reengage_date?: string | null
           summary?: string | null
           updated_at?: string
+          work_preference?: string | null
         }
         Update: {
           availability?: string | null
@@ -1026,6 +1028,7 @@ export type Database = {
           suggested_reengage_date?: string | null
           summary?: string | null
           updated_at?: string
+          work_preference?: string | null
         }
         Relationships: []
       }
@@ -1165,12 +1168,16 @@ export type Database = {
         Row: {
           action: string
           affected_ids: Json
+          approval_status: string | null
+          before_state: Json | null
           created_at: string
           error: string | null
           id: string
           input: Json
           owner_user_id: string
+          proposal_id: string | null
           result: Json | null
+          risk: string | null
           success: boolean
           user_request: string | null
           verified: boolean
@@ -1178,12 +1185,16 @@ export type Database = {
         Insert: {
           action: string
           affected_ids?: Json
+          approval_status?: string | null
+          before_state?: Json | null
           created_at?: string
           error?: string | null
           id?: string
           input?: Json
           owner_user_id: string
+          proposal_id?: string | null
           result?: Json | null
+          risk?: string | null
           success: boolean
           user_request?: string | null
           verified?: boolean
@@ -1191,12 +1202,16 @@ export type Database = {
         Update: {
           action?: string
           affected_ids?: Json
+          approval_status?: string | null
+          before_state?: Json | null
           created_at?: string
           error?: string | null
           id?: string
           input?: Json
           owner_user_id?: string
+          proposal_id?: string | null
           result?: Json | null
+          risk?: string | null
           success?: boolean
           user_request?: string | null
           verified?: boolean

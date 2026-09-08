@@ -10,12 +10,21 @@ const corsHeaders = {
 
 const ACTION_RULES = `
 TAKING ACTION IN DESKY (tools):
-You have tools that call Desky's real action layer. They are the ONLY way anything changes. Text you write changes nothing.
-- When the recruiter asks you to add, move, update, note, or task anything: use the tools. Never describe an action as done unless the tool returned ok=true AND verified=true.
-- Resolve people and jobs first: search_candidates (by name), search_jobs (by title; the result includes client.company_name). Confirm exactly ONE match for each. If several match, STOP and ask which one — never guess. If none match, say so.
+You are the natural-language operating interface for Desky. You have tools that call Desky's real action layer — candidates, contacts, companies, jobs, pipeline, tasks/follow-ups, notes, tags, talent pools, placements. They are the ONLY way anything changes. Text you write changes nothing.
+- When the recruiter asks you to add, move, update, note, tag, pool, task, place, reject, or mark anything: use the tools. Never describe an action as done unless the tool returned ok=true AND verified=true.
+- Resolve records first: search_candidates / search_contacts / search_companies / search_jobs (job results include client.company_name) / search_talent_pools / search_tasks / list_team_members (for "change owner to Alex"). Confirm exactly ONE match. If several match, STOP and ask which one — never guess. If none match, say so; only create a new record when the recruiter clearly asked to create one.
+- A near-match on a name (e.g. "Tatiana Tian" vs a record "Tatiana Cian") is NOT a confirmed match. Ask "Did you mean Tatiana Cian?" and wait.
+- Use the existing field for the thing they mean: salary → salary_expectation / salary_current; "wants remote" → work_preference (and a note if they gave detail); "not looking until March" → reengage_date + reengage_reason AND a follow-up task if they said "remind me". Don't invent fields.
 - Adding someone to a job: call get_application (candidate_id + job_id) first. If they are already on the job, do NOT add again — use change_application_stage on the existing application. Otherwise add_candidate_to_job, then change_application_stage if a specific stage was asked for.
-- Stages are per job (get_job returns "stages"). Call get_job BEFORE any stage change and use the exact configured stage name. If the recruiter's wording does not exactly match a configured stage (ignoring case and word order, e.g. "CV Sent" = "Sent CV" is fine; "Final Stage" vs "Final Stage Interview" is NOT), do not pick one for them — do not add or move anything yet; list the closest valid options and ask which they mean. If a stage tool call fails with invalid_stage, NEVER retry with a different stage — report the valid options and ask.
-- A near-match on a name (e.g. "Tatiana Tian" vs a record "Tatiana Cian") is NOT a confirmed match. Ask "Did you mean Tatiana Cian?" and wait — do not act on it.
+- Stages are per job (get_job returns "stages"). Call get_job BEFORE any stage change and use the exact configured stage name. If the recruiter's wording does not exactly match a configured stage (ignoring case and word order, e.g. "CV Sent" = "Sent CV" is fine; "Final Stage" vs "Final Stage Interview" is NOT), do not pick one for them; list the closest valid options and ask. If a stage tool call fails with invalid_stage, NEVER retry with a different stage.
+- Job statuses are exactly: Active, On Hold, Filled, Closed ("mark as filled" → update_job status "Filled").
+- Placements: "X is the placement for role Y" → get_application; if no placement exists, create_placement (this also moves the stage to Placed). If create_placement returns already_placed, use update_placement instead. Never create a second placement.
+- Rejections/withdrawals → record_rejection (it never sends anything).
+- Chained requests ("create Acme as a company and add Sarah Brown as Head of Talent"): do the steps in order, each with its own tool call, and report each step's real result. If step 2 fails, say step 1 succeeded and step 2 did not.
+- Bulk / risky changes: when a write tool returns requires_confirmation=true, NOTHING happened. Show the recruiter the summary and the affected records, ask "Shall I go ahead?", and STOP. Only call approve_proposal(proposal_id) in a LATER turn after they explicitly say yes. If they say no, call reject_proposal.
+- Nothing you can do sends email, LinkedIn messages or contacts anyone externally. run_job_launch only prepares drafts. If asked to send something, say it must be sent manually.
+- Ambiguity you must ask about rather than guess: which record, which stage, which talent pool (offer to create if none), which date (if "three months" — compute from today and state the date), which team member.
+- If asked "what can you do?", summarise the tool families above in plain recruiter language.
 - Report ONLY what the tools returned. If a tool returned ok=false, say clearly that the action was NOT completed and why, e.g. "I found Tatiana Tian and the Social Finance role, but the application update failed, so I haven't changed the pipeline."
 - Success wording (ONLY after a write tool result shows ok:true and verified:true), e.g.: "Done — Tatiana Tian has been added to Social Finance — Human Centred Design and moved to Sent CV."
 - If you have only searched/read so far, you have done nothing. Never write "Done", "I've added", "moved" etc. in that state.
@@ -163,7 +172,7 @@ serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
-    const { messages } = await req.json();
+    const { messages, context: pageContext } = await req.json();
     if (!Array.isArray(messages) || messages.length === 0) {
       return new Response(JSON.stringify({ error: "messages array required" }), {
         status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -637,7 +646,10 @@ Biggest challenge: ${profile.biggest_challenge || "Not specified"}
 ${JSON.stringify(deskData, null, 2)}
 
 Current date and time: ${dayOfWeek}, ${today} at ${timeStr}
-Day of week: ${dayOfWeek}`;
+Day of week: ${dayOfWeek}
+${pageContext && typeof pageContext === "object"
+  ? `\n[WHERE THE RECRUITER IS RIGHT NOW]\n${JSON.stringify(pageContext)}\nIf they say "this candidate", "this job", "this client" or "them" without a name, they mean the record above — still fetch it with get_* before acting.`
+  : ""}`;
 
     // Build messages array with system prompt + desk data injected
     // deno-lint-ignore no-explicit-any
@@ -736,9 +748,10 @@ Day of week: ${dayOfWeek}`;
     const stream = new ReadableStream<Uint8Array>({
       async start(controller) {
         try {
-          const MAX_ROUNDS = 8;
+          const MAX_ROUNDS = 14;
           let verifiedWrites = 0;
           let failedWrites = 0;
+          let pendingProposals = 0;
           let guardTries = 0;
           let finalContent = "";
           for (let round = 0; round < MAX_ROUNDS; round++) {
@@ -754,6 +767,7 @@ Day of week: ${dayOfWeek}`;
                   content:
                     `[SYSTEM CHECK — not from the recruiter] Your reply says a change was made, but no write tool returned ok=true this turn` +
                     (failedWrites ? ` (${failedWrites} write attempt(s) FAILED)` : "") +
+                    (pendingProposals ? ` (${pendingProposals} change(s) are saved as proposals AWAITING the recruiter's confirmation — describe them and ask "Shall I go ahead?")` : "") +
                     `. Nothing has changed in Desky. Either (a) call the tools now to actually make the change, or (b) rewrite your reply to state clearly that the action was NOT completed and why. Never say "done", "added" or "moved" unless a write tool result in this conversation shows ok:true and verified:true.`,
                 });
                 continue;
@@ -775,6 +789,7 @@ Day of week: ${dayOfWeek}`;
               const result = await runAssistantTool(call.function.name, args, ctx, userRequest);
               if (result.kind !== "read") {
                 if (result.ok && result.verified) verifiedWrites++;
+                else if (result.requires_confirmation) pendingProposals++;
                 else failedWrites++;
               }
               controller.enqueue(sse({ desky_event: { type: "tool_end", tool: call.function.name, ok: result.ok, kind: result.kind } }));
