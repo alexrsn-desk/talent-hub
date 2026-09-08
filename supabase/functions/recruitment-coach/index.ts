@@ -638,50 +638,137 @@ Current date and time: ${dayOfWeek}, ${today} at ${timeStr}
 Day of week: ${dayOfWeek}`;
 
     // Build messages array with system prompt + desk data injected
-    const aiMessages = [
-      { role: "system", content: SYSTEM_PROMPT },
+    // deno-lint-ignore no-explicit-any
+    const aiMessages: any[] = [
+      { role: "system", content: SYSTEM_PROMPT + "\n" + ACTION_RULES },
       { role: "user", content: `Here is my current desk data. Use this to inform all your responses:\n\n${deskContext}` },
       { role: "assistant", content: "Got it — I can see your full desk. What do you need?" },
       ...messages,
     ];
+    const lastUser = [...messages].reverse().find((m: any) => m.role === "user");
+    const userRequest: string | null = typeof lastUser?.content === "string" ? lastUser.content : null;
+    const tools = assistantTools();
 
-    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${lovableKey}`,
-        "Content-Type": "application/json",
+    const enc = new TextEncoder();
+    const sse = (obj: unknown) => enc.encode(`data: ${JSON.stringify(obj)}\n\n`);
+    const contentChunk = (text: string) => sse({ choices: [{ delta: { content: text } }] });
+
+    type ToolCall = { id: string; type: "function"; function: { name: string; arguments: string } };
+
+    /** One model round: streams content deltas to the client, collects tool calls. */
+    const runRound = async (
+      controller: ReadableStreamDefaultController<Uint8Array>,
+    ): Promise<{ content: string; toolCalls: ToolCall[] }> => {
+      const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${lovableKey}`, "Content-Type": "application/json" },
+        body: JSON.stringify({
+          model: "google/gemini-3-flash-preview",
+          messages: aiMessages,
+          tools,
+          stream: true,
+        }),
+      });
+      if (!response.ok || !response.body) {
+        const status = response.status;
+        const errText = await response.text().catch(() => "");
+        console.error("AI gateway error:", status, errText);
+        if (status === 429) throw new ActionError("rate_limited", "Rate limited — try again in a moment.", 429);
+        if (status === 402) throw new ActionError("credits", "AI credits exhausted. Add funds in Settings > Workspace > Usage.", 402);
+        throw new Error(`AI gateway returned ${status}`);
+      }
+
+      let content = "";
+      const calls = new Map<number, ToolCall>();
+      const reader = response.body.getReader();
+      const dec = new TextDecoder();
+      let buf = "";
+      const handleLine = (line: string) => {
+        if (!line.startsWith("data: ")) return;
+        const payload = line.slice(6).trim();
+        if (!payload || payload === "[DONE]") return;
+        // deno-lint-ignore no-explicit-any
+        let parsed: any;
+        try { parsed = JSON.parse(payload); } catch { return; }
+        const delta = parsed.choices?.[0]?.delta;
+        if (!delta) return;
+        if (typeof delta.content === "string" && delta.content) {
+          content += delta.content;
+          controller.enqueue(contentChunk(delta.content));
+        }
+        if (Array.isArray(delta.tool_calls)) {
+          for (const tc of delta.tool_calls) {
+            const idx = tc.index ?? 0;
+            const cur = calls.get(idx) ?? { id: tc.id ?? `call_${idx}`, type: "function", function: { name: "", arguments: "" } };
+            if (tc.id) cur.id = tc.id;
+            if (tc.function?.name) cur.function.name += tc.function.name;
+            if (tc.function?.arguments) cur.function.arguments += tc.function.arguments;
+            calls.set(idx, cur);
+          }
+        }
+      };
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buf += dec.decode(value, { stream: true });
+        let nl: number;
+        while ((nl = buf.indexOf("\n")) !== -1) {
+          const line = buf.slice(0, nl).replace(/\r$/, "");
+          buf = buf.slice(nl + 1);
+          handleLine(line);
+        }
+      }
+      if (buf.trim()) handleLine(buf.trim());
+      return { content, toolCalls: [...calls.values()] };
+    };
+
+    const stream = new ReadableStream<Uint8Array>({
+      async start(controller) {
+        try {
+          const MAX_ROUNDS = 8;
+          for (let round = 0; round < MAX_ROUNDS; round++) {
+            const { content, toolCalls } = await runRound(controller);
+            if (!toolCalls.length) break;
+
+            aiMessages.push({ role: "assistant", content: content || null, tool_calls: toolCalls });
+            for (const call of toolCalls) {
+              // deno-lint-ignore no-explicit-any
+              let args: any = {};
+              try { args = call.function.arguments ? JSON.parse(call.function.arguments) : {}; } catch { args = {}; }
+              controller.enqueue(sse({ desky_event: { type: "tool_start", tool: call.function.name } }));
+              const result = await runAssistantTool(call.function.name, args, ctx, userRequest);
+              controller.enqueue(sse({ desky_event: { type: "tool_end", tool: call.function.name, ok: result.ok, kind: result.kind } }));
+              aiMessages.push({
+                role: "tool",
+                tool_call_id: call.id,
+                content: JSON.stringify(result).slice(0, 60000),
+              });
+            }
+            if (round === MAX_ROUNDS - 1) {
+              controller.enqueue(contentChunk(
+                "\n\nI stopped before finishing — too many steps were needed. Nothing beyond the actions reported above has been changed.",
+              ));
+            }
+          }
+        } catch (e) {
+          console.error("recruitment-coach stream error:", e);
+          const msg = e instanceof ActionError ? e.message : "Something went wrong while talking to the AI. No changes were made after this point.";
+          controller.enqueue(contentChunk(`\n\n_${msg}_`));
+        } finally {
+          controller.enqueue(enc.encode("data: [DONE]\n\n"));
+          controller.close();
+        }
       },
-      body: JSON.stringify({
-        model: "google/gemini-3-flash-preview",
-        messages: aiMessages,
-        stream: true,
-      }),
     });
 
-    if (!response.ok) {
-      const status = response.status;
-      if (status === 429) {
-        return new Response(JSON.stringify({ error: "Rate limited — try again in a moment." }), {
-          status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
-      if (status === 402) {
-        return new Response(JSON.stringify({ error: "AI credits exhausted. Add funds in Settings > Workspace > Usage." }), {
-          status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
-      const errText = await response.text();
-      console.error("AI gateway error:", status, errText);
-      throw new Error(`AI gateway returned ${status}`);
-    }
-
-    return new Response(response.body, {
+    return new Response(stream, {
       headers: { ...corsHeaders, "Content-Type": "text/event-stream" },
     });
   } catch (e) {
     console.error("recruitment-coach error:", e);
+    const status = e instanceof ActionError ? e.status : 500;
     return new Response(JSON.stringify({ error: e instanceof Error ? e.message : "Unknown error" }), {
-      status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      status, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
 });
