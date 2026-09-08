@@ -248,6 +248,7 @@ export function CoachPanel() {
   const [messages, setMessages] = useState<Msg[]>([]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [toolStatus, setToolStatus] = useState<string | null>(null);
   const [proactiveSent, setProactiveSent] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
 
@@ -324,8 +325,9 @@ export function CoachPanel() {
           return [...prev, { role: "assistant", content: assistantContent }];
         });
       },
-      onDone: () => setIsLoading(false),
-      onError: (err) => { toast.error(err); setIsLoading(false); },
+      onStatus: setToolStatus,
+      onDone: () => { setIsLoading(false); setToolStatus(null); },
+      onError: (err) => { toast.error(err); setIsLoading(false); setToolStatus(null); },
     });
   };
 
@@ -395,10 +397,11 @@ export function CoachPanel() {
           ))
         )}
 
-        {isLoading && messages[messages.length - 1]?.role !== "assistant" && (
+        {isLoading && (toolStatus || messages[messages.length - 1]?.role !== "assistant") && (
           <div className="flex justify-start">
             <div className="bg-muted/50 border border-border rounded-lg px-3 py-2">
               <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+              {toolStatus && <span className="ml-2 text-xs text-muted-foreground">{toolStatus}</span>}
             </div>
           </div>
         )}

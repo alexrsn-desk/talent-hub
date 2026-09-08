@@ -140,6 +140,7 @@ export function RecruitmentCoach() {
   const [messages, setMessages] = useState<Msg[]>([]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [toolStatus, setToolStatus] = useState<string | null>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
@@ -178,10 +179,12 @@ export function RecruitmentCoach() {
     await streamChat({
       messages: newMessages,
       onDelta: updateAssistant,
-      onDone: () => setIsLoading(false),
+      onStatus: setToolStatus,
+      onDone: () => { setIsLoading(false); setToolStatus(null); },
       onError: (err) => {
         toast.error(err);
         setIsLoading(false);
+        setToolStatus(null);
       },
     });
   };
@@ -260,10 +263,11 @@ export function RecruitmentCoach() {
           ))
         )}
 
-        {isLoading && messages[messages.length - 1]?.role !== "assistant" && (
+        {isLoading && (toolStatus || messages[messages.length - 1]?.role !== "assistant") && (
           <div className="flex justify-start">
             <div className="bg-muted/50 border border-border rounded-lg px-3.5 py-2.5">
               <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+              {toolStatus && <span className="ml-2 text-xs text-muted-foreground">{toolStatus}</span>}
             </div>
           </div>
         )}
