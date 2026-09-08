@@ -1,11 +1,23 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
+import { ActionError, buildContext } from "../_shared/actions/core.ts";
+import { assistantTools, runAssistantTool } from "../_shared/actions/tools.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers":
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
+
+const ACTION_RULES = `
+TAKING ACTION IN DESKY (tools):
+You have tools that call Desky's real action layer. They are the ONLY way anything changes. Text you write changes nothing.
+- When the recruiter asks you to add, move, update, note, or task anything: use the tools. Never describe an action as done unless the tool returned ok=true AND verified=true.
+- Resolve people and jobs first: search_candidates (by name), search_jobs (by title; the result includes client.company_name). Confirm exactly ONE match for each. If several match, STOP and ask which one — never guess. If none match, say so.
+- Adding someone to a job: call get_application (candidate_id + job_id) first. If they are already on the job, do NOT add again — use change_application_stage on the existing application. Otherwise add_candidate_to_job, then change_application_stage if a specific stage was asked for.
+- Stages are per job (get_job returns "stages"). Use the exact configured stage name. If the requested stage doesn't exactly match, do not invent one — list the closest valid options and ask.
+- Report ONLY what the tools returned. If a tool returned ok=false, say clearly that the action was NOT completed and why, e.g. "I found Tatiana Tian and the Social Finance role, but the application update failed, so I haven't changed the pipeline."
+- Success wording, e.g.: "Done — Tatiana Tian has been added to Social Finance — Human Centred Design and moved to Sent CV."
+- Never claim to have emailed, messaged or contacted anyone; no tool does that.`;
 
 const SYSTEM_PROMPT = `You are an elite recruitment performance coach built into a recruitment CRM called RecruiterCRM. You have 20+ years of experience billing at the highest level in tech recruitment across the UK market.
 
@@ -159,9 +171,10 @@ serve(async (req) => {
     const lovableKey = Deno.env.get("LOVABLE_API_KEY");
     if (!lovableKey) throw new Error("LOVABLE_API_KEY not configured");
 
-    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-    const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    const sb = createClient(supabaseUrl, supabaseKey);
+    // User-scoped context: desk data and every tool call run under the
+    // caller's own permissions (RLS), exactly like the desky-actions endpoint.
+    const ctx = await buildContext(req);
+    const sb = ctx.db;
 
     const now = new Date();
     const today = now.toISOString().split("T")[0];
