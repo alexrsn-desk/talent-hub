@@ -872,7 +872,7 @@ export default function JobLaunch() {
         <div className="rounded-xl border border-border bg-card/60 p-6 space-y-5">
           <h2 className="text-lg font-semibold">Ready to launch</h2>
           <ul className="space-y-3 text-sm">
-            <li>① Known candidates: <b>{personalMsgs.filter((m) => !skipped.has(`k-${m.candidate_id}`)).length}</b> personal messages will be logged & added to pipeline at <b>Contact</b> stage.</li>
+            <li>① Known candidates: <b>{personalMsgs.filter((m) => !skipped.has(`k-${m.candidate_id}`)).length}</b> personal messages logged. All <b>{personalMsgs.length}</b> selected candidates are added to the pipeline at <b>Shortlist</b> (even if a message is skipped).</li>
             <li>② LI connections: <b>{liMsgs.filter((m) => !skipped.has(`l-${m.candidate_id}`)).length}</b> DMs queued for manual sending on LinkedIn.</li>
             <li>③ LinkedIn post: <b>{linkedinPost ? "ready" : "not generated"}</b> — copy & paste into LinkedIn.</li>
             <li>④ Campaign message: <b>{campaign.body ? "ready" : "not generated"}</b> — copy into Sourcewhale/Interseller.</li>
