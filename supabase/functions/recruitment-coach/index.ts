@@ -693,8 +693,10 @@ Day of week: ${dayOfWeek}`;
         const delta = parsed.choices?.[0]?.delta;
         if (!delta) return;
         if (typeof delta.content === "string" && delta.content) {
+          // Buffered: the reply is only released once the server has checked
+          // that any claimed change is backed by a verified write this turn.
           content += delta.content;
-          controller.enqueue(contentChunk(delta.content));
+          controller.enqueue(sse({ desky_event: { type: "thinking" } }));
         }
         if (Array.isArray(delta.tool_calls)) {
           for (const tc of delta.tool_calls) {
@@ -722,13 +724,45 @@ Day of week: ${dayOfWeek}`;
       return { content, toolCalls: [...calls.values()] };
     };
 
+    // Phrases that assert a change was made. Deterministic guard — the model
+    // is never trusted to decide on its own that something succeeded.
+    const CLAIM_RE =
+      /\b(done|added|moved|updated|created|logged|scheduled|removed|withdrawn|completed|marked|recorded|has been (added|moved|updated|placed)|now (in|on) the pipeline|i(?:'ve| have) (added|moved|updated|created|logged|put))\b/i;
+    const NO_CHANGE_NOTICE =
+      "**Nothing has been changed in Desky.** No action was completed for this request — the wording above was not backed by a verified action. Tell me exactly who and which role, and I'll do it properly.";
+
     const stream = new ReadableStream<Uint8Array>({
       async start(controller) {
         try {
           const MAX_ROUNDS = 8;
+          let verifiedWrites = 0;
+          let failedWrites = 0;
+          let guardTries = 0;
+          let finalContent = "";
           for (let round = 0; round < MAX_ROUNDS; round++) {
             const { content, toolCalls } = await runRound(controller);
-            if (!toolCalls.length) break;
+
+            if (!toolCalls.length) {
+              // Guard: a success claim with no verified write this turn is bounced back.
+              if (verifiedWrites === 0 && CLAIM_RE.test(content) && guardTries < 2) {
+                guardTries++;
+                aiMessages.push({ role: "assistant", content });
+                aiMessages.push({
+                  role: "user",
+                  content:
+                    `[SYSTEM CHECK — not from the recruiter] Your reply says a change was made, but no write tool returned ok=true this turn` +
+                    (failedWrites ? ` (${failedWrites} write attempt(s) FAILED)` : "") +
+                    `. Nothing has changed in Desky. Either (a) call the tools now to actually make the change, or (b) rewrite your reply to state clearly that the action was NOT completed and why. Never say "done", "added" or "moved" unless a write tool result in this conversation shows ok:true and verified:true.`,
+                });
+                continue;
+              }
+              finalContent = content;
+              if (verifiedWrites === 0 && CLAIM_RE.test(content)) {
+                // Guard exhausted: override with an explicit correction.
+                finalContent = `${NO_CHANGE_NOTICE}\n\n---\n_Model draft (not actioned):_\n\n${content}`;
+              }
+              break;
+            }
 
             aiMessages.push({ role: "assistant", content: content || null, tool_calls: toolCalls });
             for (const call of toolCalls) {
@@ -737,6 +771,10 @@ Day of week: ${dayOfWeek}`;
               try { args = call.function.arguments ? JSON.parse(call.function.arguments) : {}; } catch { args = {}; }
               controller.enqueue(sse({ desky_event: { type: "tool_start", tool: call.function.name } }));
               const result = await runAssistantTool(call.function.name, args, ctx, userRequest);
+              if (result.kind !== "read") {
+                if (result.ok && result.verified) verifiedWrites++;
+                else failedWrites++;
+              }
               controller.enqueue(sse({ desky_event: { type: "tool_end", tool: call.function.name, ok: result.ok, kind: result.kind } }));
               aiMessages.push({
                 role: "tool",
@@ -745,11 +783,14 @@ Day of week: ${dayOfWeek}`;
               });
             }
             if (round === MAX_ROUNDS - 1) {
-              controller.enqueue(contentChunk(
-                "\n\nI stopped before finishing — too many steps were needed. Nothing beyond the actions reported above has been changed.",
-              ));
+              finalContent =
+                "I stopped before finishing — too many steps were needed. " +
+                (verifiedWrites
+                  ? `${verifiedWrites} change(s) were completed and verified; nothing else was changed.`
+                  : "No changes were made to Desky.");
             }
           }
+          if (finalContent) controller.enqueue(contentChunk(finalContent));
         } catch (e) {
           console.error("recruitment-coach stream error:", e);
           const msg = e instanceof ActionError ? e.message : "Something went wrong while talking to the AI. No changes were made after this point.";
