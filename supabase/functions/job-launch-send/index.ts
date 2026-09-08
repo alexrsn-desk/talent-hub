@@ -49,8 +49,8 @@ Deno.serve(async (req) => {
 
     if (!job_id) return json({ error: "job_id required" }, 400);
 
-    const knownCount = personal_records.filter((r) => r.status !== "skipped").length;
-    const liCount = li_records.filter((r) => r.status !== "skipped").length;
+    const knownCount = personal_records.filter((r: MessageRecord) => r.status !== "skipped").length;
+    const liCount = li_records.filter((r: MessageRecord) => r.status !== "skipped").length;
 
     // 1) Insert job_launches record
     const { data: launch, error: launchErr } = await sb
