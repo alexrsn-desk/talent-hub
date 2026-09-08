@@ -399,7 +399,7 @@ export function CoachPanel() {
 
         {isLoading && (toolStatus || messages[messages.length - 1]?.role !== "assistant") && (
           <div className="flex justify-start">
-            <div className="bg-muted/50 border border-border rounded-lg px-3 py-2">
+            <div className="bg-muted/50 border border-border rounded-lg px-3 py-2 flex items-center">
               <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
               {toolStatus && <span className="ml-2 text-xs text-muted-foreground">{toolStatus}</span>}
             </div>

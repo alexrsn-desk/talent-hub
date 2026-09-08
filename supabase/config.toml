@@ -47,3 +47,6 @@ verify_jwt = true
 
 [functions.desky-actions]
 verify_jwt = false
+
+[functions.recruitment-coach]
+verify_jwt = true
