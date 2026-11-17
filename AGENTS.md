@@ -1,0 +1,1 @@
+- Spott is the system of record: the spott-sync edge function imports via the Spott custom connector in resumable steps, matching on spott_id columns; why: re-syncs must update, not duplicate.

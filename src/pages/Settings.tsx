@@ -1,3 +1,4 @@
+import { SpottSyncSection } from "@/components/settings/SpottSyncSection";
 import { useState, useEffect, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -314,6 +315,7 @@ export default function SettingsPage() {
 
       {/* Team management */}
       <TeamSection />
+      <SpottSyncSection />
       {/* Data Import */}
       <div className="pt-6 border-t border-border">
         <Tabs defaultValue="wizard">
