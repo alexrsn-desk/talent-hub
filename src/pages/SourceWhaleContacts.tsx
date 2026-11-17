@@ -18,6 +18,7 @@ import {
   ArrowUpDown,
   Loader2,
   Megaphone,
+  PauseCircle,
   RefreshCw,
   Search,
   Sparkles,
@@ -25,6 +26,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { SourceWhaleSubscriptions } from "@/components/SourceWhaleSubscriptions";
+import { SOURCEWHALE_SYNC_ENABLED, SOURCEWHALE_SYNC_PAUSED_MESSAGE } from "@/lib/sourcewhale-sync";
 
 type Campaign = { campaignId: string; campaignName: string };
 type Project = { projectId: string; projectName: string };
@@ -89,6 +91,7 @@ export default function SourceWhaleContacts() {
   }
 
   async function runSync() {
+    if (!SOURCEWHALE_SYNC_ENABLED) return;
     setSyncing(true);
     try {
       const { data, error } = await supabase.functions.invoke(
@@ -177,6 +180,12 @@ export default function SourceWhaleContacts() {
               <span className="ml-2 text-xs">Last refreshed {lastFetched.toLocaleTimeString()}</span>
             )}
           </p>
+          {!SOURCEWHALE_SYNC_ENABLED && (
+            <p className="mt-3 inline-flex items-center gap-2 rounded-md border border-border bg-muted/40 px-2.5 py-1.5 text-xs text-muted-foreground">
+              <PauseCircle className="h-3.5 w-3.5 shrink-0" />
+              {SOURCEWHALE_SYNC_PAUSED_MESSAGE}
+            </p>
+          )}
         </div>
         <div className="flex items-center gap-2">
           <div className="relative">
@@ -188,7 +197,11 @@ export default function SourceWhaleContacts() {
               className="pl-8 w-72"
             />
           </div>
-          <Button onClick={runSync} disabled={syncing || loading}>
+          <Button
+            onClick={runSync}
+            disabled={syncing || loading || !SOURCEWHALE_SYNC_ENABLED}
+            title={SOURCEWHALE_SYNC_ENABLED ? undefined : "Syncing is switched off"}
+          >
             {syncing ? (
               <Loader2 className="h-4 w-4 animate-spin" />
             ) : (

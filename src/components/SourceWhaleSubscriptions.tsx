@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { Copy, Loader2, Radio } from "lucide-react";
+import { SOURCEWHALE_SYNC_ENABLED, SOURCEWHALE_SYNC_PAUSED_MESSAGE } from "@/lib/sourcewhale-sync";
 
 /**
  * SourceWhale only supports two live subscription types (confirmed Aug 2026):
@@ -61,6 +62,7 @@ export function SourceWhaleSubscriptions() {
   }, []);
 
   async function toggle(type: string, on: boolean) {
+    if (!SOURCEWHALE_SYNC_ENABLED) return;
     setBusy(type);
     try {
       const { data, error } = await supabase.functions.invoke(
@@ -99,6 +101,13 @@ export function SourceWhaleSubscriptions() {
         {loading && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />}
       </div>
 
+      {!SOURCEWHALE_SYNC_ENABLED && (
+        <p className="flex items-center gap-2 rounded-md border border-border bg-muted/40 px-2.5 py-1.5 text-xs text-muted-foreground">
+          <Radio className="h-3.5 w-3.5 shrink-0" />
+          {SOURCEWHALE_SYNC_PAUSED_MESSAGE}
+        </p>
+      )}
+
       <div className="space-y-3">
         {TYPES.map((t) => {
           const sub = active(t.type);
@@ -120,7 +129,7 @@ export function SourceWhaleSubscriptions() {
                 {busy === t.type && <Loader2 className="h-3.5 w-3.5 animate-spin text-muted-foreground" />}
                 <Switch
                   checked={!!sub}
-                  disabled={loading || busy === t.type}
+                  disabled={loading || busy === t.type || !SOURCEWHALE_SYNC_ENABLED}
                   onCheckedChange={(v) => toggle(t.type, v)}
                 />
               </div>

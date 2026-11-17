@@ -3,7 +3,7 @@
 // and writes a row to activity_events for auditing/replay.
 import { corsHeaders } from 'npm:@supabase/supabase-js@2/cors';
 import { createClient } from 'npm:@supabase/supabase-js@2';
-import { splitName, swTime } from '../_shared/sourcewhale.ts';
+import { splitName, swTime, SOURCEWHALE_SYNC_ENABLED } from '../_shared/sourcewhale.ts';
 
 const SOURCE = 'sourcewhale';
 
@@ -76,6 +76,13 @@ Deno.serve(async (req) => {
   catch {
     return new Response(JSON.stringify({ error: 'Invalid JSON' }),
       { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+  }
+
+  // Sync paused: acknowledge the push so SourceWhale stops retrying, but write nothing.
+  if (!SOURCEWHALE_SYNC_ENABLED) {
+    console.log('sourcewhale webhook dropped: sync is paused');
+    return new Response(JSON.stringify({ ok: true, skipped: true, reason: 'SourceWhale sync is paused' }),
+      { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
   }
 
   const admin = createClient(

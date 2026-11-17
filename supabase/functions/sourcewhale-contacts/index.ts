@@ -18,6 +18,7 @@ import {
   modifyCandidate,
   searchCandidates,
   swCandidateToPatch,
+  SOURCEWHALE_SYNC_ENABLED,
   isSwSubscriptionType,
   SW_SUBSCRIPTION_TYPES,
   subscribeZapier,
@@ -108,6 +109,19 @@ Deno.serve(async (req) => {
     const url = new URL(req.url);
     const action = url.searchParams.get('action') ?? (req.method === 'POST' ? 'enrich' : 'overview');
 
+    // ===== Sync paused: see SOURCEWHALE_SYNC_ENABLED in _shared/sourcewhale.ts =====
+    // While paused nothing here may call the SourceWhale API. Already-synced data stays
+    // readable (overview, subscriptions), every scheduled run and every write is refused.
+    if (!SOURCEWHALE_SYNC_ENABLED) {
+      if (action === 'cron') {
+        console.log('sourcewhale cron skipped: sync is paused');
+        return json({ ok: true, paused: true, ran: 0 });
+      }
+      if (action !== 'overview' && action !== 'subscriptions') {
+        return json({ paused: true, error: 'SourceWhale sync is paused.' }, 200);
+      }
+    }
+
     // ===== Scheduled mode: enrich every recruiter's desk =====
     if (action === 'cron') {
       const { map } = await campaignNameMap(apiKey);
@@ -130,6 +144,26 @@ Deno.serve(async (req) => {
     const { data: userRes } = await userClient.auth.getUser();
     const userId = userRes?.user?.id;
     if (!userId) return json({ error: 'Unauthorized' }, 401);
+
+    // Paused: serve the desk's already-synced rows straight from Desky's own database,
+    // so the SourceWhale page still works without touching their API.
+    if (!SOURCEWHALE_SYNC_ENABLED && action === 'overview') {
+      const { data: synced } = await admin
+        .from('candidates')
+        .select('id,name,email,job_title,current_employer,sourcewhale_campaign_name,sourcewhale_stage,sourcewhale_status,sourcewhale_last_contacted,sourcewhale_synced_at')
+        .eq('owner_user_id', userId)
+        .not('sourcewhale_candidate_id', 'is', null)
+        .order('sourcewhale_last_contacted', { ascending: false, nullsFirst: false })
+        .limit(500);
+      const names = [...new Set((synced ?? []).map((r: any) => r.sourcewhale_campaign_name).filter(Boolean))];
+      return json({
+        paused: true,
+        campaigns: names.map((n) => ({ campaignId: String(n), campaignName: String(n) })),
+        projects: [],
+        syncedCount: (synced ?? []).length,
+        synced: synced ?? [],
+      });
+    }
 
     switch (action) {
       case 'campaigns':

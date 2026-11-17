@@ -29,6 +29,13 @@
       "when": 1788881097467,
       "tag": "0003_add_jobs_headcount",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1794923840386,
+      "tag": "0004_stop_sourcewhale_cron_sync",
+      "breakpoints": true
     }
   ]
 }

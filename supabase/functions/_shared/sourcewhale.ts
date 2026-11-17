@@ -11,6 +11,10 @@
 
 export const SOURCEWHALE_BASE = 'https://sourcewhale.app/public-api/v1';
 
+// Master switch for all SourceWhale syncing (polling, enrichment, pushes and inbound
+// webhooks). Flip to true to resume. Keep in step with src/lib/sourcewhale-sync.ts.
+export const SOURCEWHALE_SYNC_ENABLED = false;
+
 export type SwResult<T = any> = {
   ok: boolean;
   status: number;
