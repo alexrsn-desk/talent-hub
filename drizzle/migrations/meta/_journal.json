@@ -36,6 +36,20 @@
       "when": 1794923840386,
       "tag": "0004_stop_sourcewhale_cron_sync",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1794924864800,
+      "tag": "0005_add_spott_ids",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1794924894119,
+      "tag": "0006_add_contact_spott_person_id",
+      "breakpoints": true
     }
   ]
 }

@@ -478,6 +478,7 @@ export type Database = {
           extraction_status: string
           id: string
           source: string
+          spott_id: string | null
           user_id: string
         }
         Insert: {
@@ -489,6 +490,7 @@ export type Database = {
           extraction_status?: string
           id?: string
           source?: string
+          spott_id?: string | null
           user_id?: string
         }
         Update: {
@@ -500,6 +502,7 @@ export type Database = {
           extraction_status?: string
           id?: string
           source?: string
+          spott_id?: string | null
           user_id?: string
         }
         Relationships: [
@@ -626,6 +629,7 @@ export type Database = {
           owner_user_id: string | null
           rejection_reason: string | null
           source: string
+          spott_id: string | null
           stage: string
           stage_changed_at: string
           withdrawn: boolean
@@ -646,6 +650,7 @@ export type Database = {
           owner_user_id?: string | null
           rejection_reason?: string | null
           source?: string
+          spott_id?: string | null
           stage?: string
           stage_changed_at?: string
           withdrawn?: boolean
@@ -666,6 +671,7 @@ export type Database = {
           owner_user_id?: string | null
           rejection_reason?: string | null
           source?: string
+          spott_id?: string | null
           stage?: string
           stage_changed_at?: string
           withdrawn?: boolean
@@ -902,6 +908,7 @@ export type Database = {
           sourcewhale_stage: string | null
           sourcewhale_status: string | null
           sourcewhale_synced_at: string | null
+          spott_id: string | null
           status: string
           suggested_reengage_date: string | null
           summary: string | null
@@ -963,6 +970,7 @@ export type Database = {
           sourcewhale_stage?: string | null
           sourcewhale_status?: string | null
           sourcewhale_synced_at?: string | null
+          spott_id?: string | null
           status?: string
           suggested_reengage_date?: string | null
           summary?: string | null
@@ -1024,6 +1032,7 @@ export type Database = {
           sourcewhale_stage?: string | null
           sourcewhale_status?: string | null
           sourcewhale_synced_at?: string | null
+          spott_id?: string | null
           status?: string
           suggested_reengage_date?: string | null
           summary?: string | null
@@ -1111,6 +1120,7 @@ export type Database = {
           owner_user_id: string | null
           phone: string | null
           sector: string | null
+          spott_id: string | null
           status: string
           summary: string | null
           updated_at: string
@@ -1134,6 +1144,7 @@ export type Database = {
           owner_user_id?: string | null
           phone?: string | null
           sector?: string | null
+          spott_id?: string | null
           status?: string
           summary?: string | null
           updated_at?: string
@@ -1157,6 +1168,7 @@ export type Database = {
           owner_user_id?: string | null
           phone?: string | null
           sector?: string | null
+          spott_id?: string | null
           status?: string
           summary?: string | null
           updated_at?: string
@@ -1458,6 +1470,8 @@ export type Database = {
           relationship_score: number
           relationship_score_updated_at: string | null
           source: string | null
+          spott_id: string | null
+          spott_person_id: string | null
           status: string
           suggested_reengage_date: string | null
           summary: string | null
@@ -1501,6 +1515,8 @@ export type Database = {
           relationship_score?: number
           relationship_score_updated_at?: string | null
           source?: string | null
+          spott_id?: string | null
+          spott_person_id?: string | null
           status?: string
           suggested_reengage_date?: string | null
           summary?: string | null
@@ -1544,6 +1560,8 @@ export type Database = {
           relationship_score?: number
           relationship_score_updated_at?: string | null
           source?: string | null
+          spott_id?: string | null
+          spott_person_id?: string | null
           status?: string
           suggested_reengage_date?: string | null
           summary?: string | null
@@ -2303,6 +2321,7 @@ export type Database = {
           salary_min: number | null
           search_launched_at: string | null
           similar_titles: string[]
+          spott_id: string | null
           status: string
           title: string
           updated_at: string
@@ -2336,6 +2355,7 @@ export type Database = {
           salary_min?: number | null
           search_launched_at?: string | null
           similar_titles?: string[]
+          spott_id?: string | null
           status?: string
           title: string
           updated_at?: string
@@ -2369,6 +2389,7 @@ export type Database = {
           salary_min?: number | null
           search_launched_at?: string | null
           similar_titles?: string[]
+          spott_id?: string | null
           status?: string
           title?: string
           updated_at?: string
@@ -2404,6 +2425,7 @@ export type Database = {
           job_id: string | null
           outcome: string | null
           owner_user_id: string | null
+          spott_id: string | null
           transcript: string | null
         }
         Insert: {
@@ -2419,6 +2441,7 @@ export type Database = {
           job_id?: string | null
           outcome?: string | null
           owner_user_id?: string | null
+          spott_id?: string | null
           transcript?: string | null
         }
         Update: {
@@ -2434,6 +2457,7 @@ export type Database = {
           job_id?: string | null
           outcome?: string | null
           owner_user_id?: string | null
+          spott_id?: string | null
           transcript?: string | null
         }
         Relationships: [
@@ -2820,6 +2844,7 @@ export type Database = {
           salary_placed_at: number | null
           settled_status: string | null
           source: string | null
+          spott_id: string | null
           start_date: string | null
           status: string
           still_at_client: boolean | null
@@ -2870,6 +2895,7 @@ export type Database = {
           salary_placed_at?: number | null
           settled_status?: string | null
           source?: string | null
+          spott_id?: string | null
           start_date?: string | null
           status?: string
           still_at_client?: boolean | null
@@ -2920,6 +2946,7 @@ export type Database = {
           salary_placed_at?: number | null
           settled_status?: string | null
           source?: string | null
+          spott_id?: string | null
           start_date?: string | null
           status?: string
           still_at_client?: boolean | null
@@ -4396,6 +4423,66 @@ export type Database = {
           subscription_type?: string
           target_url?: string
           updated_at?: string
+        }
+        Relationships: []
+      }
+      spott_replace_backup: {
+        Row: {
+          created_at: string
+          id: string
+          owner_user_id: string
+          record: Json
+          table_name: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          owner_user_id: string
+          record: Json
+          table_name: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          owner_user_id?: string
+          record?: Json
+          table_name?: string
+        }
+        Relationships: []
+      }
+      spott_sync_state: {
+        Row: {
+          counts: Json
+          cursor: string | null
+          entity: string | null
+          finished_at: string | null
+          last_error: string | null
+          started_at: string | null
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          counts?: Json
+          cursor?: string | null
+          entity?: string | null
+          finished_at?: string | null
+          last_error?: string | null
+          started_at?: string | null
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          counts?: Json
+          cursor?: string | null
+          entity?: string | null
+          finished_at?: string | null
+          last_error?: string | null
+          started_at?: string | null
+          status?: string
+          updated_at?: string
+          user_id?: string
         }
         Relationships: []
       }
