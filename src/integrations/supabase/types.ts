@@ -4003,9 +4003,11 @@ export type Database = {
           client_ready_notes_template: string | null
           created_at: string
           display_name: string | null
+          email_sequence_template: string | null
           enrichment_budget_pence: number
           id: string
           ideal_candidate: string | null
+          job_ad_template: string | null
           li_connection_template: string | null
           linkedin_post_template: string | null
           location_regional_detail: string | null
@@ -4034,9 +4036,11 @@ export type Database = {
           client_ready_notes_template?: string | null
           created_at?: string
           display_name?: string | null
+          email_sequence_template?: string | null
           enrichment_budget_pence?: number
           id?: string
           ideal_candidate?: string | null
+          job_ad_template?: string | null
           li_connection_template?: string | null
           linkedin_post_template?: string | null
           location_regional_detail?: string | null
@@ -4065,9 +4069,11 @@ export type Database = {
           client_ready_notes_template?: string | null
           created_at?: string
           display_name?: string | null
+          email_sequence_template?: string | null
           enrichment_budget_pence?: number
           id?: string
           ideal_candidate?: string | null
+          job_ad_template?: string | null
           li_connection_template?: string | null
           linkedin_post_template?: string | null
           location_regional_detail?: string | null

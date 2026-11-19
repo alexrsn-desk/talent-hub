@@ -78,6 +78,13 @@
       "when": 1795096065755,
       "tag": "0010_job_launch_presets",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1795096631656,
+      "tag": "0011_launch_templates_job_ad_sequence",
+      "breakpoints": true
     }
   ]
 }

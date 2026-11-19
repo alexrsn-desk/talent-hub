@@ -1,0 +1,1 @@
+ALTER TABLE public.recruiter_profiles ADD COLUMN IF NOT EXISTS job_ad_template text, ADD COLUMN IF NOT EXISTS email_sequence_template text;

@@ -13,6 +13,7 @@ import { Rocket, Plus, Search, ArrowRight, MoreVertical, CheckCircle2, XCircle, 
 import { toast } from "sonner";
 import { LaunchStatusSection } from "@/components/LaunchStatusSection";
 import { LaunchStartPanel } from "@/components/job/LaunchStartPanel";
+import { LaunchTemplatesEditor } from "@/components/job/LaunchTemplatesEditor";
 
 export default function JobLaunchSelector() {
   const nav = useNavigate();
@@ -68,6 +69,8 @@ export default function JobLaunchSelector() {
           <p className="text-sm text-muted-foreground">Pick a job to start the launch workflow, or create a new one.</p>
         </div>
       </div>
+
+      <LaunchTemplatesEditor />
 
       <LaunchStartPanel jobs={jobs as any[]} onSaved={() => refetch()} />
 

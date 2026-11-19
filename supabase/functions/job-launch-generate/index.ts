@@ -37,7 +37,7 @@ Deno.serve(async (req) => {
 
     const [{ data: job }, { data: profile }] = await Promise.all([
       sb.from("jobs").select("title, description, intake_summary, location, salary_min, salary_max, job_type, clients(company_name, contact_name)").eq("id", job_id).single(),
-      sb.from("recruiter_profiles").select("display_name, linkedin_post_template, personal_candidate_template, li_connection_template, campaign_outreach_template, client_confirmation_template").eq("user_id", user.id).maybeSingle(),
+      sb.from("recruiter_profiles").select("display_name, linkedin_post_template, personal_candidate_template, li_connection_template, campaign_outreach_template, client_confirmation_template, job_ad_template, email_sequence_template").eq("user_id", user.id).maybeSingle(),
     ]);
 
     const allIds = [...known_candidate_ids, ...li_candidate_ids];
@@ -77,15 +77,21 @@ LI connection DM style:
 ${(profile as any)?.li_connection_template || "(none — default to under 300 chars, soft ask, no hard sell)"}
 Campaign outreach style:
 ${(profile as any)?.campaign_outreach_template || "(none — default to short, lead with what's interesting, soft CTA)"}
+Full job ad format:
+${(profile as any)?.job_ad_template || "(none — default to: The company / The role / What you'll do / What you'll bring / Package / How to apply)"}
+Email follow-up sequence format:
+${(profile as any)?.email_sequence_template || "(none — default to 2 short follow-ups: day 3 gentle bump, day 7 new angle)"}
 Client confirmation style:
 ${(profile as any)?.client_confirmation_template || "(none — default to confident, organised, professional UK English)"}`;
 
-    const system = `You write five recruitment launch outputs as a single JSON response. Return ONLY this JSON:
+    const system = `You write seven recruitment launch outputs as a single JSON response. Return ONLY this JSON:
 {
   "personal_messages": [{"candidate_id":"<id>","subject":"<subject>","body":"<message>"}],
   "li_messages":       [{"candidate_id":"<id>","body":"<<=300 char LI DM>"}],
   "linkedin_post":     "<full post>",
   "campaign":          {"subject":"<subject>","body":"<message with {first_name} {current_company} placeholders>"},
+  "job_ad":            "<full job advert following the job ad format>",
+  "follow_ups":        [{"day":<number>,"subject":"<subject>","body":"<follow-up with placeholders>"}],
   "client_email":      {"subject":"<subject>","body":"<email to client confirming the brief>"}
 }
 
@@ -96,6 +102,7 @@ CRITICAL RULES (non-negotiable):
 - LI messages: under 300 chars, soft, "Happy to share more if relevant" style.
 - LinkedIn post: lead with the genuine interesting angle, expert tone, subtle CTA, NO "exciting opportunity" cliches, no excessive hashtags.
 - Campaign: short enough to read in 20 seconds, includes {first_name} {current_company} placeholders, soft CTA.
+- Templates: when a recruiter template is given, FOLLOW ITS STRUCTURE AND FORMAT closely; fill it with this job's details.
 - Client email: confirms understanding, outlines approach, asks for interview availability + feedback turnaround + expected timeline.
 - Plain professional UK English. No emojis. No markdown headings inside message bodies.`;
 
@@ -140,6 +147,8 @@ ${styleHints}`;
       linkedin_post: parsed.linkedin_post || "",
       campaign: parsed.campaign || { subject: "", body: "" },
       client_email: parsed.client_email || { subject: "", body: "" },
+      job_ad: parsed.job_ad || "",
+      follow_ups: Array.isArray(parsed.follow_ups) ? parsed.follow_ups : [],
     });
   } catch (e: any) {
     return json({ error: e?.message || "unknown" }, 500);

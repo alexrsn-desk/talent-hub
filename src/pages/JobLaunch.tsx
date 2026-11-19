@@ -81,6 +81,8 @@ export default function JobLaunch() {
 
   const [launching, setLaunching] = useState(false);
   const [clientEmailWillSend, setClientEmailWillSend] = useState(true);
+  const [jobAd, setJobAd] = useState("");
+  const [followUps, setFollowUps] = useState<{ day: number; subject: string; body: string }[]>([]);
   const [launched, setLaunched] = useState(false);
   const [presetCopy, setPresetCopy] = useState<LaunchBlueprint | null>(null);
   const [autoRun, setAutoRun] = useState(false);
@@ -290,6 +292,8 @@ export default function JobLaunch() {
       setLinkedinPost(presetCopy?.linkedin_post || data?.linkedin_post || "");
       setCampaign(presetCopy?.campaign_body ? { subject: presetCopy.campaign_subject || data?.campaign?.subject || "", body: presetCopy.campaign_body } : (data?.campaign || { subject: "", body: "" }));
       setClientEmail(data?.client_email || { subject: "", body: "" });
+      setJobAd(data?.job_ad || "");
+      setFollowUps(data?.follow_ups || []);
       setStep(3);
     } catch (e: any) {
       toast.error(e?.message || "Generation failed");
@@ -828,6 +832,34 @@ export default function JobLaunch() {
                     </a>
                   </Button>
                 </div>
+              </div>
+            </div>
+          )}
+
+          {reviewTab === "post" && (
+            <div className="rounded-xl border border-border bg-card/60 p-5 space-y-3">
+              <Label className="text-xs">Full job ad</Label>
+              <textarea value={jobAd} onChange={(e) => setJobAd(e.target.value)} rows={14}
+                className="w-full rounded-lg border border-border bg-background p-3 text-sm" placeholder="Job ad appears here after generating" />
+              <div className="flex justify-end">
+                <Button size="sm" variant="outline" onClick={() => copy(jobAd, "Job ad copied")} className="gap-1"><Copy className="h-3.5 w-3.5" /> Copy job ad</Button>
+              </div>
+            </div>
+          )}
+
+          {reviewTab === "campaign" && followUps.length > 0 && (
+            <div className="rounded-xl border border-border bg-card/60 p-5 space-y-4 order-last">
+              <Label className="text-xs">Follow-up sequence</Label>
+              {followUps.map((f, i) => (
+                <div key={i} className="space-y-1">
+                  <p className="text-[11px] text-muted-foreground">Day {f.day}</p>
+                  <Input value={f.subject} onChange={(e) => setFollowUps((arr) => arr.map((x, j) => j === i ? { ...x, subject: e.target.value } : x))} />
+                  <textarea value={f.body} rows={5} onChange={(e) => setFollowUps((arr) => arr.map((x, j) => j === i ? { ...x, body: e.target.value } : x))}
+                    className="w-full rounded-lg border border-border bg-background p-3 text-sm" />
+                </div>
+              ))}
+              <div className="flex justify-end">
+                <Button size="sm" variant="outline" onClick={() => copy(followUps.map((f) => `Day ${f.day}: ${f.subject}\n\n${f.body}`).join("\n\n---\n\n"), "Sequence copied")}>Copy sequence</Button>
               </div>
             </div>
           )}
