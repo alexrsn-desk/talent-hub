@@ -10,6 +10,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
 import { ArrowLeft, ArrowRight, Check, Loader2, Sparkles, Copy, ExternalLink, RotateCw, ChevronRight, X, Plus, Save } from "lucide-react";
 import { JobSpecUploader } from "@/components/JobSpecUploader";
+import { LaunchQuickStart, type LaunchBlueprint } from "@/components/job/LaunchQuickStart";
 
 type RoleTemplate = {
   id: string;
@@ -80,6 +81,18 @@ export default function JobLaunch() {
   const [launching, setLaunching] = useState(false);
   const [clientEmailWillSend, setClientEmailWillSend] = useState(true);
   const [launched, setLaunched] = useState(false);
+  const [presetCopy, setPresetCopy] = useState<LaunchBlueprint | null>(null);
+  const [autoRun, setAutoRun] = useState(false);
+
+  function applyBlueprint(b: LaunchBlueprint, run: boolean) {
+    if (b.launch_hook) setHook(b.launch_hook);
+    if (b.ideal_candidate_line) setIdeal(b.ideal_candidate_line);
+    if (b.similar_titles?.length) setSimilarTitles(b.similar_titles);
+    if (b.key_skills?.length) setKeySkills(b.key_skills);
+    if (b.send_client_email != null) setClientEmailWillSend(b.send_client_email);
+    setPresetCopy(b);
+    if (run) setAutoRun(true);
+  }
 
   // -------------------- Load job
   useEffect(() => {
@@ -273,8 +286,8 @@ export default function JobLaunch() {
       if (error) throw error;
       setPersonalMsgs((data?.personal_messages || []) as DraftMsg[]);
       setLiMsgs((data?.li_messages || []) as DraftMsg[]);
-      setLinkedinPost(data?.linkedin_post || "");
-      setCampaign(data?.campaign || { subject: "", body: "" });
+      setLinkedinPost(presetCopy?.linkedin_post || data?.linkedin_post || "");
+      setCampaign(presetCopy?.campaign_body ? { subject: presetCopy.campaign_subject || data?.campaign?.subject || "", body: presetCopy.campaign_body } : (data?.campaign || { subject: "", body: "" }));
       setClientEmail(data?.client_email || { subject: "", body: "" });
       setStep(3);
     } catch (e: any) {
@@ -375,6 +388,11 @@ export default function JobLaunch() {
     }
   }
 
+  useEffect(() => {
+    if (autoRun && step === 0) { setAutoRun(false); goToStep2(); }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [autoRun]);
+
   function copy(text: string, label = "Copied") {
     navigator.clipboard.writeText(text);
     toast.success(label);
@@ -434,6 +452,14 @@ export default function JobLaunch() {
       </div>
 
       <StepperBar />
+
+      {step === 0 && jobId && (
+        <LaunchQuickStart
+          jobId={jobId}
+          onApply={applyBlueprint}
+          current={{ label: "", launch_hook: hook, ideal_candidate_line: ideal, similar_titles: similarTitles, key_skills: keySkills, send_client_email: clientEmailWillSend }}
+        />
+      )}
 
       {/* ─────────── STEP 1 — BRIEF */}
       {step === 0 && (
@@ -890,6 +916,12 @@ export default function JobLaunch() {
               <div className="flex gap-2 pt-2">
                 <Button size="sm" variant="outline" onClick={() => navigate(`/jobs?focus=${jobId}`)}>Back to job</Button>
                 <Button size="sm" variant="outline" onClick={() => navigate("/actions")}>Open Actions</Button>
+                <Button size="sm" onClick={async () => {
+                  const name = window.prompt("Save this launch as a preset — name it:");
+                  if (!name?.trim()) return;
+                  const { error } = await supabase.from("job_launch_presets").insert({ name: name.trim(), source_job_id: jobId, launch_hook: hook, ideal_candidate_line: ideal, similar_titles: similarTitles, key_skills: keySkills, campaign_subject: campaign.subject || null, campaign_body: campaign.body || null, linkedin_post: linkedinPost || null, send_client_email: clientEmailWillSend } as any);
+                  if (error) toast.error(error.message); else toast.success("Preset saved");
+                }}><Save className="h-4 w-4 mr-1" /> Save as preset</Button>
               </div>
             </div>
           ) : (

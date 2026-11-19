@@ -2288,6 +2288,63 @@ export type Database = {
           },
         ]
       }
+      job_launch_presets: {
+        Row: {
+          agency_id: string | null
+          campaign_body: string | null
+          campaign_subject: string | null
+          created_at: string
+          id: string
+          ideal_candidate_line: string | null
+          key_skills: string[]
+          launch_hook: string | null
+          linkedin_post: string | null
+          name: string
+          owner_user_id: string
+          send_client_email: boolean
+          similar_titles: string[]
+          source_job_id: string | null
+          updated_at: string
+          use_count: number
+        }
+        Insert: {
+          agency_id?: string | null
+          campaign_body?: string | null
+          campaign_subject?: string | null
+          created_at?: string
+          id?: string
+          ideal_candidate_line?: string | null
+          key_skills?: string[]
+          launch_hook?: string | null
+          linkedin_post?: string | null
+          name: string
+          owner_user_id?: string
+          send_client_email?: boolean
+          similar_titles?: string[]
+          source_job_id?: string | null
+          updated_at?: string
+          use_count?: number
+        }
+        Update: {
+          agency_id?: string | null
+          campaign_body?: string | null
+          campaign_subject?: string | null
+          created_at?: string
+          id?: string
+          ideal_candidate_line?: string | null
+          key_skills?: string[]
+          launch_hook?: string | null
+          linkedin_post?: string | null
+          name?: string
+          owner_user_id?: string
+          send_client_email?: boolean
+          similar_titles?: string[]
+          source_job_id?: string | null
+          updated_at?: string
+          use_count?: number
+        }
+        Relationships: []
+      }
       job_launches: {
         Row: {
           campaign_body: string | null
