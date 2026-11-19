@@ -7,9 +7,10 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
+import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Plus, Search, Star, ClipboardList, Phone, BriefcaseBusiness, Check, CalendarClock, Sparkles, ArrowUp, ArrowDown, X } from "lucide-react";
+import { Plus, Search, Star, ClipboardList, Phone, BriefcaseBusiness, Check, CalendarClock, Sparkles, ArrowUp, ArrowDown, X, ChevronUp, ChevronDown } from "lucide-react";
 import { useCandidates, useCreateCandidate, useUpdateCandidate, useDeleteCandidate, useJobs, useCreateCandidateJob, useCandidateJobs, useCreateNote, type Candidate } from "@/hooks/use-data";
 import { AdvancedSearchBar, applyCandidateFilters, EMPTY_CANDIDATE_FILTERS, type CandidateFilters, type SearchableRecord, type AiMatch } from "@/components/AdvancedSearchBar";
 import { useSearchAggregates } from "@/hooks/use-search-aggregates";
@@ -133,6 +134,7 @@ function InlineEditCell({
   isEditing,
   onStartEdit,
   onStopEdit,
+  onNavigate,
 }: {
   value: string;
   field: string;
@@ -144,6 +146,7 @@ function InlineEditCell({
   isEditing: boolean;
   onStartEdit: () => void;
   onStopEdit: () => void;
+  onNavigate?: (dir: "down" | "up" | "next" | "prev") => void;
 }) {
   const [editValue, setEditValue] = useState(value);
   const [flash, setFlash] = useState(false);
@@ -182,12 +185,13 @@ function InlineEditCell({
         value={editValue}
         onChange={(e) => setEditValue(e.target.value)}
         onKeyDown={(e) => {
-          if (e.key === "Enter") save();
+          if (e.key === "Enter") { e.preventDefault(); save().then(() => onNavigate?.(e.shiftKey ? "up" : "down")); }
+          if (e.key === "Tab") { e.preventDefault(); save().then(() => onNavigate?.(e.shiftKey ? "prev" : "next")); }
           if (e.key === "Escape") cancel();
         }}
         onBlur={save}
         type={type}
-        className="h-7 text-sm w-full border-primary ring-1 ring-primary/30"
+        className="h-7 text-sm w-full rounded-none border-primary ring-2 ring-primary/40 px-1.5"
         onClick={(e) => e.stopPropagation()}
       />
     );
@@ -198,7 +202,7 @@ function InlineEditCell({
   return (
     <span
       className={cn(
-        "cursor-pointer rounded px-1 -mx-1 py-0.5 hover:bg-muted/40 transition-all inline-block",
+        "cursor-cell block w-full truncate min-h-[1.5rem] leading-6 px-1.5 -mx-1.5 hover:ring-1 hover:ring-primary/40 transition-all",
         flash && "bg-green-500/20"
       )}
       onClick={(e) => {
@@ -775,11 +779,22 @@ export default function CandidatesPage() {
   }, [updateCandidate]);
 
   const cellKey = (id: string, field: string) => `${id}:${field}`;
+  const GRID_FIELDS = ["job_title", "current_employer", "salary_current", "location"];
+  const navigateCell = (rowIndex: number, field: string, dir: "down" | "up" | "next" | "prev") => {
+    let r = rowIndex, f = GRID_FIELDS.indexOf(field);
+    if (dir === "down") r++; else if (dir === "up") r--;
+    else if (dir === "next") { f++; if (f >= GRID_FIELDS.length) { f = 0; r++; } }
+    else { f--; if (f < 0) { f = GRID_FIELDS.length - 1; r--; } }
+    const target = filtered[r];
+    if (!target) return;
+    rowVirtualizer.scrollToIndex(r, { align: "auto" });
+    setTimeout(() => setEditingCell(cellKey(target.id, GRID_FIELDS[f])), 0);
+  };
 
   const rowVirtualizer = useVirtualizer({
     count: filtered.length,
     getScrollElement: () => tableScrollRef.current,
-    estimateSize: () => 56,
+    estimateSize: () => 38,
     overscan: 12,
   });
 
@@ -992,11 +1007,11 @@ export default function CandidatesPage() {
         )}
 
         {!isMobile && (
-         <div ref={tableScrollRef} className="rounded-lg border border-border overflow-auto max-h-[calc(100vh-260px)]">
-          <table className="w-full text-sm">
+         <div ref={tableScrollRef} className="rounded-md border border-border bg-card overflow-auto max-h-[calc(100vh-260px)]">
+          <table className="w-full text-[13px] border-collapse">
             <thead>
-              <tr className="border-b border-border bg-muted/30">
-                <th className="px-3 py-3 w-10">
+              <tr className="sticky top-0 z-10 border-b border-border bg-muted">
+                <th className="px-2 py-1.5 border-r border-border/50 w-10">
                   <Checkbox
                     checked={filtered.length > 0 && selectedIds.size === filtered.length}
                     onCheckedChange={toggleSelectAll}
@@ -1005,11 +1020,11 @@ export default function CandidatesPage() {
                 </th>
                <SortableTh label="Name" sortKey="name" activeKey={sortKey} dir={sortDir} onClick={toggleSort} />
                <SortableTh label="Job Title" sortKey="job_title" activeKey={sortKey} dir={sortDir} onClick={toggleSort} />
-               <th className="text-left px-4 py-3 font-medium text-muted-foreground">Employer</th>
-               <th className="text-left px-4 py-3 font-medium text-muted-foreground">Salary</th>
-               <th className="text-left px-4 py-3 font-medium text-muted-foreground">Location</th>
+               <th className="text-left px-2.5 py-2 border-r border-border/50 text-[11px] uppercase tracking-wide font-semibold text-muted-foreground">Employer</th>
+               <th className="text-left px-2.5 py-2 border-r border-border/50 text-[11px] uppercase tracking-wide font-semibold text-muted-foreground">Salary</th>
+               <th className="text-left px-2.5 py-2 border-r border-border/50 text-[11px] uppercase tracking-wide font-semibold text-muted-foreground">Location</th>
                <SortableTh label="Status" sortKey="status" activeKey={sortKey} dir={sortDir} onClick={toggleSort} />
-                <th className="px-4 py-3 w-64"></th>
+                <th className="px-2.5 py-1.5 border-r border-border/50 w-64"></th>
               </tr>
             </thead>
             <tbody>
@@ -1037,12 +1052,12 @@ export default function CandidatesPage() {
                 )}
                 <tr
                   className={cn(
-                    "group border-b border-border hover:bg-muted/20 transition-colors",
+                    "group border-b border-border/50 hover:bg-muted/30 transition-colors",
                     isSelected && "bg-primary/5",
                     rowTier === "partial" && "opacity-80"
                   )}
                 >
-                  <td className="px-3 py-3">
+                  <td className="px-2 py-1.5 border-r border-border/50">
                     <Checkbox
                       checked={isSelected}
                       onCheckedChange={() => {}}
@@ -1053,7 +1068,7 @@ export default function CandidatesPage() {
                       aria-label={`Select ${c.name}`}
                     />
                   </td>
-                  <td className="px-4 py-3 font-medium">
+                  <td className="px-2.5 py-1.5 border-r border-border/50 font-medium">
                     <span
                       className="flex items-center gap-1.5 cursor-pointer hover:text-primary transition-colors"
                       onClick={() => { setSelectedCandidate(c); setDetailOpen(true); }}
@@ -1065,7 +1080,7 @@ export default function CandidatesPage() {
                       <p className="text-[10px] text-primary/90 mt-0.5 flex items-start gap-1"><Sparkles className="h-2.5 w-2.5 mt-0.5 shrink-0" /><span className="line-clamp-2">{reasonById.get(c.id)}</span></p>
                     )}
                   </td>
-                  <td className="px-4 py-3 text-muted-foreground">
+                  <td className="px-2.5 py-1.5 border-r border-border/50 text-muted-foreground">
                     <InlineEditCell
                       value={c.job_title || ""}
                       field="job_title"
@@ -1074,10 +1089,11 @@ export default function CandidatesPage() {
                       onSave={(f, nv, ov) => handleInlineSave(c.id, f, nv, ov)}
                       isEditing={editingCell === cellKey(c.id, "job_title")}
                       onStartEdit={() => setEditingCell(cellKey(c.id, "job_title"))}
+                      onNavigate={(d) => navigateCell(idx, "job_title", d)}
                       onStopEdit={() => setEditingCell(null)}
                     />
                   </td>
-                  <td className="px-4 py-3 text-muted-foreground">
+                  <td className="px-2.5 py-1.5 border-r border-border/50 text-muted-foreground">
                     <InlineEditCell
                       value={c.current_employer || ""}
                       field="current_employer"
@@ -1086,10 +1102,11 @@ export default function CandidatesPage() {
                       onSave={(f, nv, ov) => handleInlineSave(c.id, f, nv, ov)}
                       isEditing={editingCell === cellKey(c.id, "current_employer")}
                       onStartEdit={() => setEditingCell(cellKey(c.id, "current_employer"))}
+                      onNavigate={(d) => navigateCell(idx, "current_employer", d)}
                       onStopEdit={() => setEditingCell(null)}
                     />
                   </td>
-                  <td className="px-4 py-3 text-muted-foreground">
+                  <td className="px-2.5 py-1.5 border-r border-border/50 text-muted-foreground">
                     <InlineEditCell
                       value={c.salary_current?.toString() || ""}
                       field="salary_current"
@@ -1105,10 +1122,11 @@ export default function CandidatesPage() {
                       }}
                       isEditing={editingCell === cellKey(c.id, "salary_current")}
                       onStartEdit={() => setEditingCell(cellKey(c.id, "salary_current"))}
+                      onNavigate={(d) => navigateCell(idx, "salary_current", d)}
                       onStopEdit={() => setEditingCell(null)}
                     />
                   </td>
-                  <td className="px-4 py-3 text-muted-foreground">
+                  <td className="px-2.5 py-1.5 border-r border-border/50 text-muted-foreground">
                     <InlineEditCell
                       value={c.location || ""}
                       field="location"
@@ -1117,10 +1135,11 @@ export default function CandidatesPage() {
                       onSave={(f, nv, ov) => handleInlineSave(c.id, f, nv, ov)}
                       isEditing={editingCell === cellKey(c.id, "location")}
                       onStartEdit={() => setEditingCell(cellKey(c.id, "location"))}
+                      onNavigate={(d) => navigateCell(idx, "location", d)}
                       onStopEdit={() => setEditingCell(null)}
                     />
                   </td>
-                  <td className="px-4 py-3">
+                  <td className="px-2.5 py-1.5 border-r border-border/50">
                     <InlineStatusCell
                       value={c.status}
                       reengageDate={c.reengage_date}
@@ -1139,7 +1158,7 @@ export default function CandidatesPage() {
                       </button>
                     )}
                   </td>
-                   <td className="px-4 py-3">
+                   <td className="px-2.5 py-1.5 border-r border-border/50">
                      <div className="flex items-center gap-2">
                        <RowPriorityToggle candidate={c} onToggle={handleTogglePriority} />
                        <RowTouchpointButton candidate={c} onOpen={handleOpenTouchpoint} />
@@ -1155,7 +1174,7 @@ export default function CandidatesPage() {
                 </tr>
                 {(reengageOpenForId === c.id || (c.status === "On Hold" && c.reengage_date && false)) && (
                   <tr key={`${c.id}-reengage`} className="bg-muted/10 border-b border-border">
-                    <td colSpan={8} className="px-4 py-3">
+                    <td colSpan={8} className="px-2.5 py-1.5 border-r border-border/50">
                       <ReengageInlineEditor
                         date={c.reengage_date}
                         reason={c.reengage_reason}
@@ -1196,10 +1215,21 @@ export default function CandidatesPage() {
         onClear={() => { setSelectedIds(new Set()); lastClickedIndex.current = null; }}
       />
 
-      <Dialog open={detailOpen} onOpenChange={setDetailOpen}>
-        <DialogContent className="max-w-2xl w-[calc(100vw-1rem)] sm:w-auto max-h-[90vh] sm:max-h-[85vh] overflow-y-auto">
+      <Sheet open={detailOpen} onOpenChange={setDetailOpen} modal={false}>
+        <SheetContent side="right" className="w-full sm:max-w-[45vw] sm:min-w-[520px] overflow-y-auto p-5" onInteractOutside={(e) => e.preventDefault()}>
+          {selectedCandidate && (() => {
+            const i = filtered.findIndex((x) => x.id === selectedCandidate.id);
+            return (
+              <div className="flex items-center gap-1 mb-3 pr-8">
+                <Button size="icon" variant="outline" className="h-7 w-7" disabled={i <= 0} onClick={() => setSelectedCandidate(filtered[i - 1])} aria-label="Previous candidate"><ChevronUp className="h-4 w-4" /></Button>
+                <Button size="icon" variant="outline" className="h-7 w-7" disabled={i < 0 || i >= filtered.length - 1} onClick={() => setSelectedCandidate(filtered[i + 1])} aria-label="Next candidate"><ChevronDown className="h-4 w-4" /></Button>
+                {i >= 0 && <span className="text-xs text-muted-foreground ml-2 font-mono">{i + 1} / {filtered.length}</span>}
+              </div>
+            );
+          })()}
           {selectedCandidate && (
             <CandidateDetail
+              key={selectedCandidate.id}
               candidate={selectedCandidate}
               onUpdate={async (updates) => {
                 await updateCandidate.mutateAsync({ id: selectedCandidate.id, ...updates });
@@ -1211,8 +1241,8 @@ export default function CandidatesPage() {
               }}
             />
           )}
-        </DialogContent>
-      </Dialog>
+        </SheetContent>
+      </Sheet>
 
       {touchpointCandidate && (
         <LogTouchpointModal
