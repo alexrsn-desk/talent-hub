@@ -3,6 +3,7 @@ import { aiFetch } from "../_shared/ai-router.ts";
 // Write actions are intentionally disabled until the backend is rebuilt.
 // POST { action: "chat", messages } -> { reply }
 
+import { chargeAiCredit, OUT_OF_CREDITS } from "../_shared/ai-credits.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
 
 const corsHeaders = {
@@ -292,6 +293,8 @@ Deno.serve(async (req) => {
     if (userErr || !userId) return json({ error: "Not authenticated — sign in and try again." }, 401);
 
     const body = await req.json();
+
+    if (!(await chargeAiCredit(userId))) return json({ reply: OUT_OF_CREDITS, outOfCredits: true }, 200);
 
     // Write actions are disabled. Any legacy execute call gets the same refusal.
     if (body.action === "execute") {

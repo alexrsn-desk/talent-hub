@@ -57,6 +57,20 @@
       "when": 1795093185645,
       "tag": "0007_multi_tenant_agencies",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1795094339281,
+      "tag": "0008_agency_subscriptions",
+      "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1795094371784,
+      "tag": "0009_ai_topups",
+      "breakpoints": true
     }
   ]
 }

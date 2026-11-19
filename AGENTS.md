@@ -1,2 +1,4 @@
 - Spott is the system of record: the spott-sync edge function imports via the Spott custom connector in resumable steps, matching on spott_id columns; why: re-syncs must update, not duplicate.
 - All edge-function AI calls go through `_shared/ai-router.ts` `aiFetch(tier, …)` (writing→Claude, reasoning→GPT, fast→Gemini); why: one place to change models per task, and Claude needs Messages-API translation.
+- Tenancy: every user belongs to one agency (agencies/agency_members); core CRM tables carry agency_id set by trigger and a RESTRICTIVE RLS policy against current_agency_id(); why: agencies must never see each other's data even if owner policies are loose.
+- Billing is per agency: Stripe subscription quantity = seats, webhook (payments-webhook) syncs agencies.seats/status; AI usage is metered via consume_ai_credit() through _shared/ai-credits.ts; why: one place for plan limits and top-ups.
