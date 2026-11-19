@@ -1,8 +1,39 @@
 import { createContext, useContext, useEffect, useRef, useState } from "react";
 import ReactMarkdown from "react-markdown";
-import { Sparkles, Loader2, ArrowUp, X } from "lucide-react";
+import { Sparkles, Loader2, ArrowUp, X, Mail, User } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+
+function CandidateLink({ id, children, onNavigate }: { id: string; children: React.ReactNode; onNavigate: () => void }) {
+  const navigate = useNavigate();
+  const [email, setEmail] = useState<string | null | undefined>(undefined);
+  const load = async () => {
+    if (email !== undefined) return;
+    const { data } = await supabase.from("candidates").select("email").eq("id", id).maybeSingle();
+    setEmail((data as any)?.email || null);
+  };
+  return (
+    <DropdownMenu onOpenChange={(o) => o && load()}>
+      <DropdownMenuTrigger className="text-primary underline underline-offset-2 font-medium hover:opacity-80">{children}</DropdownMenuTrigger>
+      <DropdownMenuContent align="start" className="z-[200]">
+        {email === undefined ? (
+          <DropdownMenuItem disabled>Loading…</DropdownMenuItem>
+        ) : email ? (
+          <DropdownMenuItem onSelect={() => { window.location.href = `mailto:${email}`; }}>
+            <Mail className="h-4 w-4 mr-2" /> Email {email}
+          </DropdownMenuItem>
+        ) : (
+          <DropdownMenuItem disabled><Mail className="h-4 w-4 mr-2" /> No email on file</DropdownMenuItem>
+        )}
+        <DropdownMenuItem onSelect={() => { onNavigate(); navigate(`/candidates?id=${id}`); }}>
+          <User className="h-4 w-4 mr-2" /> Open profile
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+}
 
 type Msg = { role: "user" | "assistant"; content: string };
 
@@ -113,7 +144,17 @@ export function DeskyAssistantOverlay() {
                 <div className={`max-w-[85%] rounded-lg px-3 py-2 ${m.role === "user" ? "bg-primary text-primary-foreground" : "bg-muted/40 border border-border"}`}>
                   {m.role === "assistant" ? (
                     <div className="prose prose-sm prose-invert max-w-none [&>*:first-child]:mt-0 [&>*:last-child]:mb-0">
-                      <ReactMarkdown>{m.content}</ReactMarkdown>
+                      <ReactMarkdown
+                        urlTransform={(u) => u}
+                        components={{
+                          a: ({ href, children }) =>
+                            href?.startsWith("candidate:") ? (
+                              <CandidateLink id={href.slice(10)} onNavigate={() => setOpen(false)}>{children}</CandidateLink>
+                            ) : (
+                              <a href={href} target="_blank" rel="noreferrer">{children}</a>
+                            ),
+                        }}
+                      >{m.content}</ReactMarkdown>
                     </div>
                   ) : (
                     <p className="whitespace-pre-wrap">{m.content}</p>
