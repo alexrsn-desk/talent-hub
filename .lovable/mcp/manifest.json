@@ -11,11 +11,499 @@
   },
   "mcp": {
     "server": {
-      "name": "desky-mcp",
-      "version": "0.1.0",
-      "title": "Desky CRM"
+      "name": "desky",
+      "version": "0.2.0",
+      "title": "Desky"
     },
     "tools": [
+      {
+        "name": "complete_task",
+        "title": "Complete task",
+        "description": "Set a task to complete or reopen it.",
+        "annotations": {
+          "readOnlyHint": false,
+          "destructiveHint": false,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "task_id": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "completed": {
+              "type": "boolean"
+            }
+          },
+          "required": [
+            "task_id",
+            "completed"
+          ],
+          "additionalProperties": false,
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "create_candidate",
+        "title": "Create candidate",
+        "description": "Create a candidate on your desk. Does not send messages.",
+        "annotations": {
+          "readOnlyHint": false,
+          "destructiveHint": false,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "first_name": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 100
+            },
+            "last_name": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 100
+            },
+            "job_title": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "maxLength": 500
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "current_employer": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "maxLength": 500
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "location": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "maxLength": 500
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "email": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "email"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "phone": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "maxLength": 100
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "salary_current": {
+              "anyOf": [
+                {
+                  "type": "number",
+                  "minimum": 0
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "salary_expectation": {
+              "anyOf": [
+                {
+                  "type": "number",
+                  "minimum": 0
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "note": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 20000
+            },
+            "status": {
+              "type": "string",
+              "enum": [
+                "New",
+                "Uncontacted",
+                "Contacted",
+                "Screening",
+                "Submitted",
+                "Interviewing",
+                "Placed",
+                "On Hold",
+                "Not Suitable",
+                "Active"
+              ]
+            }
+          },
+          "required": [
+            "first_name",
+            "last_name"
+          ],
+          "additionalProperties": false,
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "create_client",
+        "title": "Create client",
+        "description": "Create a client company on your desk.",
+        "annotations": {
+          "readOnlyHint": false,
+          "destructiveHint": false,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "company_name": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 500
+            },
+            "contact_name": {
+              "type": "string",
+              "maxLength": 500
+            },
+            "email": {
+              "type": "string",
+              "format": "email"
+            },
+            "phone": {
+              "type": "string",
+              "maxLength": 100
+            },
+            "sector": {
+              "type": "string",
+              "maxLength": 500
+            }
+          },
+          "required": [
+            "company_name"
+          ],
+          "additionalProperties": false,
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "create_job",
+        "title": "Create job",
+        "description": "Create a job on your desk, with specification and intake details. Spott re-sync may replace imported information.",
+        "annotations": {
+          "readOnlyHint": false,
+          "destructiveHint": false,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "title": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 20000
+            },
+            "client_id": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "location": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "maxLength": 500
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "description": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 20000
+            },
+            "intake_summary": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 20000
+            },
+            "additional_context": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 20000
+            },
+            "salary_min": {
+              "anyOf": [
+                {
+                  "type": "number",
+                  "minimum": 0
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "salary_max": {
+              "anyOf": [
+                {
+                  "type": "number",
+                  "minimum": 0
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "job_type": {
+              "type": "string",
+              "enum": [
+                "Perm",
+                "Contract"
+              ]
+            },
+            "status": {
+              "type": "string",
+              "enum": [
+                "Active",
+                "On Hold",
+                "Filled",
+                "Closed"
+              ]
+            },
+            "key_skills": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "maxLength": 100
+              },
+              "maxItems": 50
+            },
+            "launch_hook": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 20000
+            },
+            "ideal_candidate_line": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 20000
+            }
+          },
+          "required": [
+            "title"
+          ],
+          "additionalProperties": false,
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "create_note",
+        "title": "Create note",
+        "description": "Add a note attached to a candidate, job, client, or contact on the signed-in recruiter's desk. Exactly one of candidate_id, job_id, client_id, or contact_id must be provided.",
+        "annotations": {
+          "readOnlyHint": false,
+          "destructiveHint": false,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "activity_type": {
+              "type": "string",
+              "enum": [
+                "Note",
+                "Call",
+                "Email",
+                "Meeting"
+              ],
+              "default": "Note"
+            },
+            "content": {
+              "type": "string",
+              "minLength": 1,
+              "description": "The note body."
+            },
+            "candidate_id": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "job_id": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "client_id": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "contact_id": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          "required": [
+            "content"
+          ],
+          "additionalProperties": false,
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "create_task",
+        "title": "Create task",
+        "description": "Add a follow-up task for yourself; optionally attach it to one record.",
+        "annotations": {
+          "readOnlyHint": false,
+          "destructiveHint": false,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "title": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 20000
+            },
+            "due_date": {
+              "type": "string",
+              "format": "date"
+            },
+            "candidate_id": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "job_id": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "client_id": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          "required": [
+            "title"
+          ],
+          "additionalProperties": false,
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "get_candidate",
+        "title": "View candidate",
+        "description": "Read a candidate profile and the latest 30 notes and pipeline links.",
+        "annotations": {
+          "readOnlyHint": true,
+          "destructiveHint": false,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "candidate_id": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          "required": [
+            "candidate_id"
+          ],
+          "additionalProperties": false,
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "get_job",
+        "title": "View job and pipeline",
+        "description": "Read job specification, intake, extra context, configured stages and up to 100 pipeline entries.",
+        "annotations": {
+          "readOnlyHint": true,
+          "destructiveHint": false,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "job_id": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          "required": [
+            "job_id"
+          ],
+          "additionalProperties": false,
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "get_launch_context",
+        "title": "Read launch templates",
+        "description": "Read a job’s specification, intake, notes, your messaging templates and agency presets. Use these to draft job ads and sequences in Claude; do not send without confirmation.",
+        "annotations": {
+          "readOnlyHint": true,
+          "destructiveHint": false,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "job_id": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          "required": [
+            "job_id"
+          ],
+          "additionalProperties": false,
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        },
+        "outputSchema": null
+      },
       {
         "name": "list_candidates",
         "title": "List candidates",
@@ -48,6 +536,32 @@
               "minimum": 1,
               "maximum": 50,
               "description": "Max rows to return, default 20."
+            }
+          },
+          "additionalProperties": false,
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "list_clients",
+        "title": "List clients",
+        "description": "List clients on the signed-in recruiter's desk. Optional text search on company name.",
+        "annotations": {
+          "readOnlyHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "search": {
+              "type": "string",
+              "description": "Substring match on company name."
+            },
+            "limit": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 50
             }
           },
           "additionalProperties": false,
@@ -91,24 +605,19 @@
         "outputSchema": null
       },
       {
-        "name": "list_clients",
-        "title": "List clients",
-        "description": "List clients on the signed-in recruiter's desk. Optional text search on company name.",
+        "name": "list_tasks",
+        "title": "List tasks",
+        "description": "Read up to 50 tasks, optionally filtering completed tasks.",
         "annotations": {
           "readOnlyHint": true,
+          "destructiveHint": false,
           "openWorldHint": false
         },
         "inputSchema": {
           "type": "object",
           "properties": {
-            "search": {
-              "type": "string",
-              "description": "Substring match on company name."
-            },
-            "limit": {
-              "type": "integer",
-              "minimum": 1,
-              "maximum": 50
+            "completed": {
+              "type": "boolean"
             }
           },
           "additionalProperties": false,
@@ -117,9 +626,9 @@
         "outputSchema": null
       },
       {
-        "name": "create_note",
-        "title": "Create note",
-        "description": "Add a note attached to a candidate, job, client, or contact on the signed-in recruiter's desk. Exactly one of candidate_id, job_id, client_id, or contact_id must be provided.",
+        "name": "move_candidate_stage",
+        "title": "Move candidate in pipeline",
+        "description": "Add or move a candidate using this job’s configured stage name. Ask before overriding a Do Not Contact submission warning.",
         "annotations": {
           "readOnlyHint": false,
           "destructiveHint": false,
@@ -128,11 +637,6 @@
         "inputSchema": {
           "type": "object",
           "properties": {
-            "content": {
-              "type": "string",
-              "minLength": 1,
-              "description": "The note body."
-            },
             "candidate_id": {
               "type": "string",
               "format": "uuid"
@@ -141,17 +645,341 @@
               "type": "string",
               "format": "uuid"
             },
-            "client_id": {
+            "stage": {
               "type": "string",
-              "format": "uuid"
+              "minLength": 1,
+              "maxLength": 100
             },
-            "contact_id": {
-              "type": "string",
-              "format": "uuid"
+            "acknowledge_dnc_submission": {
+              "type": "boolean",
+              "default": false
             }
           },
           "required": [
-            "content"
+            "candidate_id",
+            "job_id",
+            "stage"
+          ],
+          "additionalProperties": false,
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "publish_linkedin_post",
+        "title": "Publish LinkedIn post",
+        "description": "Publish exact text as your connected LinkedIn account. Show the full text and get explicit confirmation first. Never retry automatically.",
+        "annotations": {
+          "readOnlyHint": false,
+          "destructiveHint": false,
+          "openWorldHint": true
+        },
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "text": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 3000
+            },
+            "job_id": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "confirmed": {
+              "type": "boolean",
+              "default": false
+            }
+          },
+          "required": [
+            "text"
+          ],
+          "additionalProperties": false,
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "send_candidate_email",
+        "title": "Send candidate email",
+        "description": "Send an exact email from your connected Outlook or Gmail. First show the recipient, subject and body and get explicit confirmation. DNC is blocked. Never retry automatically.",
+        "annotations": {
+          "readOnlyHint": false,
+          "destructiveHint": false,
+          "openWorldHint": true
+        },
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "candidate_id": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "subject": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 500,
+              "pattern": "^[^\\r\\n]+$"
+            },
+            "body": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 20000
+            },
+            "confirmed": {
+              "type": "boolean",
+              "default": false
+            }
+          },
+          "required": [
+            "candidate_id",
+            "subject",
+            "body"
+          ],
+          "additionalProperties": false,
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "update_candidate",
+        "title": "Update candidate",
+        "description": "Update candidate contact, salary and desk details. Cannot clear Do Not Contact, GDPR deletion or ownership.",
+        "annotations": {
+          "readOnlyHint": false,
+          "destructiveHint": false,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "candidate_id": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "job_title": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "maxLength": 500
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "current_employer": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "maxLength": 500
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "location": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "maxLength": 500
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "email": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "email"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "phone": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "maxLength": 100
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "salary_current": {
+              "anyOf": [
+                {
+                  "type": "number",
+                  "minimum": 0
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "salary_expectation": {
+              "anyOf": [
+                {
+                  "type": "number",
+                  "minimum": 0
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "note": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 20000
+            },
+            "status": {
+              "type": "string",
+              "enum": [
+                "New",
+                "Uncontacted",
+                "Contacted",
+                "Screening",
+                "Submitted",
+                "Interviewing",
+                "Placed",
+                "On Hold",
+                "Not Suitable",
+                "Active"
+              ]
+            }
+          },
+          "required": [
+            "candidate_id"
+          ],
+          "additionalProperties": false,
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "update_job",
+        "title": "Update job",
+        "description": "Update job details, specification, intake or status. Cannot change ownership or agency.",
+        "annotations": {
+          "readOnlyHint": false,
+          "destructiveHint": false,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "job_id": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "title": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 20000
+            },
+            "client_id": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "location": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "maxLength": 500
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "description": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 20000
+            },
+            "intake_summary": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 20000
+            },
+            "additional_context": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 20000
+            },
+            "salary_min": {
+              "anyOf": [
+                {
+                  "type": "number",
+                  "minimum": 0
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "salary_max": {
+              "anyOf": [
+                {
+                  "type": "number",
+                  "minimum": 0
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "job_type": {
+              "type": "string",
+              "enum": [
+                "Perm",
+                "Contract"
+              ]
+            },
+            "status": {
+              "type": "string",
+              "enum": [
+                "Active",
+                "On Hold",
+                "Filled",
+                "Closed"
+              ]
+            },
+            "key_skills": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "maxLength": 100
+              },
+              "maxItems": 50
+            },
+            "launch_hook": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 20000
+            },
+            "ideal_candidate_line": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 20000
+            }
+          },
+          "required": [
+            "job_id"
           ],
           "additionalProperties": false,
           "$schema": "http://json-schema.org/draft-07/schema#"

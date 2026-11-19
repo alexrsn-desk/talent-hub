@@ -6,17 +6,7 @@ import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { Sparkles } from "lucide-react";
 
-// Validate a `next` value as a same-origin relative path.
-function sanitizeNext(raw: string | null): string | null {
-  if (!raw) return null;
-  try {
-    const decoded = decodeURIComponent(raw);
-    if (!decoded.startsWith("/") || decoded.startsWith("//")) return null;
-    return decoded;
-  } catch {
-    return null;
-  }
-}
+import { oauthReturnPath } from "@/lib/oauth-return-path";
 
 export default function AuthPage() {
   const [isLogin, setIsLogin] = useState(true);
@@ -24,18 +14,14 @@ export default function AuthPage() {
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
-  const [next, setNext] = useState<string | null>(null);
-
-  useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    setNext(sanitizeNext(params.get("next")));
-  }, []);
+  const [next] = useState(() => oauthReturnPath(new URLSearchParams(window.location.search).get("next") ?? sessionStorage.getItem("desky_auth_return")));
 
   // After sign-in (either via password or via Supabase setting the session from an OAuth popup),
   // navigate to the preserved `next` target.
   useEffect(() => {
     const { data: sub } = supabase.auth.onAuthStateChange((_event, session) => {
-      if (session && next) {
+      if (session && next !== "/") {
+        sessionStorage.removeItem("desky_auth_return");
         window.location.href = next;
       }
     });
@@ -71,9 +57,8 @@ export default function AuthPage() {
   const handleGoogle = async () => {
     setGoogleLoading(true);
     try {
-      const redirect_uri = next
-        ? `${window.location.origin}${next}`
-        : window.location.origin;
+      sessionStorage.setItem("desky_auth_return", next);
+      const redirect_uri = window.location.origin + "/auth/callback";
       const result = await lovable.auth.signInWithOAuth("google", { redirect_uri });
       if (result.error) {
         toast.error(result.error.message || "Google sign-in failed");

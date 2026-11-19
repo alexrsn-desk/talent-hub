@@ -1,0 +1,10 @@
+import { defineTool } from '@lovable.dev/mcp-js';
+import { z } from 'zod';
+import { supabaseForUser, result, requireRecord } from '../supabase';
+import { assertSalaryRange, requireConfirmation } from '../validation';
+export default defineTool({
+ name: 'update_job', title: 'Update job', description: 'Update job details, specification, intake or status. Cannot change ownership or agency.',
+ inputSchema: { job_id: z.string().uuid(), title: z.string().trim().min(1).max(20000).optional(), client_id: z.string().uuid().nullable().optional(), location: z.string().max(500).nullable().optional(), description: z.string().trim().min(1).max(20000).optional(), intake_summary: z.string().trim().min(1).max(20000).optional(), additional_context: z.string().trim().min(1).max(20000).optional(), salary_min: z.number().nonnegative().nullable().optional(), salary_max: z.number().nonnegative().nullable().optional(), job_type: z.enum(['Perm','Contract']).optional(), status: z.enum(['Active','On Hold','Filled','Closed']).optional(), key_skills: z.array(z.string().max(100)).max(50).optional(), launch_hook: z.string().trim().min(1).max(20000).optional(), ideal_candidate_line: z.string().trim().min(1).max(20000).optional() },
+ annotations: { readOnlyHint: false, destructiveHint: false, openWorldHint: false },
+ handler: async (args, ctx) => { const sb = supabaseForUser(ctx); const {job_id,...updates}=args; if(!Object.keys(updates).length) throw new Error('Provide a field to update'); const existing=await sb.from('jobs').select('salary_min,salary_max').eq('id',job_id).single(); if(existing.error) return result(null,existing.error); assertSalaryRange(updates.salary_min===undefined?existing.data.salary_min:updates.salary_min,updates.salary_max===undefined?existing.data.salary_max:updates.salary_max); if(updates.client_id) await requireRecord(sb,'clients',updates.client_id); const {data,error}=await sb.from('jobs').update(updates).eq('id',job_id).select('id,title,status').single(); return result(data,error); }
+});

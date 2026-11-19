@@ -1,0 +1,10 @@
+import { defineTool } from '@lovable.dev/mcp-js';
+import { z } from 'zod';
+import { supabaseForUser, result, requireRecord } from '../supabase';
+import { assertSalaryRange, requireConfirmation } from '../validation';
+export default defineTool({
+ name: 'move_candidate_stage', title: 'Move candidate in pipeline', description: 'Add or move a candidate using this job’s configured stage name. Ask before overriding a Do Not Contact submission warning.',
+ inputSchema: { candidate_id: z.string().uuid(), job_id: z.string().uuid(), stage: z.string().min(1).max(100), acknowledge_dnc_submission: z.boolean().default(false) },
+ annotations: { readOnlyHint: false, destructiveHint: false, openWorldHint: false },
+ handler: async (args, ctx) => { const sb = supabaseForUser(ctx); await requireRecord(sb,'jobs',args.job_id); const c=await sb.from('candidates').select('id,do_not_contact,gdpr_deleted,status').eq('id',args.candidate_id).single(); if(c.error) return result(null,c.error); if(c.data.gdpr_deleted) throw new Error('Deleted candidate cannot enter pipeline'); const stages=await sb.from('job_stages').select('stage_name').eq('job_id',args.job_id); if(stages.error) return result(null,stages.error); if(!stages.data.some(s=>s.stage_name===args.stage)) throw new Error('Choose a configured job stage using get_job'); if((c.data.do_not_contact||c.data.status==='Do Not Contact') && !args.acknowledge_dnc_submission) throw new Error('Do Not Contact: warn the user before submission and request acknowledgement. No outreach will be sent.'); const existing=await sb.from('candidate_jobs').select('id').eq('candidate_id',args.candidate_id).eq('job_id',args.job_id).maybeSingle(); if(existing.error) return result(null,existing.error); const q=existing.data?sb.from('candidate_jobs').update({stage:args.stage,stage_changed_at:new Date().toISOString()}).eq('id',existing.data.id):sb.from('candidate_jobs').insert({candidate_id:args.candidate_id,job_id:args.job_id,stage:args.stage,source:'Claude',owner_user_id:ctx.getUserId()}); const {data,error}=await q.select('id,candidate_id,job_id,stage').single(); return result(data,error); }
+});

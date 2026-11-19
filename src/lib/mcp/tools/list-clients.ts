@@ -1,13 +1,7 @@
-import { createClient } from "@supabase/supabase-js";
-import { defineTool, type ToolContext } from "@lovable.dev/mcp-js";
+import { defineTool } from "@lovable.dev/mcp-js";
 import { z } from "zod";
-
-function client(ctx: ToolContext) {
-  return createClient(process.env.SUPABASE_URL!, process.env.SUPABASE_PUBLISHABLE_KEY!, {
-    global: { headers: { Authorization: `Bearer ${ctx.getToken()}` } },
-    auth: { persistSession: false, autoRefreshToken: false },
-  });
-}
+import { supabaseForUser, requireRecord } from "../supabase";
+import { searchLiteral } from "../validation";
 
 export default defineTool({
   name: "list_clients",
@@ -22,12 +16,12 @@ export default defineTool({
     if (!ctx.isAuthenticated()) {
       return { content: [{ type: "text", text: "Not authenticated" }], isError: true };
     }
-    let q = client(ctx)
+    let q = supabaseForUser(ctx)
       .from("clients")
-      .select("id,company_name,status,industry,updated_at")
+      .select("id,company_name,status,sector,updated_at")
       .order("updated_at", { ascending: false })
       .limit(limit ?? 20);
-    if (search) q = q.ilike("company_name", `%${search}%`);
+    if (search) q = q.ilike("company_name", `%${searchLiteral(search)}%`);
     const { data, error } = await q;
     if (error) return { content: [{ type: "text", text: error.message }], isError: true };
     return {

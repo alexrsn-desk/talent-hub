@@ -39,6 +39,7 @@ import SignalsPage from "./pages/Signals";
 import CompareSubmitSelector from "./pages/CompareSubmitSelector";
 import PitchCandidateSelector from "./pages/PitchCandidateSelector";
 import NotFound from "./pages/NotFound";
+import { oauthReturnPath } from "@/lib/oauth-return-path";
 import OAuthConsent from "./pages/OAuthConsent";
 import BDContactTracker from "./pages/BDContactTracker";
 import PortalClient from "./pages/PortalClient";
@@ -114,6 +115,14 @@ function AppRoutes() {
       setOnboardingDone(data?.onboarding_completed ?? false);
       setCheckingOnboarding(false);
     })();
+  }, [user]);
+
+  useEffect(() => {
+    if (user && window.location.pathname === '/auth/callback') {
+      const next = oauthReturnPath(sessionStorage.getItem('desky_auth_return'));
+      sessionStorage.removeItem('desky_auth_return');
+      window.location.replace(next);
+    }
   }, [user]);
 
   // Token-gated public portals — no login, rendered before any auth gate.

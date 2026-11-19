@@ -1,13 +1,7 @@
-import { createClient } from "@supabase/supabase-js";
-import { defineTool, type ToolContext } from "@lovable.dev/mcp-js";
+import { defineTool } from "@lovable.dev/mcp-js";
 import { z } from "zod";
-
-function client(ctx: ToolContext) {
-  return createClient(process.env.SUPABASE_URL!, process.env.SUPABASE_PUBLISHABLE_KEY!, {
-    global: { headers: { Authorization: `Bearer ${ctx.getToken()}` } },
-    auth: { persistSession: false, autoRefreshToken: false },
-  });
-}
+import { supabaseForUser, requireRecord } from "../supabase";
+import { searchLiteral } from "../validation";
 
 export default defineTool({
   name: "create_note",
@@ -15,6 +9,7 @@ export default defineTool({
   description:
     "Add a note attached to a candidate, job, client, or contact on the signed-in recruiter's desk. Exactly one of candidate_id, job_id, client_id, or contact_id must be provided.",
   inputSchema: {
+    activity_type: z.enum(["Note", "Call", "Email", "Meeting"]).default("Note"),
     content: z.string().min(1).describe("The note body."),
     candidate_id: z.string().uuid().optional(),
     job_id: z.string().uuid().optional(),
@@ -22,7 +17,7 @@ export default defineTool({
     contact_id: z.string().uuid().optional(),
   },
   annotations: { readOnlyHint: false, destructiveHint: false, openWorldHint: false },
-  handler: async ({ content, candidate_id, job_id, client_id, contact_id }, ctx) => {
+  handler: async ({ content, activity_type, candidate_id, job_id, client_id, contact_id }, ctx) => {
     if (!ctx.isAuthenticated()) {
       return { content: [{ type: "text", text: "Not authenticated" }], isError: true };
     }
@@ -33,10 +28,15 @@ export default defineTool({
         isError: true,
       };
     }
-    const { data, error } = await client(ctx)
+    const sb = supabaseForUser(ctx);
+    const target = candidate_id ? ['candidates', candidate_id] : job_id ? ['jobs', job_id] : client_id ? ['clients', client_id] : contact_id ? ['contacts', contact_id] : null;
+    if (!target) throw new Error('Note target required');
+    await requireRecord(sb, target[0], target[1]);
+    const { data, error } = await sb
       .from("notes")
       .insert({
         content,
+        activity_type,
         candidate_id: candidate_id ?? null,
         job_id: job_id ?? null,
         client_id: client_id ?? null,

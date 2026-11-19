@@ -3,3 +3,7 @@
 - Tenancy: every user belongs to one agency (agencies/agency_members); core CRM tables carry agency_id set by trigger and a RESTRICTIVE RLS policy against current_agency_id(); why: agencies must never see each other's data even if owner policies are loose.
 - Billing is per agency: Stripe subscription quantity = seats, webhook (payments-webhook) syncs agencies.seats/status; AI usage is metered via consume_ai_credit() through _shared/ai-credits.ts; why: one place for plan limits and top-ups.
 - Email/LinkedIn sending is per user via App User Connectors (Outlook, Gmail, LinkedIn): encrypted keys in app_user_connections (service-role only), helpers in `_shared/appUserConnector.ts`/`mailer.ts`, connect flow in `app-connections` + `/oauth/return`; why: each recruiter must send from their own mailbox, never a shared account.
+
+- MCP tools use one lazy caller-scoped Supabase factory and field allowlists; why: OAuth identity, agency RLS and runtime environment fallbacks must be consistent across every tool.
+- External sending tools require exact-message confirmation and use per-user connectors; why: assistants must not bypass DNC or send from a shared mailbox.
+- Auth return paths are canonical same-origin paths validated once, with social sign-in returning through a public callback; why: preserve consent without open redirects or protected-provider callbacks.
