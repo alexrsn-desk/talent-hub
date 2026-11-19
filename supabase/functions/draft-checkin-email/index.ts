@@ -1,3 +1,4 @@
+import { aiFetch } from "../_shared/ai-router.ts";
 // Drafts a personalised candidate check-in email.
 // Uses the Lovable AI Gateway (OpenAI-compatible chat completions) — works with any supported model.
 // Returns { subject, body } — no Gemini-specific features used.
@@ -115,7 +116,7 @@ Deno.serve(async (req) => {
       "Now produce the JSON object.",
     ].filter(Boolean).join("\n");
 
-    const aiRes = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    const aiRes = await aiFetch("writing", "https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
       body: JSON.stringify({

@@ -1,3 +1,4 @@
+import { aiFetch } from "../_shared/ai-router.ts";
 // Drafts personalised reconnection messages for a batch of contacts.
 // Vendor-neutral: works with both Gemini and Claude via Lovable AI Gateway (OpenAI-compatible).
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
@@ -98,7 +99,7 @@ Deno.serve(async (req) => {
       last_notes: notesById.get(r.id) || [],
     }));
 
-    const r = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    const r = await aiFetch("writing", "https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
       body: JSON.stringify({

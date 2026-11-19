@@ -1,3 +1,4 @@
+import { aiFetch } from "./ai-router.ts";
 // Shared helpers for the Judgement layer (tool-agnostic).
 // Evidence gathering + AI calls for impact extraction, judgement summaries
 // and per-role judgement scores.
@@ -30,7 +31,7 @@ export async function callTool(
   user: string,
   tool: { name: string; description: string; parameters: Record<string, unknown> },
 ): Promise<any> {
-  const res = await fetch(AI_URL, {
+  const res = await aiFetch("reasoning", AI_URL, {
     method: "POST",
     headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
     body: JSON.stringify({

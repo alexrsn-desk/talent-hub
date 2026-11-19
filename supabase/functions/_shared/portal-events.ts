@@ -1,3 +1,4 @@
+import { aiFetch } from "./ai-router.ts";
 // Port of the source's events.server.ts, adapted to Deno / Supabase Edge Functions.
 // Called server-side-to-server-side from portal-public and portal-agency.
 import { createClient } from "npm:@supabase/supabase-js@2";
@@ -143,7 +144,7 @@ export async function aiText(prompt: string, maxTokens = 700): Promise<string | 
   const key = Deno.env.get("LOVABLE_API_KEY");
   if (!key) return null;
   try {
-    const res = await fetch("https://api.lovable.dev/v1/chat/completions", {
+    const res = await aiFetch("fast", "https://api.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: { "content-type": "application/json", authorization: `Bearer ${key}` },
       body: JSON.stringify({

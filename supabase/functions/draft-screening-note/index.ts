@@ -1,3 +1,4 @@
+import { aiFetch } from "../_shared/ai-router.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 
 const corsHeaders = {
@@ -237,7 +238,7 @@ Has call history: ${hasCallHistory ? "yes" : "no"}
 
 Now generate the screening note draft.`;
 
-    const aiRes = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    const aiRes = await aiFetch("writing", "https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",

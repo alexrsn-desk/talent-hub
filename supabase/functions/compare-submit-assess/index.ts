@@ -1,3 +1,4 @@
+import { aiFetch } from "../_shared/ai-router.ts";
 // Compare & Submit — assess each candidate against the job, return match scores
 // and client-facing reasoning. Standard JSON output compatible with both
 // Gemini and Claude through the Lovable AI Gateway.
@@ -147,7 +148,7 @@ Return exactly one entry per candidate provided, in the same order.`;
 
     const user = `JOB\n${jobCtx}\n\nCANDIDATES (${allCands.length})\n${candBlock}`;
 
-    const resp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    const resp = await aiFetch("reasoning", "https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",

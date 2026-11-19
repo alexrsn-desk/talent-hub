@@ -1,3 +1,4 @@
+import { aiFetch } from "../_shared/ai-router.ts";
 // Desky AI Assistant — read-only search & retrieval.
 // Write actions are intentionally disabled until the backend is rebuilt.
 // POST { action: "chat", messages } -> { reply }
@@ -301,7 +302,7 @@ Deno.serve(async (req) => {
     const convo: any[] = [{ role: "system", content: SYSTEM_PROMPT }, ...messages];
 
     for (let step = 0; step < MAX_STEPS; step++) {
-      const r = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+      const r = await aiFetch("writing", "https://ai.gateway.lovable.dev/v1/chat/completions", {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${apiKey}` },
         body: JSON.stringify({ model: MODEL, messages: convo, tools: TOOLS, tool_choice: "auto" }),

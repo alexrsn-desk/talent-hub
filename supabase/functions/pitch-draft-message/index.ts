@@ -1,3 +1,4 @@
+import { aiFetch } from "../_shared/ai-router.ts";
 // Generates warm-pitch or cold-pitch messages following strict framing rules.
 const cors = {
   "Access-Control-Allow-Origin": "*",
@@ -42,7 +43,7 @@ Deno.serve(async (req) => {
 
     const user = `Type: ${type}\nRecruiter: ${recruiter_name || "the recruiter"}\nCandidate:\n${JSON.stringify(candidate, null, 2)}\nTheir story (lead with this): ${story}\nWhy now: ${why_now || "n/a"}\nTarget:\n${JSON.stringify(target, null, 2)}`;
 
-    const r = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    const r = await aiFetch("writing", "https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
       body: JSON.stringify({

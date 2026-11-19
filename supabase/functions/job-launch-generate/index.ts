@@ -1,3 +1,4 @@
+import { aiFetch } from "../_shared/ai-router.ts";
 // Job Launch — single AI call that returns all five launch outputs:
 // per-known-candidate personal messages, per-LI-connection DMs,
 // a LinkedIn post, a campaign outreach message (subject + body),
@@ -115,7 +116,7 @@ ${liBlock || "(none)"}
 
 ${styleHints}`;
 
-    const resp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    const resp = await aiFetch("writing", "https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: { "Content-Type": "application/json", Authorization: `Bearer ${apiKey}` },
       body: JSON.stringify({

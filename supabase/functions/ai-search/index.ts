@@ -1,3 +1,4 @@
+import { aiFetch } from "../_shared/ai-router.ts";
 // Natural-language search across candidates / contacts with TIERED matching.
 //
 // Returns matches split into two tiers:
@@ -119,7 +120,7 @@ TODAY: ${new Date().toISOString().slice(0, 10)}
 RECORDS (${trimmed.length}):
 ${JSON.stringify(trimmed)}`;
 
-    const r = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    const r = await aiFetch("fast", "https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",

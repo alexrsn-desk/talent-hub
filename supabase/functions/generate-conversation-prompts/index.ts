@@ -1,3 +1,4 @@
+import { aiFetch } from "../_shared/ai-router.ts";
 // supabase/functions/generate-conversation-prompts/index.ts
 // Generates personalised BD conversation prompts for a client or contact.
 // Uses Lovable AI gateway (OpenAI-compatible). Standard JSON response — no provider-specific features.
@@ -158,7 +159,7 @@ Output ONLY a JSON object — no markdown fences, no commentary — matching thi
   "tone_guidance": "string (one sentence on how this person communicates, based on notes)"
 }`;
 
-    const aiRes = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    const aiRes = await aiFetch("writing", "https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: {
         Authorization: `Bearer ${LOVABLE_API_KEY}`,

@@ -1,3 +1,4 @@
+import { aiFetch } from "../_shared/ai-router.ts";
 // Compare & Submit — draft a client-facing submission email (subject + body)
 // for the selected candidates, in the recruiter's saved style if available.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
@@ -96,7 +97,7 @@ ${format === "shortlist"
 
     const user = `JOB\n${jobCtx}\n\nCANDIDATES (${candidates.length})\n${candBlock}`;
 
-    const resp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    const resp = await aiFetch("writing", "https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",

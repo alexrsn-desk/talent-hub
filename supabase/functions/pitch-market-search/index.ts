@@ -1,3 +1,4 @@
+import { aiFetch } from "../_shared/ai-router.ts";
 // Suggests market companies for a candidate via LLM knowledge.
 // Uses standard chat-completions — works for Gemini, Claude, OpenAI alike.
 // Results MUST be labelled "verify before approaching" in the UI.
@@ -31,7 +32,7 @@ Rules:
 
     const user = `Candidate / Search profile:\n${JSON.stringify(profile, null, 2)}\n\nExclude companies (already in DB):\n${JSON.stringify(exclude_companies)}`;
 
-    const r = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    const r = await aiFetch("fast", "https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
       body: JSON.stringify({

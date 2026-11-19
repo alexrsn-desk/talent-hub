@@ -1,3 +1,4 @@
+import { aiFetch } from "../_shared/ai-router.ts";
 // Drafts a personal-sequence outreach message in the recruiter's voice.
 // Uses the Lovable AI Gateway (OpenAI-compatible chat completions) so the
 // same code works with any supported model — no Gemini-specific features.
@@ -104,7 +105,7 @@ Deno.serve(async (req) => {
       "Draft the message now.",
     ].filter(Boolean).join("\n");
 
-    const aiRes = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    const aiRes = await aiFetch("writing", "https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
       body: JSON.stringify({

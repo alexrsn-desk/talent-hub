@@ -1,3 +1,4 @@
+import { aiFetch } from "../_shared/ai-router.ts";
 // Draft punchy 2-3 line client-ready notes for each candidate in a shortlist
 // email. Uses standard OpenAI-compatible JSON output via Lovable AI Gateway,
 // which works with both Gemini and Claude families.
@@ -112,7 +113,7 @@ Return one entry per candidate provided, in the same order.`;
 
     const user = `${jobCtx}\n\nCANDIDATES:\n${candCtx}`;
 
-    const r = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    const r = await aiFetch("writing", "https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: { "Content-Type": "application/json", Authorization: `Bearer ${apiKey}` },
       body: JSON.stringify({

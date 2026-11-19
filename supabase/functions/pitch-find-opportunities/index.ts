@@ -1,3 +1,4 @@
+import { aiFetch } from "../_shared/ai-router.ts";
 // Finds opportunities for a candidate across the existing DB.
 // Returns three buckets: liveRoles, networkContacts, silverMedallists.
 // Uses standard OpenAI-compatible chat completions (works for Gemini & Claude).
@@ -20,7 +21,7 @@ function json(body: unknown, status = 200) {
 async function ai(messages: any[], schemaHint = true) {
   const key = Deno.env.get("LOVABLE_API_KEY");
   if (!key) throw new Error("LOVABLE_API_KEY missing");
-  const r = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+  const r = await aiFetch("reasoning", "https://ai.gateway.lovable.dev/v1/chat/completions", {
     method: "POST",
     headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
     body: JSON.stringify({

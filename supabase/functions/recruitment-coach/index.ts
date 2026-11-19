@@ -1,3 +1,4 @@
+import { aiFetch } from "../_shared/ai-router.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { ActionError, buildContext } from "../_shared/actions/core.ts";
 import { assistantTools, runAssistantTool } from "../_shared/actions/tools.ts";
@@ -673,7 +674,7 @@ ${pageContext && typeof pageContext === "object"
     const runRound = async (
       controller: ReadableStreamDefaultController<Uint8Array>,
     ): Promise<{ content: string; toolCalls: ToolCall[] }> => {
-      const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+      const response = await aiFetch("fast", "https://ai.gateway.lovable.dev/v1/chat/completions", {
         method: "POST",
         headers: { Authorization: `Bearer ${lovableKey}`, "Content-Type": "application/json" },
         body: JSON.stringify({

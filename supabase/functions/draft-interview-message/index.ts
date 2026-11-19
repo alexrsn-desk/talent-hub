@@ -1,3 +1,4 @@
+import { aiFetch } from "../_shared/ai-router.ts";
 // Draft interview-related messages: confirmation, prep_pack, day_before,
 // good_luck, client_chase. Vendor-neutral chat completions API — works with
 // Gemini, Claude, GPT, etc. via the Lovable AI gateway.
@@ -156,7 +157,7 @@ Deno.serve(async (req) => {
       ].join("\n");
     }
 
-    const aiRes = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    const aiRes = await aiFetch("writing", "https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
       body: JSON.stringify({

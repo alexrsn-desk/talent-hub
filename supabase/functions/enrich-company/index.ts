@@ -1,3 +1,4 @@
+import { aiFetch } from "../_shared/ai-router.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
 
 const corsHeaders = {
@@ -169,7 +170,7 @@ For "tech_stack", list well-known technologies the company uses.
 Do NOT fabricate specific dates, amounts, or product names you are not confident in — leave the field empty and lower confidence instead.`;
 
 
-    const aiRes = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    const aiRes = await aiFetch("reasoning", "https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: {
         Authorization: `Bearer ${LOVABLE_API_KEY}`,

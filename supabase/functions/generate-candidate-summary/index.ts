@@ -1,3 +1,4 @@
+import { aiFetch } from "../_shared/ai-router.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
 const corsHeaders = {
@@ -59,7 +60,7 @@ Keep it to 250-300 words. Professional tone. No fluff.`;
 
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
 
-    const response = await fetch("https://api.lovable.dev/v1/chat/completions", {
+    const response = await aiFetch("writing", "https://api.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",

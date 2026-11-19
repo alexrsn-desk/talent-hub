@@ -1,3 +1,4 @@
+import { aiFetch } from "../_shared/ai-router.ts";
 // Relationship Decay Alert scanner.
 // Scans the authenticated user's clients + contacts, computes decay status,
 // and only persists a surfaced alert when the AI can produce a genuine,
@@ -296,7 +297,7 @@ Deno.serve(async (req) => {
             channelHints.length ? `Recent channels used: ${channelHints.join(", ")}` : "",
             "Return JSON only.",
           ].filter(Boolean).join("\n");
-          const aiRes = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+          const aiRes = await aiFetch("fast", "https://ai.gateway.lovable.dev/v1/chat/completions", {
             method: "POST",
             headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
             body: JSON.stringify({

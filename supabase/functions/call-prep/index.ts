@@ -1,3 +1,4 @@
+import { aiFetch } from "../_shared/ai-router.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
@@ -165,7 +166,7 @@ TODAY: ${new Date().toLocaleDateString("en-GB", { weekday: "long", year: "numeri
 
 Number of previous calls/notes: ${notes.length}. ${notes.length === 0 ? "This is a FIRST CALL — be warmer and broader." : "This is a follow-up — be more direct and specific."}`;
 
-    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    const response = await aiFetch("writing", "https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: {
         Authorization: `Bearer ${LOVABLE_API_KEY}`,

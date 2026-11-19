@@ -1,3 +1,4 @@
+import { aiFetch } from "./ai-router.ts";
 // Shared semantic candidate matching.
 // One implementation used by BOTH job-launch-match-candidates and ask-desky
 // so title/skills/sector matching stays consistent.
@@ -88,7 +89,7 @@ export async function scoreCandidatesSemantic(opts: {
   const out: Record<string, MatchScore> = {};
   if (!opts.apiKey || !opts.candidates.length) return out;
   try {
-    const r = await fetch(GATEWAY, {
+    const r = await aiFetch("fast", GATEWAY, {
       method: "POST",
       headers: { "Content-Type": "application/json", Authorization: `Bearer ${opts.apiKey}` },
       body: JSON.stringify({
@@ -128,7 +129,7 @@ export async function classifyEmployerSectors(opts: {
   const uniq = Array.from(new Set(opts.employers.filter(Boolean))).slice(0, 60);
   if (!opts.apiKey || !uniq.length || !opts.sector) return out;
   try {
-    const r = await fetch(GATEWAY, {
+    const r = await aiFetch("fast", GATEWAY, {
       method: "POST",
       headers: { "Content-Type": "application/json", Authorization: `Bearer ${opts.apiKey}` },
       body: JSON.stringify({

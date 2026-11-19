@@ -1,1 +1,2 @@
 - Spott is the system of record: the spott-sync edge function imports via the Spott custom connector in resumable steps, matching on spott_id columns; why: re-syncs must update, not duplicate.
+- All edge-function AI calls go through `_shared/ai-router.ts` `aiFetch(tier, …)` (writing→Claude, reasoning→GPT, fast→Gemini); why: one place to change models per task, and Claude needs Messages-API translation.

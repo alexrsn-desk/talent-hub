@@ -1,3 +1,4 @@
+import { aiFetch } from "../_shared/ai-router.ts";
 // Suggest similar job titles and key skills for a role.
 // Uses standard OpenAI-compatible chat completions via Lovable AI Gateway (works with Gemini & Claude).
 const cors = {
@@ -25,7 +26,7 @@ No duplicates. No generic filler like "team player".`;
 JOB DESCRIPTION: ${(description || "").slice(0, 3000) || "—"}
 IDEAL CANDIDATE: ${ideal_candidate_line || "—"}`;
 
-    const r = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    const r = await aiFetch("fast", "https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: { "Content-Type": "application/json", Authorization: `Bearer ${apiKey}` },
       body: JSON.stringify({

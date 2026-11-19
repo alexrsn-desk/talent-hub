@@ -1,3 +1,4 @@
+import { aiFetch } from "../_shared/ai-router.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
@@ -350,7 +351,7 @@ ${stageChanges
 Analyse all of this and generate my Weekly Intelligence Summary. For the "desk" object, extract sentiment, recurring themes (with mention counts), salary numbers actually mentioned, company names candidates want to join or are leaving, and any funding/hiring/leadership/restructure signals you can spot in the notes. No real candidate names in contentSuggestions.`;
 
 
-    const aiRes = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    const aiRes = await aiFetch("writing", "https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: {
         Authorization: `Bearer ${LOVABLE_API_KEY}`,

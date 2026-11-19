@@ -1,3 +1,4 @@
+import { aiFetch } from "../_shared/ai-router.ts";
 // Assess counter-offer / acceptance / start-date risk on a live offer.
 // Vendor-neutral chat completions (works with Gemini, Claude, GPT).
 // Also handles "counter_offer_strategy" for retention coaching.
@@ -121,7 +122,7 @@ Deno.serve(async (req) => {
       ].join("\n");
     }
 
-    const aiRes = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    const aiRes = await aiFetch("reasoning", "https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
       body: JSON.stringify({
