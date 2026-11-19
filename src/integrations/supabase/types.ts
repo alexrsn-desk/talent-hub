@@ -173,6 +173,83 @@ export type Database = {
         }
         Relationships: []
       }
+      agencies: {
+        Row: {
+          bonus_ai_credits: number
+          created_at: string
+          credits_reset_at: string
+          id: string
+          monthly_ai_credits: number
+          name: string
+          plan: string
+          seats: number
+          subscription_status: string
+          trial_ends_at: string | null
+          updated_at: string
+          used_ai_credits: number
+        }
+        Insert: {
+          bonus_ai_credits?: number
+          created_at?: string
+          credits_reset_at?: string
+          id?: string
+          monthly_ai_credits?: number
+          name?: string
+          plan?: string
+          seats?: number
+          subscription_status?: string
+          trial_ends_at?: string | null
+          updated_at?: string
+          used_ai_credits?: number
+        }
+        Update: {
+          bonus_ai_credits?: number
+          created_at?: string
+          credits_reset_at?: string
+          id?: string
+          monthly_ai_credits?: number
+          name?: string
+          plan?: string
+          seats?: number
+          subscription_status?: string
+          trial_ends_at?: string | null
+          updated_at?: string
+          used_ai_credits?: number
+        }
+        Relationships: []
+      }
+      agency_members: {
+        Row: {
+          agency_id: string
+          created_at: string
+          id: string
+          role: string
+          user_id: string
+        }
+        Insert: {
+          agency_id: string
+          created_at?: string
+          id?: string
+          role?: string
+          user_id: string
+        }
+        Update: {
+          agency_id?: string
+          created_at?: string
+          id?: string
+          role?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agency_members_agency_id_fkey"
+            columns: ["agency_id"]
+            isOneToOne: false
+            referencedRelation: "agencies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ask_desky_conversations: {
         Row: {
           created_at: string
@@ -616,6 +693,7 @@ export type Database = {
       }
       candidate_jobs: {
         Row: {
+          agency_id: string | null
           ai_suggested: boolean
           ai_suggested_at: string | null
           ai_suggested_reason: string | null
@@ -637,6 +715,7 @@ export type Database = {
           withdrawn_reason: string | null
         }
         Insert: {
+          agency_id?: string | null
           ai_suggested?: boolean
           ai_suggested_at?: string | null
           ai_suggested_reason?: string | null
@@ -658,6 +737,7 @@ export type Database = {
           withdrawn_reason?: string | null
         }
         Update: {
+          agency_id?: string | null
           ai_suggested?: boolean
           ai_suggested_at?: string | null
           ai_suggested_reason?: string | null
@@ -679,6 +759,13 @@ export type Database = {
           withdrawn_reason?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "candidate_jobs_agency_id_fkey"
+            columns: ["agency_id"]
+            isOneToOne: false
+            referencedRelation: "agencies"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "candidate_jobs_candidate_id_fkey"
             columns: ["candidate_id"]
@@ -854,6 +941,7 @@ export type Database = {
       }
       candidates: {
         Row: {
+          agency_id: string | null
           availability: string | null
           bd_conversation_notes: string | null
           bd_date_first_contacted: string | null
@@ -916,6 +1004,7 @@ export type Database = {
           work_preference: string | null
         }
         Insert: {
+          agency_id?: string | null
           availability?: string | null
           bd_conversation_notes?: string | null
           bd_date_first_contacted?: string | null
@@ -978,6 +1067,7 @@ export type Database = {
           work_preference?: string | null
         }
         Update: {
+          agency_id?: string | null
           availability?: string | null
           bd_conversation_notes?: string | null
           bd_date_first_contacted?: string | null
@@ -1039,7 +1129,15 @@ export type Database = {
           updated_at?: string
           work_preference?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "candidates_agency_id_fkey"
+            columns: ["agency_id"]
+            isOneToOne: false
+            referencedRelation: "agencies"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       client_feedback: {
         Row: {
@@ -1103,6 +1201,7 @@ export type Database = {
       }
       clients: {
         Row: {
+          agency_id: string | null
           company_name: string
           contact_name: string | null
           created_at: string
@@ -1127,6 +1226,7 @@ export type Database = {
           website: string | null
         }
         Insert: {
+          agency_id?: string | null
           company_name: string
           contact_name?: string | null
           created_at?: string
@@ -1151,6 +1251,7 @@ export type Database = {
           website?: string | null
         }
         Update: {
+          agency_id?: string | null
           company_name?: string
           contact_name?: string | null
           created_at?: string
@@ -1174,7 +1275,15 @@ export type Database = {
           updated_at?: string
           website?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "clients_agency_id_fkey"
+            columns: ["agency_id"]
+            isOneToOne: false
+            referencedRelation: "agencies"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       coach_action_log: {
         Row: {
@@ -1432,6 +1541,7 @@ export type Database = {
       }
       contacts: {
         Row: {
+          agency_id: string | null
           bd_conversation_notes: string | null
           bd_date_first_contacted: string | null
           bd_last_touch_date: string | null
@@ -1477,6 +1587,7 @@ export type Database = {
           summary: string | null
         }
         Insert: {
+          agency_id?: string | null
           bd_conversation_notes?: string | null
           bd_date_first_contacted?: string | null
           bd_last_touch_date?: string | null
@@ -1522,6 +1633,7 @@ export type Database = {
           summary?: string | null
         }
         Update: {
+          agency_id?: string | null
           bd_conversation_notes?: string | null
           bd_date_first_contacted?: string | null
           bd_last_touch_date?: string | null
@@ -1567,6 +1679,13 @@ export type Database = {
           summary?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "contacts_agency_id_fkey"
+            columns: ["agency_id"]
+            isOneToOne: false
+            referencedRelation: "agencies"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "contacts_client_id_fkey"
             columns: ["client_id"]
@@ -2294,6 +2413,7 @@ export type Database = {
       jobs: {
         Row: {
           additional_context: string | null
+          agency_id: string | null
           client_id: string | null
           created_at: string
           date_opened: string
@@ -2328,6 +2448,7 @@ export type Database = {
         }
         Insert: {
           additional_context?: string | null
+          agency_id?: string | null
           client_id?: string | null
           created_at?: string
           date_opened?: string
@@ -2362,6 +2483,7 @@ export type Database = {
         }
         Update: {
           additional_context?: string | null
+          agency_id?: string | null
           client_id?: string | null
           created_at?: string
           date_opened?: string
@@ -2396,6 +2518,13 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "jobs_agency_id_fkey"
+            columns: ["agency_id"]
+            isOneToOne: false
+            referencedRelation: "agencies"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "jobs_client_id_fkey"
             columns: ["client_id"]
             isOneToOne: false
@@ -2414,6 +2543,7 @@ export type Database = {
       notes: {
         Row: {
           activity_type: string
+          agency_id: string | null
           candidate_id: string | null
           client_id: string | null
           contact_id: string | null
@@ -2430,6 +2560,7 @@ export type Database = {
         }
         Insert: {
           activity_type?: string
+          agency_id?: string | null
           candidate_id?: string | null
           client_id?: string | null
           contact_id?: string | null
@@ -2446,6 +2577,7 @@ export type Database = {
         }
         Update: {
           activity_type?: string
+          agency_id?: string | null
           candidate_id?: string | null
           client_id?: string | null
           contact_id?: string | null
@@ -2461,6 +2593,13 @@ export type Database = {
           transcript?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "notes_agency_id_fkey"
+            columns: ["agency_id"]
+            isOneToOne: false
+            referencedRelation: "agencies"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "notes_candidate_id_fkey"
             columns: ["candidate_id"]
@@ -2802,6 +2941,7 @@ export type Database = {
       }
       placements: {
         Row: {
+          agency_id: string | null
           bd_new_company_client_id: string | null
           bd_new_manager_contact_id: string | null
           bd_old_role_logged_at: string | null
@@ -2853,6 +2993,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          agency_id?: string | null
           bd_new_company_client_id?: string | null
           bd_new_manager_contact_id?: string | null
           bd_old_role_logged_at?: string | null
@@ -2904,6 +3045,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          agency_id?: string | null
           bd_new_company_client_id?: string | null
           bd_new_manager_contact_id?: string | null
           bd_old_role_logged_at?: string | null
@@ -2955,6 +3097,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "placements_agency_id_fkey"
+            columns: ["agency_id"]
+            isOneToOne: false
+            referencedRelation: "agencies"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "placements_bd_new_company_client_id_fkey"
             columns: ["bd_new_company_client_id"]
@@ -4623,6 +4772,7 @@ export type Database = {
       }
       todo_tasks: {
         Row: {
+          agency_id: string | null
           candidate_id: string | null
           client_id: string | null
           completed: boolean
@@ -4644,6 +4794,7 @@ export type Database = {
           user_id: string | null
         }
         Insert: {
+          agency_id?: string | null
           candidate_id?: string | null
           client_id?: string | null
           completed?: boolean
@@ -4665,6 +4816,7 @@ export type Database = {
           user_id?: string | null
         }
         Update: {
+          agency_id?: string | null
           candidate_id?: string | null
           client_id?: string | null
           completed?: boolean
@@ -4686,6 +4838,13 @@ export type Database = {
           user_id?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "todo_tasks_agency_id_fkey"
+            columns: ["agency_id"]
+            isOneToOne: false
+            referencedRelation: "agencies"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "todo_tasks_candidate_id_fkey"
             columns: ["candidate_id"]
@@ -4997,6 +5156,11 @@ export type Database = {
       can_access_owner: { Args: { _owner: string }; Returns: boolean }
       claim_team_invite: { Args: { _code: string }; Returns: string }
       clear_user_data: { Args: never; Returns: Json }
+      consume_ai_credit: {
+        Args: { _amount?: number; _user: string }
+        Returns: boolean
+      }
+      current_agency_id: { Args: never; Returns: string }
       desky_is_senior_title: { Args: { _title: string }; Returns: boolean }
       desky_last_touchpoint: {
         Args: { _person_id: string; _person_type: string }
@@ -5011,6 +5175,7 @@ export type Database = {
         Returns: number
       }
       desky_signals_scan: { Args: never; Returns: Json }
+      ensure_user_agency: { Args: { _user: string }; Returns: string }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -5018,6 +5183,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      is_agency_admin: { Args: { _agency: string }; Returns: boolean }
       portal_can_access_candidate: {
         Args: { _candidate_id: string }
         Returns: boolean
