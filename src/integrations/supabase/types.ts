@@ -285,6 +285,39 @@ export type Database = {
           },
         ]
       }
+      app_user_connections: {
+        Row: {
+          account_email: string | null
+          connection_key_ciphertext: string
+          connector_id: string
+          created_at: string
+          id: string
+          reconnect_required: boolean
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          account_email?: string | null
+          connection_key_ciphertext: string
+          connector_id: string
+          created_at?: string
+          id?: string
+          reconnect_required?: boolean
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          account_email?: string | null
+          connection_key_ciphertext?: string
+          connector_id?: string
+          created_at?: string
+          id?: string
+          reconnect_required?: boolean
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       ask_desky_conversations: {
         Row: {
           created_at: string

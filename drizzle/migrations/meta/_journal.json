@@ -85,6 +85,13 @@
       "when": 1795096631656,
       "tag": "0011_launch_templates_job_ad_sequence",
       "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1795096954984,
+      "tag": "0012_app_user_connections",
+      "breakpoints": true
     }
   ]
 }

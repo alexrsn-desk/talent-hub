@@ -33,6 +33,7 @@ import PitchCandidate from "./pages/PitchCandidate";
 import ReactivationCampaign from "./pages/ReactivationCampaign";
 import JobLaunch from "./pages/JobLaunch";
 import JobLaunchSelector from "./pages/JobLaunchSelector";
+import OAuthReturn from "./pages/oauth/OAuthReturn";
 import AskDesky from "./pages/AskDesky";
 import SignalsPage from "./pages/Signals";
 import CompareSubmitSelector from "./pages/CompareSubmitSelector";
@@ -117,6 +118,7 @@ function AppRoutes() {
 
   // Token-gated public portals — no login, rendered before any auth gate.
   const portalPath = window.location.pathname;
+  if (portalPath === "/oauth/return") return <OAuthReturn />;
   if (/^\/portal\/[^/]+$/.test(portalPath) || /^\/candidate\/[^/]+$/.test(portalPath)) {
     return (
       <Routes>

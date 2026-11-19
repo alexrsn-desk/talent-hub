@@ -4,6 +4,7 @@
 // - Logs touchpoint activities for every message marked as sent/queued
 // - Marks the job as launched (search_launched_at, launch_summary)
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
+import { activeMailProvider, sendEmailAsUser } from "../_shared/mailer.ts";
 
 const cors = {
   "Access-Control-Allow-Origin": "*",
@@ -48,6 +49,37 @@ Deno.serve(async (req) => {
     } = body;
 
     if (!job_id) return json({ error: "job_id required" }, 400);
+
+    // 0) Actually send emails through the user's connected mailbox (Outlook or Gmail), if any.
+    const delivery = { provider: null as string | null, sent: 0, failed: 0, skipped_dnc: 0, no_email: 0, client_sent: false, errors: [] as string[] };
+    const provider = await activeMailProvider(user.id).catch(() => null);
+    delivery.provider = provider;
+    if (provider) {
+      const emailRecs = (personal_records as MessageRecord[]).filter((r) => r.channel === "email" && r.status === "sent" && r.body);
+      const ids = emailRecs.map((r) => r.candidate_id);
+      const { data: cands } = ids.length
+        ? await sb.from("candidates").select("id, email, do_not_contact").in("id", ids)
+        : { data: [] as any[] };
+      const byId = new Map(((cands as any[]) ?? []).map((c) => [c.id, c]));
+      for (const r of emailRecs) {
+        const c = byId.get(r.candidate_id);
+        if (!c) continue;
+        if (c.do_not_contact) { delivery.skipped_dnc++; r.status = "skipped"; continue; }
+        if (!c.email) { delivery.no_email++; r.status = "queued"; continue; }
+        const out = await sendEmailAsUser(user.id, provider, { to: c.email, subject: r.subject || "Quick one", body: r.body! });
+        if (out.ok) delivery.sent++;
+        else { delivery.failed++; r.status = "queued"; delivery.errors.push(out.error); if (out.reconnect) break; }
+      }
+      if (client_email_sent && client_email?.body) {
+        const { data: j } = await sb.from("jobs").select("clients(email)").eq("id", job_id).maybeSingle();
+        const to = (j as any)?.clients?.email;
+        if (to) {
+          const out = await sendEmailAsUser(user.id, provider, { to, subject: client_email.subject || "Search update", body: client_email.body });
+          delivery.client_sent = out.ok;
+          if (!out.ok) delivery.errors.push(out.error);
+        }
+      }
+    }
 
     const knownCount = personal_records.filter((r: MessageRecord) => r.status !== "skipped").length;
     const liCount = li_records.filter((r: MessageRecord) => r.status !== "skipped").length;
@@ -178,7 +210,7 @@ Deno.serve(async (req) => {
       await sb.from("job_launch_items").upsert(itemRows as any, { onConflict: "job_id,item_key" });
     }
 
-    return json({ ok: true, launch_id: launch.id, summary });
+    return json({ ok: true, launch_id: launch.id, summary, delivery });
   } catch (e: any) {
     return json({ error: e?.message || "unknown" }, 500);
   }

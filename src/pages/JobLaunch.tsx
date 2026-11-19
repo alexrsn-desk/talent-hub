@@ -385,7 +385,15 @@ export default function JobLaunch() {
       });
       if (error) throw error;
       setLaunched(true);
-      toast.success("Search launched");
+      const d = (data as any)?.delivery;
+      if (d?.provider) {
+        toast.success(`Search launched — ${d.sent} email${d.sent === 1 ? "" : "s"} sent${d.client_sent ? ", client emailed" : ""}`);
+        if (d.failed) toast.error(`${d.failed} email${d.failed === 1 ? "" : "s"} couldn't send — ${d.errors?.[0] ?? ""}`);
+        if (d.skipped_dnc) toast.info(`${d.skipped_dnc} skipped (Do Not Contact)`);
+        if (d.no_email) toast.info(`${d.no_email} have no email address — logged only`);
+      } else {
+        toast.success("Search launched — connect Outlook or Gmail in Settings to send emails automatically");
+      }
     } catch (e: any) {
       toast.error(e?.message || "Launch failed");
     } finally {
@@ -823,6 +831,16 @@ export default function JobLaunch() {
                   <Button size="sm" variant="outline" onClick={() => regenerateBulk("post")} className="gap-1">
                     <RotateCw className="h-3.5 w-3.5" /> Regenerate
                   </Button>
+                  <Button size="sm" onClick={async () => {
+                    const { data, error } = await supabase.functions.invoke("linkedin-post", { body: { text: linkedinPost, job_id: jobId } });
+                    if (error || (data as any)?.error) {
+                      let msg = (data as any)?.error;
+                      try { msg = JSON.parse(await (error as any)?.context?.text())?.error || msg; } catch { /* keep */ }
+                      toast.error(msg || "Couldn't post — connect LinkedIn in Settings");
+                    } else toast.success("Posted to LinkedIn");
+                  }} disabled={!linkedinPost} className="gap-1">
+                    <Sparkles className="h-3.5 w-3.5" /> Post to LinkedIn
+                  </Button>
                   <Button size="sm" variant="outline" onClick={() => copy(linkedinPost, "Post copied")} className="gap-1">
                     <Copy className="h-3.5 w-3.5" /> Copy
                   </Button>
@@ -941,7 +959,7 @@ export default function JobLaunch() {
           </ul>
 
           <div className="rounded-lg bg-muted/40 p-3 text-xs text-muted-foreground">
-            Spacing: emails to known candidates will be logged immediately. For real send-via-Outlook spacing (30 min / 2 hr / today), connect Outlook in Settings.
+            Emails to known candidates (and the client confirmation) are sent from the Outlook or Gmail account you connected in Settings → Email & LinkedIn. Do Not Contact candidates are always skipped.
           </div>
 
           {launched ? (
