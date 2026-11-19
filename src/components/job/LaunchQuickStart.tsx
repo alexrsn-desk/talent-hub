@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Rocket, Wand2, Save, Loader2 } from "lucide-react";
 import { toast } from "sonner";
@@ -37,9 +37,11 @@ export function matchInstruction(text: string, options: { key: string; label: st
 }
 
 export function LaunchQuickStart({
-  jobId, onApply, current,
+  jobId, onApply, current, initialKey, autoRunInitial,
 }: {
   jobId: string;
+  initialKey?: string | null;
+  autoRunInitial?: boolean;
   onApply: (b: LaunchBlueprint, autoRun: boolean) => void;
   current: LaunchBlueprint;
 }) {
@@ -83,6 +85,15 @@ export function LaunchQuickStart({
       similar_titles: j.similar_titles, key_skills: j.key_skills,
     })),
   ], [presets.data, pastJobs.data]);
+
+  const appliedInitial = useRef(false);
+  useEffect(() => {
+    if (appliedInitial.current || !initialKey || !options.some((o) => o.key === initialKey)) return;
+    appliedInitial.current = true;
+    setSelected(initialKey);
+    apply(initialKey, !!autoRunInitial);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialKey, options]);
 
   async function apply(key: string, autoRun: boolean) {
     const o = options.find((x) => x.key === key);

@@ -12,6 +12,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Rocket, Plus, Search, ArrowRight, MoreVertical, CheckCircle2, XCircle, ListChecks } from "lucide-react";
 import { toast } from "sonner";
 import { LaunchStatusSection } from "@/components/LaunchStatusSection";
+import { LaunchStartPanel } from "@/components/job/LaunchStartPanel";
 
 export default function JobLaunchSelector() {
   const nav = useNavigate();
@@ -68,6 +69,9 @@ export default function JobLaunchSelector() {
         </div>
       </div>
 
+      <LaunchStartPanel jobs={jobs as any[]} onSaved={() => refetch()} />
+
+      <h2 className="text-sm font-medium text-muted-foreground pt-2">All live jobs</h2>
       <div className="flex gap-2">
         <div className="relative flex-1">
           <Search className="h-4 w-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />

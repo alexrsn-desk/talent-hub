@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { useParams, useNavigate, Link } from "react-router-dom";
+import { useParams, useNavigate, Link, useSearchParams } from "react-router-dom";
 import { useJobJudgements, useRunJobJudgements, type JobJudgement } from "@/hooks/use-judgement";
 import { JudgementBadge, JudgementReasoning } from "@/components/JudgementScore";
 import { supabase } from "@/integrations/supabase/client";
@@ -42,6 +42,7 @@ export default function JobLaunch() {
   const { data: judgements = {} } = useJobJudgements(jobId);
   const runJudgements = useRunJobJudgements();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [step, setStep] = useState(0);
 
   const [job, setJob] = useState<any>(null);
@@ -457,6 +458,8 @@ export default function JobLaunch() {
         <LaunchQuickStart
           jobId={jobId}
           onApply={applyBlueprint}
+          initialKey={searchParams.get("preset")}
+          autoRunInitial={searchParams.get("run") === "1"}
           current={{ label: "", launch_hook: hook, ideal_candidate_line: ideal, similar_titles: similarTitles, key_skills: keySkills, send_client_email: clientEmailWillSend }}
         />
       )}
