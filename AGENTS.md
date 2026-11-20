@@ -8,3 +8,4 @@
 - External sending tools require exact-message confirmation and use per-user connectors; why: assistants must not bypass DNC or send from a shared mailbox.
 - Auth return paths are canonical same-origin paths validated once, with social sign-in returning through a public callback; why: preserve consent without open redirects or protected-provider callbacks.
 - OAuth consent uses the managed SDK through the typed consent adapter; public callbacks carry validated return paths in their query and bypass onboarding, so provider redirects survive tab changes without losing the authorization request.
+- Conversations hub (/live) reads conversation_messages plus comms-type notes; SMS goes out via send-sms (Twilio connector, TWILIO_FROM_NUMBER) and inbound texts land via twilio-webhook matched by phone; why: one timeline per person, unknown senders never enter the inbox.
