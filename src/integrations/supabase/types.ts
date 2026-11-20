@@ -1763,6 +1763,82 @@ export type Database = {
           },
         ]
       }
+      conversation_messages: {
+        Row: {
+          agency_id: string | null
+          body: string
+          candidate_id: string | null
+          channel: string
+          client_id: string | null
+          contact_id: string | null
+          created_at: string
+          direction: string
+          from_address: string | null
+          id: string
+          needs_action: boolean
+          owner_user_id: string | null
+          provider_message_id: string | null
+          status: string
+          to_address: string | null
+        }
+        Insert: {
+          agency_id?: string | null
+          body: string
+          candidate_id?: string | null
+          channel?: string
+          client_id?: string | null
+          contact_id?: string | null
+          created_at?: string
+          direction?: string
+          from_address?: string | null
+          id?: string
+          needs_action?: boolean
+          owner_user_id?: string | null
+          provider_message_id?: string | null
+          status?: string
+          to_address?: string | null
+        }
+        Update: {
+          agency_id?: string | null
+          body?: string
+          candidate_id?: string | null
+          channel?: string
+          client_id?: string | null
+          contact_id?: string | null
+          created_at?: string
+          direction?: string
+          from_address?: string | null
+          id?: string
+          needs_action?: boolean
+          owner_user_id?: string | null
+          provider_message_id?: string | null
+          status?: string
+          to_address?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "conversation_messages_candidate_id_fkey"
+            columns: ["candidate_id"]
+            isOneToOne: false
+            referencedRelation: "candidates"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "conversation_messages_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "conversation_messages_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       counter_offers: {
         Row: {
           ai_strategy: string | null
@@ -4030,6 +4106,7 @@ export type Database = {
           agency_name: string | null
           bd_approach: string | null
           biggest_challenge: string | null
+          booking_url: string | null
           brand_color: string | null
           campaign_outreach_template: string | null
           client_confirmation_template: string | null
@@ -4063,6 +4140,7 @@ export type Database = {
           agency_name?: string | null
           bd_approach?: string | null
           biggest_challenge?: string | null
+          booking_url?: string | null
           brand_color?: string | null
           campaign_outreach_template?: string | null
           client_confirmation_template?: string | null
@@ -4096,6 +4174,7 @@ export type Database = {
           agency_name?: string | null
           bd_approach?: string | null
           biggest_challenge?: string | null
+          booking_url?: string | null
           brand_color?: string | null
           campaign_outreach_template?: string | null
           client_confirmation_template?: string | null
