@@ -17,6 +17,7 @@ import { TagManagement } from "@/components/TagManagement";
 import { MyPlanSection } from "@/components/MyPlanSection";
 import { AgencyBillingSection } from "@/components/billing/AgencyBillingSection";
 import { EmailConnectionsSection } from "@/components/settings/EmailConnectionsSection";
+import { TextMessagingSection } from "@/components/settings/TextMessagingSection";
 import { ScreeningTemplateSettings } from "@/components/ScreeningTemplateSettings";
 import { WebhookSettingsSection } from "@/components/WebhookSettings";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -377,6 +378,7 @@ export default function SettingsPage() {
       {/* My Plan */}
       <div className="pt-6 border-t border-border">
         <EmailConnectionsSection />
+        <TextMessagingSection />
         <AgencyBillingSection />
         <MyPlanSection />
       </div>

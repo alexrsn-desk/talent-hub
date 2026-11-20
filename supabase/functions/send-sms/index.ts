@@ -28,7 +28,11 @@ Deno.serve(async (req) => {
     const sb = createClient(url, anon, { global: { headers: { Authorization: req.headers.get('Authorization') ?? '' } } });
     const { data: { user } } = await sb.auth.getUser();
     if (!user) return json({ error: 'Sign in required' }, 401);
-    const parsed = schema.safeParse(await req.json());
+    const raw = await req.json().catch(() => ({}));
+    if (raw?.action === 'status') {
+      return json({ twilio_connected: !!Deno.env.get('TWILIO_API_KEY'), sender_number: Deno.env.get('TWILIO_FROM_NUMBER') ?? null });
+    }
+    const parsed = schema.safeParse(raw);
     if (!parsed.success) return json({ error: 'Check the recipient and message' }, 400);
     const p = parsed.data;
 
