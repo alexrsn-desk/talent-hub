@@ -39,8 +39,8 @@ import SignalsPage from "./pages/Signals";
 import CompareSubmitSelector from "./pages/CompareSubmitSelector";
 import PitchCandidateSelector from "./pages/PitchCandidateSelector";
 import NotFound from "./pages/NotFound";
-import { oauthReturnPath } from "@/lib/oauth-return-path";
 import OAuthConsent from "./pages/OAuthConsent";
+import AuthCallback from "./pages/oauth/AuthCallback";
 import BDContactTracker from "./pages/BDContactTracker";
 import PortalClient from "./pages/PortalClient";
 import PortalCandidate from "./pages/PortalCandidate";
@@ -117,17 +117,11 @@ function AppRoutes() {
     })();
   }, [user]);
 
-  useEffect(() => {
-    if (user && window.location.pathname === '/auth/callback') {
-      const next = oauthReturnPath(sessionStorage.getItem('desky_auth_return'));
-      sessionStorage.removeItem('desky_auth_return');
-      window.location.replace(next);
-    }
-  }, [user]);
-
   // Token-gated public portals — no login, rendered before any auth gate.
   const portalPath = window.location.pathname;
   if (portalPath === "/oauth/return") return <OAuthReturn />;
+  if (portalPath === "/auth/callback") return <AuthCallback />;
+  if (portalPath === "/.lovable/oauth/consent") return <OAuthConsent />;
   if (/^\/portal\/[^/]+$/.test(portalPath) || /^\/candidate\/[^/]+$/.test(portalPath)) {
     return (
       <Routes>
@@ -143,11 +137,6 @@ function AppRoutes() {
         <Loader2 className="h-6 w-6 animate-spin text-primary" />
       </div>
     );
-  }
-
-  // OAuth consent route — requires a signed-in user; OAuthConsent redirects to auth if missing.
-  if (window.location.pathname === "/.lovable/oauth/consent") {
-    return <OAuthConsent />;
   }
 
   if (!user) return <Auth />;

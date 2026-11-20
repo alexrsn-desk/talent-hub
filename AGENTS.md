@@ -7,3 +7,4 @@
 - MCP tools use one lazy caller-scoped Supabase factory and field allowlists; why: OAuth identity, agency RLS and runtime environment fallbacks must be consistent across every tool.
 - External sending tools require exact-message confirmation and use per-user connectors; why: assistants must not bypass DNC or send from a shared mailbox.
 - Auth return paths are canonical same-origin paths validated once, with social sign-in returning through a public callback; why: preserve consent without open redirects or protected-provider callbacks.
+- OAuth consent uses the managed SDK through the typed consent adapter; public callbacks carry validated return paths in their query and bypass onboarding, so provider redirects survive tab changes without losing the authorization request.

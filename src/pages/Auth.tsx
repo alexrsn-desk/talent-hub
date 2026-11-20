@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { Sparkles } from "lucide-react";
 
-import { oauthReturnPath } from "@/lib/oauth-return-path";
+import { oauthCallbackUrl, oauthReturnPath } from "@/lib/oauth-return-path";
 
 export default function AuthPage() {
   const [isLogin, setIsLogin] = useState(true);
@@ -19,6 +19,7 @@ export default function AuthPage() {
   // After sign-in (either via password or via Supabase setting the session from an OAuth popup),
   // navigate to the preserved `next` target.
   useEffect(() => {
+    sessionStorage.setItem('desky_auth_return', next);
     const { data: sub } = supabase.auth.onAuthStateChange((_event, session) => {
       if (session && next !== "/") {
         sessionStorage.removeItem("desky_auth_return");
@@ -33,12 +34,14 @@ export default function AuthPage() {
     setLoading(true);
     try {
       if (isLogin) {
-        const { error } = await supabase.auth.signInWithPassword({ email, password });
+        const { data, error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
+        if (data.session && next !== '/') {
+          sessionStorage.removeItem('desky_auth_return');
+          window.location.assign(next);
+        }
       } else {
-        const emailRedirectTo = next
-          ? `${window.location.origin}${next}`
-          : window.location.origin;
+        const emailRedirectTo = new URL(next, window.location.origin).href;
         const { error } = await supabase.auth.signUp({
           email,
           password,
@@ -58,7 +61,7 @@ export default function AuthPage() {
     setGoogleLoading(true);
     try {
       sessionStorage.setItem("desky_auth_return", next);
-      const redirect_uri = window.location.origin + "/auth/callback";
+      const redirect_uri = oauthCallbackUrl(window.location.origin, next);
       const result = await lovable.auth.signInWithOAuth("google", { redirect_uri });
       if (result.error) {
         toast.error(result.error.message || "Google sign-in failed");
@@ -77,7 +80,7 @@ export default function AuthPage() {
         <div className="text-center space-y-2">
           <div className="flex items-center justify-center gap-2">
             <Sparkles className="h-6 w-6 text-primary" />
-            <h1 className="text-xl font-bold">RecruiterCRM</h1>
+            <h1 className="text-xl font-bold !tracking-normal">Desky</h1>
           </div>
           <p className="text-sm text-muted-foreground">
             {isLogin ? "Sign in to your desk" : "Create your account"}
@@ -113,6 +116,8 @@ export default function AuthPage() {
           <div className="space-y-2">
             <Input
               type="email"
+              aria-label="Email"
+              autoComplete="email"
               placeholder="Email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
@@ -120,6 +125,8 @@ export default function AuthPage() {
             />
             <Input
               type="password"
+              aria-label="Password"
+              autoComplete={isLogin ? 'current-password' : 'new-password'}
               placeholder="Password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
@@ -134,12 +141,12 @@ export default function AuthPage() {
 
         <p className="text-center text-sm text-muted-foreground">
           {isLogin ? "Don't have an account?" : "Already have an account?"}{" "}
-          <button
+          <Button variant="link" className="h-auto p-0"
             onClick={() => setIsLogin(!isLogin)}
-            className="text-primary hover:underline font-medium"
+            disabled={loading || googleLoading}
           >
             {isLogin ? "Sign up" : "Sign in"}
-          </button>
+          </Button>
         </p>
       </div>
     </div>
